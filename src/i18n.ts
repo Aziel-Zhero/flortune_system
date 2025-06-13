@@ -1,38 +1,42 @@
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-// Importa de um caminho relativo para robustez, assumindo que config/locales.ts está em src/config/locales.ts
+// Import from a relative path for robustness
 import {SUPPORTED_LOCALES, type SupportedLocale} from './config/locales';
 
-export default getRequestConfig(async ({locale}) => {
-  console.log(`[i18n.ts] getRequestConfig chamado. Parâmetro de localidade bruto: "${locale}"`);
+console.log('[i18n.ts] File loaded. Initializing configuration...');
 
-  // Valida que o parâmetro `locale` de entrada é uma localidade suportada
+export default getRequestConfig(async ({locale}) => {
+  console.log(`[i18n.ts] getRequestConfig called. Raw locale parameter: "${locale}"`);
+
+  // Validate that the `locale` parameter is a supported locale
   const typedLocale = locale as SupportedLocale;
   if (!SUPPORTED_LOCALES.includes(typedLocale)) {
-    console.error(`[i18n.ts] Localidade inválida: "${typedLocale}". Localidades suportadas são: ${SUPPORTED_LOCALES.join(', ')}. Acionando notFound().`);
+    console.error(`[i18n.ts] Invalid locale: "${typedLocale}". Supported locales are: ${SUPPORTED_LOCALES.join(', ')}. Triggering notFound().`);
     notFound();
   }
 
+  console.log(`[i18n.ts] Locale "${typedLocale}" is valid.`);
+
   let messages;
   try {
-    // Caminho relativo para os arquivos de mensagens
+    // Use a relative path for message files
     const messagePath = `./messages/${typedLocale}.json`;
-    console.log(`[i18n.ts] Tentando importar dinamicamente mensagens para a localidade: "${typedLocale}" de "${messagePath}"`);
-    messages = (await import(/* @vite-ignore */ messagePath)).default;
-    console.log(`[i18n.ts] Mensagens importadas com sucesso para a localidade: "${typedLocale}".`);
+    console.log(`[i18n.ts] Attempting to dynamically import messages for locale: "${typedLocale}" from "${messagePath}"`);
+    messages = (await import(messagePath)).default; // Removed /* @vite-ignore */
+    console.log(`[i18n.ts] Successfully imported messages for locale: "${typedLocale}".`);
   } catch (error) {
-    console.error(`[i18n.ts] Erro ao importar arquivo de mensagens para a localidade "${typedLocale}":`, error);
-    // Este erro explícito significa que o arquivo de mensagem específico (por exemplo, en.json) não foi encontrado ou teve um problema.
-    // Isso é diferente de "arquivo de configuração não encontrado".
-    console.log(`[i18n.ts] Acionando notFound() devido a erro na importação de mensagens para a localidade "${typedLocale}".`);
+    console.error(`[i18n.ts] Error importing message file for locale "${typedLocale}":`, error);
+    // Check if the error is due to the file not being found specifically for this locale
+    if ((error as NodeJS.ErrnoException)?.code === 'MODULE_NOT_FOUND') {
+      console.log(`[i18n.ts] Specific message file for locale "${typedLocale}" not found. Triggering notFound().`);
+    } else {
+      console.log(`[i18n.ts] An unexpected error occurred while importing messages for locale "${typedLocale}". Triggering notFound().`);
+    }
     notFound();
   }
 
   return {
     messages
-    // timeZone: 'Europe/Vienna', // Exemplo: Você pode definir um fuso horário padrão
-    // now: new Date(), // Exemplo: Você pode fornecer uma data para formatação consistente
-    // formats: { ... } // Exemplo: Formatos personalizados
   };
 });
