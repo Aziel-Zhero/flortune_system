@@ -1,24 +1,30 @@
+
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 
-// Define supported locales directly in this file for robustness with build tools
+// Define supported locales directly in this file for robustness
 const SUPPORTED_LOCALES_CONFIG = ['en', 'pt', 'es', 'fr', 'ja', 'zh'] as const;
 type SupportedLocaleConfig = typeof SUPPORTED_LOCALES_CONFIG[number];
 
-export default getRequestConfig(async ({locale}) => {
+console.log('[i18n.ts] File loaded. SUPPORTED_LOCALES_CONFIG:', SUPPORTED_LOCALES_CONFIG);
+
+export default getRequestConfig(async ({locale: localeParam}) => {
+  console.log(`[i18n.ts] getRequestConfig called with localeParam: "${localeParam}"`);
+
   // Validate that the incoming `locale` parameter is a supported locale
-  if (!SUPPORTED_LOCALES_CONFIG.includes(locale as SupportedLocaleConfig)) {
-    console.error(`[i18n.ts] Unsupported locale received by getRequestConfig: "${locale}". Supported: ${SUPPORTED_LOCALES_CONFIG.join(', ')}. Triggering notFound().`);
+  if (!SUPPORTED_LOCALES_CONFIG.includes(localeParam as SupportedLocaleConfig)) {
+    console.error(`[i18n.ts] Unsupported locale received by getRequestConfig: "${localeParam}". Supported: ${SUPPORTED_LOCALES_CONFIG.join(', ')}. Triggering notFound().`);
     notFound();
   }
 
   // Cast to SupportedLocaleConfig after validation for type safety
-  const typedLocale = locale as SupportedLocaleConfig;
+  const typedLocale = localeParam as SupportedLocaleConfig;
+  console.log(`[i18n.ts] Validated locale: "${typedLocale}"`);
 
   try {
     // Dynamically import the messages for the current locale using a relative path
-    // The .default is important because dynamic imports return a module object
+    console.log(`[i18n.ts] Attempting to dynamically import messages for locale: "${typedLocale}" from path ./messages/${typedLocale}.json`);
     const messages = (await import(`./messages/${typedLocale}.json`)).default;
     console.log(`[i18n.ts] Successfully loaded messages for locale: "${typedLocale}"`);
     return {
