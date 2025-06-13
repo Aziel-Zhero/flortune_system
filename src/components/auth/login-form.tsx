@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useActionState } from "react";
+import { useFormState } from "react-dom"; // Corrigido para useFormState de react-dom
 import Link from "next/link";
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { loginUser, signInWithGoogle, type LoginFormState } from "@/app/actions/auth.actions";
 import { OAuthButton } from "./oauth-button";
-import { SubmitButton } from "./submit-button"; // Import the new SubmitButton
+import { SubmitButton } from "./submit-button";
 
 export function LoginForm() {
   const initialState: LoginFormState = { message: undefined, errors: {} };
-  const [state, dispatch] = useActionState(loginUser, initialState);
+  const [state, dispatch] = useFormState(loginUser, initialState);
 
   return (
     <form action={dispatch} className="space-y-6">

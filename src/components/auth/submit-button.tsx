@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useFormStatus } from "react";
+import { useFormStatus } from "react-dom"; // Corrigido para react-dom
 import { Button, type ButtonProps } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface SubmitButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   pendingText: string;
@@ -21,11 +22,3 @@ export function SubmitButton({ pendingText, children, className, ...props }: Sub
     </Button>
   );
 }
-
-// Helper function for cn, assuming it might be needed if not globally available in this context
-// For robustness, explicitly include a minimal cn if not relying on an implicit one.
-// However, given the project structure, "@/lib/utils" should be accessible.
-// If issues arise with cn, it would need to be imported: import { cn } from "@/lib/utils";
-// For now, assuming Button component internally uses cn or it's applied at usage.
-// Added cn to the className prop for direct usage.
-const cn = (...inputs:any[]) => inputs.filter(Boolean).join(' ');
