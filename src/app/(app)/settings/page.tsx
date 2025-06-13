@@ -1,3 +1,7 @@
+
+"use client";
+
+import { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +18,41 @@ export default function SettingsPage() {
     name: "Flora Green",
     email: "flora.green@example.com",
     avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "woman nature"
+  };
+
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    const storedDarkMode = localStorage.getItem('flortune-dark-mode');
+    let darkModeEnabled = false;
+    if (storedDarkMode !== null) {
+      darkModeEnabled = JSON.parse(storedDarkMode);
+    } else {
+      // Fallback: check if the class is already on the html element or system preference
+      darkModeEnabled = document.documentElement.classList.contains('dark') || 
+                        (typeof window !== "undefined" && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    setIsDarkMode(darkModeEnabled);
+    // Ensure HTML class matches this initial state
+    if (darkModeEnabled) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []); // Runs once on mount
+
+  useEffect(() => {
+    // This effect runs when isDarkMode changes *after* initial setup
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('flortune-dark-mode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
+
+  const handleDarkModeChange = (checked: boolean) => {
+    setIsDarkMode(checked);
   };
 
   return (
@@ -113,11 +152,11 @@ export default function SettingsPage() {
                 Toggle between light and dark themes.
               </span>
             </Label>
-            {/* This switch would need to actually toggle dark mode via context/theme provider */}
-            <Switch id="dark-mode" onCheckedChange={(checked) => {
-              if (checked) document.documentElement.classList.add('dark');
-              else document.documentElement.classList.remove('dark');
-            }} />
+            <Switch 
+              id="dark-mode" 
+              checked={isDarkMode}
+              onCheckedChange={handleDarkModeChange} 
+            />
           </div>
         </CardContent>
       </Card>
