@@ -1,28 +1,32 @@
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-import {SUPPORTED_LOCALES, type SupportedLocale} from './config/locales';
 
-// O parâmetro 'locale' é fornecido por next-intl. É a string da localidade resolvida atualmente.
-export default getRequestConfig(async ({locale: localeParam}: {locale: string}) => {
-  // Valida se o parâmetro 'localeParam' recebido é uma localidade suportada válida.
-  // Fazemos o cast de 'localeParam' para 'SupportedLocale' para a verificação,
-  // pois .includes espera elementos do mesmo tipo do array.
-  if (!SUPPORTED_LOCALES.includes(localeParam as SupportedLocale)) {
-    console.error(`[i18n.ts] Localidade não suportada: "${localeParam}". Localidades suportadas são: ${SUPPORTED_LOCALES.join(', ')}.`);
+// Define supported locales directly in this file for robustness with build tools
+const SUPPORTED_LOCALES_CONFIG = ['en', 'pt', 'es', 'fr', 'ja', 'zh'] as const;
+type SupportedLocaleConfig = typeof SUPPORTED_LOCALES_CONFIG[number];
+
+export default getRequestConfig(async ({locale}) => {
+  // Validate that the incoming `locale` parameter is a supported locale
+  if (!SUPPORTED_LOCALES_CONFIG.includes(locale as SupportedLocaleConfig)) {
+    console.error(`[i18n.ts] Unsupported locale received by getRequestConfig: "${locale}". Supported: ${SUPPORTED_LOCALES_CONFIG.join(', ')}. Triggering notFound().`);
     notFound();
   }
 
-  // Agora que validamos, podemos usá-lo com segurança como SupportedLocale.
-  const currentValidatedLocale = localeParam as SupportedLocale;
+  // Cast to SupportedLocaleConfig after validation for type safety
+  const typedLocale = locale as SupportedLocaleConfig;
 
   try {
+    // Dynamically import the messages for the current locale using a relative path
+    // The .default is important because dynamic imports return a module object
+    const messages = (await import(`./messages/${typedLocale}.json`)).default;
+    console.log(`[i18n.ts] Successfully loaded messages for locale: "${typedLocale}"`);
     return {
-      messages: (await import(`./messages/${currentValidatedLocale}.json`)).default
+      messages
     };
   } catch (error) {
-    console.error(`[i18n.ts] Erro ao carregar mensagens para a localidade "${currentValidatedLocale}":`, error);
-    // Isso pode acontecer se o arquivo .json estiver faltando ou malformado.
+    console.error(`[i18n.ts] Critical error importing message file for locale "${typedLocale}":`, error);
+    // If a message file is missing or malformed for a supported locale, it's a critical setup error.
     notFound();
   }
 });
