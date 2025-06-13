@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
 import { AlertTriangle, UserPlus, KeyRound, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,20 +10,11 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { signupUser, signInWithGoogle, type SignupFormState } from "@/app/actions/auth.actions";
 import { OAuthButton } from "./oauth-button";
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Creating Account..." : "Create Account"}
-      <UserPlus className="ml-2" />
-    </Button>
-  );
-}
+import { SubmitButton } from "./submit-button"; // Import the new SubmitButton
 
 export function SignupForm() {
   const initialState: SignupFormState = { message: undefined, errors: {} };
-  const [state, dispatch] = useFormState(signupUser, initialState);
+  const [state, dispatch] = useActionState(signupUser, initialState);
 
   return (
     <form action={dispatch} className="space-y-6">
@@ -84,7 +76,9 @@ export function SignupForm() {
         {state?.errors?.confirmPassword && <p id="confirmPassword-error" className="text-sm text-destructive">{state.errors.confirmPassword.join(', ')}</p>}
       </div>
       
-      <SubmitButton />
+      <SubmitButton pendingText="Creating Account...">
+        Create Account <UserPlus className="ml-2 h-4 w-4" />
+      </SubmitButton>
       <Separator className="my-6" />
       <OAuthButton providerName="Google" Icon={UserPlus /* Placeholder */} onClick={signInWithGoogle} />
     </form>

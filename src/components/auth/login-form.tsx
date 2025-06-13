@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
 import Link from "next/link";
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,20 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { loginUser, signInWithGoogle, type LoginFormState } from "@/app/actions/auth.actions";
 import { OAuthButton } from "./oauth-button";
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Signing In..." : "Sign In"}
-      <LogIn className="ml-2" />
-    </Button>
-  );
-}
+import { SubmitButton } from "./submit-button"; // Import the new SubmitButton
 
 export function LoginForm() {
   const initialState: LoginFormState = { message: undefined, errors: {} };
-  const [state, dispatch] = useFormState(loginUser, initialState);
+  const [state, dispatch] = useActionState(loginUser, initialState);
 
   return (
     <form action={dispatch} className="space-y-6">
@@ -85,7 +77,9 @@ export function LoginForm() {
         </div>
         {state?.errors?.password && <p id="password-error" className="text-sm text-destructive">{state.errors.password.join(', ')}</p>}
       </div>
-      <SubmitButton />
+      <SubmitButton pendingText="Signing In...">
+        Sign In <LogIn className="ml-2 h-4 w-4" />
+      </SubmitButton>
       <Separator className="my-6" />
       <OAuthButton providerName="Google" Icon={LogIn /* Placeholder, will be replaced by GoogleIcon */} onClick={signInWithGoogle} />
     </form>
