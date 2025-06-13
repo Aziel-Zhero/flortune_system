@@ -1,25 +1,28 @@
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-import {SUPPORTED_LOCALES, type SupportedLocale} from './config/locales'; // Relative import
+import {SUPPORTED_LOCALES, type SupportedLocale} from './config/locales';
 
-export default getRequestConfig(async ({locale}) => {
-  // Validate that the incoming `locale` parameter is a valid supported locale
-  const typedLocale = locale as SupportedLocale;
-  if (!SUPPORTED_LOCALES.includes(typedLocale)) {
-    // Log an error and trigger notFound for unsupported locales
-    console.error(`[i18n.ts] Unsupported locale: "${typedLocale}". Supported: ${SUPPORTED_LOCALES.join(', ')}`);
+// O parâmetro 'locale' é fornecido por next-intl. É a string da localidade resolvida atualmente.
+export default getRequestConfig(async ({locale: localeParam}: {locale: string}) => {
+  // Valida se o parâmetro 'localeParam' recebido é uma localidade suportada válida.
+  // Fazemos o cast de 'localeParam' para 'SupportedLocale' para a verificação,
+  // pois .includes espera elementos do mesmo tipo do array.
+  if (!SUPPORTED_LOCALES.includes(localeParam as SupportedLocale)) {
+    console.error(`[i18n.ts] Localidade não suportada: "${localeParam}". Localidades suportadas são: ${SUPPORTED_LOCALES.join(', ')}.`);
     notFound();
   }
 
+  // Agora que validamos, podemos usá-lo com segurança como SupportedLocale.
+  const currentValidatedLocale = localeParam as SupportedLocale;
+
   try {
     return {
-      // Dynamically import messages for the given locale using a relative path
-      messages: (await import(`./messages/${typedLocale}.json`)).default
+      messages: (await import(`./messages/${currentValidatedLocale}.json`)).default
     };
   } catch (error) {
-    // Log if a specific message file is not found or is invalid
-    console.error(`[i18n.ts] Could not load messages for locale "${typedLocale}":`, error);
+    console.error(`[i18n.ts] Erro ao carregar mensagens para a localidade "${currentValidatedLocale}":`, error);
+    // Isso pode acontecer se o arquivo .json estiver faltando ou malformado.
     notFound();
   }
 });
