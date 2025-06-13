@@ -1,11 +1,14 @@
 
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getLocale } from 'next-intl/server';
-import { notFound } from 'next/navigation'; // Import notFound
+// Ensure this is the correct import for server-side message fetching
+import { getMessages } from 'next-intl/server';
+import { notFound } from 'next/navigation'; // For handling invalid locales
+
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
 import { Toaster } from "@/components/ui/toaster";
-import '../globals.css'; // Adjusted path
+import '../globals.css'; // Adjusted path due to [locale] segment
+import { SUPPORTED_LOCALES, type SupportedLocale } from '@/config/locales';
 
 export const metadata: Metadata = {
   title: 'Flortune - Your Financial Gardener',
@@ -17,24 +20,32 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-  params // params object is passed by Next.js
+  params // params object is passed by Next.js, contains `locale`
 }: Readonly<{
   children: React.ReactNode;
-  params: {locale: string}; // Type for params
+  params: {locale: string}; // Explicitly type params
 }>) {
-  const locale = await getLocale();
+  const currentLocale = params.locale as SupportedLocale;
 
-  // Validate that the `params.locale` matches the locale determined by `getLocale`
-  // If not, it indicates a mismatch or an invalid locale in the URL.
-  if (params.locale !== locale) {
+  // Validate that the `params.locale` (now currentLocale) is a supported locale
+  if (!SUPPORTED_LOCALES.includes(currentLocale)) {
+    console.error(`[RootLayout] Unsupported locale from params: ${params.locale}. Supported: ${SUPPORTED_LOCALES.join(', ')}`);
     notFound();
   }
 
-  // `getMessages` will use the locale established by `getLocale`
-  const messages = await getMessages();
+  let messages;
+  try {
+    // Attempt to get messages using the validated locale from params
+    messages = await getMessages({ locale: currentLocale });
+  } catch (error) {
+    console.error(`[RootLayout] Critical error fetching messages for locale "${currentLocale}":`, error);
+    // If getMessages throws (e.g., "Couldn't find config file" or specific message file error),
+    // then the i18n system cannot initialize.
+    notFound();
+  }
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={currentLocale} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -42,7 +53,7 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider locale={currentLocale} messages={messages}>
           <AppSettingsProvider>
             {children}
             <Toaster />
