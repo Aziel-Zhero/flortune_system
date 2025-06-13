@@ -1,6 +1,8 @@
+
 "use client";
 
-import Link from "next/link";
+import Link from "next-intl/link"; // Use next-intl's Link
+import { useTranslations, useLocale } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,22 +15,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, LifeBuoy } from "lucide-react";
+import { useRouter } from "next-intl/client";
 
-// Placeholder for user data - replace with actual auth data
+
 const user = {
-  name: "Flora Green",
+  name: "Flora Green", // This could also be from a context or translated if dynamic
   email: "flora.green@example.com",
-  avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "woman nature"
+  avatarUrl: "https://placehold.co/100x100.png", 
 };
 
 export function UserNav() {
-  // Placeholder logout function
+  const t = useTranslations('UserNav');
+  const router = useRouter();
+  const locale = useLocale();
+
+
   const handleLogout = async () => {
     console.log("Logging out...");
     // In a real app, call your logout server action
-    // await logoutUserAction();
-    // For now, redirect to login
-    window.location.href = "/login";
+    // For now, redirect to login (locale-aware)
+    router.push("/login"); // next-intl's router handles locale automatically
   };
 
   return (
@@ -53,28 +59,28 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/settings/profile">
+            <Link href="/settings"> {/* Link will automatically use current locale */}
               <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>{t('profile')}</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings">
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>{t('settings')}</span>
             </Link>
           </DropdownMenuItem>
            <DropdownMenuItem asChild>
-            <Link href="/support">
+            <Link href="/settings"> {/* Assuming support page is part of settings or a new page */}
               <LifeBuoy className="mr-2 h-4 w-4" />
-              <span>Support</span>
+              <span>{t('support')}</span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{t('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

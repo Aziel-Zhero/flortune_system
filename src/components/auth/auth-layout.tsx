@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import Link from 'next-intl/link'; // Use next-intl Link
 import { Leaf } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
 
@@ -7,9 +7,10 @@ interface AuthLayoutProps {
   children: ReactNode;
   title: string;
   description: string;
-  footerLinkHref: string;
+  footerLinkHref: string; // Will be locale-prefixed by parent
   footerLinkText: string;
   footerText: string;
+  locale: string; // Pass locale for Links if needed, though next-intl/link handles it
 }
 
 export function AuthLayout({ 
@@ -18,7 +19,8 @@ export function AuthLayout({
   description, 
   footerLinkHref, 
   footerLinkText, 
-  footerText 
+  footerText,
+  locale
 }: AuthLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-secondary/30 p-4">
@@ -43,7 +45,7 @@ export function AuthLayout({
         <p className="px-8 text-center text-sm text-muted-foreground">
           {footerText}{' '}
           <Link
-            href={footerLinkHref}
+            href={footerLinkHref} 
             className="underline underline-offset-4 hover:text-primary"
           >
             {footerLinkText}

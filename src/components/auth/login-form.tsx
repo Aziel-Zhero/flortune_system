@@ -2,18 +2,20 @@
 "use client";
 
 import { useFormState } from "react-dom"; 
-import Link from "next/link";
+import Link from "next-intl/link"; // Use next-intl Link
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { loginUser, signInWithGoogle, type LoginFormState } from "@/app/actions/auth.actions";
+import { loginUser, signInWithGoogle, type LoginFormState } from "@/app/actions/auth.actions"; // path needs update if actions move
 import { OAuthButton } from "./oauth-button";
 import { SubmitButton } from "./submit-button";
+import { useTranslations } from "next-intl";
 
 export function LoginForm() {
+  const t = useTranslations('LoginForm');
   const initialState: LoginFormState = { message: undefined, errors: {} };
   const [state, dispatch] = useFormState(loginUser, initialState);
 
@@ -22,26 +24,26 @@ export function LoginForm() {
       {state?.errors?._form && (
          <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Login Failed</AlertTitle>
+          <AlertTitle>{t('loginFailedTitle')}</AlertTitle>
           <AlertDescription>{state.errors._form.join(', ')}</AlertDescription>
         </Alert>
       )}
        {state?.message && !state.success && !state.errors?._form && (
          <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t('errorTitle')}</AlertTitle>
           <AlertDescription>{state.message}</AlertDescription>
         </Alert>
       )}
       {state?.success && (
         <Alert variant="default" className="bg-green-100 dark:bg-green-900 border-green-500 dark:border-green-700">
           <LogIn className="h-4 w-4 text-green-700 dark:text-green-400" />
-          <AlertTitle className="text-green-800 dark:text-green-300">Success!</AlertTitle>
+          <AlertTitle className="text-green-800 dark:text-green-300">{t('successTitle')}</AlertTitle>
           <AlertDescription className="text-green-700 dark:text-green-400">{state.message}</AlertDescription>
         </Alert>
       )}
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('emailLabel')}</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -58,9 +60,9 @@ export function LoginForm() {
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t('passwordLabel')}</Label>
           <Link href="#" className="text-sm text-primary hover:underline">
-            Forgot password?
+            {t('forgotPasswordLink')}
           </Link>
         </div>
         <div className="relative">
@@ -77,11 +79,11 @@ export function LoginForm() {
         </div>
         {state?.errors?.password && <p id="password-error" className="text-sm text-destructive">{state.errors.password.join(', ')}</p>}
       </div>
-      <SubmitButton pendingText="Signing In...">
-        Sign In <LogIn className="ml-2 h-4 w-4" />
+      <SubmitButton pendingTextKey="signingIn">
+        {t('signInButton')} <LogIn className="ml-2 h-4 w-4" />
       </SubmitButton>
       <Separator className="my-6" />
-      <OAuthButton providerName="Google" Icon={LogIn /* Placeholder, will be replaced by GoogleIcon */} onClick={signInWithGoogle} />
+      <OAuthButton providerName="Google" Icon={LogIn} onClick={signInWithGoogle} />
     </form>
   );
 }

@@ -1,7 +1,8 @@
+// This file will be at src/app/actions/auth.actions.ts, not under [locale]
 "use server";
 
 import { z } from "zod";
-import { redirect } from 'next/navigation';
+import { redirect } from 'next/navigation'; // Correct import for redirect
 
 const emailSchema = z.string().email({ message: "Invalid email address." });
 const passwordSchema = z.string().min(8, { message: "Password must be at least 8 characters long." });
@@ -50,8 +51,8 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
   // Simulate success
   // In a real app, you would set a session cookie here
   // For now, we will redirect to dashboard
-  // return { success: true, message: "Login successful!" };
-  redirect('/dashboard'); // Temporary until session management is implemented
+  // The redirect will be caught by middleware to add locale if not present
+  redirect('/dashboard'); 
 
 }
 
@@ -81,8 +82,8 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
   await new Promise(resolve => setTimeout(resolve, 1000));
   
   // Simulate success
-  // return { success: true, message: "Signup successful! Please login." };
-  redirect('/login?signup=success'); // Temporary
+  // The redirect will be caught by middleware to add locale if not present
+  redirect('/login?signup=success'); 
 }
 
 export async function signInWithGoogle() {
@@ -92,5 +93,6 @@ export async function signInWithGoogle() {
   // and handle the callback.
   // For now, simulate success and redirect.
   await new Promise(resolve => setTimeout(resolve, 500));
+  // The redirect will be caught by middleware to add locale if not present
   redirect('/dashboard');
 }

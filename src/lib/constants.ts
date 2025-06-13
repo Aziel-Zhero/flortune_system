@@ -1,13 +1,16 @@
 export const APP_NAME = "Flortune";
 
-export const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
-  { href: "/calendar", label: "Calendar", icon: "CalendarDays" },
-  { href: "/transactions", label: "Transactions", icon: "ArrowRightLeft" },
-  { href: "/analysis", label: "Analysis", icon: "BarChart3" },
-  { href: "/budgets", label: "Budgets", icon: "Target"},
-  { href: "/goals", label: "Goals", icon: "Trophy" },
-  { href: "/settings", label: "Settings", icon: "Settings" },
+// Use keys for translation
+export const NAV_LINKS_KEYS = [
+  { href: "/dashboard", labelKey: "dashboard", icon: "LayoutDashboard" },
+  { href: "/calendar", labelKey: "calendar", icon: "CalendarDays" },
+  { href: "/transactions", labelKey: "transactions", icon: "ArrowRightLeft" },
+  { href: "/analysis", labelKey: "analysis", icon: "BarChart3" },
+  { href: "/budgets", labelKey: "budgets", icon: "Target"},
+  { href: "/goals", labelKey: "goals", icon: "Trophy" },
+  { href: "/settings", labelKey: "settings", icon: "Settings" },
 ] as const;
 
-export type NavLinkIcon = typeof NAV_LINKS[number]["icon"];
+// Keep original NavLinkIcon type if it's used elsewhere, or adapt as needed.
+// For icon mapping, this type definition is still fine.
+export type NavLinkIcon = typeof NAV_LINKS_KEYS[number]["icon"];

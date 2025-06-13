@@ -1,11 +1,13 @@
+
 "use client"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import * as LucideIcons from "lucide-react"
+import Link from "next-intl/link"; // Use next-intl's Link for locale-aware navigation
+import { usePathname } from "next-intl/client"; // Use next-intl's usePathname
+import * as LucideIcons from "lucide-react";
+import { useTranslations } from "next-intl";
 
-import { cn } from "@/lib/utils"
-import { NAV_LINKS, APP_NAME, type NavLinkIcon } from "@/lib/constants"
+import { cn } from "@/lib/utils";
+import { NAV_LINKS_KEYS, APP_NAME, type NavLinkIcon } from "@/lib/constants";
 import {
   Sidebar,
   SidebarHeader,
@@ -16,10 +18,10 @@ import {
   SidebarMenuButton,
   SidebarMenuSkeleton,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
 // Helper to get Lucide icon component by name
@@ -28,7 +30,10 @@ const getIcon = (iconName: NavLinkIcon): React.ElementType => {
 };
 
 export function AppSidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
+  const t = useTranslations('Navigation');
+  const tUserNav = useTranslations('UserNav');
+
 
   // Placeholder for loading state
   const isLoading = false; // Set to true to see skeleton
@@ -57,19 +62,24 @@ export function AppSidebar() {
               ? skeletonItems.map((_, index) => (
                   <SidebarMenuSkeleton key={index} showIcon />
                 ))
-              : NAV_LINKS.map((link) => {
+              : NAV_LINKS_KEYS.map((link) => {
                   const IconComponent = getIcon(link.icon)
+                  // Check if the current pathname (without locale) starts with the link's href
+                  // For exact match (like /dashboard), pathname should be equal to link.href
+                  // For nested routes (like /settings/*), pathname should start with link.href
+                  const isActive = link.href === "/dashboard" ? pathname === link.href : pathname.startsWith(link.href);
+
                   return (
                     <SidebarMenuItem key={link.href}>
                       <SidebarMenuButton
                         asChild
-                        isActive={pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))}
-                        tooltip={{ children: link.label }}
+                        isActive={isActive}
+                        tooltip={{ children: t(link.labelKey as any) }}
                         className="justify-start"
                       >
                         <Link href={link.href}>
                           <IconComponent />
-                          <span>{link.label}</span>
+                          <span>{t(link.labelKey as any)}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -86,7 +96,7 @@ export function AppSidebar() {
                 </Avatar>
                 <div className="flex flex-col">
                     <span className="text-sm font-medium font-headline">Flora Green</span>
-                    <span className="text-xs text-muted-foreground">Personal Account</span>
+                    <span className="text-xs text-muted-foreground">{tUserNav('personalAccount')}</span>
                 </div>
                  <Button variant="ghost" size="icon" className="ml-auto h-8 w-8">
                     <LucideIcons.ChevronsUpDown className="h-4 w-4"/>

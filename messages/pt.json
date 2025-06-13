@@ -1,0 +1,104 @@
+{
+  "LocaleNames": {
+    "pt": "Português (Brasil)",
+    "en": "English (US)",
+    "es": "Español",
+    "fr": "Français",
+    "ja": "日本語",
+    "zh": "中文 (简体)"
+  },
+  "Navigation": {
+    "dashboard": "Painel",
+    "calendar": "Calendário",
+    "transactions": "Transações",
+    "analysis": "Análise",
+    "budgets": "Orçamentos",
+    "goals": "Metas",
+    "settings": "Configurações"
+  },
+  "AppHeader": {
+    "searchPlaceholder": "Buscar transações, orçamentos..."
+  },
+  "UserNav": {
+    "profile": "Perfil",
+    "settings": "Configurações",
+    "support": "Suporte",
+    "logout": "Sair",
+    "personalAccount": "Conta Pessoal"
+  },
+  "PageHeader": {
+    "defaultTitle": "Página"
+  },
+  "SettingsPage": {
+    "title": "Configurações",
+    "description": "Gerencie sua conta, preferências e configurações do aplicativo.",
+    "profileTitle": "Perfil",
+    "profileDescription": "Atualize suas informações pessoais.",
+    "changePhotoButton": "Mudar Foto",
+    "fullNameLabel": "Nome Completo",
+    "emailAddressLabel": "Endereço de Email",
+    "saveProfileButton": "Salvar Alterações do Perfil",
+    "notificationsTitle": "Notificações",
+    "notificationsDescription": "Gerencie como você recebe notificações.",
+    "pushNotificationsLabel": "Notificações Push",
+    "pushNotificationsDescription": "Receba alertas de contas futuras e marcos de metas.",
+    "emailSummariesLabel": "Resumos por Email",
+    "emailSummariesDescription": "Receba resumos financeiros semanais ou mensais por email.",
+    "securityTitle": "Segurança",
+    "securityDescription": "Gerencie as configurações de segurança da sua conta.",
+    "changePasswordButton": "Mudar Senha",
+    "twoFactorAuthLabel": "Autenticação de Dois Fatores",
+    "twoFactorAuthDescription": "Adicione uma camada extra de segurança à sua conta.",
+    "appearanceTitle": "Aparência",
+    "appearanceDescription": "Personalize a aparência do aplicativo.",
+    "darkModeLabel": "Modo Escuro",
+    "darkModeDescription": "Alterne entre temas claro e escuro.",
+    "languageTitle": "Idioma e Região",
+    "languageDescription": "Escolha seu idioma e configurações regionais preferidos para o aplicativo.",
+    "selectLanguagePlaceholder": "Selecionar Idioma",
+    "dataManagementTitle": "Gerenciamento de Dados",
+    "dataManagementDescription": "Importe, exporte ou gerencie seus dados financeiros.",
+    "importDataButton": "Importar Dados (.csv, .ofx)",
+    "exportDataButton": "Exportar Dados (PDF, CSV, JSON)",
+    "sharingTitle": "Compartilhamento e Colaboração",
+    "sharingDescription": "Gerencie módulos compartilhados e acesso colaborativo.",
+    "sharingComingSoon": "Recurso em breve! Gerencie com quem você compartilha módulos financeiros e suas permissões.",
+    "manageSharedModulesButton": "Gerenciar Módulos Compartilhados",
+    "logoutButton": "Sair"
+  },
+  "AuthLayout": {
+    "signupTitle": "Criar uma Conta",
+    "signupDescription": "Junte-se ao {appName} e comece a cultivar seu bem-estar financeiro.",
+    "loginTitle": "Bem-vindo de Volta!",
+    "loginDescription": "Faça login na sua conta {appName} para gerenciar suas finanças.",
+    "footerAlreadyHaveAccount": "Já tem uma conta?",
+    "footerSignIn": "Entrar",
+    "footerDontHaveAccount": "Não tem uma conta?",
+    "footerSignUp": "Inscreva-se"
+  },
+  "LoginForm": {
+    "emailLabel": "Email",
+    "passwordLabel": "Senha",
+    "forgotPasswordLink": "Esqueceu a senha?",
+    "signInButton": "Entrar",
+    "loginFailedTitle": "Falha no Login",
+    "errorTitle": "Erro",
+    "successTitle": "Sucesso!",
+    "signInWithButton": "Entrar com {providerName}"
+  },
+  "SignupForm": {
+    "fullNameLabel": "Nome Completo",
+    "emailLabel": "Email",
+    "passwordLabel": "Senha",
+    "confirmPasswordLabel": "Confirmar Senha",
+    "createAccountButton": "Criar Conta",
+    "signupFailedTitle": "Falha ao Inscrever-se",
+    "errorTitle": "Erro",
+    "successTitle": "Sucesso!",
+    "signInWithButton": "Inscrever-se com {providerName}"
+  },
+  "SubmitButton": {
+    "signingIn": "Entrando...",
+    "creatingAccount": "Criando Conta..."
+  }
+}
