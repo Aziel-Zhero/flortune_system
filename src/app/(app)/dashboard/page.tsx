@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
@@ -5,6 +6,7 @@ import { PrivateValue } from "@/components/shared/private-value";
 import { ArrowUpRight, DollarSign, Users, CreditCard, Activity, TrendingUp, Sprout } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 // Sample data - replace with actual data fetching
 const summaryData = [

@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
 import { PlusCircle, Target, Edit3, Trash2, Sprout } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 // Sample budgets data
 const budgets = [
