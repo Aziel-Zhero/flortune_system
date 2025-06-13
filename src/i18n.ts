@@ -1,42 +1,25 @@
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-// Import from a relative path for robustness
-import {SUPPORTED_LOCALES, type SupportedLocale} from './config/locales';
-
-console.log('[i18n.ts] File loaded. Initializing configuration...');
+import {SUPPORTED_LOCALES, type SupportedLocale} from './config/locales'; // Relative import
 
 export default getRequestConfig(async ({locale}) => {
-  console.log(`[i18n.ts] getRequestConfig called. Raw locale parameter: "${locale}"`);
-
-  // Validate that the `locale` parameter is a supported locale
+  // Validate that the incoming `locale` parameter is a valid supported locale
   const typedLocale = locale as SupportedLocale;
   if (!SUPPORTED_LOCALES.includes(typedLocale)) {
-    console.error(`[i18n.ts] Invalid locale: "${typedLocale}". Supported locales are: ${SUPPORTED_LOCALES.join(', ')}. Triggering notFound().`);
+    // Log an error and trigger notFound for unsupported locales
+    console.error(`[i18n.ts] Unsupported locale: "${typedLocale}". Supported: ${SUPPORTED_LOCALES.join(', ')}`);
     notFound();
   }
 
-  console.log(`[i18n.ts] Locale "${typedLocale}" is valid.`);
-
-  let messages;
   try {
-    // Use a relative path for message files
-    const messagePath = `./messages/${typedLocale}.json`;
-    console.log(`[i18n.ts] Attempting to dynamically import messages for locale: "${typedLocale}" from "${messagePath}"`);
-    messages = (await import(messagePath)).default; // Removed /* @vite-ignore */
-    console.log(`[i18n.ts] Successfully imported messages for locale: "${typedLocale}".`);
+    return {
+      // Dynamically import messages for the given locale using a relative path
+      messages: (await import(`./messages/${typedLocale}.json`)).default
+    };
   } catch (error) {
-    console.error(`[i18n.ts] Error importing message file for locale "${typedLocale}":`, error);
-    // Check if the error is due to the file not being found specifically for this locale
-    if ((error as NodeJS.ErrnoException)?.code === 'MODULE_NOT_FOUND') {
-      console.log(`[i18n.ts] Specific message file for locale "${typedLocale}" not found. Triggering notFound().`);
-    } else {
-      console.log(`[i18n.ts] An unexpected error occurred while importing messages for locale "${typedLocale}". Triggering notFound().`);
-    }
+    // Log if a specific message file is not found or is invalid
+    console.error(`[i18n.ts] Could not load messages for locale "${typedLocale}":`, error);
     notFound();
   }
-
-  return {
-    messages
-  };
 });
