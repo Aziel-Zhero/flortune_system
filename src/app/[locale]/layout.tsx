@@ -1,7 +1,8 @@
 
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getLocale } from 'next-intl/server'; // Ensure getLocale is imported
+import { getMessages, getLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation'; // Import notFound
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
 import { Toaster } from "@/components/ui/toaster";
 import '../globals.css'; // Adjusted path
@@ -21,16 +22,19 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: {locale: string}; // Type for params
 }>) {
-  // Use getLocale() to determine the active locale for fetching messages.
-  // This is robust as it relies on next-intl's determination of the locale.
-  const activeLocale = await getLocale();
-  const messages = await getMessages({locale: activeLocale});
+  const locale = await getLocale();
 
-  // params.locale (from the URL) is used for the html lang attribute and NextIntlClientProvider.
-  const pageLocale = params.locale;
+  // Validate that the `params.locale` matches the locale determined by `getLocale`
+  // If not, it indicates a mismatch or an invalid locale in the URL.
+  if (params.locale !== locale) {
+    notFound();
+  }
+
+  // `getMessages` will use the locale established by `getLocale`
+  const messages = await getMessages();
 
   return (
-    <html lang={pageLocale} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -38,7 +42,7 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <NextIntlClientProvider locale={pageLocale} messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <AppSettingsProvider>
             {children}
             <Toaster />
