@@ -1,13 +1,13 @@
+"use client";
+
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react"; // Keep if client-side logic like date picking is needed
 
-// This component should be client-side if it uses hooks like useState for date selection
-// For now, let's make it a server component and add client component for interaction later
 export default function CalendarPage() {
-  // const [date, setDate] = useState<Date | undefined>(new Date()); // Requires "use client"
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   return (
     <div>
@@ -18,11 +18,10 @@ export default function CalendarPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 shadow-sm">
           <CardContent className="p-0">
-            {/* For interactive calendar, this part would be a client component */}
             <Calendar
               mode="single"
-              // selected={date} // requires "use client" and state management
-              // onSelect={setDate} // requires "use client" and state management
+              selected={date}
+              onSelect={setDate}
               className="p-3 w-full [&_button]:text-base [&_td]:p-1 md:[&_td]:p-2"
               classNames={{
                 day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
@@ -33,9 +32,12 @@ export default function CalendarPage() {
         </Card>
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline text-lg">Events for {/* Display selected date here */}</CardTitle>
+            <CardTitle className="font-headline text-lg">
+              Events for {date ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : "selected date"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Placeholder for fetching and displaying events for the selected date */}
             <p className="text-muted-foreground text-sm mb-4">No events for this day. Select a day to see details.</p>
             {/* Example Event Listing - to be populated dynamically */}
             <div className="space-y-4">
