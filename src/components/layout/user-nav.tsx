@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, LifeBuoy } from "lucide-react";
-import { useRouter } from "next-intl/client";
+import { useRouter } from "next-intl/navigation"; // Updated import
 
 
 const user = {
@@ -86,3 +86,5 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
+
+    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import Link from "next-intl/link"; // Use next-intl's Link
+import { Link } from "next-intl"; // Use next-intl's Link
 import { Leaf, Eye, EyeOff, Search, Bell } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { APP_NAME } from "@/lib/constants";
