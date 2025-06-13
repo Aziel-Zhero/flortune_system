@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { useRouter, usePathname } from 'next-intl/navigation'; // Updated import
+import { useRouter, usePathname } from 'next-intl/navigation';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Languages } from "lucide-react";
-import { locales as availableLocales } from '@/i18n'; // Import configured locales
+import { SUPPORTED_LOCALES } from '@/config/locales'; // Import from new config file
 
 export default function SettingsPage() {
   const t = useTranslations('SettingsPage');
@@ -24,9 +24,9 @@ export default function SettingsPage() {
   const currentLocale = useLocale();
 
   const user = {
-    name: "Flora Green", // This could also be from a context or translated if dynamic
+    name: "Flora Green", 
     email: "flora.green@example.com",
-    avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "woman nature"
+    avatarUrl: "https://placehold.co/100x100.png", 
   };
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -112,7 +112,7 @@ export default function SettingsPage() {
               <SelectValue placeholder={t('selectLanguagePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              {availableLocales.map((loc) => (
+              {SUPPORTED_LOCALES.map((loc) => (
                 <SelectItem key={loc} value={loc}>
                   {tLocaleNames(loc as any)}
                 </SelectItem>
@@ -227,5 +227,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

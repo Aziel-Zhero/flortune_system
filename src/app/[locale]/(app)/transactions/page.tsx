@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
 import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown } from "lucide-react";
-import Link from "next-intl/link"; // Use next-intl Link
+import { Link } from "next-intl"; // Use next-intl Link
 import {
   DropdownMenu,
   DropdownMenuContent,

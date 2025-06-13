@@ -1,7 +1,7 @@
 
 "use client";
 
-import Link from "next-intl/link"; // Use next-intl's Link
+import { Link } from "next-intl"; // Use next-intl's Link
 import { useTranslations, useLocale } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

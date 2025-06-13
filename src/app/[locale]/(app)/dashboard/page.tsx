@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
 import { ArrowUpRight, DollarSign, Users, CreditCard, Activity, TrendingUp, Sprout } from "lucide-react";
-import Link from "next-intl/link"; // Use next-intl Link
+import { Link } from "next-intl"; // Use next-intl Link
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 // TODO: Import getTranslations for server-side translation

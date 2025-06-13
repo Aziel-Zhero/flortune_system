@@ -1,8 +1,9 @@
 import createMiddleware from 'next-intl/middleware';
+import {SUPPORTED_LOCALES, DEFAULT_LOCALE} from '@/config/locales';
 
 export default createMiddleware({
-  locales: ['en', 'pt', 'es', 'fr', 'ja', 'zh'],
-  defaultLocale: 'pt',
+  locales: [...SUPPORTED_LOCALES], // Spread to ensure it's a new array if needed by middleware
+  defaultLocale: DEFAULT_LOCALE,
   localePrefix: 'as-needed'
 });
 

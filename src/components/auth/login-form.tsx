@@ -2,14 +2,14 @@
 "use client";
 
 import { useFormState } from "react-dom"; 
-import Link from "next-intl/link"; // Use next-intl Link
+import { Link } from "next-intl"; // Use next-intl Link
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { loginUser, signInWithGoogle, type LoginFormState } from "@/app/actions/auth.actions"; // path needs update if actions move
+import { loginUser, signInWithGoogle, type LoginFormState } from "@/app/actions/auth.actions"; 
 import { OAuthButton } from "./oauth-button";
 import { SubmitButton } from "./submit-button";
 import { useTranslations } from "next-intl";
@@ -87,3 +87,4 @@ export function LoginForm() {
     </form>
   );
 }
+

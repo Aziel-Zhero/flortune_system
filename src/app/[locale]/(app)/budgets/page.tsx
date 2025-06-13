@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
 import { PlusCircle, Target, Edit3, Trash2, Sprout } from "lucide-react";
-import Link from "next-intl/link"; // Use next-intl Link
+import { Link } from "next-intl"; // Use next-intl Link
 import { cn } from "@/lib/utils";
 // TODO: Import getTranslations for server-side translation
 // import {getTranslations} from 'next-intl/server';

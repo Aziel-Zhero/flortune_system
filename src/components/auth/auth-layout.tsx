@@ -1,5 +1,6 @@
+
 import type { ReactNode } from 'react';
-import Link from 'next-intl/link'; // Use next-intl Link
+import { Link } from 'next-intl'; // Use next-intl Link
 import { Leaf } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
 
@@ -55,3 +56,4 @@ export function AuthLayout({
     </div>
   );
 }
+

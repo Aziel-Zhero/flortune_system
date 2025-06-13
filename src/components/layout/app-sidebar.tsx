@@ -1,7 +1,7 @@
 
 "use client"
 
-import Link from "next-intl/link"; // Use next-intl's Link for locale-aware navigation
+import { Link } from "next-intl"; // Use next-intl's Link for locale-aware navigation
 import { usePathname } from "next-intl/navigation"; // Updated import
 import * as LucideIcons from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -112,5 +112,3 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
-
-    
