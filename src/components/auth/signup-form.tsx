@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useFormState } from "react-dom"; // Corrigido para useFormState de react-dom
+import { useFormState } from "react-dom"; 
 import { AlertTriangle, UserPlus, KeyRound, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
