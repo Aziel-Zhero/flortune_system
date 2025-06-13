@@ -1,4 +1,3 @@
-
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
@@ -9,21 +8,21 @@ type SupportedLocaleConfig = typeof SUPPORTED_LOCALES_CONFIG[number];
 
 console.log('[i18n.ts] File loaded. SUPPORTED_LOCALES_CONFIG:', SUPPORTED_LOCALES_CONFIG);
 
+// Named export, as is common in next-intl examples
 export default getRequestConfig(async ({locale: localeParam}) => {
   console.log(`[i18n.ts] getRequestConfig called with localeParam: "${localeParam}"`);
 
+  const typedLocale = localeParam as SupportedLocaleConfig;
+
   // Validate that the incoming `locale` parameter is a supported locale
-  if (!SUPPORTED_LOCALES_CONFIG.includes(localeParam as SupportedLocaleConfig)) {
-    console.error(`[i18n.ts] Unsupported locale received by getRequestConfig: "${localeParam}". Supported: ${SUPPORTED_LOCALES_CONFIG.join(', ')}. Triggering notFound().`);
+  if (!SUPPORTED_LOCALES_CONFIG.includes(typedLocale)) {
+    console.error(`[i18n.ts] Unsupported locale received: "${typedLocale}". Supported: ${SUPPORTED_LOCALES_CONFIG.join(', ')}. Triggering notFound().`);
     notFound();
   }
-
-  // Cast to SupportedLocaleConfig after validation for type safety
-  const typedLocale = localeParam as SupportedLocaleConfig;
   console.log(`[i18n.ts] Validated locale: "${typedLocale}"`);
 
   try {
-    // Dynamically import the messages for the current locale using a relative path
+    // Use a relative path for dynamic import of message files
     console.log(`[i18n.ts] Attempting to dynamically import messages for locale: "${typedLocale}" from path ./messages/${typedLocale}.json`);
     const messages = (await import(`./messages/${typedLocale}.json`)).default;
     console.log(`[i18n.ts] Successfully loaded messages for locale: "${typedLocale}"`);
@@ -32,7 +31,7 @@ export default getRequestConfig(async ({locale: localeParam}) => {
     };
   } catch (error) {
     console.error(`[i18n.ts] Critical error importing message file for locale "${typedLocale}":`, error);
-    // If a message file is missing or malformed for a supported locale, it's a critical setup error.
+    // If message file for a validated locale is not found, this is a critical configuration error.
     notFound();
   }
 });

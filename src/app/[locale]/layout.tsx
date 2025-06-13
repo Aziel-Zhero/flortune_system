@@ -1,13 +1,12 @@
 
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
-// Ensure this is the correct import for server-side message fetching
-import { getMessages } from 'next-intl/server';
-import { notFound } from 'next/navigation'; // For handling invalid locales
+import { getLocale, getMessages } from 'next-intl/server'; 
+import { notFound } from 'next/navigation';
 
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
 import { Toaster } from "@/components/ui/toaster";
-import '../globals.css'; // Adjusted path due to [locale] segment
+import '../globals.css'; 
 import { SUPPORTED_LOCALES, type SupportedLocale } from '@/config/locales';
 
 export const metadata: Metadata = {
@@ -20,32 +19,53 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-  params // params object is passed by Next.js, contains `locale`
+  params 
 }: Readonly<{
   children: React.ReactNode;
-  params: {locale: string}; // Explicitly type params
+  params: {locale: string}; 
 }>) {
-  const currentLocale = params.locale as SupportedLocale;
+  
+  const localeFromParams = params.locale as SupportedLocale;
 
-  // Validate that the `params.locale` (now currentLocale) is a supported locale
-  if (!SUPPORTED_LOCALES.includes(currentLocale)) {
-    console.error(`[RootLayout] Unsupported locale from params: ${params.locale}. Supported: ${SUPPORTED_LOCALES.join(', ')}`);
+  // 1. Determine the active locale using getLocale()
+  let activeLocale: SupportedLocale;
+  try {
+    activeLocale = await getLocale() as SupportedLocale;
+    console.log(`[RootLayout] Locale determined by getLocale(): "${activeLocale}"`);
+  } catch (error) {
+    console.error(`[RootLayout] Error calling getLocale():`, error);
     notFound();
   }
 
+  // 2. Validate that params.locale matches activeLocale and both are supported
+  if (!SUPPORTED_LOCALES.includes(localeFromParams)) {
+    console.error(`[RootLayout] Locale from params "${localeFromParams}" is not supported. Triggering notFound().`);
+    notFound();
+  }
+  if (!SUPPORTED_LOCALES.includes(activeLocale)) {
+    console.error(`[RootLayout] Locale from getLocale() "${activeLocale}" is not supported. Critical error. Triggering notFound().`);
+    notFound();
+  }
+  if (localeFromParams !== activeLocale) {
+    console.warn(`[RootLayout] Locale mismatch: params.locale is "${localeFromParams}", but getLocale() returned "${activeLocale}". Using activeLocale: "${activeLocale}".`);
+    // It's generally safer to trust activeLocale if getLocale() succeeded and is supported.
+    // If the URL was manipulated to an unsupported locale, the first check on localeFromParams would catch it.
+  }
+  
+  // 3. Fetch messages for the activeLocale.
+  // Call getMessages() without arguments, relying on getLocale() having set the context.
   let messages;
   try {
-    // Attempt to get messages using the validated locale from params
-    messages = await getMessages({ locale: currentLocale });
+    console.log(`[RootLayout] Attempting to get messages for activeLocale: "${activeLocale}"`);
+    messages = await getMessages(); 
+    console.log(`[RootLayout] Successfully fetched messages for activeLocale: "${activeLocale}"`);
   } catch (error) {
-    console.error(`[RootLayout] Critical error fetching messages for locale "${currentLocale}":`, error);
-    // If getMessages throws (e.g., "Couldn't find config file" or specific message file error),
-    // then the i18n system cannot initialize.
+    console.error(`[RootLayout] Critical error fetching messages for activeLocale "${activeLocale}":`, error);
     notFound();
   }
 
   return (
-    <html lang={currentLocale} suppressHydrationWarning>
+    <html lang={activeLocale} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -53,7 +73,7 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <NextIntlClientProvider locale={currentLocale} messages={messages}>
+        <NextIntlClientProvider locale={activeLocale} messages={messages}>
           <AppSettingsProvider>
             {children}
             <Toaster />
