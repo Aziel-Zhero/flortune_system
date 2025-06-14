@@ -1,13 +1,10 @@
-
-// src/app/actions/auth.actions.ts
 "use server";
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
-// Note: next-intl's redirect is for client-side, use next/navigation for server actions
 
-const emailSchema = z.string().email({ message: "Invalid email address." });
-const passwordSchema = z.string().min(8, { message: "Password must be at least 8 characters long." });
+const emailSchema = z.string().email({ message: "Endereço de email inválido." });
+const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." });
 
 const loginSchema = z.object({
   email: emailSchema,
@@ -15,12 +12,12 @@ const loginSchema = z.object({
 });
 
 const signupSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters long." }),
+  name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: passwordSchema,
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "As senhas não coincidem",
   path: ["confirmPassword"],
 });
 
@@ -30,7 +27,7 @@ export type LoginFormState = {
   errors?: {
     email?: string[];
     password?: string[];
-    _form?: string[]; // For general form errors
+    _form?: string[]; 
   };
   success?: boolean;
 };
@@ -41,19 +38,16 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: "Invalid fields. Please check your input.",
+      message: "Campos inválidos. Por favor, verifique seus dados.",
       success: false,
     };
   }
   
-  // Simulate API call
+  // Simula chamada de API
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // IMPORTANT: Redirects from server actions do NOT automatically get locale prefixes.
-  // The middleware is expected to catch this and add the locale.
-  // If /dashboard is a protected route, ensure middleware handles this.
+  // Redireciona para o dashboard (sem prefixo de localidade)
   redirect('/dashboard'); 
-  // This will be caught by middleware, which should prepend the current/default locale.
 }
 
 export type SignupFormState = {
@@ -74,30 +68,26 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: "Invalid fields. Please check your input.",
+      message: "Campos inválidos. Por favor, verifique seus dados.",
       success: false,
     };
   }
 
-  // Simulate API call
+  // Simula chamada de API
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Simulate success
-  // Redirect to login page, middleware should add locale.
+  // Simula sucesso e redireciona para a página de login com um parâmetro de sucesso
   redirect('/login?signup=success'); 
 }
 
 export async function signInWithGoogle() {
-  console.log("Attempting Google Sign-In...");
-  // In a real app, this would involve redirecting to Google's OAuth consent screen
-  // and handling the callback, likely setting a session.
+  console.log("Tentando login com Google...");
   await new Promise(resolve => setTimeout(resolve, 500));
-  redirect('/dashboard'); // Middleware to add locale
+  redirect('/dashboard'); 
 }
 
-// You might want a server action for logout as well
 export async function logoutUser() {
-  console.log("Logging out user (server action)...");
-  // Clear session/cookie here in a real app
-  redirect('/login'); // Middleware to add locale
+  console.log("Deslogando usuário (server action)...");
+  // Limpar sessão/cookie aqui em um app real
+  redirect('/login'); 
 }

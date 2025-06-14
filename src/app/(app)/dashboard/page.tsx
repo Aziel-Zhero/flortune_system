@@ -1,38 +1,42 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { ArrowUpRight, DollarSign, Users, CreditCard, Activity, TrendingUp, Sprout } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import type { Metadata } from 'next';
+import { APP_NAME } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: `Painel - ${APP_NAME}`,
+};
 
 // Sample data - replace with actual data fetching
 const summaryData = [
-  { title: "Total Balance", value: 12345.67, icon: DollarSign, trend: "+2.5%", trendColor: "text-emerald-500" },
-  { title: "Income This Month", value: 5678.90, icon: TrendingUp, trend: "+10.1%", trendColor: "text-emerald-500" },
-  { title: "Expenses This Month", value: 2345.12, icon: CreditCard, trend: "-5.2%", trendColor: "text-red-500" },
-  { title: "Savings Goal Progress", value: 65, unit: "%", icon: Sprout, trend: "+5%", trendColor: "text-emerald-500" },
+  { title: "Saldo Total", value: 12345.67, icon: DollarSign, trend: "+2,5%", trendColor: "text-emerald-500" },
+  { title: "Receita Este Mês", value: 5678.90, icon: TrendingUp, trend: "+10,1%", trendColor: "text-emerald-500" },
+  { title: "Despesas Este Mês", value: 2345.12, icon: CreditCard, trend: "-5,2%", trendColor: "text-red-500" },
+  { title: "Progresso Meta Poupança", value: 65, unit: "%", icon: Sprout, trend: "+5%", trendColor: "text-emerald-500" },
 ];
 
 const recentTransactions = [
-  { id: "1", description: "Grocery Store", amount: -55.20, date: "2024-07-27", category: "Groceries" },
-  { id: "2", description: "Salary Deposit", amount: 2500.00, date: "2024-07-26", category: "Income" },
-  { id: "3", description: "Restaurant Dinner", amount: -78.50, date: "2024-07-25", category: "Dining Out" },
-  { id: "4", description: "Online Subscription", amount: -12.99, date: "2024-07-25", category: "Subscriptions" },
+  { id: "1", description: "Supermercado", amount: -55.20, date: "2024-07-27", category: "Alimentação" },
+  { id: "2", description: "Depósito de Salário", amount: 2500.00, date: "2024-07-26", category: "Receita" },
+  { id: "3", description: "Jantar Restaurante", amount: -78.50, date: "2024-07-25", category: "Restaurantes" },
+  { id: "4", description: "Assinatura Online", amount: -12.99, date: "2024-07-25", category: "Assinaturas" },
 ];
-
 
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Welcome back, Flora!"
-        description="Here's your financial overview for this month."
+        title="Bem-vinda de volta, Flora!"
+        description="Aqui está seu resumo financeiro para este mês."
         actions={
           <Button asChild>
-            <Link href="/transactions/new">Add Transaction</Link>
+            <Link href="/transactions/new">Adicionar Transação</Link>
           </Button>
         }
       />
@@ -49,13 +53,13 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold font-headline">
                 {item.unit === "%" ? (
-                   <PrivateValue value={item.value} /> + item.unit
+                   <PrivateValue value={item.value} /> && <>{item.value}{item.unit}</>
                 ) : (
-                  "$" + <PrivateValue value={item.value?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
+                  "R$" + <PrivateValue value={item.value?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
                 )}
               </div>
               <p className={cn("text-xs text-muted-foreground mt-1", item.trendColor)}>
-                {item.trend} from last month
+                {item.trend} do último mês
               </p>
             </CardContent>
           </Card>
@@ -65,8 +69,8 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline">Recent Transactions</CardTitle>
-            <CardDescription>Your latest financial activities.</CardDescription>
+            <CardTitle className="font-headline">Transações Recentes</CardTitle>
+            <CardDescription>Suas últimas atividades financeiras.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
@@ -77,29 +81,25 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">{tx.date} - {tx.category}</p>
                   </div>
                   <PrivateValue 
-                    value={tx.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} 
+                    value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
                     className={cn("font-medium", tx.amount > 0 ? "text-emerald-600" : "text-red-600")}
                   />
                 </li>
               ))}
             </ul>
             <Button variant="outline" className="mt-4 w-full" asChild>
-              <Link href="/transactions">View All Transactions</Link>
+              <Link href="/transactions">Ver Todas as Transações</Link>
             </Button>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline">Spending Overview</CardTitle>
-            <CardDescription>A quick look at your spending categories.</CardDescription>
+            <CardTitle className="font-headline">Visão Geral de Gastos</CardTitle>
+            <CardDescription>Uma rápida olhada nas suas categorias de gastos.</CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center justify-center">
-            {/* Placeholder for a chart */}
-            <div className="w-full h-64 bg-muted/50 rounded-md flex items-center justify-center">
-               <Image src="https://placehold.co/300x200.png?text=Spending+Chart" alt="Spending Chart Placeholder" width={300} height={200} data-ai-hint="data chart"/>
-            </div>
-             {/* <p className="text-sm text-muted-foreground">Spending chart coming soon!</p> */}
+          <CardContent className="h-64 flex items-center justify-center">
+             <Image src="https://placehold.co/300x200.png" alt="Gráfico de Gastos" width={300} height={200} data-ai-hint="data chart"/>
           </CardContent>
         </Card>
       </div>
@@ -108,18 +108,17 @@ export default function DashboardPage() {
         <CardHeader>
             <CardTitle className="font-headline text-primary flex items-center">
                 <Sprout className="mr-2 h-6 w-6"/>
-                Smart Suggestions
+                Sugestões Inteligentes
             </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-            <p className="text-sm text-foreground/80">You've spent <PrivateValue value="$120" className="font-semibold"/> on coffee this month. Consider brewing at home to save!</p>
-            <p className="text-sm text-foreground/80">Your subscription spending is up by 15%. <Link href="/budgets" className="text-primary hover:underline">Review your subscriptions?</Link></p>
-             <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                View All Insights
+            <p className="text-sm text-foreground/80">Você gastou <PrivateValue value="R$120" className="font-semibold"/> em café este mês. Considere preparar em casa para economizar!</p>
+            <p className="text-sm text-foreground/80">Seus gastos com assinaturas aumentaram 15%. <Link href="/budgets" className="text-primary hover:underline">Revisar suas assinaturas?</Link></p>
+             <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary">
+                Ver Todos os Insights
               </Button>
         </CardContent>
       </Card>
-
     </div>
   );
 }

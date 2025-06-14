@@ -1,4 +1,3 @@
-
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,42 +15,46 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import type { Metadata } from 'next';
+import { APP_NAME } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: `Transações - ${APP_NAME}`,
+};
 
 // Sample transactions data
 const transactions = [
-  { id: "txn_1", date: "2024-07-28", description: "Starbucks Coffee", category: "Food & Drink", amount: -5.75, type: "Expense" },
-  { id: "txn_2", date: "2024-07-28", description: "Freelance Project Payment", category: "Income", amount: 750.00, type: "Income" },
-  { id: "txn_3", date: "2024-07-27", description: "Netflix Subscription", category: "Entertainment", amount: -15.99, type: "Expense" },
-  { id: "txn_4", date: "2024-07-26", description: "Groceries from Trader Joe's", category: "Groceries", amount: -85.20, type: "Expense" },
-  { id: "txn_5", date: "2024-07-25", description: "Stock Dividend", category: "Investment", amount: 120.50, type: "Income" },
+  { id: "txn_1", date: "28/07/2024", description: "Café Starbucks", category: "Alimentação", amount: -5.75, type: "Despesa" },
+  { id: "txn_2", date: "28/07/2024", description: "Pagamento Projeto Freelance", category: "Receita", amount: 750.00, type: "Receita" },
+  { id: "txn_3", date: "27/07/2024", description: "Assinatura Netflix", category: "Entretenimento", amount: -15.99, type: "Despesa" },
+  { id: "txn_4", date: "26/07/2024", description: "Compras Supermercado", category: "Alimentação", amount: -85.20, type: "Despesa" },
+  { id: "txn_5", date: "25/07/2024", description: "Dividendo Ações", category: "Investimento", amount: 120.50, type: "Receita" },
 ];
 
 const categoryColors: { [key: string]: string } = {
-  "Food & Drink": "bg-amber-500/20 text-amber-700 border-amber-500/50",
-  "Income": "bg-emerald-500/20 text-emerald-700 border-emerald-500/50",
-  "Entertainment": "bg-purple-500/20 text-purple-700 border-purple-500/50",
-  "Groceries": "bg-sky-500/20 text-sky-700 border-sky-500/50",
-  "Investment": "bg-teal-500/20 text-teal-700 border-teal-500/50",
-  "Other": "bg-slate-500/20 text-slate-700 border-slate-500/50",
+  "Alimentação": "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-800/30 dark:text-amber-300 dark:border-amber-700",
+  "Receita": "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-800/30 dark:text-emerald-300 dark:border-emerald-700",
+  "Entretenimento": "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-800/30 dark:text-purple-300 dark:border-purple-700",
+  "Investimento": "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-800/30 dark:text-teal-300 dark:border-teal-700",
+  "Outro": "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-700/30 dark:text-slate-300 dark:border-slate-600",
 };
-
 
 export default function TransactionsPage() {
   return (
     <div>
       <PageHeader
-        title="Transactions"
-        description="Manage and review all your financial transactions."
+        title="Transações"
+        description="Gerencie e revise todas as suas transações financeiras."
         actions={
           <div className="flex gap-2">
             <Button variant="outline">
               <FileDown className="mr-2 h-4 w-4" />
-              Export
+              Exportar
             </Button>
             <Button asChild>
               <Link href="/transactions/new">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Add Transaction
+                Adicionar Transação
               </Link>
             </Button>
           </div>
@@ -59,56 +62,61 @@ export default function TransactionsPage() {
       />
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline">All Transactions</CardTitle>
-          <CardDescription>A detailed list of your income and expenses.</CardDescription>
+          <CardTitle className="font-headline">Todas as Transações</CardTitle>
+          <CardDescription>Uma lista detalhada de suas receitas e despesas.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>
-                  <Button variant="ghost" size="sm">Date <ArrowUpDown className="ml-2 h-3 w-3" /></Button>
+                  <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Data <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
                 </TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead>
-                   <Button variant="ghost" size="sm">Category <ArrowUpDown className="ml-2 h-3 w-3" /></Button>
+                   <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Categoria <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
                 </TableHead>
                 <TableHead className="text-right">
-                  <Button variant="ghost" size="sm">Amount <ArrowUpDown className="ml-2 h-3 w-3" /></Button>
+                  <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Valor <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
                 </TableHead>
-                <TableHead><span className="sr-only">Actions</span></TableHead>
+                <TableHead><span className="sr-only">Ações</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {transactions.map((transaction) => (
                 <TableRow key={transaction.id}>
-                  <TableCell className="text-muted-foreground">{transaction.date}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs md:text-sm">{transaction.date}</TableCell>
                   <TableCell className="font-medium">{transaction.description}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={cn(categoryColors[transaction.category] || categoryColors["Other"])}>
+                    <Badge 
+                        variant="outline" 
+                        className={cn("font-normal", categoryColors[transaction.category] || categoryColors["Outro"])}
+                    >
                       {transaction.category}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <PrivateValue
-                      value={transaction.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                      className={transaction.type === "Income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}
+                      value={transaction.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      className={cn("font-semibold", transaction.type === "Receita" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
                     />
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
+                          <span className="sr-only">Abrir menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit Transaction</DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuItem>Editar Transação</DropdownMenuItem>
+                        <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-100 dark:focus:bg-red-800">Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                          Deletar
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

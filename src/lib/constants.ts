@@ -1,17 +1,17 @@
 export const APP_NAME = "Flortune";
 
-// Navigation links: keys are for next-intl translations
-export const NAV_LINKS_KEYS = [
-  { href: "/dashboard", labelKey: "dashboard", icon: "LayoutDashboard" },
-  { href: "/calendar", labelKey: "calendar", icon: "CalendarDays" },
-  { href: "/transactions", labelKey: "transactions", icon: "ArrowRightLeft" },
-  { href: "/analysis", labelKey: "analysis", icon: "BarChart3" },
-  { href: "/budgets", labelKey: "budgets", icon: "Target"},
-  { href: "/goals", labelKey: "goals", icon: "Trophy" },
-  { href: "/settings", labelKey: "settings", icon: "Settings" },
+// Navigation links with Portuguese labels
+export const NAV_LINKS_CONFIG = [
+  { href: "/dashboard", label: "Painel", icon: "LayoutDashboard" },
+  { href: "/calendar", label: "Calendário", icon: "CalendarDays" },
+  { href: "/transactions", label: "Transações", icon: "ArrowRightLeft" },
+  { href: "/analysis", label: "Análise", icon: "BarChart3" },
+  { href: "/budgets", label: "Orçamentos", icon: "Target"},
+  { href: "/goals", label: "Metas", icon: "Trophy" },
+  { href: "/settings", label: "Configurações", icon: "Settings" },
 ] as const;
 
-export type NavLinkIconName = typeof NAV_LINKS_KEYS[number]["icon"];
+export type NavLinkIconName = typeof NAV_LINKS_CONFIG[number]["icon"];
 
 // Default user data placeholder (replace with actual auth logic)
 export const DEFAULT_USER = {

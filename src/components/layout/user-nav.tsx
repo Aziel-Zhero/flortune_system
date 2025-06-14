@@ -1,8 +1,7 @@
-
 "use client";
 
-import { Link } from "next-intl/client"; // Corrected for client components
-import { useTranslations } from "next-intl";
+import Link from "next/link"; // Usando next/link
+import { useRouter } from "next/navigation"; // Usando next/navigation
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,18 +14,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, LifeBuoy } from "lucide-react";
-import { useRouter } from "next-intl/client"; // Corrected for client components
 import { DEFAULT_USER } from "@/lib/constants";
-
+import { logoutUser } from "@/app/actions/auth.actions"; // Server action for logout
 
 export function UserNav() {
-  const t = useTranslations('UserNav');
   const router = useRouter();
 
   const handleLogout = async () => {
-    // Placeholder for actual logout logic (e.g., clearing session, calling API)
-    console.log("Logging out...");
-    router.push("/login"); // Redirects to login page within the current locale
+    await logoutUser(); // Calls server action, which then redirects
   };
 
   return (
@@ -53,27 +48,26 @@ export function UserNav() {
           <DropdownMenuItem asChild>
             <Link href="/settings">
               <User className="mr-2 h-4 w-4" />
-              <span>{t('profile')}</span>
+              <span>Perfil</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings">
               <Settings className="mr-2 h-4 w-4" />
-              <span>{t('settings')}</span>
+              <span>Configurações</span>
             </Link>
           </DropdownMenuItem>
            <DropdownMenuItem asChild>
-            {/* Assuming support page is part of settings or a new page */}
-            <Link href="/settings"> 
+            <Link href="/settings"> {/* Ajustado para /settings */}
               <LifeBuoy className="mr-2 h-4 w-4" />
-              <span>{t('support')}</span>
+              <span>Suporte</span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>{t('logout')}</span>
+          <span>Sair</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

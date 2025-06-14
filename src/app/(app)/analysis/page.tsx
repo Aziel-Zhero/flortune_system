@@ -9,23 +9,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { Metadata } from 'next';
+import { APP_NAME } from "@/lib/constants";
+
+export const metadata: Metadata = {
+  title: `Análise Financeira - ${APP_NAME}`,
+};
 
 export default function AnalysisPage() {
   return (
     <div>
       <PageHeader
-        title="Financial Analysis"
-        description="Gain insights into your spending and income patterns."
+        title="Análise Financeira"
+        description="Obtenha insights sobre seus padrões de gastos e receitas."
         actions={
           <Select defaultValue="monthly">
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select period" />
+              <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="quarterly">Quarterly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
+              <SelectItem value="weekly">Semanal</SelectItem>
+              <SelectItem value="monthly">Mensal</SelectItem>
+              <SelectItem value="quarterly">Trimestral</SelectItem>
+              <SelectItem value="yearly">Anual</SelectItem>
             </SelectContent>
           </Select>
         }
@@ -35,13 +41,12 @@ export default function AnalysisPage() {
           <CardHeader>
             <CardTitle className="font-headline flex items-center">
               <BarChart className="mr-2 h-5 w-5 text-primary" />
-              Spending by Category
+              Gastos por Categoria
             </CardTitle>
-            <CardDescription>Breakdown of your expenses across different categories.</CardDescription>
+            <CardDescription>Detalhamento de suas despesas em diferentes categorias.</CardDescription>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
-            {/* Placeholder for Bar Chart */}
-            <Image src="https://placehold.co/400x300.png?text=Spending+Bar+Chart" alt="Spending Bar Chart Placeholder" width={400} height={300} data-ai-hint="data chart"/>
+            <Image src="https://placehold.co/400x300.png" alt="Gráfico de Barras de Gastos" width={400} height={300} data-ai-hint="data chart"/>
           </CardContent>
         </Card>
 
@@ -49,13 +54,12 @@ export default function AnalysisPage() {
           <CardHeader>
             <CardTitle className="font-headline flex items-center">
               <PieChart className="mr-2 h-5 w-5 text-primary" />
-              Income Sources
+              Fontes de Renda
             </CardTitle>
-            <CardDescription>Distribution of your income from various sources.</CardDescription>
+            <CardDescription>Distribuição de sua renda de várias fontes.</CardDescription>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
-            {/* Placeholder for Pie Chart */}
-             <Image src="https://placehold.co/300x300.png?text=Income+Pie+Chart" alt="Income Pie Chart Placeholder" width={300} height={300} data-ai-hint="data chart"/>
+             <Image src="https://placehold.co/300x300.png" alt="Gráfico de Pizza de Renda" width={300} height={300} data-ai-hint="data chart"/>
           </CardContent>
         </Card>
 
@@ -63,13 +67,12 @@ export default function AnalysisPage() {
           <CardHeader>
             <CardTitle className="font-headline flex items-center">
               <TrendingUp className="mr-2 h-5 w-5 text-primary" />
-              Cash Flow Trend
+              Tendência do Fluxo de Caixa
             </CardTitle>
-            <CardDescription>Your income vs. expenses over time.</CardDescription>
+            <CardDescription>Sua renda vs. despesas ao longo do tempo.</CardDescription>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
-            {/* Placeholder for Line Chart */}
-            <Image src="https://placehold.co/600x300.png?text=Cash+Flow+Line+Chart" alt="Cash Flow Line Chart Placeholder" width={600} height={300} data-ai-hint="data chart graph"/>
+            <Image src="https://placehold.co/600x300.png" alt="Gráfico de Linha do Fluxo de Caixa" width={600} height={300} data-ai-hint="data chart graph"/>
           </CardContent>
         </Card>
       </div>

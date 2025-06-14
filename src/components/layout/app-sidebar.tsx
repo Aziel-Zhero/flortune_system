@@ -1,12 +1,11 @@
-
 "use client"
 
-import { Link, usePathname } from "next-intl/client"; // Corrected for client components
+import Link from "next/link"; // Usando next/link
+import { usePathname } from "next/navigation"; // Usando next/navigation
 import * as LucideIcons from "lucide-react";
-import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
-import { NAV_LINKS_KEYS, APP_NAME, type NavLinkIconName, DEFAULT_USER } from "@/lib/constants";
+import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkIconName, DEFAULT_USER } from "@/lib/constants";
 import {
   Sidebar,
   SidebarHeader,
@@ -17,7 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuSkeleton,
   SidebarTrigger,
-  useSidebar, // Import useSidebar
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,10 +27,8 @@ const getIcon = (iconName: NavLinkIconName): React.ElementType => {
 };
 
 export function AppSidebar() {
-  const pathname = usePathname(); // This will be the path without locale
-  const tNav = useTranslations('Navigation');
-  const tUser = useTranslations('UserNav');
-  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar(); // Get sidebar state
+  const pathname = usePathname();
+  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
 
   const isLoading = false; // Placeholder for actual loading state
   const skeletonItems = Array(5).fill(0);
@@ -50,7 +47,6 @@ export function AppSidebar() {
                 <LucideIcons.Leaf className="h-7 w-7" />
                 <span className="font-bold text-xl font-headline">{APP_NAME}</span>
             </Link>
-            {/* Trigger is now in AppHeader for md:hidden, and here for larger screens when not icon-only */}
             <div className={cn("ml-auto", {"group-data-[collapsible=icon]:hidden": !isMobile, "hidden": isMobile })}>
                  <SidebarTrigger />
             </div>
@@ -66,7 +62,7 @@ export function AppSidebar() {
               ? skeletonItems.map((_, index) => (
                   <SidebarMenuSkeleton key={index} showIcon />
                 ))
-              : NAV_LINKS_KEYS.map((link) => {
+              : NAV_LINKS_CONFIG.map((link) => {
                   const IconComponent = getIcon(link.icon);
                   const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
                   return (
@@ -74,13 +70,13 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        tooltip={{ children: tNav(link.labelKey as any) }}
+                        tooltip={{ children: link.label }}
                         className="justify-start"
                         onClick={closeMobileSidebar}
                       >
                         <Link href={link.href}>
                           <IconComponent />
-                          <span>{tNav(link.labelKey as any)}</span>
+                          <span>{link.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -97,7 +93,7 @@ export function AppSidebar() {
                 </Avatar>
                 <div className="flex flex-col">
                     <span className="text-sm font-medium font-headline">{DEFAULT_USER.name}</span>
-                    <span className="text-xs text-muted-foreground">{tUser('personalAccount')}</span>
+                    <span className="text-xs text-muted-foreground">Conta Pessoal</span>
                 </div>
                  <Button variant="ghost" size="icon" className="ml-auto h-8 w-8">
                     <LucideIcons.ChevronsUpDown className="h-4 w-4"/>
