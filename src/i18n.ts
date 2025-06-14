@@ -1,33 +1,42 @@
 // src/i18n.ts
+console.log('[i18n.ts] MODULE EXECUTION START - This should appear ONCE on server start/restart or first request.');
+
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 
-// Defina as localidades suportadas e a localidade padrão diretamente aqui
-// para tornar este arquivo autossuficiente para a configuração do next-intl/server.
-const SUPPORTED_LOCALES_CONFIG = ['en', 'pt', 'es', 'fr', 'ja', 'zh'] as const;
-type SupportedLocaleConfig = typeof SUPPORTED_LOCALES_CONFIG[number];
-const DEFAULT_LOCALE_CONFIG: SupportedLocaleConfig = 'pt';
+// Define locales and default locale directly in this file
+// This list must match the `locales` in `src/middleware.ts`
+const locales = ['en', 'pt', 'es', 'fr', 'ja', 'zh'] as const;
+export type SupportedLocaleForI18n = typeof locales[number];
 
 export default getRequestConfig(async ({locale}) => {
   console.log(`[i18n.ts] getRequestConfig called for locale: "${locale}"`);
-  const typedLocale = locale as SupportedLocaleConfig;
 
-  if (!SUPPORTED_LOCALES_CONFIG.includes(typedLocale)) {
-    console.warn(`[i18n.ts] Unsupported locale "${typedLocale}" requested. Calling notFound(). Supported: ${SUPPORTED_LOCALES_CONFIG.join(', ')}`);
+  // Validate that the incoming `locale` parameter is one of the supported ones
+  if (!locales.includes(locale as SupportedLocaleForI18n)) {
+    console.warn(`[i18n.ts] Unsupported locale "${locale}" passed to getRequestConfig. Triggering notFound().`);
     notFound();
   }
 
+  let messages;
   try {
-    // O caminho deve ser relativo à localização de i18n.ts (src/) para a pasta messages/ na raiz.
-    const messages = (await import(`../messages/${typedLocale}.json`)).default;
-    console.log(`[i18n.ts] Successfully loaded messages for locale "${typedLocale}".`);
-    return {
-      messages,
-      timeZone: 'UTC' // Opcional: defina um fuso horário se necessário
-    };
+    // Path relative to `src` directory (where i18n.ts is) to `messages` in project root.
+    console.log(`[i18n.ts] Attempting to load messages for "${locale}" from "../messages/${locale}.json"`);
+    messages = (await import(`../messages/${locale}.json`)).default;
+    console.log(`[i18n.ts] Successfully loaded messages for "${locale}". Keys sample: ${Object.keys(messages || {}).slice(0,3).join(', ')}`);
   } catch (error) {
-    console.error(`[i18n.ts] Critical error importing message file for locale "${typedLocale}":`, error);
-    // Se o arquivo de mensagens para uma localidade suportada estiver faltando ou for inválido.
-    notFound();
+    console.error(`[i18n.ts] Failed to load messages for locale "${locale}":`, error);
+    // If a message file for a supposedly supported locale is missing, it's a critical setup error.
+    throw new Error(`Message file for locale "${locale}" not found or invalid. Original error: ${error}`);
   }
+
+  if (!messages || Object.keys(messages).length === 0) {
+    console.warn(`[i18n.ts] Messages object for locale "${locale}" is empty or undefined after import.`);
+     throw new Error(`Messages for locale "${locale}" are empty or undefined.`);
+  }
+
+  return {
+    messages,
+    timeZone: 'America/Sao_Paulo', // Example, configure as needed. Consistent timezone helps.
+  };
 });

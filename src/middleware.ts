@@ -1,21 +1,26 @@
 // src/middleware.ts
+console.log('[middleware.ts] MODULE EXECUTION START - This should appear ONCE on server start/restart.');
 import createMiddleware from 'next-intl/middleware';
 
-// Define as localidades suportadas e a localidade padrão para a aplicação.
-// Estas devem ser consistentes com o que está em src/config/locales.ts
-// e usado em src/i18n.ts para carregar as mensagens.
-const locales = ['en', 'pt', 'es', 'fr', 'ja', 'zh'];
-const defaultLocale = 'pt';
-
+// All client components and server actions from `next-intl`
+// use the locale of the current request.
+// The middleware is responsible for serving the right content.
 export default createMiddleware({
-  locales: locales,
-  defaultLocale: defaultLocale,
-  localePrefix: 'as-needed'
+  // A list of all locales that are supported
+  locales: ['en', 'pt', 'es', 'fr', 'ja', 'zh'],
+
+  // Used when no locale matches
+  defaultLocale: 'pt',
+  
+  // Always use a locale prefix (e.g. `/pt/dashboard`)
+  // localePrefix: 'always', // Use 'always' or 'as-needed'
+  localePrefix: 'as-needed' // More common for cleaner URLs for default locale
 });
 
 export const config = {
-  // O matcher DEVE ser estaticamente analisável.
-  // Evite construí-lo dinamicamente com .join() se estiver causando problemas.
+  // Match only internationalized pathnames
+  // This simplified matcher is often sufficient if `localePrefix` handles the heavy lifting.
+  // It excludes API routes, Next.js internals, static files, and specific files like favicons.
   matcher: [
     // Match all pathnames except for
     // - …component/api (API routes)
@@ -24,11 +29,11 @@ export const config = {
     // - …component/_next/image (image optimization files)
     // - …component/favicon.ico (favicon file)
     // - …component/icon.svg (icon file)
-    // - / (the root path)
     '/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)',
-    // Match the root path specifically
-    '/',
-    // Match all pathnames within supported locales
-    '/(en|pt|es|fr|ja|zh)/:path*'
+    // Match the root path specifically if you want it to be handled by the middleware
+    // If your root path should not be localized or should redirect, handle that logic
+    // in your root page.tsx or adjust the matcher.
+    // For `localePrefix: 'as-needed'`, the root path will typically redirect.
+     '/',
   ]
 };
