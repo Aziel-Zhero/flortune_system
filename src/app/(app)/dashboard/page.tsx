@@ -100,7 +100,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-2xl font-bold font-headline">
                   {item.unit === "%" ? (
-                     <><PrivateValue value={String(item.value)} />%</>
+                     <span><PrivateValue value={String(item.value)} />%</span>
                   ) : (
                     <span>R$<PrivateValue value={item.value?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
                   )}
@@ -175,4 +175,3 @@ export default function DashboardPage() {
       </motion.div>
     </div>
   );
-}
