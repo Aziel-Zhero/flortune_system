@@ -1,29 +1,33 @@
 // src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-import {SUPPORTED_LOCALES, type SupportedLocale} from './config/locales';
+
+// Defina as localidades suportadas e a localidade padrão diretamente aqui
+// para tornar este arquivo autossuficiente para a configuração do next-intl/server.
+const SUPPORTED_LOCALES_CONFIG = ['en', 'pt', 'es', 'fr', 'ja', 'zh'] as const;
+type SupportedLocaleConfig = typeof SUPPORTED_LOCALES_CONFIG[number];
+const DEFAULT_LOCALE_CONFIG: SupportedLocaleConfig = 'pt';
 
 export default getRequestConfig(async ({locale}) => {
-  const currentLocale = locale as SupportedLocale;
-  console.log(`[i18n.ts] getRequestConfig called for locale: "${currentLocale}"`);
+  console.log(`[i18n.ts] getRequestConfig called for locale: "${locale}"`);
+  const typedLocale = locale as SupportedLocaleConfig;
 
-  // Validate that the incoming `locale` parameter is valid
-  if (!SUPPORTED_LOCALES.includes(currentLocale)) {
-    console.warn(`[i18n.ts] Unsupported locale "${currentLocale}" requested. Calling notFound().`);
+  if (!SUPPORTED_LOCALES_CONFIG.includes(typedLocale)) {
+    console.warn(`[i18n.ts] Unsupported locale "${typedLocale}" requested. Calling notFound(). Supported: ${SUPPORTED_LOCALES_CONFIG.join(', ')}`);
     notFound();
   }
 
   try {
-    const messages = (await import(`../messages/${currentLocale}.json`)).default;
-    console.log(`[i18n.ts] Successfully loaded messages for locale "${currentLocale}".`);
+    // O caminho deve ser relativo à localização de i18n.ts (src/) para a pasta messages/ na raiz.
+    const messages = (await import(`../messages/${typedLocale}.json`)).default;
+    console.log(`[i18n.ts] Successfully loaded messages for locale "${typedLocale}".`);
     return {
       messages,
-      // You can set a timezone here if needed, otherwise it will be inferred
-      // timeZone: 'America/New_York', 
+      timeZone: 'UTC' // Opcional: defina um fuso horário se necessário
     };
   } catch (error) {
-    console.error(`[i18n.ts] Failed to load messages for locale "${currentLocale}":`, error);
-    // Fallback to notFound if messages for a supported locale are missing
+    console.error(`[i18n.ts] Critical error importing message file for locale "${typedLocale}":`, error);
+    // Se o arquivo de mensagens para uma localidade suportada estiver faltando ou for inválido.
     notFound();
   }
 });
