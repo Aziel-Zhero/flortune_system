@@ -15,8 +15,8 @@ import { DEFAULT_USER } from '@/lib/constants';
 import { useAppSettings } from '@/hooks/use-app-settings';
 import { toast } from '@/hooks/use-toast';
 import { logoutUser } from '@/app/actions/auth.actions';
-// import type { Metadata } from 'next'; // Metadata estática não funciona bem em Client Components
 import { APP_NAME } from '@/lib/constants';
+import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -24,17 +24,16 @@ export default function SettingsPage() {
 
   const [fullName, setFullName] = useState(DEFAULT_USER.name);
   const [email, setEmail] = useState(DEFAULT_USER.email);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleProfileSave = async () => {
     console.log("Salvando perfil:", { fullName, email });
-    // Aqui iria a lógica de salvar no backend
     toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso." });
   };
   
   const handleLogout = async () => {
     toast({ title: "Saindo...", description: "Você está sendo desconectado." });
     await logoutUser(); 
-    // O redirecionamento é feito pela server action
   };
 
   const handleFeatureClick = (featureName: string, isPlaceholder: boolean = true) => {
@@ -45,7 +44,6 @@ export default function SettingsPage() {
     });
   };
 
-  // Set page title using document.title for client components
   useEffect(() => {
     document.title = `Configurações - ${APP_NAME}`;
   }, []);
@@ -84,7 +82,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Notifications Settings */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Bell className="mr-2 h-5 w-5 text-primary"/>Notificações</CardTitle>
@@ -112,7 +109,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Security Settings */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><ShieldCheck className="mr-2 h-5 w-5 text-primary"/>Segurança</CardTitle>
@@ -132,7 +128,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
-      {/* Appearance Settings */}
        <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Palette className="mr-2 h-5 w-5 text-primary"/>Aparência</CardTitle>
@@ -158,7 +153,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Data Management */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Gerenciamento de Dados</CardTitle>
@@ -174,15 +168,14 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-       {/* Sharing & Collaboration */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Share2 className="mr-2 h-5 w-5 text-primary"/>Compartilhamento e Colaboração</CardTitle>
           <CardDescription>Gerencie módulos compartilhados e acesso colaborativo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">Recurso em breve! Gerencie com quem você compartilha módulos financeiros e suas permissões.</p>
-          <Button variant="outline" disabled onClick={() => handleFeatureClick("Gerenciar Módulos Compartilhados")}>Gerenciar Módulos Compartilhados</Button>
+          <p className="text-sm text-muted-foreground">Gerencie com quem você compartilha módulos financeiros e suas permissões.</p>
+          <Button variant="outline" onClick={() => setIsShareModalOpen(true)}>Gerenciar Módulos Compartilhados</Button>
         </CardContent>
       </Card>
 
@@ -192,6 +185,7 @@ export default function SettingsPage() {
             Sair
         </Button>
       </div>
+      <ShareModuleDialog isOpen={isShareModalOpen} onOpenChange={setIsShareModalOpen} />
     </div>
   );
 }

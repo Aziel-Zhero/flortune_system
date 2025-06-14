@@ -1,8 +1,8 @@
-
 // src/app/(app)/transactions/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
-// Sample transactions data
 const transactionsData = [ 
   { id: "txn_1", date: "28/07/2024", description: "Café Starbucks", category: "Alimentação", amount: -5.75, type: "Despesa" },
   { id: "txn_2", date: "28/07/2024", description: "Pagamento Projeto Freelance", category: "Receita", amount: 750.00, type: "Receita" },
@@ -51,6 +50,7 @@ const categoryColors: { [key: string]: string } = {
 };
 
 export default function TransactionsPage() {
+  const [currentTransactions, setCurrentTransactions] = useState(transactionsData);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; description: string } | null>(null);
 
@@ -65,11 +65,7 @@ export default function TransactionsPage() {
 
   const handleConfirmDelete = () => {
     if (itemToDelete) {
-      console.log(`Deletando transação: ${itemToDelete.description} (ID: ${itemToDelete.id})`);
-      const indexToDelete = transactionsData.findIndex(t => t.id === itemToDelete.id);
-      if (indexToDelete > -1) {
-        transactionsData.splice(indexToDelete, 1); // Simula deleção
-      }
+      setCurrentTransactions(prev => prev.filter(t => t.id !== itemToDelete.id));
       toast({
         title: "Transação Deletada",
         description: `A transação "${itemToDelete.description}" foi deletada com sucesso.`,
@@ -103,6 +99,19 @@ export default function TransactionsPage() {
       description: "Funcionalidade de exportação de transações (placeholder)."
     });
   };
+
+  const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: i * 0.05,
+        type: "spring",
+        stiffness: 120,
+      },
+    }),
+  };
   
   return (
     <div>
@@ -116,7 +125,7 @@ export default function TransactionsPage() {
               Exportar
             </Button>
             <Button asChild>
-              <Link href="/transactions/new">
+              <Link href="/transactions/new"> {/* Placeholder: Link para criar nova transação */}
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Adicionar Transação
               </Link>
@@ -147,8 +156,16 @@ export default function TransactionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactionsData.map((transaction) => (
-                <TableRow key={transaction.id}>
+              {currentTransactions.map((transaction, index) => (
+                <motion.tr
+                  key={transaction.id}
+                  custom={index}
+                  variants={rowVariants}
+                  initial="hidden"
+                  animate="visible"
+                  layout
+                  className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                >
                   <TableCell className="text-muted-foreground text-xs md:text-sm">{transaction.date}</TableCell>
                   <TableCell className="font-medium">{transaction.description}</TableCell>
                   <TableCell>
@@ -187,8 +204,15 @@ export default function TransactionsPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))}
+               {currentTransactions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    Nenhuma transação encontrada.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

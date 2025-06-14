@@ -8,6 +8,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/analysis", label: "Análise", icon: "BarChart3" },
   { href: "/budgets", label: "Orçamentos", icon: "Target"},
   { href: "/goals", label: "Metas", icon: "Trophy" },
+  { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" },
   { href: "/settings", label: "Configurações", icon: "Settings" },
 ] as const;
 

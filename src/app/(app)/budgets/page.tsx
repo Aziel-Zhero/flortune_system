@@ -1,8 +1,8 @@
-
 // src/app/(app)/budgets/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,11 +21,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
-// Sample budgets data
 const budgetsData = [
   { id: "budget_1", category: "Alimentação", limit: 400, spent: 250.75 },
   { id: "budget_2", category: "Restaurantes", limit: 200, spent: 180.50 },
@@ -34,6 +32,7 @@ const budgetsData = [
 ];
 
 export default function BudgetsPage() {
+  const [currentBudgets, setCurrentBudgets] = useState(budgetsData);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
 
@@ -48,12 +47,7 @@ export default function BudgetsPage() {
 
   const handleConfirmDelete = () => {
     if (itemToDelete) {
-      console.log(`Deletando orçamento: ${itemToDelete.name} (ID: ${itemToDelete.id})`);
-      // Aqui iria a lógica de deleção real (ex: chamada de API)
-      const indexToDelete = budgetsData.findIndex(b => b.id === itemToDelete.id);
-      if (indexToDelete > -1) {
-        budgetsData.splice(indexToDelete, 1); // Simula deleção local
-      }
+      setCurrentBudgets(prevBudgets => prevBudgets.filter(b => b.id !== itemToDelete.id));
       toast({
         title: "Orçamento Deletado",
         description: `O orçamento "${itemToDelete.name}" foi deletado com sucesso.`,
@@ -72,6 +66,19 @@ export default function BudgetsPage() {
     // Em um app real: router.push(`/budgets/edit/${budgetId}`);
   };
   
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.1,
+        type: "spring",
+        stiffness: 100,
+      },
+    }),
+  };
+
   return (
     <div>
       <PageHeader
@@ -79,7 +86,7 @@ export default function BudgetsPage() {
         description="Defina e acompanhe seus limites de gastos para diferentes categorias."
         actions={
           <Button asChild>
-            <Link href="/budgets/new">
+            <Link href="/budgets/new"> {/* Placeholder: Link para criar novo orçamento */}
               <PlusCircle className="mr-2 h-4 w-4" />
               Criar Orçamento
             </Link>
@@ -87,63 +94,76 @@ export default function BudgetsPage() {
         }
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {budgetsData.map((budget) => {
+        {currentBudgets.map((budget, index) => {
           const remaining = budget.limit - budget.spent;
           const progressValue = budget.limit > 0 ? Math.min((budget.spent / budget.limit) * 100, 100) : 0;
           const isOverspent = remaining < 0;
           
           return (
-            <Card key={budget.id} className="shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
+            <motion.div
+              key={budget.id}
+              custom={index}
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+              layout
+            >
+              <Card className="shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="font-headline flex items-center">
+                        <Target className="mr-2 h-5 w-5 text-primary" />
+                        {budget.category}
+                      </CardTitle>
+                      <CardDescription>
+                        Limite: <PrivateValue value={`R$${budget.limit.toFixed(2)}`} />
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditClick(budget.id, budget.category)}>
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(budget.id, budget.category)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow flex flex-col justify-between">
                   <div>
-                    <CardTitle className="font-headline flex items-center">
-                      <Target className="mr-2 h-5 w-5 text-primary" />
-                      {budget.category}
-                    </CardTitle>
-                    <CardDescription>
-                      Limite: <PrivateValue value={`R$${budget.limit.toFixed(2)}`} />
-                    </CardDescription>
+                    <Progress 
+                        value={progressValue} 
+                        className={cn("h-3", isOverspent && "bg-destructive/20")} 
+                        indicatorClassName={cn(isOverspent ? "bg-destructive" : "bg-primary")}
+                    />
+                    <div className="mt-3 flex justify-between text-sm">
+                      <span className="text-muted-foreground">Gasto:</span>
+                      <PrivateValue value={`R$${budget.spent.toFixed(2)}`} className={cn(isOverspent && "text-destructive font-semibold")} />
+                    </div>
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className={cn(isOverspent ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
+                        {isOverspent ? "Excedido:" : "Restante:"}
+                      </span>
+                      <PrivateValue
+                        value={`R$${Math.abs(remaining).toFixed(2)}`}
+                        className={cn(isOverspent ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}
+                      />
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditClick(budget.id, budget.category)}>
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(budget.id, budget.category)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Progress 
-                    value={progressValue} 
-                    className={cn("h-3", isOverspent && "bg-destructive")} 
-                    indicatorClassName={cn(isOverspent && "bg-red-500 dark:bg-red-700")} // Using red-500 for overspent indicator
-                />
-                <div className="mt-3 flex justify-between text-sm">
-                  <span className="text-muted-foreground">Gasto:</span>
-                  <PrivateValue value={`R$${budget.spent.toFixed(2)}`} className={cn(isOverspent && "text-destructive font-semibold")} />
-                </div>
-                <div className="flex justify-between text-sm font-medium">
-                  <span className={cn(isOverspent ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
-                    {isOverspent ? "Excedido:" : "Restante:"}
-                  </span>
-                  <PrivateValue
-                    value={`R$${Math.abs(remaining).toFixed(2)}`}
-                    className={cn(isOverspent ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           );
         })}
-         <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] text-muted-foreground hover:text-primary cursor-pointer">
-            <Link href="/budgets/new" className="text-center p-6 block w-full h-full">
-                <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
-                <p className="font-semibold">Criar Novo Orçamento</p>
-            </Link>
-        </Card>
+         <motion.div custom={currentBudgets.length} variants={cardVariants} initial="hidden" animate="visible" layout>
+            <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
+                <Link href="/budgets/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> {/* Placeholder */}
+                    <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
+                    <p className="font-semibold">Criar Novo Orçamento</p>
+                </Link>
+            </Card>
+        </motion.div>
       </div>
 
       <Card className="mt-8 shadow-sm bg-primary/10 border-primary/30">
