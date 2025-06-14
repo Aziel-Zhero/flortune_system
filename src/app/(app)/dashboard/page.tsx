@@ -1,7 +1,7 @@
 // src/app/(app)/dashboard/page.tsx
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { APP_NAME, DEFAULT_USER } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
-
 
 const summaryData = [
   { title: "Saldo Total", value: 12345.67, icon: DollarSign, trend: "+2,5%", trendColor: "text-emerald-500" },
@@ -44,9 +43,12 @@ export default function DashboardPage() {
         title={`Bem-vinda de volta, ${DEFAULT_USER.name.split(" ")[0]}!`}
         description="Aqui está seu resumo financeiro para este mês."
         actions={
-          <Button asChild>
-            <Link href="/transactions/new">Adicionar Transação</Link> {/* Placeholder */}
-          </Button>
+          <Link 
+            href="/transactions/new" 
+            className={cn(buttonVariants({ variant: "default", size: "default" }))}
+          >
+            Adicionar Transação
+          </Link>
         }
       />
 
