@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react"; // Alterado de react-dom
 import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 
 export function SignupForm() {
   const initialState: SignupFormState = { message: undefined, errors: {}, success: undefined };
-  const [state, dispatch] = useFormState(signupUser, initialState);
+  const [state, dispatch] = useActionState(signupUser, initialState); // Alterado para useActionState
 
   useEffect(() => {
     if (state.message && !state.success && state.errors?._form) {

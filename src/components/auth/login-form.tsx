@@ -1,7 +1,8 @@
+
 "use client";
 
-import { useFormState } from "react-dom"; 
-import Link from "next/link"; // Changed from next-intl/client
+import { useActionState } from "react"; // Alterado de react-dom
+import Link from "next/link"; 
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import { toast } from "@/hooks/use-toast";
 export function LoginForm() {
   const searchParams = useSearchParams();
   const initialState: LoginFormState = { message: undefined, errors: {}, success: undefined };
-  const [state, dispatch] = useFormState(loginUser, initialState);
+  const [state, dispatch] = useActionState(loginUser, initialState); // Alterado para useActionState
 
   useEffect(() => {
     if (searchParams.get('signup') === 'success') {
