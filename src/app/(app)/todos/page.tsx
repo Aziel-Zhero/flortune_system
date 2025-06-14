@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 
 interface TodoItem {
-  id: number; // Supabase typically uses numbers for auto-incrementing IDs by default
+  id: number; // Supabase BIGSERIAL é um número
   text: string;
   completed: boolean;
   created_at: string;
@@ -74,7 +74,7 @@ export default function TodosPage() {
       return;
     }
     
-    // For a real app, you'd get the authenticated user's ID here.
+    // user_id logic removed for now, aligning with simplified table structure
     // const { data: { user } } = await supabase.auth.getUser();
     // if (!user) {
     //   toast({ title: "Não autenticado", description: "Você precisa estar logado para adicionar tarefas.", variant: "destructive" });
@@ -85,9 +85,9 @@ export default function TodosPage() {
     try {
       const { data, error } = await supabase
         .from("todos")
-        .insert([{ text: newTodoText.trim(), completed: false /*, user_id: userId */ }])
+        .insert([{ text: newTodoText.trim(), completed: false }]) // user_id field removed from insert
         .select()
-        .single(); // Assuming you want the inserted row back
+        .single(); 
 
       if (error) {
         throw error;
