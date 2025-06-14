@@ -1,6 +1,6 @@
 export const APP_NAME = "Flortune";
 
-// Use keys for translation
+// Navigation links: keys are for next-intl translations
 export const NAV_LINKS_KEYS = [
   { href: "/dashboard", labelKey: "dashboard", icon: "LayoutDashboard" },
   { href: "/calendar", labelKey: "calendar", icon: "CalendarDays" },
@@ -11,6 +11,11 @@ export const NAV_LINKS_KEYS = [
   { href: "/settings", labelKey: "settings", icon: "Settings" },
 ] as const;
 
-// Keep original NavLinkIcon type if it's used elsewhere, or adapt as needed.
-// For icon mapping, this type definition is still fine.
-export type NavLinkIcon = typeof NAV_LINKS_KEYS[number]["icon"];
+export type NavLinkIconName = typeof NAV_LINKS_KEYS[number]["icon"];
+
+// Default user data placeholder (replace with actual auth logic)
+export const DEFAULT_USER = {
+  name: "Flora Green",
+  email: "flora.green@example.com",
+  avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "woman nature"
+};

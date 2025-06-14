@@ -1,8 +1,8 @@
 
 "use client";
 
-import { Link } from "next-intl"; // Use next-intl's Link
-import { useTranslations, useLocale } from "next-intl";
+import { Link } from "next-intl/client"; // Corrected for client components
+import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,26 +15,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, LifeBuoy } from "lucide-react";
-import { useRouter } from "next-intl/navigation"; // Updated import
+import { useRouter } from "next-intl/client"; // Corrected for client components
+import { DEFAULT_USER } from "@/lib/constants";
 
-
-const user = {
-  name: "Flora Green", // This could also be from a context or translated if dynamic
-  email: "flora.green@example.com",
-  avatarUrl: "https://placehold.co/100x100.png", 
-};
 
 export function UserNav() {
   const t = useTranslations('UserNav');
   const router = useRouter();
-  const locale = useLocale();
-
 
   const handleLogout = async () => {
+    // Placeholder for actual logout logic (e.g., clearing session, calling API)
     console.log("Logging out...");
-    // In a real app, call your logout server action
-    // For now, redirect to login (locale-aware)
-    router.push("/login"); // next-intl's router handles locale automatically
+    router.push("/login"); // Redirects to login page within the current locale
   };
 
   return (
@@ -42,24 +34,24 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="woman nature" />
-            <AvatarFallback>{user.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+            <AvatarImage src={DEFAULT_USER.avatarUrl} alt={DEFAULT_USER.name} data-ai-hint="woman nature"/>
+            <AvatarFallback>{DEFAULT_USER.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none font-headline">{user.name}</p>
+            <p className="text-sm font-medium leading-none font-headline">{DEFAULT_USER.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              {DEFAULT_USER.email}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/settings"> {/* Link will automatically use current locale */}
+            <Link href="/settings">
               <User className="mr-2 h-4 w-4" />
               <span>{t('profile')}</span>
             </Link>
@@ -71,7 +63,8 @@ export function UserNav() {
             </Link>
           </DropdownMenuItem>
            <DropdownMenuItem asChild>
-            <Link href="/settings"> {/* Assuming support page is part of settings or a new page */}
+            {/* Assuming support page is part of settings or a new page */}
+            <Link href="/settings"> 
               <LifeBuoy className="mr-2 h-4 w-4" />
               <span>{t('support')}</span>
             </Link>
@@ -86,5 +79,3 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
-
-    

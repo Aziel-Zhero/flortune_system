@@ -4,99 +4,99 @@
 
 @layer base {
   :root {
-    --background: 175 47% 91%; /* Light Teal #E0F2F1 */
-    --foreground: 175 35% 25%; /* Darker Teal for readability */
+    --background: 204 20% 96%; /* Light Teal - E0F2F1 (desaturado para HSL) */
+    --foreground: 180 30% 25%; /* Darker Teal for readability */
 
-    --muted: 175 40% 85%;
-    --muted-foreground: 175 30% 50%;
+    --muted: 180 25% 85%;
+    --muted-foreground: 180 20% 50%;
 
-    --popover: 175 47% 94%; /* Slightly off-white teal for popovers */
-    --popover-foreground: 175 35% 25%;
+    --popover: 204 20% 98%; 
+    --popover-foreground: 180 30% 25%;
 
-    --card: 175 47% 94%; /* Slightly off-white teal for cards */
-    --card-foreground: 175 35% 25%;
+    --card: 204 20% 98%; 
+    --card-foreground: 180 30% 25%;
 
-    --border: 175 35% 80%;
-    --input: 175 40% 88%;
+    --border: 180 20% 80%;
+    --input: 180 25% 88%;
 
-    --primary: 165 75% 36%; /* Deep Teal #16A381 */
-    --primary-foreground: 165 75% 95%; /* Very Light Teal/White */
+    --primary: 170 75% 36%; /* Deep Teal #16A381 (aproximado para HSL) */
+    --primary-foreground: 170 75% 95%; /* Very Light Teal/White */
 
-    --secondary: 170 50% 80%; /* Lighter, less saturated teal */
-    --secondary-foreground: 170 50% 25%;
+    --secondary: 175 50% 80%; /* Lighter, less saturated teal */
+    --secondary-foreground: 175 50% 25%;
 
-    --accent: 47 96% 53%; /* Mustard Yellow #FACC15 */
-    --accent-foreground: 47 96% 15%; /* Dark Brown/Black for text on accent */
+    --accent: 45 95% 51%; /* Mustard Yellow #FACC15 (aproximado para HSL) */
+    --accent-foreground: 45 95% 15%; /* Dark Brown/Black for text on accent */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --ring: 165 75% 45%; /* Slightly lighter version of primary for focus rings */
+    --ring: 170 75% 45%; /* Slightly lighter version of primary for focus rings */
 
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 170 60% 88%;
-    --sidebar-foreground: 170 40% 20%;
-    --sidebar-primary: 165 75% 36%;
-    --sidebar-primary-foreground: 165 75% 95%;
-    --sidebar-accent: 170 55% 80%;
-    --sidebar-accent-foreground: 170 40% 15%;
-    --sidebar-border: 170 50% 75%;
-    --sidebar-ring: 165 75% 45%;
+    --sidebar-background: 175 60% 88%; /* Adjusted to fit teal theme */
+    --sidebar-foreground: 175 40% 20%;
+    --sidebar-primary: 170 75% 36%;
+    --sidebar-primary-foreground: 170 75% 95%;
+    --sidebar-accent: 175 55% 80%;
+    --sidebar-accent-foreground: 175 40% 15%;
+    --sidebar-border: 175 50% 75%;
+    --sidebar-ring: 170 75% 45%;
 
-    --chart-1: 165 75% 45%; /* Teal shade 1 */
-    --chart-2: 47 90% 60%;  /* Yellow shade 1 */
+    --chart-1: 170 75% 45%; /* Teal shade 1 */
+    --chart-2: 45 90% 60%;  /* Yellow shade 1 */
     --chart-3: 175 50% 60%; /* Muted teal shade */
-    --chart-4: 165 60% 30%; /* Darker Teal shade */
-    --chart-5: 47 80% 45%;  /* Darker Yellow shade */
+    --chart-4: 170 60% 30%; /* Darker Teal shade */
+    --chart-5: 45 80% 45%;  /* Darker Yellow shade */
   }
 
   .dark {
-    --background: 175 20% 10%; /* Dark Slate Teal */
-    --foreground: 175 20% 90%; /* Light Teal Text */
+    --background: 180 15% 10%; /* Dark Slate Teal */
+    --foreground: 180 15% 90%; /* Light Teal Text */
 
-    --muted: 175 20% 20%;
-    --muted-foreground: 175 20% 65%;
+    --muted: 180 15% 20%;
+    --muted-foreground: 180 15% 65%;
 
-    --popover: 175 20% 8%;
-    --popover-foreground: 175 20% 90%;
+    --popover: 180 15% 8%;
+    --popover-foreground: 180 15% 90%;
 
-    --card: 175 20% 8%;
-    --card-foreground: 175 20% 90%;
+    --card: 180 15% 8%;
+    --card-foreground: 180 15% 90%;
 
-    --border: 175 20% 25%;
-    --input: 175 20% 22%;
+    --border: 180 15% 25%;
+    --input: 180 15% 22%;
 
-    --primary: 165 70% 40%; /* Slightly desaturated Deep Teal for dark mode */
-    --primary-foreground: 165 70% 90%;
+    --primary: 170 70% 40%; /* Slightly desaturated Deep Teal for dark mode */
+    --primary-foreground: 170 70% 90%;
 
-    --secondary: 170 40% 30%;
-    --secondary-foreground: 170 40% 90%;
+    --secondary: 175 40% 30%;
+    --secondary-foreground: 175 40% 90%;
 
-    --accent: 47 90% 55%; /* Slightly desaturated Mustard Yellow */
-    --accent-foreground: 47 90% 10%;
+    --accent: 45 90% 55%; /* Slightly desaturated Mustard Yellow */
+    --accent-foreground: 45 90% 10%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --ring: 165 70% 50%;
+    --ring: 170 70% 50%;
 
     /* Sidebar specific colors for dark mode */
-    --sidebar-background: 175 25% 15%;
-    --sidebar-foreground: 175 20% 85%;
-    --sidebar-primary: 165 70% 40%;
-    --sidebar-primary-foreground: 165 70% 90%;
-    --sidebar-accent: 170 35% 25%;
-    --sidebar-accent-foreground: 170 35% 85%;
-    --sidebar-border: 175 20% 30%;
-    --sidebar-ring: 165 70% 50%;
+    --sidebar-background: 180 20% 15%;
+    --sidebar-foreground: 180 15% 85%;
+    --sidebar-primary: 170 70% 40%;
+    --sidebar-primary-foreground: 170 70% 90%;
+    --sidebar-accent: 175 35% 25%;
+    --sidebar-accent-foreground: 175 35% 85%;
+    --sidebar-border: 180 15% 30%;
+    --sidebar-ring: 170 70% 50%;
 
-    --chart-1: 165 70% 50%;
-    --chart-2: 47 85% 65%;
+    --chart-1: 170 70% 50%;
+    --chart-2: 45 85% 65%;
     --chart-3: 175 45% 65%;
-    --chart-4: 165 55% 35%;
-    --chart-5: 47 75% 50%;
+    --chart-4: 170 55% 35%;
+    --chart-5: 45 75% 50%;
   }
 }
 
@@ -106,5 +106,11 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
+  }
+  .font-headline {
+    font-family: 'Poppins', sans-serif;
+  }
+  .font-body {
+    font-family: 'Inter', sans-serif;
   }
 }

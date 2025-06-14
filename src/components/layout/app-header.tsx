@@ -1,8 +1,8 @@
 
 "use client";
 
-import { Link } from "next-intl"; // Use next-intl's Link
-import { Leaf, Eye, EyeOff, Search, Bell } from "lucide-react";
+import { Link, usePathname } from "next-intl/client"; // Corrected import for client components
+import { Leaf, Eye, EyeOff, Search, Bell, Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -10,20 +10,27 @@ import { Input } from "@/components/ui/input";
 import { UserNav } from "./user-nav";
 import { useAppSettings } from "@/hooks/use-app-settings";
 import { cn } from "@/lib/utils";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 
 
 export function AppHeader() {
   const { isPrivateMode, togglePrivateMode } = useAppSettings();
   const t = useTranslations('AppHeader');
+  const { isMobile, setOpenMobile } = useSidebar(); // Get sidebar context
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-md">
-      <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0 px-4 md:px-6">
+    <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
+      <div className="container mx-auto flex h-full items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6">
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="md:hidden">
+          {isMobile && (
+            <Button variant="ghost" size="icon" onClick={() => setOpenMobile(true)} className="md:hidden">
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          )}
+           <div className="hidden md:flex">
              <SidebarTrigger />
-          </div>
+           </div>
           <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
             <Leaf className="h-7 w-7" />
             <span className="font-bold text-xl font-headline hidden sm:inline-block">{APP_NAME}</span>
@@ -45,7 +52,7 @@ export function AppHeader() {
             variant="ghost"
             size="icon"
             onClick={togglePrivateMode}
-            aria-label={isPrivateMode ? "Disable private mode" : "Enable private mode"} // Consider translating aria-label if needed
+            aria-label={isPrivateMode ? "Disable private mode" : "Enable private mode"}
             className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
           >
             {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

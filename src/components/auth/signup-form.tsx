@@ -2,21 +2,47 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { AlertTriangle, UserPlus, KeyRound, Mail, User } from "lucide-react";
+import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, LogIn } from "lucide-react"; // Renamed User to UserIcon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { signupUser, signInWithGoogle, type SignupFormState } from "@/app/actions/auth.actions"; // path needs update if actions move
+import { signupUser, signInWithGoogle, type SignupFormState } from "@/app/actions/auth.actions";
 import { OAuthButton } from "./oauth-button";
 import { SubmitButton } from "./submit-button";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 export function SignupForm() {
   const t = useTranslations('SignupForm');
-  const initialState: SignupFormState = { message: undefined, errors: {} };
+  const initialState: SignupFormState = { message: undefined, errors: {}, success: undefined };
   const [state, dispatch] = useFormState(signupUser, initialState);
+
+  useEffect(() => {
+    if (state.message && !state.success && state.errors?._form) {
+      // Error from form validation already handled by Alert below
+    } else if (state.message && !state.success) {
+      toast({
+        title: t('errorTitle'),
+        description: state.message,
+        variant: "destructive",
+      });
+    } else if (state.success && state.message) {
+      // For signup, success usually redirects. If we want to show a message before redirect,
+      // the server action would need to return success: true and a message,
+      // and then client-side would handle the redirect after showing the toast.
+      // Current action redirects immediately.
+      // This part might not be hit if redirect happens in server action.
+       toast({
+        title: t('successTitle'),
+        description: state.message,
+        variant: "default"
+      });
+    }
+  }, [state, t]);
+
 
   return (
     <form action={dispatch} className="space-y-6">
@@ -27,14 +53,15 @@ export function SignupForm() {
           <AlertDescription>{state.errors._form.join(', ')}</AlertDescription>
         </Alert>
       )}
-      {state?.message && !state.success && !state.errors?._form && (
+       {state?.message && !state.success && !state.errors?._form && (
          <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('errorTitle')}</AlertTitle>
           <AlertDescription>{state.message}</AlertDescription>
         </Alert>
       )}
-      {state?.success && (
+      {/* This success alert might not show if redirect happens in server action */}
+      {state?.success && state.message && (
         <Alert variant="default" className="bg-green-100 dark:bg-green-900 border-green-500 dark:border-green-700">
           <UserPlus className="h-4 w-4 text-green-700 dark:text-green-400" />
           <AlertTitle className="text-green-800 dark:text-green-300">{t('successTitle')}</AlertTitle>
@@ -45,7 +72,7 @@ export function SignupForm() {
       <div className="space-y-2">
         <Label htmlFor="name">{t('fullNameLabel')}</Label>
         <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input id="name" name="name" placeholder="John Doe" required className="pl-10" aria-describedby="name-error" />
         </div>
         {state?.errors?.name && <p id="name-error" className="text-sm text-destructive">{state.errors.name.join(', ')}</p>}
@@ -78,11 +105,11 @@ export function SignupForm() {
         {state?.errors?.confirmPassword && <p id="confirmPassword-error" className="text-sm text-destructive">{state.errors.confirmPassword.join(', ')}</p>}
       </div>
       
-      <SubmitButton pendingTextKey="creatingAccount">
+      <SubmitButton pendingTextKey="SubmitButton.creatingAccount"> {/* Adjusted key */}
         {t('createAccountButton')} <UserPlus className="ml-2 h-4 w-4" />
       </SubmitButton>
       <Separator className="my-6" />
-      <OAuthButton providerName="Google" Icon={UserPlus} onClick={signInWithGoogle} />
+      <OAuthButton providerName="Google" Icon={LogIn} action={signInWithGoogle} buttonText={t('signInWithButton', {providerName: 'Google'})} />
     </form>
   );
 }

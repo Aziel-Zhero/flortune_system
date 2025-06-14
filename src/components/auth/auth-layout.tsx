@@ -1,6 +1,6 @@
 
 import type { ReactNode } from 'react';
-import { Link } from 'next-intl'; // Use next-intl Link
+import { Link } from 'next-intl'; // Use next-intl Link for locale-aware navigation
 import { Leaf } from 'lucide-react';
 import { APP_NAME } from '@/lib/constants';
 
@@ -8,10 +8,10 @@ interface AuthLayoutProps {
   children: ReactNode;
   title: string;
   description: string;
-  footerLinkHref: string; // Will be locale-prefixed by parent
+  footerLinkHref: string; // Expected to be a locale-prefixed path
   footerLinkText: string;
   footerText: string;
-  locale: string; // Pass locale for Links if needed, though next-intl/link handles it
+  // locale prop is implicitly handled by next-intl's Link if href is just a path
 }
 
 export function AuthLayout({ 
@@ -20,13 +20,13 @@ export function AuthLayout({
   description, 
   footerLinkHref, 
   footerLinkText, 
-  footerText,
-  locale
+  footerText 
 }: AuthLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-secondary/30 p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
+          {/* Root link should go to the current locale's root */}
           <Link href="/" className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
             <Leaf size={36} />
             <h1 className="text-4xl font-headline font-bold">{APP_NAME}</h1>
@@ -56,4 +56,3 @@ export function AuthLayout({
     </div>
   );
 }
-

@@ -6,20 +6,25 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
-interface SubmitButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
-  pendingTextKey: string; // Changed to key for translation
-  children: React.ReactNode; // Content for the non-pending state
-  variant?: ButtonProps['variant'];
-  size?: ButtonProps['size'];
+interface SubmitButtonProps extends Omit<ButtonProps, 'children' | 'type' | 'disabled'> {
+  pendingTextKey: string; // e.g., "SubmitButton.signingIn"
+  children: React.ReactNode; 
   className?: string;
 }
 
-export function SubmitButton({ pendingTextKey, children, className, ...props }: SubmitButtonProps) {
+export function SubmitButton({ pendingTextKey, children, className, variant, size, ...props }: SubmitButtonProps) {
   const { pending } = useFormStatus();
-  const t = useTranslations('SubmitButton');
+  const t = useTranslations(); // General namespace or pass specific one if needed
 
   return (
-    <Button type="submit" className={cn("w-full", className)} disabled={pending} {...props}>
+    <Button 
+      type="submit" 
+      className={cn("w-full", className)} 
+      disabled={pending}
+      variant={variant}
+      size={size}
+      {...props}
+    >
       {pending ? t(pendingTextKey as any) : children}
     </Button>
   );
