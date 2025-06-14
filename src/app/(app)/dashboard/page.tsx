@@ -100,9 +100,9 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-2xl font-bold font-headline">
                   {item.unit === "%" ? (
-                     <>{item.value}<PrivateValue value={"%"} /></>
+                     <><PrivateValue value={String(item.value)} />%</>
                   ) : (
-                    "R$" + <PrivateValue value={item.value?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
+                    <span>R$<PrivateValue value={item.value?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
                   )}
                 </div>
                 <p className={cn("text-xs text-muted-foreground mt-1", item.trendColor)}>
