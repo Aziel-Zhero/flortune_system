@@ -1,15 +1,12 @@
-// Este arquivo NÃO deve ser usado com o Next.js App Router se você estiver usando src/i18n.ts.
-// A presença deste arquivo na raiz do projeto pode causar conflitos e impedir
-// que next-intl encontre a configuração correta em src/i18n.ts.
-//
-// POR FAVOR, DELETE ESTE ARQUIVO DA RAIZ DO SEU PROJETO.
-//
-// O conteúdo abaixo está comentado para neutralizá-lo caso você não o delete,
-// mas a exclusão é a melhor abordagem.
+// IMPORTANT: This file (next-intl.config.ts at the project root)
+// should ideally be DELETED if you are using `src/i18n.ts` for the App Router.
+// Its presence can conflict with the App Router's `src/i18n.ts` setup.
+// The content below is commented out to neutralize it if you cannot delete it immediately.
+// Please DELETE this file manually from your project's root directory.
 
 /*
 export default {
-  locales: ['en', 'pt', 'es', 'fr', 'ja', 'zh'],
+  locales: ['en', 'pt', 'es', 'fr', 'ja', 'zh'], // replace with the languages your app supports
   defaultLocale: 'pt',
 };
 */
