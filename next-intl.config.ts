@@ -1,17 +1,14 @@
-// next-intl.config.ts
-// This file is intentionally commented out/neutralized.
-// For Next.js App Router, the configuration for server-side functions (getLocale, getMessages)
-// should primarily be handled by `src/i18n.ts` exporting `getRequestConfig`.
-// The middleware configuration is handled in `src/middleware.ts`.
-// Keeping this file (even commented) can sometimes cause confusion for next-intl if it
-// tries to auto-detect a config file.
-
-/*
-export default {
-  locales: ['en', 'pt', 'es', 'fr', 'ja', 'zh'], // Example, ensure this matches your actual supported locales
-  defaultLocale: 'pt', // Example
-};
-*/
-
-// If you were using an older version of next-intl or a different setup (e.g., Pages Router),
-// this file might be used differently. For App Router, `src/i18n.ts` is key.
+// Se você criou este arquivo, next-intl.config.ts, na raiz do projeto,
+// ele NÃO é usado pelo App Router do Next.js quando src/i18n.ts está presente
+// para configurar getRequestConfig.
+// Para o App Router, a configuração principal para `getLocale` e `getMessages`
+// deve vir de `src/i18n.ts`.
+//
+// A presença deste arquivo PODE causar conflitos.
+// Se você estiver usando o App Router e src/i18n.ts, é recomendado
+// DELETAR este arquivo (next-intl.config.ts) da raiz do projeto.
+//
+// export default {
+//   locales: ['en', 'pt'],
+//   defaultLocale: 'pt',
+// };
