@@ -1,16 +1,16 @@
+
 // src/app/(app)/budgets/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
 import { PlusCircle, Target, Edit3, Trash2, Sprout } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { Metadata } from 'next';
 import { APP_NAME } from "@/lib/constants";
 import {
   AlertDialog,
@@ -25,11 +25,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
-// Metadata estática não funciona bem em Client Components. Definir no layout ou remover.
-// export const metadata: Metadata = {
-//   title: `Orçamentos - ${APP_NAME}`,
-// };
-
 // Sample budgets data
 const budgetsData = [
   { id: "budget_1", category: "Alimentação", limit: 400, spent: 250.75 },
@@ -42,6 +37,10 @@ export default function BudgetsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
 
+  useEffect(() => {
+    document.title = `Orçamentos - ${APP_NAME}`;
+  }, []);
+
   const handleDeleteClick = (budgetId: string, budgetCategory: string) => {
     setItemToDelete({ id: budgetId, name: budgetCategory });
     setDialogOpen(true);
@@ -51,7 +50,10 @@ export default function BudgetsPage() {
     if (itemToDelete) {
       console.log(`Deletando orçamento: ${itemToDelete.name} (ID: ${itemToDelete.id})`);
       // Aqui iria a lógica de deleção real (ex: chamada de API)
-      budgetsData.splice(budgetsData.findIndex(b => b.id === itemToDelete.id), 1); // Simula deleção local
+      const indexToDelete = budgetsData.findIndex(b => b.id === itemToDelete.id);
+      if (indexToDelete > -1) {
+        budgetsData.splice(indexToDelete, 1); // Simula deleção local
+      }
       toast({
         title: "Orçamento Deletado",
         description: `O orçamento "${itemToDelete.name}" foi deletado com sucesso.`,
@@ -70,11 +72,6 @@ export default function BudgetsPage() {
     // Em um app real: router.push(`/budgets/edit/${budgetId}`);
   };
   
-  // Definir título da página dinamicamente em client components
-  if (typeof document !== 'undefined') {
-    document.title = `Orçamentos - ${APP_NAME}`;
-  }
-
   return (
     <div>
       <PageHeader
@@ -122,7 +119,7 @@ export default function BudgetsPage() {
                 <Progress 
                     value={progressValue} 
                     className={cn("h-3", isOverspent && "bg-destructive")} 
-                    indicatorClassName={cn(isOverspent && "bg-destructive-foreground")}
+                    indicatorClassName={cn(isOverspent && "bg-red-500 dark:bg-red-700")} // Using red-500 for overspent indicator
                 />
                 <div className="mt-3 flex justify-between text-sm">
                   <span className="text-muted-foreground">Gasto:</span>

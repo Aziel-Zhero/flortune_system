@@ -1,7 +1,8 @@
+
 // src/app/(app)/goals/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,6 @@ import { PrivateValue } from "@/components/shared/private-value";
 import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, ShieldCheck, Plane, Laptop } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { Metadata } from 'next';
 import { APP_NAME } from "@/lib/constants";
 import {
   AlertDialog,
@@ -24,11 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
-// Metadata estática não funciona bem em Client Components. Definir no layout ou remover.
-// export const metadata: Metadata = {
-//   title: `Metas Financeiras - ${APP_NAME}`,
-// };
-
 const goalsData = [
   { id: "goal_1", name: "Fundo de Emergência", targetAmount: 5000, currentAmount: 3500, deadline: "31/12/2024", icon: ShieldCheck, iconHint: "shield security" },
   { id: "goal_2", name: "Férias para Bali", targetAmount: 3000, currentAmount: 1200, deadline: "30/06/2025", icon: Plane, iconHint: "travel plane" },
@@ -39,6 +34,10 @@ export default function GoalsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
 
+  useEffect(() => {
+    document.title = `Metas Financeiras - ${APP_NAME}`;
+  }, []);
+
   const handleDeleteClick = (goalId: string, goalName: string) => {
     setItemToDelete({ id: goalId, name: goalName });
     setDialogOpen(true);
@@ -48,7 +47,10 @@ export default function GoalsPage() {
     if (itemToDelete) {
       console.log(`Deletando meta: ${itemToDelete.name} (ID: ${itemToDelete.id})`);
       // Aqui iria a lógica de deleção real
-      goalsData.splice(goalsData.findIndex(g => g.id === itemToDelete.id), 1); // Simula deleção local
+      const indexToDelete = goalsData.findIndex(g => g.id === itemToDelete.id);
+      if (indexToDelete > -1) {
+        goalsData.splice(indexToDelete, 1); // Simula deleção local
+      }
       toast({
         title: "Meta Deletada",
         description: `A meta "${itemToDelete.name}" foi deletada com sucesso.`,
@@ -67,11 +69,6 @@ export default function GoalsPage() {
     // Em um app real: router.push(`/goals/edit/${goalId}`);
   };
   
-  // Definir título da página dinamicamente em client components
-  if (typeof document !== 'undefined') {
-    document.title = `Metas Financeiras - ${APP_NAME}`;
-  }
-
   return (
     <div>
       <PageHeader

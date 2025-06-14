@@ -1,7 +1,8 @@
+
 // src/app/(app)/transactions/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,7 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { Metadata } from 'next';
 import { APP_NAME } from "@/lib/constants";
 import {
   AlertDialog,
@@ -33,13 +33,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
-// Metadata estática não funciona bem em Client Components.
-// export const metadata: Metadata = {
-//   title: `Transações - ${APP_NAME}`,
-// };
-
 // Sample transactions data
-const transactionsData = [ // Renomeado para evitar conflito de nome
+const transactionsData = [ 
   { id: "txn_1", date: "28/07/2024", description: "Café Starbucks", category: "Alimentação", amount: -5.75, type: "Despesa" },
   { id: "txn_2", date: "28/07/2024", description: "Pagamento Projeto Freelance", category: "Receita", amount: 750.00, type: "Receita" },
   { id: "txn_3", date: "27/07/2024", description: "Assinatura Netflix", category: "Entretenimento", amount: -15.99, type: "Despesa" },
@@ -59,6 +54,10 @@ export default function TransactionsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; description: string } | null>(null);
 
+  useEffect(() => {
+    document.title = `Transações - ${APP_NAME}`;
+  }, []);
+
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setItemToDelete({ id: transactionId, description: transactionDescription });
     setDialogOpen(true);
@@ -67,7 +66,10 @@ export default function TransactionsPage() {
   const handleConfirmDelete = () => {
     if (itemToDelete) {
       console.log(`Deletando transação: ${itemToDelete.description} (ID: ${itemToDelete.id})`);
-      transactionsData.splice(transactionsData.findIndex(t => t.id === itemToDelete.id), 1); // Simula deleção
+      const indexToDelete = transactionsData.findIndex(t => t.id === itemToDelete.id);
+      if (indexToDelete > -1) {
+        transactionsData.splice(indexToDelete, 1); // Simula deleção
+      }
       toast({
         title: "Transação Deletada",
         description: `A transação "${itemToDelete.description}" foi deletada com sucesso.`,
@@ -102,11 +104,6 @@ export default function TransactionsPage() {
     });
   };
   
-  // Definir título da página dinamicamente em client components
-  if (typeof document !== 'undefined') {
-    document.title = `Transações - ${APP_NAME}`;
-  }
-
   return (
     <div>
       <PageHeader
