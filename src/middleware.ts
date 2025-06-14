@@ -1,16 +1,19 @@
+// middleware.ts
 import createMiddleware from 'next-intl/middleware';
-// Ajusta o caminho para importar de 'next-intl.config.ts' que está na raiz do projeto.
-import intlConfig from '../next-intl.config';
+// Não vamos mais importar intlConfig dinamicamente para o objeto config
+// import intlConfig from '../next-intl.config'; // Removido para o matcher estático
+
+// Defina suas localidades diretamente aqui para o matcher
+const locales = ['en', 'pt', 'es', 'fr', 'ja', 'zh'];
+const defaultLocale = 'pt';
 
 export default createMiddleware({
-  locales: intlConfig.locales,
-  defaultLocale: intlConfig.defaultLocale,
-  localePrefix: 'as-needed' // Mantém a configuração de prefixo de localidade
+  locales: locales,
+  defaultLocale: defaultLocale,
+  localePrefix: 'as-needed'
 });
 
 export const config = {
-  // Ajusta o matcher para incluir todas as localidades configuradas
-  // e também para servir a raiz da aplicação.
-  // O localePrefix: 'as-needed' cuidará do redirecionamento da raiz para a localidade padrão.
-  matcher: ['/', `/(${intlConfig.locales.join('|')})/:path*`, '/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)']
+  // Use uma string literal para o matcher com as localidades hardcodadas
+  matcher: ['/', `/(${locales.join('|')})/:path*`, '/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)']
 };
