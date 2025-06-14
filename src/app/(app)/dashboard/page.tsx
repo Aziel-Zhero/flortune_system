@@ -1,3 +1,6 @@
+// src/app/(app)/dashboard/page.tsx
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
@@ -8,10 +11,12 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { Metadata } from 'next';
 import { APP_NAME } from "@/lib/constants";
+import { toast } from "@/hooks/use-toast";
 
-export const metadata: Metadata = {
-  title: `Painel - ${APP_NAME}`,
-};
+// Metadata estática não funciona bem em Client Components.
+// export const metadata: Metadata = {
+//   title: `Painel - ${APP_NAME}`,
+// };
 
 // Sample data - replace with actual data fetching
 const summaryData = [
@@ -29,6 +34,17 @@ const recentTransactions = [
 ];
 
 export default function DashboardPage() {
+  const handleViewAllInsights = () => {
+    console.log("Botão 'Ver Todos os Insights' clicado.");
+    toast({ title: "Navegação", description: "Visualizando todos os insights (placeholder)." });
+    // Em um app real: router.push('/insights');
+  };
+  
+  // Definir título da página dinamicamente em client components
+  if (typeof document !== 'undefined') {
+    document.title = `Painel - ${APP_NAME}`;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -114,7 +130,7 @@ export default function DashboardPage() {
         <CardContent className="space-y-3">
             <p className="text-sm text-foreground/80">Você gastou <PrivateValue value="R$120" className="font-semibold"/> em café este mês. Considere preparar em casa para economizar!</p>
             <p className="text-sm text-foreground/80">Seus gastos com assinaturas aumentaram 15%. <Link href="/budgets" className="text-primary hover:underline">Revisar suas assinaturas?</Link></p>
-             <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary">
+             <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={handleViewAllInsights}>
                 Ver Todos os Insights
               </Button>
         </CardContent>

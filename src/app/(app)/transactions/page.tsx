@@ -1,5 +1,9 @@
+// src/app/(app)/transactions/page.tsx
+"use client";
+
+import { useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -17,13 +21,25 @@ import {
 import { cn } from "@/lib/utils";
 import type { Metadata } from 'next';
 import { APP_NAME } from "@/lib/constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
-export const metadata: Metadata = {
-  title: `Transações - ${APP_NAME}`,
-};
+// Metadata estática não funciona bem em Client Components.
+// export const metadata: Metadata = {
+//   title: `Transações - ${APP_NAME}`,
+// };
 
 // Sample transactions data
-const transactions = [
+const transactionsData = [ // Renomeado para evitar conflito de nome
   { id: "txn_1", date: "28/07/2024", description: "Café Starbucks", category: "Alimentação", amount: -5.75, type: "Despesa" },
   { id: "txn_2", date: "28/07/2024", description: "Pagamento Projeto Freelance", category: "Receita", amount: 750.00, type: "Receita" },
   { id: "txn_3", date: "27/07/2024", description: "Assinatura Netflix", category: "Entretenimento", amount: -15.99, type: "Despesa" },
@@ -40,6 +56,57 @@ const categoryColors: { [key: string]: string } = {
 };
 
 export default function TransactionsPage() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; description: string } | null>(null);
+
+  const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
+    setItemToDelete({ id: transactionId, description: transactionDescription });
+    setDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (itemToDelete) {
+      console.log(`Deletando transação: ${itemToDelete.description} (ID: ${itemToDelete.id})`);
+      transactionsData.splice(transactionsData.findIndex(t => t.id === itemToDelete.id), 1); // Simula deleção
+      toast({
+        title: "Transação Deletada",
+        description: `A transação "${itemToDelete.description}" foi deletada com sucesso.`,
+      });
+      setItemToDelete(null);
+    }
+    setDialogOpen(false);
+  };
+
+  const handleEditClick = (transactionId: string, transactionDescription: string) => {
+    console.log(`Editando transação: ${transactionDescription} (ID: ${transactionId})`);
+    toast({
+      title: "Ação de Edição",
+      description: `Redirecionando para editar a transação "${transactionDescription}" (placeholder).`,
+    });
+    // Em um app real: router.push(`/transactions/edit/${transactionId}`);
+  };
+
+  const handleViewDetailsClick = (transactionId: string, transactionDescription: string) => {
+    console.log(`Visualizando detalhes da transação: ${transactionDescription} (ID: ${transactionId})`);
+    toast({
+      title: "Visualizar Detalhes",
+      description: `Mostrando detalhes da transação "${transactionDescription}" (placeholder).`,
+    });
+  };
+
+  const handleExportClick = () => {
+    console.log("Exportar transações clicado.");
+    toast({
+      title: "Exportar Dados",
+      description: "Funcionalidade de exportação de transações (placeholder)."
+    });
+  };
+  
+  // Definir título da página dinamicamente em client components
+  if (typeof document !== 'undefined') {
+    document.title = `Transações - ${APP_NAME}`;
+  }
+
   return (
     <div>
       <PageHeader
@@ -47,7 +114,7 @@ export default function TransactionsPage() {
         description="Gerencie e revise todas as suas transações financeiras."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExportClick}>
               <FileDown className="mr-2 h-4 w-4" />
               Exportar
             </Button>
@@ -83,7 +150,7 @@ export default function TransactionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction) => (
+              {transactionsData.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell className="text-muted-foreground text-xs md:text-sm">{transaction.date}</TableCell>
                   <TableCell className="font-medium">{transaction.description}</TableCell>
@@ -111,10 +178,13 @@ export default function TransactionsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem>Editar Transação</DropdownMenuItem>
-                        <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditClick(transaction.id, transaction.description)}>Editar Transação</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetailsClick(transaction.id, transaction.description)}>Ver Detalhes</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <DropdownMenuItem 
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            onClick={() => handleDeleteClick(transaction.id, transaction.description)}
+                        >
                           Deletar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -126,6 +196,20 @@ export default function TransactionsPage() {
           </Table>
         </CardContent>
       </Card>
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Deleção</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem certeza que deseja deletar a transação "{itemToDelete?.description}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({ variant: "destructive" })}>Deletar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

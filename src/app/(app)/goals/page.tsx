@@ -1,5 +1,9 @@
+// src/app/(app)/goals/page.tsx
+"use client";
+
+import { useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
@@ -8,10 +12,22 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { Metadata } from 'next';
 import { APP_NAME } from "@/lib/constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
-export const metadata: Metadata = {
-  title: `Metas Financeiras - ${APP_NAME}`,
-};
+// Metadata estática não funciona bem em Client Components. Definir no layout ou remover.
+// export const metadata: Metadata = {
+//   title: `Metas Financeiras - ${APP_NAME}`,
+// };
 
 const goalsData = [
   { id: "goal_1", name: "Fundo de Emergência", targetAmount: 5000, currentAmount: 3500, deadline: "31/12/2024", icon: ShieldCheck, iconHint: "shield security" },
@@ -20,6 +36,42 @@ const goalsData = [
 ];
 
 export default function GoalsPage() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteClick = (goalId: string, goalName: string) => {
+    setItemToDelete({ id: goalId, name: goalName });
+    setDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (itemToDelete) {
+      console.log(`Deletando meta: ${itemToDelete.name} (ID: ${itemToDelete.id})`);
+      // Aqui iria a lógica de deleção real
+      goalsData.splice(goalsData.findIndex(g => g.id === itemToDelete.id), 1); // Simula deleção local
+      toast({
+        title: "Meta Deletada",
+        description: `A meta "${itemToDelete.name}" foi deletada com sucesso.`,
+      });
+      setItemToDelete(null);
+    }
+    setDialogOpen(false);
+  };
+
+  const handleEditClick = (goalId: string, goalName: string) => {
+    console.log(`Editando meta: ${goalName} (ID: ${goalId})`);
+    toast({
+      title: "Ação de Edição",
+      description: `Redirecionando para editar a meta "${goalName}" (placeholder).`,
+    });
+    // Em um app real: router.push(`/goals/edit/${goalId}`);
+  };
+  
+  // Definir título da página dinamicamente em client components
+  if (typeof document !== 'undefined') {
+    document.title = `Metas Financeiras - ${APP_NAME}`;
+  }
+
   return (
     <div>
       <PageHeader
@@ -62,10 +114,10 @@ export default function GoalsPage() {
                         </div>
                     </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditClick(goal.id, goal.name)}>
                       <Edit3 className="h-4 w-4" />
                     </Button>
-                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(goal.id, goal.name)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -101,6 +153,21 @@ export default function GoalsPage() {
             </Link>
         </Card>
       </div>
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Deleção</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem certeza que deseja deletar a meta "{itemToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({ variant: "destructive" })}>Deletar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

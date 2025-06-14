@@ -1,3 +1,7 @@
+// src/app/(app)/budgets/page.tsx
+"use client";
+
+import { useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +12,23 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { Metadata } from 'next';
 import { APP_NAME } from "@/lib/constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
-export const metadata: Metadata = {
-  title: `Orçamentos - ${APP_NAME}`,
-};
+// Metadata estática não funciona bem em Client Components. Definir no layout ou remover.
+// export const metadata: Metadata = {
+//   title: `Orçamentos - ${APP_NAME}`,
+// };
 
 // Sample budgets data
 const budgetsData = [
@@ -22,6 +39,42 @@ const budgetsData = [
 ];
 
 export default function BudgetsPage() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteClick = (budgetId: string, budgetCategory: string) => {
+    setItemToDelete({ id: budgetId, name: budgetCategory });
+    setDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (itemToDelete) {
+      console.log(`Deletando orçamento: ${itemToDelete.name} (ID: ${itemToDelete.id})`);
+      // Aqui iria a lógica de deleção real (ex: chamada de API)
+      budgetsData.splice(budgetsData.findIndex(b => b.id === itemToDelete.id), 1); // Simula deleção local
+      toast({
+        title: "Orçamento Deletado",
+        description: `O orçamento "${itemToDelete.name}" foi deletado com sucesso.`,
+      });
+      setItemToDelete(null);
+    }
+    setDialogOpen(false);
+  };
+
+  const handleEditClick = (budgetId: string, budgetCategory: string) => {
+    console.log(`Editando orçamento: ${budgetCategory} (ID: ${budgetId})`);
+    toast({
+      title: "Ação de Edição",
+      description: `Redirecionando para editar o orçamento "${budgetCategory}" (placeholder).`,
+    });
+    // Em um app real: router.push(`/budgets/edit/${budgetId}`);
+  };
+  
+  // Definir título da página dinamicamente em client components
+  if (typeof document !== 'undefined') {
+    document.title = `Orçamentos - ${APP_NAME}`;
+  }
+
   return (
     <div>
       <PageHeader
@@ -29,7 +82,7 @@ export default function BudgetsPage() {
         description="Defina e acompanhe seus limites de gastos para diferentes categorias."
         actions={
           <Button asChild>
-            <Link href="/budgets/new"> {/* Supondo que /budgets/new seja uma rota válida */}
+            <Link href="/budgets/new">
               <PlusCircle className="mr-2 h-4 w-4" />
               Criar Orçamento
             </Link>
@@ -56,10 +109,10 @@ export default function BudgetsPage() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditClick(budget.id, budget.category)}>
                       <Edit3 className="h-4 w-4" />
                     </Button>
-                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(budget.id, budget.category)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -109,6 +162,21 @@ export default function BudgetsPage() {
             <p>Use o recurso de "rollover" (em breve!) para categorias onde os gastos variam de mês a mês.</p>
         </CardContent>
       </Card>
+
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Deleção</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem certeza que deseja deletar o orçamento "{itemToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({ variant: "destructive" })}>Deletar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

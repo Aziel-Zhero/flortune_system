@@ -1,7 +1,8 @@
+// src/app/(app)/settings/page.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Changed from next-intl/client
+import { useRouter } from 'next/navigation';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,15 +15,8 @@ import { DEFAULT_USER } from '@/lib/constants';
 import { useAppSettings } from '@/hooks/use-app-settings';
 import { toast } from '@/hooks/use-toast';
 import { logoutUser } from '@/app/actions/auth.actions';
-import type { Metadata } from 'next';
+// import type { Metadata } from 'next'; // Metadata estática não funciona bem em Client Components
 import { APP_NAME } from '@/lib/constants';
-
-// Metadata can't be dynamic in client components this way. 
-// For static titles, set it at the page level if possible or RootLayout for global.
-// export const metadata: Metadata = {
-//   title: `Configurações - ${APP_NAME}`,
-// };
-
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -33,11 +27,22 @@ export default function SettingsPage() {
 
   const handleProfileSave = async () => {
     console.log("Salvando perfil:", { fullName, email });
-    toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas." });
+    // Aqui iria a lógica de salvar no backend
+    toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso." });
   };
   
   const handleLogout = async () => {
+    toast({ title: "Saindo...", description: "Você está sendo desconectado." });
     await logoutUser(); 
+    // O redirecionamento é feito pela server action
+  };
+
+  const handleFeatureClick = (featureName: string, isPlaceholder: boolean = true) => {
+    console.log(`${featureName} clicado.`);
+    toast({ 
+      title: `Ação: ${featureName}`, 
+      description: isPlaceholder ? `Funcionalidade "${featureName}" (placeholder).` : `${featureName} foi ativado.`
+    });
   };
 
   // Set page title using document.title for client components
@@ -63,7 +68,7 @@ export default function SettingsPage() {
               <AvatarImage src={DEFAULT_USER.avatarUrl} alt={DEFAULT_USER.name} data-ai-hint="woman nature" />
               <AvatarFallback>{DEFAULT_USER.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
-            <Button variant="outline">Mudar Foto</Button>
+            <Button variant="outline" onClick={() => handleFeatureClick("Mudar Foto")}>Mudar Foto</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -93,7 +98,7 @@ export default function SettingsPage() {
                 Receba alertas de contas futuras e marcos de metas.
               </span>
             </Label>
-            <Switch id="push-notifications" defaultChecked />
+            <Switch id="push-notifications" defaultChecked onCheckedChange={(checked) => handleFeatureClick(`Notificações Push ${checked ? "ativadas" : "desativadas"}`, false)} />
           </div>
            <div className="flex items-center justify-between">
             <Label htmlFor="email-summary" className="flex flex-col space-y-1 cursor-pointer">
@@ -102,7 +107,7 @@ export default function SettingsPage() {
                 Receba resumos financeiros semanais ou mensais por email.
               </span>
             </Label>
-            <Switch id="email-summary" />
+            <Switch id="email-summary" onCheckedChange={(checked) => handleFeatureClick(`Resumos por Email ${checked ? "ativados" : "desativados"}`, false)} />
           </div>
         </CardContent>
       </Card>
@@ -114,7 +119,7 @@ export default function SettingsPage() {
           <CardDescription>Gerencie as configurações de segurança da sua conta.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline">Mudar Senha</Button>
+          <Button variant="outline" onClick={() => handleFeatureClick("Mudar Senha")}>Mudar Senha</Button>
           <div className="flex items-center justify-between">
              <Label htmlFor="two-factor-auth" className="flex flex-col space-y-1 cursor-pointer">
               <span>Autenticação de Dois Fatores</span>
@@ -122,7 +127,7 @@ export default function SettingsPage() {
                 Adicione uma camada extra de segurança à sua conta.
               </span>
             </Label>
-            <Switch id="two-factor-auth" />
+            <Switch id="two-factor-auth" onCheckedChange={(checked) => handleFeatureClick(`Autenticação de Dois Fatores ${checked ? "ativada" : "desativada"}`, false)} />
           </div>
         </CardContent>
       </Card>
@@ -144,7 +149,10 @@ export default function SettingsPage() {
             <Switch 
               id="dark-mode" 
               checked={isDarkMode}
-              onCheckedChange={toggleDarkMode} 
+              onCheckedChange={() => {
+                toggleDarkMode();
+                handleFeatureClick(`Modo Escuro ${!isDarkMode ? "ativado" : "desativado"}`, false);
+              }} 
             />
           </div>
         </CardContent>
@@ -157,8 +165,12 @@ export default function SettingsPage() {
           <CardDescription>Importe, exporte ou gerencie seus dados financeiros.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 md:space-y-0 md:flex md:gap-2">
-          <Button variant="outline" className="w-full md:w-auto"><UploadCloud className="mr-2 h-4 w-4"/>Importar Dados (.csv, .ofx)</Button>
-          <Button variant="outline" className="w-full md:w-auto"><DownloadCloud className="mr-2 h-4 w-4"/>Exportar Dados (PDF, CSV, JSON)</Button>
+          <Button variant="outline" className="w-full md:w-auto" onClick={() => handleFeatureClick("Importar Dados")}>
+            <UploadCloud className="mr-2 h-4 w-4"/>Importar Dados (.csv, .ofx)
+          </Button>
+          <Button variant="outline" className="w-full md:w-auto" onClick={() => handleFeatureClick("Exportar Dados")}>
+            <DownloadCloud className="mr-2 h-4 w-4"/>Exportar Dados (PDF, CSV, JSON)
+          </Button>
         </CardContent>
       </Card>
 
@@ -170,7 +182,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">Recurso em breve! Gerencie com quem você compartilha módulos financeiros e suas permissões.</p>
-          <Button variant="outline" disabled>Gerenciar Módulos Compartilhados</Button>
+          <Button variant="outline" disabled onClick={() => handleFeatureClick("Gerenciar Módulos Compartilhados")}>Gerenciar Módulos Compartilhados</Button>
         </CardContent>
       </Card>
 
