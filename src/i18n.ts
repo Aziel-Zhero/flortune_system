@@ -2,13 +2,12 @@
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 
-// Define supported locales directly in this file for robustness
+// Define supported locales directly in this file for robustness.
 const SUPPORTED_LOCALES_CONFIG = ['en', 'pt', 'es', 'fr', 'ja', 'zh'] as const;
 type SupportedLocaleConfig = typeof SUPPORTED_LOCALES_CONFIG[number];
 
 console.log('[i18n.ts] File loaded. SUPPORTED_LOCALES_CONFIG:', SUPPORTED_LOCALES_CONFIG);
 
-// Named export, as is common in next-intl examples
 export default getRequestConfig(async ({locale: localeParam}) => {
   console.log(`[i18n.ts] getRequestConfig called with localeParam: "${localeParam}"`);
 
