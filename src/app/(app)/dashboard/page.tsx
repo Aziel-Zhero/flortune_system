@@ -1,4 +1,4 @@
-// src/app/(app)/dashboard/page.tsx
+
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -9,9 +9,11 @@ import { DollarSign, CreditCard, TrendingUp, Sprout } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { APP_NAME, DEFAULT_USER } from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context"; // Usar o hook de autenticação
+import { Skeleton } from "@/components/ui/skeleton"; // Para loading state
 
 const summaryData = [
   { title: "Saldo Total", value: 12345.67, icon: DollarSign, trend: "+2,5%", trendColor: "text-emerald-500" },
@@ -28,6 +30,8 @@ const recentTransactions = [
 ];
 
 export default function DashboardPage() {
+  const { profile, isLoading: authLoading } = useAuth();
+
   const handleViewAllInsights = () => {
     console.log("Botão 'Ver Todos os Insights' clicado.");
     toast({ title: "Navegação", description: "Visualizando todos os insights (placeholder)." });
@@ -37,10 +41,77 @@ export default function DashboardPage() {
     document.title = `Painel - ${APP_NAME}`;
   }, []);
 
+  const welcomeName = profile?.display_name?.split(" ")[0] || profile?.full_name?.split(" ")[0] || "Usuário";
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title={`Bem-vindo(a) de volta!`}
+          description="Aqui está seu resumo financeiro para este mês."
+           actions={<Skeleton className="h-10 w-36 rounded-md" />}
+        />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array(4).fill(0).map((_, index) => (
+            <Card key={index} className="shadow-sm h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-1/2 mb-1" />
+                <Skeleton className="h-3 w-1/4" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-1"/>
+              <Skeleton className="h-4 w-3/4"/>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {Array(3).fill(0).map((_, index) => (
+                <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-b-0">
+                  <div>
+                    <Skeleton className="h-5 w-32 mb-1" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-5 w-20" />
+                </div>
+              ))}
+               <Skeleton className="h-10 w-full mt-4" />
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-1"/>
+              <Skeleton className="h-4 w-3/4"/>
+            </CardHeader>
+            <CardContent className="h-64 flex items-center justify-center">
+              <Skeleton className="w-[300px] h-[200px]" />
+            </CardContent>
+          </Card>
+        </div>
+        <Card className="shadow-sm bg-primary/10 border-primary/30">
+          <CardHeader>
+            <Skeleton className="h-6 w-1/3 mb-2"/>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-full"/>
+            <Skeleton className="h-4 w-5/6"/>
+            <Skeleton className="h-10 w-40 mt-2"/>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={`Bem-vinda de volta, ${DEFAULT_USER.name.split(" ")[0]}!`}
+        title={`Bem-vindo(a) de volta, ${welcomeName}!`}
         description="Aqui está seu resumo financeiro para este mês."
         actions={
           <Link 

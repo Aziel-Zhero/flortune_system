@@ -1,7 +1,7 @@
+
 "use client";
 
-import Link from "next/link"; // Usando next/link
-import { useRouter } from "next/navigation"; // Usando next/navigation
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,39 +14,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, LifeBuoy } from "lucide-react";
-import { DEFAULT_USER } from "@/lib/constants";
-import { logoutUser } from "@/app/actions/auth.actions"; // Server action for logout
+import { logoutUser } from "@/app/actions/auth.actions";
+import { useAuth } from "@/contexts/auth-context"; // Usar o hook de autenticação
 
 export function UserNav() {
-  const router = useRouter();
+  const { user, profile, isLoading } = useAuth(); // Obter dados do usuário e perfil
 
   const handleLogout = async () => {
-    await logoutUser(); // Calls server action, which then redirects
+    await logoutUser(); // Chama server action, que redireciona
   };
+
+  if (isLoading) {
+    // Pode mostrar um skeleton ou um placeholder enquanto carrega
+    return (
+      <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+    );
+  }
+
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
+  const userEmail = user?.email || "Não disponível";
+  // Prioriza avatar do perfil, depois do OAuth (se disponível no user.user_metadata), depois placeholder
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`;
+  const avatarFallback = displayName.charAt(0).toUpperCase();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={DEFAULT_USER.avatarUrl} alt={DEFAULT_USER.name} data-ai-hint="woman nature"/>
-            <AvatarFallback>{DEFAULT_USER.name.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar" />
+            <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none font-headline">{DEFAULT_USER.name}</p>
+            <p className="text-sm font-medium leading-none font-headline">{displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {DEFAULT_USER.email}
+              {userEmail}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/settings">
+            <Link href="/settings"> {/* Perfil agora é parte de Configurações */}
               <User className="mr-2 h-4 w-4" />
               <span>Perfil</span>
             </Link>
@@ -57,12 +70,10 @@ export function UserNav() {
               <span>Configurações</span>
             </Link>
           </DropdownMenuItem>
-           <DropdownMenuItem asChild>
-            <Link href="/settings"> {/* Ajustado para /settings */}
+           <DropdownMenuItem onClick={() => alert("Funcionalidade de Suporte (placeholder)")}> {/* Placeholder */}
               <LifeBuoy className="mr-2 h-4 w-4" />
               <span>Suporte</span>
-            </Link>
-          </DropdownMenuItem>
+           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">

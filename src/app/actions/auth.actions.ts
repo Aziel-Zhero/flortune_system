@@ -3,6 +3,8 @@
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import type { Provider } from '@supabase/supabase-js';
 
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." });
@@ -13,7 +15,11 @@ const loginSchema = z.object({
 });
 
 const signupSchema = z.object({
-  name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
+  fullName: z.string().min(2, { message: "O nome completo deve ter pelo menos 2 caracteres." }),
+  displayName: z.string().min(2, { message: "O nome de exibição deve ter pelo menos 2 caracteres." }),
+  phone: z.string().optional(), // Opcional por enquanto
+  cpfCnpj: z.string().optional(), // Opcional
+  rg: z.string().optional(), // Opcional
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: passwordSchema,
@@ -28,7 +34,7 @@ export type LoginFormState = {
   errors?: {
     email?: string[];
     password?: string[];
-    _form?: string[];
+    _form?: string[]; // Erros gerais do formulário
   };
   success?: boolean;
 };
@@ -45,19 +51,28 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
       };
     }
     
-    // Simula chamada de API
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const { email, password } = validatedFields.data;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    // Sucesso - redirecionar
-    // O redirect() lança um erro especial que o Next.js trata.
-    redirect('/dashboard'); 
+    if (error) {
+      return {
+        message: error.message || "Falha no login. Verifique suas credenciais.",
+        errors: { _form: [error.message || "Falha no login. Verifique suas credenciais."] },
+        success: false,
+      };
+    }
+    // O redirecionamento após login/signup bem-sucedido será tratado pelo middleware
+    // ou por uma verificação no lado do cliente que monitora o estado de autenticação.
+    // Server Actions não devem redirecionar diretamente em fluxos de useActionState
+    // a menos que seja o último passo após um sucesso definitivo e sem necessidade de feedback no form.
+    // Aqui, é melhor deixar o middleware/cliente lidar com isso.
+    // Para forçar o redirecionamento se tudo der certo no Supabase:
+    redirect('/dashboard');
 
   } catch (error: any) {
-    // Se o erro for um erro de redirecionamento do Next.js, relance-o para que o Next.js possa lidar com ele.
     if (error.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
     }
-
     console.error("Login User Action Error:", error);
     return {
       message: "Ocorreu um erro inesperado durante o login. Tente novamente.",
@@ -70,7 +85,11 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
 export type SignupFormState = {
   message?: string;
   errors?: {
-    name?: string[];
+    fullName?: string[];
+    displayName?: string[];
+    phone?: string[];
+    cpfCnpj?: string[];
+    rg?: string[];
     email?: string[];
     password?: string[];
     confirmPassword?: string[];
@@ -81,7 +100,8 @@ export type SignupFormState = {
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
  try {
-    const validatedFields = signupSchema.safeParse(Object.fromEntries(formData.entries()));
+    const rawData = Object.fromEntries(formData.entries());
+    const validatedFields = signupSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
       return {
@@ -91,11 +111,51 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       };
     }
 
-    // Simula chamada de API
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const { email, password, fullName, displayName, phone, cpfCnpj, rg } = validatedFields.data;
+
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Estes dados serão usados pela trigger handle_new_user para popular a tabela 'profiles'
+        data: { 
+          full_name: fullName,
+          display_name: displayName,
+          phone: phone || null, // Envia null se vazio
+          cpf_cnpj: cpfCnpj || null,
+          rg: rg || null,
+          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`, // Placeholder avatar
+        },
+      },
+    });
+
+    if (error) {
+      return {
+        message: error.message || "Falha ao criar conta.",
+        errors: { _form: [error.message || "Falha ao criar conta."] },
+        success: false,
+      };
+    }
+
+    if (signUpData.user && signUpData.user.identities && signUpData.user.identities.length === 0) {
+      // Email já existe, mas não confirmado, ou outro problema
+      return {
+          message: "Este email já está registrado ou ocorreu um problema. Se você já se cadastrou, verifique seu email para confirmação ou tente fazer login.",
+          errors: { email: ["Email já registrado ou necessita confirmação."] },
+          success: false,
+      };
+    }
     
-    // Simula sucesso e redireciona para a página de login com um parâmetro de sucesso
-    redirect('/login?signup=success');
+    // Se o Supabase requer confirmação por email (configuração padrão)
+    // O usuário não será logado imediatamente.
+    // Redirecionar para login com uma mensagem para verificar o email.
+    if (signUpData.session === null && signUpData.user) {
+        redirect('/login?signup=success_email_confirmation');
+    } else {
+        // Se o usuário é logado automaticamente (confirmação de email desabilitada no Supabase)
+        redirect('/dashboard');
+    }
+
   } catch (error: any) {
     if (error.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
@@ -109,35 +169,52 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
   }
 }
 
-export async function signInWithGoogle() {
+export async function signInWithOAuth(provider: Provider) {
   try {
-    console.log("Tentando login com Google...");
-    await new Promise(resolve => setTimeout(resolve, 500));
-    redirect('/dashboard');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9003'}/auth/callback`
+      }
+    });
+
+    if (error) {
+      console.error(`Google Sign In Action Error: ${error.message}`);
+      // Normalmente, o redirecionamento para o Google acontece antes,
+      // então este erro seria para problemas na chamada inicial.
+      // Redirecionar para uma página de erro ou login com mensagem.
+      return redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    }
+
+    if (data.url) {
+      redirect(data.url); // Redireciona para a página de consentimento do Google
+    } else {
+      // Caso inesperado onde não há URL mas também não há erro.
+      return redirect('/login?error=oauth_url_missing');
+    }
+
   } catch (error: any) {
      if (error.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
     }
-    console.error("Google Sign In Action Error:", error);
-    // Para signInWithGoogle, se o redirect falhar de forma não padrão,
-    // não há um 'prevState' para retornar um estado de erro da mesma forma.
-    // A melhor abordagem aqui é deixar o Next.js lidar com o erro ou
-    // redirecionar para uma página de erro.
-    // Por ora, apenas logamos e o erro será propagado com uma mensagem genérica.
-    throw new Error("Falha ao tentar login com Google. Ocorreu um erro no servidor.");
+    console.error("Google Sign In Action Error (catch):", error);
+    return redirect(`/login?error=oauth_exception`);
   }
 }
 
 export async function logoutUser() {
   try {
-    console.log("Deslogando usuário (server action)...");
-    // Limpar sessão/cookie aqui em um app real
-    redirect('/login');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Logout User Action Error:", error);
+      // Mesmo com erro, tentamos redirecionar. O usuário pode querer sair de qualquer jeito.
+    }
   } catch (error: any) {
+    // Se o erro for de redirect, ele será lançado pelo middleware se necessário.
     if (error.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
     }
-    console.error("Logout User Action Error:", error);
-    throw new Error("Falha ao tentar sair. Ocorreu um erro no servidor.");
+    console.error("Logout User Action Error (catch):", error);
   }
+  redirect('/login'); // Sempre redireciona para o login após a tentativa de logout.
 }

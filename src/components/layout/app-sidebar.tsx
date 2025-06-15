@@ -1,11 +1,12 @@
+
 "use client"
 
-import Link from "next/link"; // Usando next/link
-import { usePathname } from "next/navigation"; // Usando next/navigation
+import Link from "next/link"; 
+import { usePathname } from "next/navigation"; 
 import * as LucideIcons from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkIconName, DEFAULT_USER } from "@/lib/constants";
+import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkIconName } from "@/lib/constants";
 import {
   Sidebar,
   SidebarHeader,
@@ -21,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/auth-context"; // Usar o hook de autenticação
 
 const getIcon = (iconName: NavLinkIconName): React.ElementType => {
   return LucideIcons[iconName as keyof typeof LucideIcons] || LucideIcons.HelpCircle;
@@ -28,9 +30,10 @@ const getIcon = (iconName: NavLinkIconName): React.ElementType => {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user, profile, isLoading: authLoading } = useAuth(); // Obter dados do usuário
   const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
 
-  const isLoading = false; // Placeholder for actual loading state
+  const isLoading = authLoading; // Usar o isLoading do AuthContext
   const skeletonItems = Array(5).fill(0);
 
   const closeMobileSidebar = () => {
@@ -38,6 +41,10 @@ export function AppSidebar() {
       setOpenMobile(false);
     }
   };
+  
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`;
+  const avatarFallback = displayName.charAt(0).toUpperCase();
 
   return (
     <Sidebar variant="sidebar" collapsible={isMobile ? "offcanvas" : "icon"} side="left">
@@ -85,27 +92,47 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarContent>
         <Separator className="mt-auto group-data-[collapsible=icon]:hidden" />
-        <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
-            <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                    <AvatarImage src={DEFAULT_USER.avatarUrl} alt={DEFAULT_USER.name} data-ai-hint="woman nature"/>
-                    <AvatarFallback>{DEFAULT_USER.name.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                    <span className="text-sm font-medium font-headline">{DEFAULT_USER.name}</span>
-                    <span className="text-xs text-muted-foreground">Conta Pessoal</span>
+        {!isLoading && user && (
+          <>
+            <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
+                <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>
+                        <AvatarFallback>{avatarFallback}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-medium font-headline">{displayName}</span>
+                        <span className="text-xs text-muted-foreground">Conta Pessoal</span>
+                    </div>
+                    {/* <Button variant="ghost" size="icon" className="ml-auto h-8 w-8">
+                        <LucideIcons.ChevronsUpDown className="h-4 w-4"/>
+                    </Button> */}
                 </div>
-                 <Button variant="ghost" size="icon" className="ml-auto h-8 w-8">
-                    <LucideIcons.ChevronsUpDown className="h-4 w-4"/>
-                 </Button>
-            </div>
-        </SidebarFooter>
-         <SidebarFooter className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
-            <Avatar className="h-8 w-8">
-                <AvatarImage src={DEFAULT_USER.avatarUrl} alt={DEFAULT_USER.name} data-ai-hint="woman nature"/>
-                <AvatarFallback>{DEFAULT_USER.name.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-        </SidebarFooter>
+            </SidebarFooter>
+            <SidebarFooter className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>
+                    <AvatarFallback>{avatarFallback}</AvatarFallback>
+                </Avatar>
+            </SidebarFooter>
+          </>
+        )}
+         {isLoading && (
+          <>
+            <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            </SidebarFooter>
+            <SidebarFooter className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </SidebarFooter>
+          </>
+        )}
     </Sidebar>
   );
 }

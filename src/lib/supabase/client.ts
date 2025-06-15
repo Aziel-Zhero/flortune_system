@@ -1,25 +1,22 @@
 // src/lib/supabase/client.ts
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl) {
-  console.error('Supabase URL is missing from environment variables. Features requiring Supabase will not work.');
+  const errorMessage = 'Supabase URL is missing. Please set NEXT_PUBLIC_SUPABASE_URL environment variable.';
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
 if (!supabaseAnonKey) {
-  console.error('Supabase Anon Key is missing from environment variables. Features requiring Supabase will not work.');
+  const errorMessage = 'Supabase Anon Key is missing. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable.';
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
 
-// Provide a default value or handle the case where keys might be missing,
-// though ideally, the app should not run without them if Supabase is critical.
-// For now, we'll proceed, and Supabase operations will fail if keys are truly missing.
-export const supabase = createClient(
-  supabaseUrl || "missing_url", 
-  supabaseAnonKey || "missing_key"
+// Tipo explícito para o cliente Supabase
+export const supabase: SupabaseClient = createClient(
+  supabaseUrl, 
+  supabaseAnonKey
 );
-
-// Test basic client creation (optional)
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase client initialized with placeholder values due to missing environment variables.");
-}

@@ -1,17 +1,19 @@
+
 "use client";
 
-import Link from "next/link"; // Usando next/link
+import Link from "next/link";
 import { Leaf, Eye, EyeOff, Search, Bell, Menu } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserNav } from "./user-nav";
-import { useAppSettings } from "@/hooks/use-app-settings";
+import { useAuth } from "@/contexts/auth-context"; // Usar o hook de autenticação e app settings
 import { cn } from "@/lib/utils";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 
 export function AppHeader() {
-  const { isPrivateMode, togglePrivateMode } = useAppSettings();
+  const { appSettings } = useAuth(); // Obter isPrivateMode e togglePrivateMode de appSettings no AuthContext
+  const { isPrivateMode, togglePrivateMode } = appSettings;
   const { isMobile, setOpenMobile } = useSidebar(); 
 
   return (

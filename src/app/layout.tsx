@@ -1,13 +1,15 @@
+
 import type { Metadata } from 'next';
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
+import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
 import { Toaster } from "@/components/ui/toaster";
-import './globals.css'; // Styles for the main HTML document
+import './globals.css'; 
 
 export const metadata: Metadata = {
   title: 'Flortune - Seu Jardineiro Financeiro',
   description: 'Cultive suas finanças com o Flortune. Acompanhe, analise e faça seu patrimônio crescer com insights inteligentes e ferramentas intuitivas.',
   icons: {
-    icon: '/icon.svg',
+    icon: '/icon.svg', // Certifique-se que este arquivo existe em /public
   }
 };
 
@@ -26,8 +28,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AppSettingsProvider>
-          {children}
-          <Toaster />
+          <AuthProvider> {/* Envolve com AuthProvider */}
+            {children}
+            <Toaster />
+          </AuthProvider>
         </AppSettingsProvider>
       </body>
     </html>

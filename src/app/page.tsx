@@ -1,11 +1,9 @@
-import { redirect } from 'next/navigation';
 
-// Redireciona para a página de login.
-// TODO: Implementar verificação de autenticação aqui.
-// Se autenticado, redirecionar para `/dashboard`
-// Senão, redirecionar para `/login`
+// src/app/page.tsx
+// O middleware agora cuida dos redirecionamentos com base na autenticação.
+// Esta página pode ser um simples placeholder ou não ser renderizada se o middleware sempre redirecionar.
 export default function RootPage() {
-  redirect(`/login`);
-  // Este return null é para satisfazer o TypeScript, pois o redirect interrompe a execução.
-  return null; 
+  // O middleware deve redirecionar para /login ou /dashboard.
+  // Este return é para satisfazer o TypeScript, pois o redirect no middleware interrompe.
+  return null;
 }

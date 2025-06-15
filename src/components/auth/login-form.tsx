@@ -1,19 +1,18 @@
 
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { loginUser, signInWithGoogle, type LoginFormState } from "@/app/actions/auth.actions";
+import { loginUser, signInWithOAuth, type LoginFormState } from "@/app/actions/auth.actions";
 import { OAuthButton } from "./oauth-button";
 import { SubmitButton } from "./submit-button";
-import { useSearchParams } from 'next/navigation';
-import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 
 export function LoginForm() {
@@ -22,30 +21,57 @@ export function LoginForm() {
   const [state, dispatch] = useActionState(loginUser, initialState);
 
   useEffect(() => {
-    if (searchParams.get('signup') === 'success') {
+    const signupStatus = searchParams.get('signup');
+    const errorParam = searchParams.get('error');
+
+    if (signupStatus === 'success_email_confirmation') {
       toast({
+        title: "Cadastro realizado!",
+        description: "Enviamos um email de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta e depois faça login.",
+        variant: "default",
+        duration: 10000, // Manter por mais tempo
+      });
+    } else if (signupStatus === 'success') {
+       toast({
         title: "Sucesso!",
         description: "Sua conta foi criada. Por favor, faça o login.",
         variant: "default"
       });
     }
-  }, [searchParams]);
 
-  useEffect(() => {
-    if (state.message && !state.success && state.errors?._form) {
-      // Error from form validation (e.g. wrong password)
-    } else if (state.message && !state.success) {
+    if (errorParam) {
       toast({
-        title: "Erro",
-        description: state.message,
+        title: "Erro de Autenticação",
+        description: decodeURIComponent(errorParam) || "Ocorreu um erro durante a autenticação.",
         variant: "destructive",
       });
     }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (state?.message && !state.success) {
+      // Erros específicos de campo são tratados abaixo.
+      // Exibir apenas erros gerais do formulário (_form) aqui, ou mensagens de erro globais.
+      if (state.errors?._form) {
+        // Já exibido pela Alert
+      } else {
+          toast({
+            title: "Erro de Login",
+            description: state.message,
+            variant: "destructive",
+          });
+      }
+    }
+    // Sucesso é tratado por redirecionamento
   }, [state]);
+
+  const handleGoogleSignIn = async () => {
+    await signInWithOAuth('google');
+  };
 
   return (
     <div className="space-y-6">
-      <form action={dispatch} className="space-y-4"> {/* Adjusted space-y */}
+      <form action={dispatch} className="space-y-4">
         {state?.errors?._form && (
            <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -53,20 +79,7 @@ export function LoginForm() {
             <AlertDescription>{state.errors._form.join(', ')}</AlertDescription>
           </Alert>
         )}
-        {state?.message && !state.success && !state.errors?._form && (
-           <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>{state.message}</AlertDescription>
-          </Alert>
-        )}
-        {state?.success && state.message && (
-          <Alert variant="default" className="bg-green-100 dark:bg-green-900 border-green-500 dark:border-green-700">
-            <LogIn className="h-4 w-4 text-green-700 dark:text-green-400" />
-            <AlertTitle className="text-green-800 dark:text-green-300">Sucesso!</AlertTitle>
-            <AlertDescription className="text-green-700 dark:text-green-400">{state.message}</AlertDescription>
-          </Alert>
-        )}
+        {/* Removida a segunda Alert genérica para evitar duplicidade com toast */}
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -110,7 +123,8 @@ export function LoginForm() {
         </SubmitButton>
       </form>
       <Separator />
-      <OAuthButton providerName="Google" Icon={LogIn} action={signInWithGoogle} buttonText="Entrar com Google"/>
+      {/* O OAuthButton agora chama a server action via form */}
+      <OAuthButton providerName="Google" Icon={LogIn} action={handleGoogleSignIn} buttonText="Entrar com Google"/>
     </div>
   );
 }
