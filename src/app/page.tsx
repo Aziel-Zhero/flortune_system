@@ -9,13 +9,14 @@ import { APP_NAME } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
+// import { Skeleton } from "@/components/ui/skeleton"; // Importado abaixo para evitar duplicidade
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import anime from 'animejs'; 
+import anime from 'animejs';
 import React, { useRef, useEffect, type FC } from 'react';
+import { Skeleton } from "@/components/ui/skeleton"; // Skeleton importado aqui
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -150,7 +151,7 @@ const pricingTiers = [
       'Integrações com sistemas contábeis (sob demanda)',
       'Consultoria financeira especializada',
     ],
-    featured: false, 
+    featured: false,
     icon: Briefcase,
   },
 ];
@@ -206,7 +207,7 @@ export default function LandingPage() {
           opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
           scrollTrigger: {
             trigger: featuresSectionRef.current,
-            start: "top 75%", 
+            start: "top 75%",
             toggleActions: "play none none none",
           }
         }
@@ -225,7 +226,7 @@ export default function LandingPage() {
           }
         }
       );
-      
+
       if (pricingGridRef.current) {
         gsap.fromTo(pricingGridRef.current.querySelectorAll(".pricing-tier-grid"),
           { opacity: 0, y: 50, scale: 0.95 },
@@ -239,15 +240,15 @@ export default function LandingPage() {
           }
         );
       }
-      
+
       if (corporatePricingCardRef.current) {
          gsap.fromTo(corporatePricingCardRef.current,
           { opacity: 0, y: 50, scale: 0.95 },
           {
             opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power2.out",
             scrollTrigger: {
-              trigger: corporatePricingCardRef.current, 
-              start: "top 85%", 
+              trigger: corporatePricingCardRef.current,
+              start: "top 85%",
               toggleActions: "play none none none",
             }
           }
@@ -435,7 +436,7 @@ export default function LandingPage() {
                 Comece gratuitamente ou desbloqueie funcionalidades avançadas para levar suas finanças ao próximo nível.
               </p>
             </div>
-            
+
             <div ref={pricingGridRef} className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
               {pricingTiers.slice(0, 2).map((tier, tierIdx) => {
                 const TierIcon = tier.icon;
@@ -444,13 +445,14 @@ export default function LandingPage() {
                 <div
                   key={tier.id}
                   className={cn(
-                    'pricing-tier-grid opacity-0', 
-                    isFeatured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
+                    'pricing-tier-grid opacity-0',
+                    isFeatured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10'
+                               : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0 self-start', // Added self-start here
                     isFeatured
                       ? ''
                       : tierIdx === 0
-                        ? 'lg:rounded-r-none lg:rounded-bl-3xl' 
-                        : 'lg:rounded-l-none lg:rounded-br-3xl', 
+                        ? 'lg:rounded-r-none lg:rounded-bl-3xl'
+                        : 'lg:rounded-l-none lg:rounded-br-3xl',
                     'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col'
                   )}
                 >
@@ -465,7 +467,7 @@ export default function LandingPage() {
                         {tier.name}
                       </h3>
                   </div>
-                  
+
                   <p className="mt-1 flex items-baseline gap-x-2">
                     <span
                       className={cn(
@@ -483,7 +485,7 @@ export default function LandingPage() {
                     <p className={cn(isFeatured ? 'text-white/70' : 'text-muted-foreground', 'text-sm -mt-1 mb-2')}>{tier.priceAnnotation}</p>
                   )}
 
-                  <p className={cn(isFeatured ? 'text-white/80' : 'text-muted-foreground', 'mt-3 text-sm/6', !isFeatured ? '' : 'flex-grow')}>
+                  <p className={cn(isFeatured ? 'text-white/80' : 'text-muted-foreground', 'mt-3 text-sm/6', tier.id === 'tier-cultivador' ? '' : 'flex-grow')}>
                     {tier.description}
                   </p>
                   <ul
@@ -491,7 +493,7 @@ export default function LandingPage() {
                     className={cn(
                       isFeatured ? 'text-white/80' : 'text-muted-foreground',
                       'mt-6 space-y-2.5 text-sm/6 sm:mt-8',
-                      !isFeatured ? '' : 'flex-grow'
+                      tier.id === 'tier-cultivador' ? '' : 'flex-grow'
                     )}
                   >
                     {tier.features.map((feature) => (
@@ -508,7 +510,7 @@ export default function LandingPage() {
                     asChild
                     size="lg"
                     className={cn(
-                      'w-full mt-auto', // mt-auto empurra para baixo
+                      'w-full mt-auto',
                       isFeatured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
@@ -524,11 +526,11 @@ export default function LandingPage() {
                 const tier = pricingTiers[2];
                 const TierIcon = tier.icon;
                 return (
-                    <div 
+                    <div
                         ref={corporatePricingCardRef}
                         key={tier.id}
                         className={cn(
-                        'pricing-tier-corporate opacity-0 mt-8 mx-auto max-w-2xl w-full', 
+                        'pricing-tier-corporate opacity-0 mt-8 mx-auto max-w-2xl w-full',
                         'bg-card/70 backdrop-blur-md',
                         'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col'
                         )}
@@ -599,3 +601,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
