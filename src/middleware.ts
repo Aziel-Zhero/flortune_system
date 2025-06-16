@@ -9,70 +9,67 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // console.log(`Middleware: Handling request for ${request.nextUrl.pathname}`);
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
+          // console.log(`Middleware: Cookie GET: ${name}`);
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+          // console.log(`Middleware: Cookie SET on RESPONSE: ${name}`);
+          // Cookies should be set on the response object to be sent back to the browser
+          response.cookies.set(name, value, options);
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
+          // console.log(`Middleware: Cookie REMOVE on RESPONSE: ${name}`);
+          // Cookies should be removed from the response object
+          response.cookies.set(name, '', options);
         },
       },
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    console.error(`Middleware: Error getting session: ${sessionError.message}`);
+    // Decide how to handle session errors, e.g., redirect to login or an error page
+  }
+
+  // console.log(`Middleware: Session state for ${request.nextUrl.pathname}: ${session ? `User ID ${session.user.id}` : 'No session'}`);
+
   const { pathname } = request.nextUrl;
 
-  // Rotas públicas que não exigem autenticação (além da landing page)
   const authRoutes = ['/login', '/signup', '/auth/callback'];
   const publicLandingPage = '/';
 
-  // Se o usuário está logado e tenta acessar /login ou /signup, redireciona para o dashboard
   if (session && authRoutes.includes(pathname)) {
+    // console.log(`Middleware: User with session trying to access auth route ${pathname}. Redirecting to /dashboard.`);
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Se o usuário não está logado e tenta acessar uma rota protegida
-  // Rotas protegidas são todas que NÃO são authRoutes e NÃO são a landing page
-  // e NÃO são assets ou rotas de API.
   const isProtectedRoute = !authRoutes.includes(pathname) && pathname !== publicLandingPage &&
                            !pathname.startsWith('/_next') && 
                            !pathname.startsWith('/icon.svg') && 
-                           !pathname.startsWith('/api');
+                           !pathname.startsWith('/api') &&
+                           !pathname.endsWith('.png') && // Allow image assets
+                           !pathname.endsWith('.jpg') &&
+                           !pathname.endsWith('.jpeg') &&
+                           !pathname.endsWith('.gif') &&
+                           !pathname.endsWith('.svg'); // Allow SVG assets (like favicon if not under /icon.svg)
+
 
   if (!session && isProtectedRoute) {
+    // console.log(`Middleware: No session and trying to access protected route ${pathname}. Redirecting to /login.`);
     return NextResponse.redirect(new URL('/login', request.url));
   }
   
-  // A landing page (/) é sempre acessível.
-  // O redirecionamento de / para /dashboard ou /login foi removido daqui.
-  // A própria página / cuidará de mostrar conteúdo diferente para usuários logados/deslogados.
-
+  // console.log(`Middleware: Allowing request for ${request.nextUrl.pathname}`);
   return response;
 }
 
@@ -83,10 +80,10 @@ export const config = {
      * - api (rotas de API)
      * - _next/static (arquivos estáticos)
      * - _next/image (arquivos de otimização de imagem)
-     * - icon.svg (ícone do aplicativo)
-     * - *.png, *.jpg, etc. (outros arquivos de imagem em /public)
+     * - assets (se você tiver uma pasta /public/assets)
+     * - arquivos com extensão (ex: .png, .jpg, .svg) na raiz de /public
      */
-    '/((?!api|_next/static|_next/image|.*\\..*).*)',
-    '/', // Inclui a rota raiz para ser processada pelo middleware
+    '/((?!api|_next/static|_next/image|assets/|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg)$).*)',
+    '/', 
   ],
 };
