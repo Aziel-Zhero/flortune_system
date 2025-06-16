@@ -9,7 +9,7 @@ import { APP_NAME } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -74,9 +74,13 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, descriptio
     currentCardRef.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
-      currentCardRef.removeEventListener('mouseenter', handleMouseEnter);
-      currentCardRef.removeEventListener('mouseleave', handleMouseLeave);
-      anime.remove(currentIconRef); // Clean up animation on unmount
+      if (currentCardRef) {
+        currentCardRef.removeEventListener('mouseenter', handleMouseEnter);
+        currentCardRef.removeEventListener('mouseleave', handleMouseLeave);
+      }
+      if (currentIconRef) {
+        anime.remove(currentIconRef); // Clean up animation on unmount
+      }
     };
   }, []);
 
@@ -105,9 +109,9 @@ const pricingTiers = [
     priceMonthly: 'Grátis',
     description: "Comece a organizar suas finanças e cultivar bons hábitos financeiros sem custo.",
     features: [
-      'Gerenciamento de transações', 
-      'Criação de orçamentos básicos', 
-      'Definição de metas financeiras', 
+      'Gerenciamento de transações',
+      'Criação de orçamentos básicos',
+      'Definição de metas financeiras',
       'Visão geral com calendário financeiro'
     ],
     featured: false,
@@ -116,7 +120,7 @@ const pricingTiers = [
     name: 'Mestre Jardineiro',
     id: 'tier-mestre',
     href: '/signup?plan=mestre',
-    priceMonthly: 'R$19,90',
+    priceMonthly: 'R$19,90', // Defina o preço como desejar
     description: 'Desbloqueie todo o potencial do Flortune com análises avançadas e IA.',
     features: [
       'Todas as funcionalidades do plano Cultivador',
@@ -135,23 +139,23 @@ export default function LandingPage() {
   const { session, isLoading } = useAuth();
 
   const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255]; // Teal: #16A381
-  
+
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
   const heroParagraphRef = useRef<HTMLParagraphElement>(null);
   const heroButtonsRef = useRef<HTMLDivElement>(null);
   const heroImageRef = useRef<HTMLDivElement>(null);
-  
+
   const featuresSectionRef = useRef<HTMLElement>(null);
   const featuresHeaderRef = useRef<HTMLDivElement>(null);
-  
+
   const pricingSectionRef = useRef<HTMLElement>(null);
   const pricingHeaderRef = useRef<HTMLDivElement>(null);
 
   const finalCtaSectionRef = useRef<HTMLElement>(null);
 
   useGSAP(() => {
-    if (isLoading) return; 
+    if (isLoading) return;
 
     const tlHero = gsap.timeline({ defaults: { ease: "power3.out" } });
 
@@ -161,9 +165,9 @@ export default function LandingPage() {
       .fromTo(heroImageRef.current, { opacity: 0, scale: 0.9, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.5");
 
     if (featuresSectionRef.current && featuresHeaderRef.current) {
-      gsap.fromTo(featuresHeaderRef.current.children, 
-        { opacity: 0, y: 30 }, 
-        { 
+      gsap.fromTo(featuresHeaderRef.current.children,
+        { opacity: 0, y: 30 },
+        {
           opacity: 1, y: 0, duration: 0.7, stagger: 0.2,
           scrollTrigger: {
             trigger: featuresSectionRef.current,
@@ -172,9 +176,9 @@ export default function LandingPage() {
           }
         }
       );
-      gsap.fromTo(".feature-card", 
-        { opacity: 0, y: 50, scale: 0.95 }, 
-        { 
+      gsap.fromTo(".feature-card",
+        { opacity: 0, y: 50, scale: 0.95 },
+        {
           opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
           scrollTrigger: {
             trigger: featuresSectionRef.current,
@@ -186,9 +190,9 @@ export default function LandingPage() {
     }
 
     if (pricingSectionRef.current && pricingHeaderRef.current) {
-      gsap.fromTo(pricingHeaderRef.current.children, 
-        { opacity: 0, y: 30 }, 
-        { 
+      gsap.fromTo(pricingHeaderRef.current.children,
+        { opacity: 0, y: 30 },
+        {
           opacity: 1, y: 0, duration: 0.7, stagger: 0.2,
           scrollTrigger: {
             trigger: pricingSectionRef.current,
@@ -197,9 +201,9 @@ export default function LandingPage() {
           }
         }
       );
-      gsap.fromTo(".pricing-tier", 
-        { opacity: 0, y: 50, scale: 0.95 }, 
-        { 
+      gsap.fromTo(".pricing-tier",
+        { opacity: 0, y: 50, scale: 0.95 },
+        {
           opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.15, ease: "power2.out",
           scrollTrigger: {
             trigger: pricingSectionRef.current,
@@ -209,7 +213,7 @@ export default function LandingPage() {
         }
       );
     }
-    
+
     if (finalCtaSectionRef.current && (!session && !isLoading)) {
         gsap.fromTo(finalCtaSectionRef.current,
             { opacity: 0, y: 50 },
@@ -233,12 +237,12 @@ export default function LandingPage() {
   if (isLoading) {
     headerActions = (
       <>
-        <Skeleton className="h-10 w-24 bg-muted/50 rounded-md" />
-        <Skeleton className="h-10 w-32 bg-muted/50 rounded-md" />
+        <Skeleton className="h-10 w-24 bg-muted/50 rounded-md opacity-0" />
+        <Skeleton className="h-10 w-32 bg-muted/50 rounded-md opacity-0" />
       </>
     );
     heroActions = (
-      <div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
         <Skeleton className="h-12 w-48 bg-muted/50 rounded-md" />
         <Skeleton className="h-12 w-40 bg-muted/50 rounded-md" />
       </div>
@@ -250,7 +254,7 @@ export default function LandingPage() {
       </Button>
     );
     heroActions = (
-      <div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
         <Button asChild size="lg">
           <Link href="/dashboard">Ir para o Painel</Link>
         </Button>
@@ -268,7 +272,7 @@ export default function LandingPage() {
       </>
     );
     heroActions = (
-      <div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
         <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
           <Link href="/signup">Comece Agora (Grátis)</Link>
         </Button>
@@ -282,13 +286,13 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden text-white" ref={mainContainerRef}>
-      <Iridescence 
-        color={flortuneTealRGB} 
-        speed={0.3} 
-        amplitude={0.15} 
-        mouseReact={true} 
+      <Iridescence
+        color={flortuneTealRGB}
+        speed={0.3} // Ajustado conforme seu exemplo
+        amplitude={0.15} // Ajustado conforme seu exemplo
+        mouseReact={true}
       />
-      
+
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
@@ -304,28 +308,28 @@ export default function LandingPage() {
 
         <main className="container mx-auto px-4 md:px-8">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
-            <h1 
+            <h1
               ref={heroTitleRef}
               className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0"
             >
               Cultive Suas Finanças com <span className="text-accent">Inteligência</span> e Estilo.
             </h1>
-            <p 
+            <p
               ref={heroParagraphRef}
               className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto opacity-0"
             >
               {APP_NAME} ajuda você a organizar, analisar e alcançar seus objetivos financeiros com ferramentas intuitivas e insights poderosos.
             </p>
-            {heroActions} 
-            <div 
+            {heroActions}
+            <div
               ref={heroImageRef}
               className="mt-16 md:mt-24 opacity-0"
             >
-                <Image 
-                    src="https://placehold.co/800x450.png" 
-                    alt="Flortune App Mockup" 
-                    width={800} 
-                    height={450} 
+                <Image
+                    src="https://placehold.co/800x450.png"
+                    alt="Flortune App Mockup"
+                    width={800}
+                    height={450}
                     className="rounded-lg shadow-2xl border-4 border-white/20"
                     data-ai-hint="app dashboard"
                     priority
@@ -341,45 +345,45 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <FeatureCard 
-                icon={CalendarDays} 
-                title="Calendário Financeiro Intuitivo" 
+              <FeatureCard
+                icon={CalendarDays}
+                title="Calendário Financeiro Intuitivo"
                 description="Visualize suas despesas e receitas de forma clara, dia a dia, mês a mês. Nunca mais perca um vencimento."
                 className="feature-card opacity-0"
               />
-              <FeatureCard 
-                icon={BarChart3} 
-                title="Análise de Dados Poderosa" 
+              <FeatureCard
+                icon={BarChart3}
+                title="Análise de Dados Poderosa"
                 description="Entenda seus padrões de gastos com gráficos e relatórios detalhados. Tome decisões financeiras mais inteligentes."
                 className="feature-card opacity-0"
               />
-              <FeatureCard 
-                icon={BrainCircuit} 
-                title="Sugestões com Inteligência Artificial" 
+              <FeatureCard
+                icon={BrainCircuit}
+                title="Sugestões com Inteligência Artificial"
                 description="Receba dicas personalizadas e insights gerados por IA para otimizar seus orçamentos e economizar mais. (Plano Mestre)"
                 className="feature-card opacity-0"
               />
-              <FeatureCard 
-                icon={Eye} 
-                title="Modo Privado Inteligente" 
+              <FeatureCard
+                icon={Eye}
+                title="Modo Privado Inteligente"
                 description="Oculte seus dados financeiros com um clique. Privacidade e discrição quando você mais precisa."
                 className="feature-card opacity-0"
               />
-               <FeatureCard 
-                icon={ShieldCheck} 
-                title="Segurança em Primeiro Lugar" 
+               <FeatureCard
+                icon={ShieldCheck}
+                title="Segurança em Primeiro Lugar"
                 description="Seus dados são protegidos com criptografia de ponta e as melhores práticas de segurança do mercado."
                 className="feature-card opacity-0"
               />
-               <FeatureCard 
-                icon={Leaf} 
-                title="Metas e Orçamentos Flexíveis" 
+               <FeatureCard
+                icon={Leaf}
+                title="Metas e Orçamentos Flexíveis"
                 description="Defina metas alcançáveis e crie orçamentos que se adaptam ao seu estilo de vida. Veja seu progresso florescer."
                 className="feature-card opacity-0"
               />
             </div>
           </section>
-          
+
           <section className="py-16 md:py-24" ref={pricingSectionRef}>
             <div ref={pricingHeaderRef} className="mx-auto max-w-4xl text-center">
               <h2 className="text-base/7 font-semibold text-accent opacity-0">Nossos Planos</h2>
@@ -390,19 +394,19 @@ export default function LandingPage() {
                 Comece gratuitamente ou desbloqueie funcionalidades avançadas para levar suas finanças ao próximo nível.
               </p>
             </div>
-            <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-center gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
+            <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-stretch gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
               {pricingTiers.map((tier, tierIdx) => (
                 <div
                   key={tier.id}
                   className={cn(
-                    'pricing-tier opacity-0', 
+                    'pricing-tier opacity-0',
                     tier.featured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
                     tier.featured
-                      ? 'rounded-3xl' 
+                      ? 'rounded-3xl'
                       : tierIdx === 0
                         ? 'rounded-t-3xl sm:rounded-b-none lg:rounded-tr-none lg:rounded-bl-3xl'
                         : 'sm:rounded-t-none lg:rounded-tr-3xl lg:rounded-bl-none',
-                    'p-8 ring-1 ring-white/20 sm:p-10'
+                    'p-8 ring-1 ring-white/20 sm:p-10 h-full flex flex-col' // Adicionado h-full flex flex-col
                   )}
                 >
                   <h3
@@ -414,7 +418,7 @@ export default function LandingPage() {
                   <p className="mt-4 flex items-baseline gap-x-2">
                     <span
                       className={cn(
-                        tier.featured ? 'text-white' : 'text-foreground', 
+                        tier.featured ? 'text-white' : 'text-foreground',
                         'text-5xl font-semibold tracking-tight'
                       )}
                     >
@@ -431,7 +435,7 @@ export default function LandingPage() {
                     role="list"
                     className={cn(
                       tier.featured ? 'text-white/80' : 'text-muted-foreground',
-                      'mt-8 space-y-3 text-sm/6 sm:mt-10'
+                      'mt-8 space-y-3 text-sm/6 sm:mt-10 flex-grow' // Adicionado flex-grow
                     )}
                   >
                     {tier.features.map((feature) => (
@@ -448,7 +452,7 @@ export default function LandingPage() {
                     asChild
                     size="lg"
                     className={cn(
-                      'mt-8 block w-full sm:mt-10',
+                      'mt-8 block w-full sm:mt-10', // mt-auto aqui faria o botão ir para o final
                       tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
@@ -462,8 +466,8 @@ export default function LandingPage() {
           </section>
 
           {!session && !isLoading && (
-            <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
-                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto opacity-0"> 
+            <section className="py-16 md:py-24 text-center opacity-0" ref={finalCtaSectionRef}>
+                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
                     <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro Financeiro?</h2>
                     <p className="text-white/80 mb-8">
                         Junte-se a milhares de usuários que estão transformando suas finanças com o {APP_NAME}. É rápido, fácil e gratuito para começar.
