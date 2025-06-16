@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Users, Briefcase } from "lucide-react"; // Added Users, Briefcase
+import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Users, Briefcase } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME } from "@/lib/constants";
@@ -150,7 +150,7 @@ const pricingTiers = [
       'Integrações com sistemas contábeis (sob demanda)',
       'Consultoria financeira especializada',
     ],
-    featured: false, // Pode ser true se quiser destacá-lo de forma diferente
+    featured: false, 
     icon: Briefcase,
   },
 ];
@@ -225,7 +225,7 @@ export default function LandingPage() {
           }
         }
       );
-      // Animar os dois primeiros cards no grid
+      
       if (pricingGridRef.current) {
         gsap.fromTo(pricingGridRef.current.querySelectorAll(".pricing-tier-grid"),
           { opacity: 0, y: 50, scale: 0.95 },
@@ -239,14 +239,14 @@ export default function LandingPage() {
           }
         );
       }
-      // Animar o card corporativo separadamente
+      
       if (corporatePricingCardRef.current) {
          gsap.fromTo(corporatePricingCardRef.current,
           { opacity: 0, y: 50, scale: 0.95 },
           {
             opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power2.out",
             scrollTrigger: {
-              trigger: corporatePricingCardRef.current, // Pode precisar ajustar o trigger se estiver muito próximo do grid
+              trigger: corporatePricingCardRef.current, 
               start: "top 85%", 
               toggleActions: "play none none none",
             }
@@ -436,31 +436,31 @@ export default function LandingPage() {
               </p>
             </div>
             
-            {/* Grid for first two plans */}
             <div ref={pricingGridRef} className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
               {pricingTiers.slice(0, 2).map((tier, tierIdx) => {
                 const TierIcon = tier.icon;
+                const isFeatured = tier.featured;
                 return (
                 <div
                   key={tier.id}
                   className={cn(
-                    'pricing-tier-grid opacity-0', // Class for GSAP selection
-                    tier.featured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
-                    tier.featured
+                    'pricing-tier-grid opacity-0', 
+                    isFeatured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
+                    isFeatured
                       ? ''
                       : tierIdx === 0
-                        ? 'lg:rounded-r-none lg:rounded-bl-3xl' // Ajuste para não arredondar canto direito no desktop
-                        : 'lg:rounded-l-none lg:rounded-br-3xl', // Ajuste para não arredondar canto esquerdo no desktop
-                    'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col' // Adicionado flex flex-col
+                        ? 'lg:rounded-r-none lg:rounded-bl-3xl' 
+                        : 'lg:rounded-l-none lg:rounded-br-3xl', 
+                    'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col'
                   )}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                     <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", tier.featured ? "bg-accent/30" : "bg-primary/30")}>
-                         <TierIcon className={cn("h-5 w-5", tier.featured ? "text-accent" : "text-primary")} />
+                     <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", isFeatured ? "bg-accent/30" : "bg-primary/30")}>
+                         <TierIcon className={cn("h-5 w-5", isFeatured ? "text-accent" : "text-primary")} />
                      </div>
                      <h3
                         id={tier.id}
-                        className={cn(tier.featured ? 'text-accent' : 'text-primary', 'text-xl font-headline font-semibold')}
+                        className={cn(isFeatured ? 'text-accent' : 'text-primary', 'text-xl font-headline font-semibold')}
                       >
                         {tier.name}
                       </h3>
@@ -469,35 +469,36 @@ export default function LandingPage() {
                   <p className="mt-1 flex items-baseline gap-x-2">
                     <span
                       className={cn(
-                        tier.featured ? 'text-white' : 'text-foreground',
+                        isFeatured ? 'text-white' : 'text-foreground',
                         'text-4xl font-bold tracking-tight'
                       )}
                     >
                       {tier.priceMonthly}
                     </span>
                     {tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (
-                       <span className={cn(tier.featured ? 'text-white/70' : 'text-muted-foreground', 'text-base')}>/mês</span>
+                       <span className={cn(isFeatured ? 'text-white/70' : 'text-muted-foreground', 'text-base')}>/mês</span>
                     )}
                   </p>
                   {tier.priceAnnotation && (
-                    <p className={cn(tier.featured ? 'text-white/70' : 'text-muted-foreground', 'text-sm -mt-1 mb-2')}>{tier.priceAnnotation}</p>
+                    <p className={cn(isFeatured ? 'text-white/70' : 'text-muted-foreground', 'text-sm -mt-1 mb-2')}>{tier.priceAnnotation}</p>
                   )}
 
-                  <p className={cn(tier.featured ? 'text-white/80' : 'text-muted-foreground', 'mt-3 text-sm/6 flex-grow')}>
+                  <p className={cn(isFeatured ? 'text-white/80' : 'text-muted-foreground', 'mt-3 text-sm/6', !isFeatured ? '' : 'flex-grow')}>
                     {tier.description}
                   </p>
                   <ul
                     role="list"
                     className={cn(
-                      tier.featured ? 'text-white/80' : 'text-muted-foreground',
-                      'mt-6 space-y-2.5 text-sm/6 sm:mt-8'
+                      isFeatured ? 'text-white/80' : 'text-muted-foreground',
+                      'mt-6 space-y-2.5 text-sm/6 sm:mt-8',
+                      !isFeatured ? '' : 'flex-grow'
                     )}
                   >
                     {tier.features.map((feature) => (
                       <li key={feature} className="flex gap-x-3">
                         <Check
                           aria-hidden="true"
-                          className={cn(tier.featured ? 'text-accent' : 'text-primary', 'h-5 w-5 flex-none mt-0.5')}
+                          className={cn(isFeatured ? 'text-accent' : 'text-primary', 'h-5 w-5 flex-none mt-0.5')}
                         />
                         {feature}
                       </li>
@@ -507,8 +508,8 @@ export default function LandingPage() {
                     asChild
                     size="lg"
                     className={cn(
-                      'mt-8 w-full sm:mt-10', 
-                      tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      'w-full mt-auto', // mt-auto empurra para baixo
+                      isFeatured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
                     <Link href={tier.href} aria-describedby={tier.id}>
@@ -519,7 +520,6 @@ export default function LandingPage() {
               )})}
             </div>
 
-            {/* Corporate Plan Card - rendered separately below the grid */}
             {pricingTiers[2] && (() => {
                 const tier = pricingTiers[2];
                 const TierIcon = tier.icon;
@@ -528,7 +528,7 @@ export default function LandingPage() {
                         ref={corporatePricingCardRef}
                         key={tier.id}
                         className={cn(
-                        'opacity-0 mt-8 mx-auto max-w-2xl w-full', // Styling for full width and centering
+                        'pricing-tier-corporate opacity-0 mt-8 mx-auto max-w-2xl w-full', 
                         'bg-card/70 backdrop-blur-md',
                         'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col'
                         )}
@@ -552,7 +552,7 @@ export default function LandingPage() {
                         <p className={cn('text-muted-foreground', 'mt-3 text-sm/6 flex-grow')}>
                             {tier.description}
                         </p>
-                        <ul role="list" className={cn('text-muted-foreground', 'mt-6 space-y-2.5 text-sm/6 sm:mt-8')}>
+                        <ul role="list" className={cn('text-muted-foreground', 'mt-6 space-y-2.5 text-sm/6 sm:mt-8 flex-grow')}>
                             {tier.features.map((feature) => (
                             <li key={feature} className="flex gap-x-3">
                                 <Check aria-hidden="true" className={cn('text-primary', 'h-5 w-5 flex-none mt-0.5')} />
@@ -560,7 +560,7 @@ export default function LandingPage() {
                             </li>
                             ))}
                         </ul>
-                        <Button asChild size="lg" className={cn('mt-8 w-full sm:mt-10', 'bg-primary text-primary-foreground hover:bg-primary/90')}>
+                        <Button asChild size="lg" className={cn('w-full mt-auto', 'bg-primary text-primary-foreground hover:bg-primary/90')}>
                             <Link href={tier.href} aria-describedby={tier.id}>
                             Contatar Vendas
                             </Link>
@@ -599,4 +599,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
