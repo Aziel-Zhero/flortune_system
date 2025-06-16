@@ -7,17 +7,21 @@ import { supabase } from '@/lib/supabase/client';
 import type { Provider } from '@supabase/supabase-js';
 
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
-const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." });
+const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
+  .regex(/[a-z]/, { message: "A senha deve conter pelo menos uma letra minúscula." })
+  .regex(/[A-Z]/, { message: "A senha deve conter pelo menos uma letra maiúscula." })
+  .regex(/[0-9]/, { message: "A senha deve conter pelo menos um número." })
+  .regex(/[^a-zA-Z0-9]/, { message: "A senha deve conter pelo menos um caractere especial." });
 
 const loginSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: passwordSchema, // Reutilizando o schema base, mas a validação completa é mais para o cadastro
 });
 
 const signupSchemaBase = z.object({
   fullName: z.string().min(2, { message: "O nome completo/razão social deve ter pelo menos 2 caracteres." }),
   displayName: z.string().min(2, { message: "O nome de exibição/fantasia deve ter pelo menos 2 caracteres." }),
-  phone: z.string().optional(),
+  phone: z.string().optional(), // Será refinado para ser obrigatório para empresa
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: passwordSchema,
@@ -30,16 +34,17 @@ const signupSchemaBase = z.object({
 const signupSchema = signupSchemaBase.refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
-}).refine(data => {
-    if (data.accountType === 'pessoa') {
-      return !!data.cpf && data.cpf.replace(/\D/g, '').length === 11;
+})
+.refine(data => { // CPF opcional para pessoa física
+    if (data.accountType === 'pessoa' && data.cpf) {
+      return data.cpf.replace(/\D/g, '').length === 11;
     }
     return true;
   }, {
-    message: "CPF é obrigatório e deve ser válido para pessoa física.",
+    message: "Se fornecido, o CPF deve ser válido.",
     path: ["cpf"],
-  })
-  .refine(data => {
+})
+.refine(data => { // CNPJ obrigatório e válido para pessoa jurídica
     if (data.accountType === 'empresa') {
       return !!data.cnpj && data.cnpj.replace(/\D/g, '').length === 14;
     }
@@ -47,7 +52,28 @@ const signupSchema = signupSchemaBase.refine(data => data.password === data.conf
   }, {
     message: "CNPJ é obrigatório e deve ser válido para pessoa jurídica.",
     path: ["cnpj"],
-  });
+})
+.refine(data => { // Telefone obrigatório para pessoa jurídica
+    if (data.accountType === 'empresa') {
+        return !!data.phone && data.phone.trim() !== '';
+    }
+    return true;
+}, {
+    message: "Telefone é obrigatório para pessoa jurídica.",
+    path: ["phone"],
+})
+.refine(data => { // RG opcional, mas se fornecido, deve ter um formato aceitável
+    if (data.accountType === 'pessoa' && data.rg) {
+        // Validação simples de RG: permite dígitos e X, e um tamanho mínimo.
+        // A máscara no frontend já ajuda a formatar.
+        const rgCleaned = data.rg.replace(/\D/g, '');
+        return rgCleaned.length >= 5 && rgCleaned.length <= 9; // Exemplo de tamanho, ajuste conforme necessidade
+    }
+    return true;
+}, {
+    message: "Se fornecido, o RG deve ser válido.",
+    path: ["rg"],
+});
 
 
 export type LoginFormState = {
@@ -138,12 +164,12 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     let cpfCnpjValue: string | null = null;
     if (accountType === 'pessoa' && cpf) {
-      cpfCnpjValue = cpf.replace(/\D/g, ''); // Remove máscara
+      cpfCnpjValue = cpf.replace(/\D/g, ''); 
     } else if (accountType === 'empresa' && cnpj) {
-      cpfCnpjValue = cnpj.replace(/\D/g, ''); // Remove máscara
+      cpfCnpjValue = cnpj.replace(/\D/g, ''); 
     }
 
-    const rgValue = (accountType === 'pessoa' && rg) ? rg.replace(/\D/g, '') : null; // Remove máscara
+    const rgValue = (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null;
 
     const { data: signUpData, error } = await supabase.auth.signUp({
       email,
@@ -161,6 +187,14 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     });
 
     if (error) {
+      // Adicionar verificação específica para "Invalid API key" para dar uma mensagem mais útil
+      if (error.message.toLowerCase().includes("invalid api key") || error.message.toLowerCase().includes("failed to fetch")) {
+         return {
+            message: "Falha na comunicação com o servidor de autenticação. Verifique sua conexão e as configurações de API do Supabase.",
+            errors: { _form: ["Erro de configuração ou conexão com o serviço de autenticação."] },
+            success: false,
+        };
+      }
       return {
         message: error.message || "Falha ao criar conta.",
         errors: { _form: [error.message || "Falha ao criar conta."] },
@@ -187,6 +221,13 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       throw error;
     }
     console.error("Signup User Action Error:", error);
+     if (typeof error.message === 'string' && (error.message.toLowerCase().includes("invalid api key") || error.message.toLowerCase().includes("failed to fetch"))) {
+        return {
+            message: "Falha na comunicação com o servidor de autenticação. Verifique sua conexão e as configurações de API do Supabase.",
+            errors: { _form: ["Erro de configuração ou conexão com o serviço de autenticação."] },
+            success: false,
+        };
+    }
     return {
       message: "Ocorreu um erro inesperado durante o cadastro. Tente novamente.",
       errors: { _form: ["Falha no cadastro devido a um erro no servidor."] },
@@ -238,3 +279,5 @@ export async function logoutUser() {
   }
   redirect('/login'); 
 }
+
+    

@@ -2,9 +2,9 @@
 "use client";
 
 import { useActionState, useEffect, useState, type ChangeEvent } from "react";
-import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, Building, Fingerprint, LogIn, Phone as PhoneIcon } from "lucide-react";
+import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, Building, Fingerprint, LogIn, Phone as PhoneIcon, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; 
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,14 +13,15 @@ import { signupUser, signInWithOAuth, type SignupFormState } from "@/app/actions
 import { OAuthButton } from "./oauth-button";
 import { SubmitButton } from "./submit-button";
 import { toast } from "@/hooks/use-toast";
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css'; 
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 // Helper functions for masking
 const formatCPF = (value: string): string => {
   const digits = value.replace(/\D/g, '');
-  let formatted = digits.slice(0, 11); // Max 11 digits for CPF
+  let formatted = digits.slice(0, 11);
   if (formatted.length > 9) {
     formatted = `${formatted.slice(0, 9)}-${formatted.slice(9)}`;
   }
@@ -35,7 +36,7 @@ const formatCPF = (value: string): string => {
 
 const formatCNPJ = (value: string): string => {
   const digits = value.replace(/\D/g, '');
-  let formatted = digits.slice(0, 14); // Max 14 digits for CNPJ
+  let formatted = digits.slice(0, 14);
   if (formatted.length > 12) {
     formatted = `${formatted.slice(0, 12)}-${formatted.slice(12)}`;
   }
@@ -52,23 +53,49 @@ const formatCNPJ = (value: string): string => {
 };
 
 const formatRG = (value: string): string => {
-  // RG formats vary a lot, this is a very generic numeric-only formatter for simplicity
-  // It just allows digits and keeps it to a certain length.
-  // A more robust RG mask would be very complex.
-  const digits = value.replace(/\D/g, '');
-  return digits.slice(0, 9); // Example: limit to 9 digits
+  // Allows digits and X/x at the end. Max length for XX.XXX.XXX-Y
+  const cleaned = value.replace(/[^0-9Xx]/g, '').toUpperCase();
+  let formatted = cleaned.slice(0, 9); // Max 9 chars (8 digits + 1 char for X or digit)
+
+  if (formatted.length > 8) {
+    // Last char can be digit or X
+    const lastChar = formatted.slice(8);
+    if (!/^[0-9X]$/.test(lastChar)) {
+        formatted = formatted.slice(0,8); // remove invalid last char
+    }
+  }
+  
+  if (formatted.length > 6) {
+    formatted = `${formatted.slice(0, 6)}-${formatted.slice(6)}`;
+  }
+  if (formatted.length > 3) {
+    formatted = `${formatted.slice(0, 3)}.${formatted.slice(3)}`;
+  }
+   if (formatted.length > 2) { // Ajuste para o formato XX.XXX.XXX-Y
+    formatted = `${formatted.slice(0, 2)}.${formatted.slice(2)}`;
+  }
+  return formatted.slice(0, 12); // Max length of XX.XXX.XXX-Y
 };
 
+
+const shadcnInputClasses = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
 
 export function SignupForm() {
   const initialState: SignupFormState = { message: undefined, errors: {}, success: undefined };
   const [state, dispatch] = useActionState(signupUser, initialState);
   const [accountType, setAccountType] = useState<'pessoa' | 'empresa'>('pessoa');
   const [phoneValue, setPhoneValue] = useState<string | undefined>();
-  
+
   const [cpfValue, setCpfValue] = useState('');
   const [rgValue, setRgValue] = useState('');
   const [cnpjValue, setCnpjValue] = useState('');
+  
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: "Muito Fraca", color: "bg-destructive" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 
   useEffect(() => {
@@ -83,27 +110,55 @@ export function SignupForm() {
         });
       }
     }
-    // Sucesso no cadastro é tratado por redirecionamento para /login com parâmetro
   }, [state]);
 
   const handleGoogleSignIn = async () => {
     await signInWithOAuth('google');
   };
-  
+
   const fullNameLabel = accountType === 'pessoa' ? "Nome Completo" : "Razão Social";
   const displayNameLabel = accountType === 'pessoa' ? "Nome de Exibição" : "Nome Fantasia";
+  const phoneLabel = accountType === 'empresa' ? "Telefone (Obrigatório)" : "Telefone (Opcional)";
 
-  const handleCpfChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setCpfValue(formatCPF(e.target.value));
-  };
 
-  const handleRgChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setRgValue(formatRG(e.target.value));
-  };
+  useEffect(() => {
+    if (password && confirmPassword) {
+      setPasswordsMatch(password === confirmPassword);
+    } else {
+      setPasswordsMatch(null);
+    }
+  }, [password, confirmPassword]);
 
-  const handleCnpjChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setCnpjValue(formatCNPJ(e.target.value));
-  };
+  useEffect(() => {
+    let score = 0;
+    let label = "Muito Fraca";
+    let color = "bg-destructive";
+
+    if (password.length >= 8) score += 1;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(password)) score += 1; // Special characters
+
+    if (score <= 1 && password.length > 0) { // Se tem algo, mas é fraca
+        label = "Fraca";
+        color = "bg-red-500";
+    } else if (score === 2) {
+        label = "Média";
+        color = "bg-yellow-500";
+    } else if (score === 3) {
+        label = "Forte";
+        color = "bg-green-500";
+    } else if (score >= 4) {
+        label = "Muito Forte";
+        color = "bg-emerald-500";
+    } else if (password.length === 0) { // Se vazia, volta ao inicial
+        label = "Muito Fraca";
+        color = "bg-destructive";
+        score = 0; // Reset score for empty password
+    }
+    setPasswordStrength({ score: (score/4)*100, label, color });
+  }, [password]);
+  
 
   return (
     <div className="space-y-6">
@@ -123,10 +178,10 @@ export function SignupForm() {
             defaultValue="pessoa"
             onValueChange={(value: 'pessoa' | 'empresa') => {
               setAccountType(value);
-              // Limpar campos ao trocar de tipo para evitar envio de dados irrelevantes
               setCpfValue('');
               setRgValue('');
               setCnpjValue('');
+              setPhoneValue(undefined); // Limpar telefone ao trocar
             }}
             className="flex space-x-4"
           >
@@ -181,23 +236,57 @@ export function SignupForm() {
             <Label htmlFor="password">Senha</Label>
             <div className="relative">
               <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="password" name="password" type="password" placeholder="••••••••" required className="pl-10" aria-describedby="password-error" />
+              <Input 
+                id="password" 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="••••••••" 
+                required 
+                className="pl-10 pr-10" 
+                aria-describedby="password-error"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+              </Button>
             </div>
             {state?.errors?.password && <p id="password-error" className="text-sm text-destructive">{state.errors.password.join(', ')}</p>}
+            {password.length > 0 && (
+              <div className="mt-1">
+                <Progress value={passwordStrength.score} className={cn("h-2 w-full", passwordStrength.color)} indicatorClassName={cn(passwordStrength.color)} />
+                <p className="text-xs mt-1 text-muted-foreground">Força da senha: {passwordStrength.label}</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirmar Senha</Label>
             <div className="relative">
               <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••" required className="pl-10" aria-describedby="confirmPassword-error" />
+              <Input 
+                id="confirmPassword" 
+                name="confirmPassword" 
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="••••••••" 
+                required 
+                className="pl-10 pr-10" 
+                aria-describedby="confirmPassword-error"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+               <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                {showConfirmPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+              </Button>
             </div>
             {state?.errors?.confirmPassword && <p id="confirmPassword-error" className="text-sm text-destructive">{state.errors.confirmPassword.join(', ')}</p>}
+            {passwordsMatch === false && <p className="text-sm text-destructive mt-1">As senhas não coincidem.</p>}
+            {passwordsMatch === true && <p className="text-sm text-emerald-600 mt-1">As senhas coincidem.</p>}
           </div>
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="phone">Telefone (Opcional)</Label>
+          <Label htmlFor="phone">{phoneLabel}</Label>
            <PhoneInput
             id="phone"
             name="phone"
@@ -211,15 +300,19 @@ export function SignupForm() {
               "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
             )}
             aria-describedby="phone-error"
+            required={accountType === 'empresa'} 
           />
           {state?.errors?.phone && <p id="phone-error" className="text-sm text-destructive">{state.errors.phone.join(', ')}</p>}
+           {phoneValue && !isValidPhoneNumber(phoneValue) && (
+            <p className="text-sm text-destructive mt-1">Número de telefone inválido.</p>
+          )}
         </div>
         
 
         {accountType === 'pessoa' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="cpf">CPF (Opcional)</Label>
               <div className="relative">
                 <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
@@ -228,9 +321,8 @@ export function SignupForm() {
                   type="text"
                   placeholder="000.000.000-00"
                   value={cpfValue}
-                  onChange={handleCpfChange}
-                  maxLength={14} // Max length for XXX.XXX.XXX-XX
-                  required
+                  onChange={(e) => setCpfValue(formatCPF(e.target.value))}
+                  maxLength={14}
                   className="pl-10"
                   aria-describedby="cpf-error"
                 />
@@ -245,10 +337,10 @@ export function SignupForm() {
                   id="rg"
                   name="rg"
                   type="text"
-                  placeholder="000000000"
+                  placeholder="00.000.000-X"
                   value={rgValue}
-                  onChange={handleRgChange}
-                  maxLength={9} // Max length for XXXXXXXXX
+                  onChange={(e) => setRgValue(formatRG(e.target.value))}
+                  maxLength={12} 
                   className="pl-10"
                   aria-describedby="rg-error"
                 />
@@ -260,7 +352,7 @@ export function SignupForm() {
 
         {accountType === 'empresa' && (
           <div className="space-y-2">
-            <Label htmlFor="cnpj">CNPJ</Label>
+            <Label htmlFor="cnpj">CNPJ (Obrigatório)</Label>
             <div className="relative">
               <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
               <Input
@@ -269,8 +361,8 @@ export function SignupForm() {
                 type="text"
                 placeholder="00.000.000/0000-00"
                 value={cnpjValue}
-                onChange={handleCnpjChange}
-                maxLength={18} // Max length for XX.XXX.XXX/XXXX-XX
+                onChange={(e) => setCnpjValue(formatCNPJ(e.target.value))}
+                maxLength={18}
                 required
                 className="pl-10"
                 aria-describedby="cnpj-error"
@@ -285,8 +377,13 @@ export function SignupForm() {
           Criar Conta <UserPlus className="ml-2 h-4 w-4" />
         </SubmitButton>
       </form>
-      <Separator />
-      <OAuthButton providerName="Google" Icon={LogIn} action={handleGoogleSignIn} buttonText="Inscrever-se com Google" />
+      
+      {accountType === 'pessoa' && (
+        <>
+          <Separator />
+          <OAuthButton providerName="Google" Icon={LogIn} action={handleGoogleSignIn} buttonText="Inscrever-se com Google" />
+        </>
+      )}
       
       <style jsx global>{`
         .PhoneInput {
@@ -298,11 +395,11 @@ export function SignupForm() {
           box-shadow: none !important;
           padding-left: 0.5rem !important; 
           margin-left: 0.25rem !important;
-          background-color: transparent; /* Ensure background is transparent */
-          outline: none; /* Ensure no outline from the library */
-          flex: 1; /* Allow it to take available space */
-          font-size: inherit; /* Inherit font size */
-          line-height: inherit; /* Inherit line height */
+          background-color: transparent;
+          outline: none;
+          flex: 1;
+          font-size: inherit;
+          line-height: inherit;
         }
         .PhoneInputCountrySelect {
           margin-right: 0.25rem !important;
@@ -317,3 +414,5 @@ export function SignupForm() {
     </div>
   );
 }
+
+    
