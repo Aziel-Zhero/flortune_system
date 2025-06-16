@@ -4,7 +4,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import type { AuthSession, User } from '@supabase/supabase-js';
+import type { AuthSession, User, Subscription } from '@supabase/supabase-js'; // Added Subscription type
 import { AppSettingsProviderValue, useAppSettings } from './app-settings-context';
 
 export interface Profile {
@@ -33,11 +33,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start true
+  const [isLoading, setIsLoading] = useState(true);
   const appSettings = useAppSettings();
 
   const fetchProfile = useCallback(async (userId: string) => {
-    if (!userId) return null;
+    if (!userId) {
+      console.log("AuthContext: fetchProfile called with no userId.");
+      return null;
+    }
     try {
       console.log(`AuthContext: Fetching profile for user ID: ${userId}`);
       const { data, error, status } = await supabase
@@ -47,8 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
       if (error && status !== 406) {
         console.error('AuthContext: Error fetching profile:', error.message, {userId, status});
-        // Do not throw here, let processAuthSession handle errors and loading state
-        return null; 
+        return null;
       }
       if (data) {
         console.log(`AuthContext: Profile fetched successfully for user ID: ${userId}`);
@@ -63,36 +65,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    console.log("AuthContext: Mount effect running.");
+    console.log("AuthContext: Main useEffect running. Initial isLoading:", isLoading);
     let isMounted = true;
-    // Ensure isLoading is true at the very start of the effect,
-    // if it wasn't already set by the initial state.
-    if (isMounted && !isLoading) setIsLoading(true);
+    let authSubscription: Subscription | null = null;
 
-    // Function to handle auth state changes and profile fetching
     const processAuthSession = async (currentSession: AuthSession | null, eventType?: string) => {
-      if (!isMounted) return;
+      if (!isMounted) {
+        console.log("AuthContext: processAuthSession called but component unmounted. Aborting.");
+        return;
+      }
 
       console.log(`AuthContext: processAuthSession (event: ${eventType || 'initial_load'}). Session user ID:`, currentSession?.user?.id || "null");
-
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
 
       if (currentSession?.user) {
         const userProfile = await fetchProfile(currentSession.user.id);
-        if (isMounted) setProfile(userProfile); // userProfile can be null if fetch fails or no profile
+        if (isMounted) setProfile(userProfile);
       } else {
         if (isMounted) setProfile(null);
       }
       
-      // Set isLoading to false only after all processing for this auth state is done
       if (isMounted) {
         setIsLoading(false);
-        console.log("AuthContext: processAuthSession finished, isLoading set to false for this event.");
+        console.log("AuthContext: processAuthSession finished, isLoading set to false.");
       }
     };
 
-    // Initial session check
+    // Ensure isLoading is true only at the very start if it's not already.
+    // If it's already true from initial state, this won't change it.
+    if(isMounted && !isLoading) {
+        console.log("AuthContext: Setting isLoading to true at start of useEffect (was false).");
+        setIsLoading(true);
+    }
+
+
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       console.log("AuthContext: Initial getSession responded.");
       if (isMounted) {
@@ -104,36 +112,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setSession(null);
             setUser(null);
             setProfile(null);
-            setIsLoading(false); // Crucial: set isLoading false even on error
+            setIsLoading(false);
+            console.log("AuthContext: isLoading set to false after initial getSession error.");
         }
     });
 
-    // Listener for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
+        authSubscription = subscription; // Store the subscription object
         console.log(`AuthContext: onAuthStateChange triggered. Event: ${_event}, New session user ID: ${newSession?.user?.id || "null"}`);
         if (isMounted) {
-          // When onAuthStateChange fires, we might be transitioning state,
-          // so briefly set isLoading true if not already true,
-          // to ensure AppLayout waits for profile etc.
-          // However, if it's a sign out and session becomes null, isLoading might not need to be true.
-          // For simplicity and robustness, let processAuthSession handle the final setIsLoading(false).
-          // If you see flashes, you might re-introduce setIsLoading(true) here conditionally.
+          // It's important that setIsLoading is true before processAuthSession
+          // if we are transitioning states, to allow AppLayout to show loading.
+          // However, processAuthSession will set it to false.
+          // If _event is SIGNED_OUT, we might not want to show a long loading.
+          if (!isLoading && _event !== 'SIGNED_OUT' && _event !== 'USER_DELETED') {
+             console.log("AuthContext: onAuthStateChange - setting isLoading to true before processing.");
+             setIsLoading(true);
+          }
           await processAuthSession(newSession, _event);
         }
       }
     );
+    
+    // Assign the subscription to authSubscription immediately after it's created
+    // This handles the case where the component unmounts before onAuthStateChange callback is ever fired
+    if (subscription && !authSubscription) {
+        authSubscription = subscription;
+    }
+
 
     return () => {
       console.log("AuthContext: Unmount effect running. Unsubscribing listener.");
       isMounted = false;
-      authListener?.unsubscribe();
+      authSubscription?.unsubscribe();
     };
-  }, [fetchProfile, isLoading]); // Added isLoading to dependencies to re-evaluate if it's externally changed, though unlikely.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchProfile]); // Removed isLoading from dependency array to prevent re-triggering on its own change
 
   if (typeof window !== 'undefined') {
-    // This log helps track rendering cycles and current state
-    // console.log("AuthContext: Rendering. isLoading:", isLoading, "Session user:", session?.user?.id || "null", "User object:", user?.id || "null");
+    // console.log("AuthContext: Rendering. isLoading:", isLoading, "Session user:", session?.user?.id || "null");
   }
 
   return (
@@ -150,3 +168,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
