@@ -9,13 +9,13 @@ import { APP_NAME } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import anime from 'animejs'; // Import animejs
-import React, { useRef, useEffect } from 'react'; // Import React for types if needed
+import anime from 'animejs';
+import React, { useRef, useEffect } from 'react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -38,7 +38,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, descriptio
     if (!currentCardRef || !currentIconRef) return;
 
     const handleMouseEnter = () => {
-      anime.remove(currentIconRef); // Remove any ongoing animation on the icon
+      anime.remove(currentIconRef);
       anime({
         targets: currentIconRef,
         scale: [
@@ -79,7 +79,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, descriptio
         currentCardRef.removeEventListener('mouseleave', handleMouseLeave);
       }
       if (currentIconRef) {
-        anime.remove(currentIconRef); // Clean up animation on unmount
+        anime.remove(currentIconRef);
       }
     };
   }, []);
@@ -120,7 +120,7 @@ const pricingTiers = [
     name: 'Mestre Jardineiro',
     id: 'tier-mestre',
     href: '/signup?plan=mestre',
-    priceMonthly: 'R$19,90', // Defina o preço como desejar
+    priceMonthly: 'R$19,90',
     description: 'Desbloqueie todo o potencial do Flortune com análises avançadas e IA.',
     features: [
       'Todas as funcionalidades do plano Cultivador',
@@ -138,7 +138,7 @@ const pricingTiers = [
 export default function LandingPage() {
   const { session, isLoading } = useAuth();
 
-  const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255]; // Teal: #16A381
+  const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255];
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -182,7 +182,7 @@ export default function LandingPage() {
           opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
           scrollTrigger: {
             trigger: featuresSectionRef.current,
-            start: "top 75%",
+            start: "top 75%", // Ajustado para começar um pouco antes
             toggleActions: "play none none none",
           }
         }
@@ -207,7 +207,7 @@ export default function LandingPage() {
           opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.15, ease: "power2.out",
           scrollTrigger: {
             trigger: pricingSectionRef.current,
-            start: "top 75%",
+            start: "top 75%", // Ajustado
             toggleActions: "play none none none",
           }
         }
@@ -288,8 +288,8 @@ export default function LandingPage() {
     <div className="relative min-h-screen w-full overflow-x-hidden text-white" ref={mainContainerRef}>
       <Iridescence
         color={flortuneTealRGB}
-        speed={0.3} // Ajustado conforme seu exemplo
-        amplitude={0.15} // Ajustado conforme seu exemplo
+        speed={0.3}
+        amplitude={0.15}
         mouseReact={true}
       />
 
@@ -399,14 +399,14 @@ export default function LandingPage() {
                 <div
                   key={tier.id}
                   className={cn(
-                    'pricing-tier opacity-0',
+                    'pricing-tier opacity-0', // Removido h-full flex flex-col
                     tier.featured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
                     tier.featured
                       ? 'rounded-3xl'
                       : tierIdx === 0
                         ? 'rounded-t-3xl sm:rounded-b-none lg:rounded-tr-none lg:rounded-bl-3xl'
                         : 'sm:rounded-t-none lg:rounded-tr-3xl lg:rounded-bl-none',
-                    'p-8 ring-1 ring-white/20 sm:p-10 h-full flex flex-col' // Adicionado h-full flex flex-col
+                    'p-8 ring-1 ring-white/20 sm:p-10'
                   )}
                 >
                   <h3
@@ -435,7 +435,7 @@ export default function LandingPage() {
                     role="list"
                     className={cn(
                       tier.featured ? 'text-white/80' : 'text-muted-foreground',
-                      'mt-8 space-y-3 text-sm/6 sm:mt-10 flex-grow' // Adicionado flex-grow
+                      'mt-8 space-y-3 text-sm/6 sm:mt-10' // Removido flex-grow
                     )}
                   >
                     {tier.features.map((feature) => (
@@ -452,7 +452,7 @@ export default function LandingPage() {
                     asChild
                     size="lg"
                     className={cn(
-                      'mt-8 block w-full sm:mt-10', // mt-auto aqui faria o botão ir para o final
+                      'mt-8 w-full sm:mt-10', // Removido 'block'
                       tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
@@ -494,4 +494,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
