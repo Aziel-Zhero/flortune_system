@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start true
   const appSettings = useAppSettings();
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -45,62 +45,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('*')
         .eq('id', userId)
         .single();
-      if (error && status !== 406) { // 406 means no rows found, which is not an "error" if profile doesn't exist yet
+      if (error && status !== 406) {
         console.error('AuthContext: Error fetching profile:', error.message, {userId, status});
-        throw error;
+        // Do not throw here, let processAuthSession handle errors and loading state
+        return null; 
       }
       if (data) {
-        console.log(`AuthContext: Profile fetched successfully for user ID: ${userId}`, data);
+        console.log(`AuthContext: Profile fetched successfully for user ID: ${userId}`);
         return data as Profile;
       }
       console.log(`AuthContext: No profile data found for user ID: ${userId} (status: ${status})`);
       return null;
-    } catch (error) {
-      // Log to browser console for client-side issues
-      console.error('AuthContext: Exception during fetchProfile:', error);
-      return null; // Return null on error to prevent crashes
+    } catch (error: any) {
+      console.error('AuthContext: Exception during fetchProfile:', error.message);
+      return null;
     }
   }, []);
 
   useEffect(() => {
     console.log("AuthContext: Mount effect running.");
-    setIsLoading(true);
     let isMounted = true;
+    // Ensure isLoading is true at the very start of the effect,
+    // if it wasn't already set by the initial state.
+    if (isMounted && !isLoading) setIsLoading(true);
 
-    const handleAuthChange = async (currentSession: AuthSession | null, eventType?: string) => {
+    // Function to handle auth state changes and profile fetching
+    const processAuthSession = async (currentSession: AuthSession | null, eventType?: string) => {
       if (!isMounted) return;
-      
-      console.log(`AuthContext: handleAuthChange called (event: ${eventType || 'initial_load'}). Session user ID:`, currentSession?.user?.id || "null");
-      
-      // Set loading true at the start of handling an auth change if not initial load
-      // if (eventType !== 'initial_load' && eventType !== 'INITIAL_SESSION') {
-      //   setIsLoading(true);
-      // }
+
+      console.log(`AuthContext: processAuthSession (event: ${eventType || 'initial_load'}). Session user ID:`, currentSession?.user?.id || "null");
 
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
 
       if (currentSession?.user) {
-        try {
-          const userProfile = await fetchProfile(currentSession.user.id);
-          if (isMounted) {
-            setProfile(userProfile);
-          }
-        } catch (e) {
-          // Error already logged in fetchProfile
-          if (isMounted) {
-            setProfile(null); // Ensure profile is null if fetch fails
-          }
-        }
+        const userProfile = await fetchProfile(currentSession.user.id);
+        if (isMounted) setProfile(userProfile); // userProfile can be null if fetch fails or no profile
       } else {
-        if (isMounted) {
-          setProfile(null);
-        }
+        if (isMounted) setProfile(null);
       }
       
+      // Set isLoading to false only after all processing for this auth state is done
       if (isMounted) {
-        setIsLoading(false); // Always set loading to false after processing
-        console.log("AuthContext: handleAuthChange finished, isLoading set to false.");
+        setIsLoading(false);
+        console.log("AuthContext: processAuthSession finished, isLoading set to false for this event.");
       }
     };
 
@@ -108,15 +96,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       console.log("AuthContext: Initial getSession responded.");
       if (isMounted) {
-        handleAuthChange(initialSession, 'INITIAL_SESSION');
+        processAuthSession(initialSession, 'INITIAL_SESSION');
       }
     }).catch(error => {
         console.error("AuthContext: Error in initial getSession:", error);
         if(isMounted) {
-            setUser(null);
             setSession(null);
+            setUser(null);
             setProfile(null);
-            setIsLoading(false); // Ensure loading is false even on error
+            setIsLoading(false); // Crucial: set isLoading false even on error
         }
     });
 
@@ -125,8 +113,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (_event, newSession) => {
         console.log(`AuthContext: onAuthStateChange triggered. Event: ${_event}, New session user ID: ${newSession?.user?.id || "null"}`);
         if (isMounted) {
-          // setIsLoading(true); // Optionally set loading true during transitions
-          await handleAuthChange(newSession, _event);
+          // When onAuthStateChange fires, we might be transitioning state,
+          // so briefly set isLoading true if not already true,
+          // to ensure AppLayout waits for profile etc.
+          // However, if it's a sign out and session becomes null, isLoading might not need to be true.
+          // For simplicity and robustness, let processAuthSession handle the final setIsLoading(false).
+          // If you see flashes, you might re-introduce setIsLoading(true) here conditionally.
+          await processAuthSession(newSession, _event);
         }
       }
     );
@@ -136,10 +129,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isMounted = false;
       authListener?.unsubscribe();
     };
-  }, [fetchProfile]); // fetchProfile is memoized with useCallback
+  }, [fetchProfile, isLoading]); // Added isLoading to dependencies to re-evaluate if it's externally changed, though unlikely.
 
   if (typeof window !== 'undefined') {
-    console.log("AuthContext: Rendering. isLoading:", isLoading, "Session user:", session?.user?.id || "null", "User object:", user?.id || "null");
+    // This log helps track rendering cycles and current state
+    // console.log("AuthContext: Rendering. isLoading:", isLoading, "Session user:", session?.user?.id || "null", "User object:", user?.id || "null");
   }
 
   return (

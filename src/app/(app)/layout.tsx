@@ -1,12 +1,12 @@
 
-"use client"; // (app) layout pode ser client component se precisar de hooks
+"use client"; 
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { useAuth } from "@/contexts/auth-context";
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation"; // Usar next/navigation
+import { useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation"; 
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AppLayout({
@@ -17,31 +17,30 @@ export default function AppLayout({
   const { isLoading, session } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [initialAuthCheckComplete, setInitialAuthCheckComplete] = useState(false);
 
   useEffect(() => {
-    // Se o carregamento inicial do AuthContext ainda não terminou, não fazemos nada ainda.
+    // This effect runs when isLoading or session changes.
+    // It decides whether to redirect or allow rendering.
     if (isLoading) {
-      setInitialAuthCheckComplete(false); // Garante que a verificação é refeita se isLoading mudar
+      console.log(`(AppLayout) AuthContext is loading. Current path: ${pathname}. Waiting...`);
+      // While AuthContext is loading, we don't redirect. Skeleton will be shown.
       return;
     }
 
-    // Se o carregamento terminou, marcamos que a verificação inicial foi completa.
-    setInitialAuthCheckComplete(true);
-
-    // Se a verificação inicial está completa E não há sessão, redireciona para o login.
+    // At this point, AuthContext has finished loading (isLoading is false).
     if (!session) {
-      console.log(`(AppLayout) Auth check complete, no session. Current path: ${pathname}. Redirecting to /login.`);
+      console.log(`(AppLayout) AuthContext loaded, NO session found. Current path: ${pathname}. Redirecting to /login.`);
       router.replace('/login');
     } else {
-      console.log(`(AppLayout) Auth check complete, session found. User: ${session.user.id}. Current path: ${pathname}.`);
+      console.log(`(AppLayout) AuthContext loaded, session IS present. User: ${session.user.id}. Current path: ${pathname}. Allowing app render.`);
+      // Session is present, allow rendering of children.
     }
   }, [isLoading, session, router, pathname]);
 
 
-  if (isLoading || !initialAuthCheckComplete) {
-    // Mostra skeleton enquanto o AuthContext está carregando OU
-    // se a primeira verificação após isLoading=false ainda não determinou o estado da sessão.
+  if (isLoading) {
+    // Show skeleton ONLY while AuthContext is actively loading the initial session.
+    console.log("(AppLayout) Rendering SKELETON because AuthContext isLoading is true.");
     return (
       <div className="flex min-h-screen flex-col bg-background">
         {/* Skeleton para AppHeader */}
@@ -75,16 +74,17 @@ export default function AppLayout({
     );
   }
   
-  // Se chegou aqui, initialAuthCheckComplete é true.
-  // Se não há sessão neste ponto (e o useEffect acima já rodou e tentou redirecionar),
-  // este return null previne um flash de conteúdo antes do redirecionamento efetivo.
+  // If isLoading is false, but there's no session,
+  // the useEffect above should have initiated a redirect.
+  // Returning null here prevents a flash of the (app) layout content
+  // before the redirect to /login completes.
   if (!session) { 
-    console.log("(AppLayout) No session after initial check, rendering null (redirect should occur).");
+    console.log("(AppLayout) isLoading is false, but NO session. Rendering NULL (redirect to /login should be in progress).");
     return null; 
   }
 
-  // Se há sessão e a verificação inicial está completa, renderiza o layout do app.
-  console.log("(AppLayout) Session present and auth check complete, rendering app.");
+  // If isLoading is false AND a session exists, render the app.
+  console.log("(AppLayout) isLoading is false and session IS present. Rendering APP LAYOUT.");
   return (
     <SidebarProvider defaultOpen> 
       <div className="flex min-h-screen flex-col bg-background">
