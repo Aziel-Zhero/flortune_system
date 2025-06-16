@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useAppSettings } from '@/hooks/use-app-settings';
+import { useAppSettings } from '@/contexts/app-settings-context'; // Corrected import path
 import { cn } from '@/lib/utils';
 import type { ElementType } from 'react';
 
