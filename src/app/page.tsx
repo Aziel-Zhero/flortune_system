@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check } from "lucide-react";
+import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Users, Briefcase } from "lucide-react"; // Added Users, Briefcase
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME } from "@/lib/constants";
@@ -14,8 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import anime from 'animejs';
-import React, { useRef, useEffect } from 'react';
+import anime from 'animejs'; 
+import React, { useRef, useEffect, type FC } from 'react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -27,7 +27,7 @@ interface FeatureCardProps {
   className?: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, description, link, className }) => {
+const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, link, className }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const iconRef = useRef<HTMLDivElement>(null);
 
@@ -115,6 +115,7 @@ const pricingTiers = [
       'Visão geral com calendário financeiro'
     ],
     featured: false,
+    icon: Leaf,
   },
   {
     name: 'Mestre Jardineiro',
@@ -131,6 +132,26 @@ const pricingTiers = [
       'Suporte prioritário',
     ],
     featured: true,
+    icon: BrainCircuit,
+  },
+  {
+    name: 'Flortune Corporativo',
+    id: 'tier-corporativo',
+    href: '/signup?plan=corporativo',
+    priceMonthly: 'R$390,99*',
+    priceAnnotation: 'por usuário/mês',
+    description: 'Soluções financeiras robustas e personalizadas para grandes equipes e empresas em crescimento.',
+    features: [
+      'Todas as funcionalidades do Mestre Jardineiro',
+      'Gerenciamento de múltiplos usuários/equipes',
+      'Permissões de acesso personalizadas',
+      'Painel de controle administrativo',
+      'Suporte empresarial dedicado (SLA)',
+      'Integrações com sistemas contábeis (sob demanda)',
+      'Consultoria financeira especializada',
+    ],
+    featured: false, // Pode ser true se quiser destacá-lo de forma diferente
+    icon: Briefcase,
   },
 ];
 
@@ -151,6 +172,9 @@ export default function LandingPage() {
 
   const pricingSectionRef = useRef<HTMLElement>(null);
   const pricingHeaderRef = useRef<HTMLDivElement>(null);
+  const pricingGridRef = useRef<HTMLDivElement>(null);
+  const corporatePricingCardRef = useRef<HTMLDivElement>(null);
+
 
   const finalCtaSectionRef = useRef<HTMLElement>(null);
 
@@ -176,13 +200,13 @@ export default function LandingPage() {
           }
         }
       );
-      gsap.fromTo(".feature-card",
+      gsap.fromTo(featuresSectionRef.current.querySelectorAll(".feature-card"),
         { opacity: 0, y: 50, scale: 0.95 },
         {
           opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
           scrollTrigger: {
             trigger: featuresSectionRef.current,
-            start: "top 75%", // Ajustado para começar um pouco antes
+            start: "top 75%", 
             toggleActions: "play none none none",
           }
         }
@@ -201,17 +225,34 @@ export default function LandingPage() {
           }
         }
       );
-      gsap.fromTo(".pricing-tier",
-        { opacity: 0, y: 50, scale: 0.95 },
-        {
-          opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.15, ease: "power2.out",
-          scrollTrigger: {
-            trigger: pricingSectionRef.current,
-            start: "top 75%", // Ajustado
-            toggleActions: "play none none none",
+      // Animar os dois primeiros cards no grid
+      if (pricingGridRef.current) {
+        gsap.fromTo(pricingGridRef.current.querySelectorAll(".pricing-tier-grid"),
+          { opacity: 0, y: 50, scale: 0.95 },
+          {
+            opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.15, ease: "power2.out",
+            scrollTrigger: {
+              trigger: pricingGridRef.current,
+              start: "top 75%",
+              toggleActions: "play none none none",
+            }
           }
-        }
-      );
+        );
+      }
+      // Animar o card corporativo separadamente
+      if (corporatePricingCardRef.current) {
+         gsap.fromTo(corporatePricingCardRef.current,
+          { opacity: 0, y: 50, scale: 0.95 },
+          {
+            opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power2.out",
+            scrollTrigger: {
+              trigger: corporatePricingCardRef.current, // Pode precisar ajustar o trigger se estiver muito próximo do grid
+              start: "top 85%", 
+              toggleActions: "play none none none",
+            }
+          }
+        );
+      }
     }
 
     if (finalCtaSectionRef.current && (!session && !isLoading)) {
@@ -338,9 +379,9 @@ export default function LandingPage() {
           </section>
 
           <section className="py-16 md:py-24" ref={featuresSectionRef}>
-            <div ref={featuresHeaderRef} className="text-center">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4 opacity-0">Transforme sua Vida Financeira</h2>
-              <p className="text-white/80 mb-12 md:mb-16 max-w-xl mx-auto opacity-0">
+            <div ref={featuresHeaderRef} className="text-center opacity-0">
+              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Transforme sua Vida Financeira</h2>
+              <p className="text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">
                 Descubra como o {APP_NAME} pode simplificar o gerenciamento do seu dinheiro e impulsionar seu crescimento financeiro.
               </p>
             </div>
@@ -385,64 +426,78 @@ export default function LandingPage() {
           </section>
 
           <section className="py-16 md:py-24" ref={pricingSectionRef}>
-            <div ref={pricingHeaderRef} className="mx-auto max-w-4xl text-center">
-              <h2 className="text-base/7 font-semibold text-accent opacity-0">Nossos Planos</h2>
-              <p className="mt-2 text-4xl md:text-5xl font-headline font-semibold tracking-tight text-white opacity-0">
+            <div ref={pricingHeaderRef} className="mx-auto max-w-4xl text-center opacity-0">
+              <h2 className="text-base/7 font-semibold text-accent">Nossos Planos</h2>
+              <p className="mt-2 text-4xl md:text-5xl font-headline font-semibold tracking-tight text-white">
                 Escolha o Plano Ideal para Você
               </p>
-              <p className="mx-auto mt-6 max-w-2xl text-center text-lg text-white/80 sm:text-xl/8 opacity-0">
+              <p className="mx-auto mt-6 max-w-2xl text-center text-lg text-white/80 sm:text-xl/8">
                 Comece gratuitamente ou desbloqueie funcionalidades avançadas para levar suas finanças ao próximo nível.
               </p>
             </div>
-            <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-stretch gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
-              {pricingTiers.map((tier, tierIdx) => (
+            
+            {/* Grid for first two plans */}
+            <div ref={pricingGridRef} className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
+              {pricingTiers.slice(0, 2).map((tier, tierIdx) => {
+                const TierIcon = tier.icon;
+                return (
                 <div
                   key={tier.id}
                   className={cn(
-                    'pricing-tier opacity-0', // Removido h-full flex flex-col
+                    'pricing-tier-grid opacity-0', // Class for GSAP selection
                     tier.featured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
                     tier.featured
-                      ? 'rounded-3xl'
+                      ? ''
                       : tierIdx === 0
-                        ? 'rounded-t-3xl sm:rounded-b-none lg:rounded-tr-none lg:rounded-bl-3xl'
-                        : 'sm:rounded-t-none lg:rounded-tr-3xl lg:rounded-bl-none',
-                    'p-8 ring-1 ring-white/20 sm:p-10'
+                        ? 'lg:rounded-r-none lg:rounded-bl-3xl' // Ajuste para não arredondar canto direito no desktop
+                        : 'lg:rounded-l-none lg:rounded-br-3xl', // Ajuste para não arredondar canto esquerdo no desktop
+                    'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col' // Adicionado flex flex-col
                   )}
                 >
-                  <h3
-                    id={tier.id}
-                    className={cn(tier.featured ? 'text-accent' : 'text-primary', 'text-base/7 font-semibold')}
-                  >
-                    {tier.name}
-                  </h3>
-                  <p className="mt-4 flex items-baseline gap-x-2">
+                  <div className="flex items-center gap-3 mb-3">
+                     <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", tier.featured ? "bg-accent/30" : "bg-primary/30")}>
+                         <TierIcon className={cn("h-5 w-5", tier.featured ? "text-accent" : "text-primary")} />
+                     </div>
+                     <h3
+                        id={tier.id}
+                        className={cn(tier.featured ? 'text-accent' : 'text-primary', 'text-xl font-headline font-semibold')}
+                      >
+                        {tier.name}
+                      </h3>
+                  </div>
+                  
+                  <p className="mt-1 flex items-baseline gap-x-2">
                     <span
                       className={cn(
                         tier.featured ? 'text-white' : 'text-foreground',
-                        'text-5xl font-semibold tracking-tight'
+                        'text-4xl font-bold tracking-tight'
                       )}
                     >
                       {tier.priceMonthly}
                     </span>
-                    {tier.priceMonthly !== 'Grátis' && (
+                    {tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (
                        <span className={cn(tier.featured ? 'text-white/70' : 'text-muted-foreground', 'text-base')}>/mês</span>
                     )}
                   </p>
-                  <p className={cn(tier.featured ? 'text-white/80' : 'text-muted-foreground', 'mt-6 text-base/7')}>
+                  {tier.priceAnnotation && (
+                    <p className={cn(tier.featured ? 'text-white/70' : 'text-muted-foreground', 'text-sm -mt-1 mb-2')}>{tier.priceAnnotation}</p>
+                  )}
+
+                  <p className={cn(tier.featured ? 'text-white/80' : 'text-muted-foreground', 'mt-3 text-sm/6 flex-grow')}>
                     {tier.description}
                   </p>
                   <ul
                     role="list"
                     className={cn(
                       tier.featured ? 'text-white/80' : 'text-muted-foreground',
-                      'mt-8 space-y-3 text-sm/6 sm:mt-10' // Removido flex-grow
+                      'mt-6 space-y-2.5 text-sm/6 sm:mt-8'
                     )}
                   >
                     {tier.features.map((feature) => (
                       <li key={feature} className="flex gap-x-3">
                         <Check
                           aria-hidden="true"
-                          className={cn(tier.featured ? 'text-accent' : 'text-primary', 'h-6 w-5 flex-none')}
+                          className={cn(tier.featured ? 'text-accent' : 'text-primary', 'h-5 w-5 flex-none mt-0.5')}
                         />
                         {feature}
                       </li>
@@ -452,7 +507,7 @@ export default function LandingPage() {
                     asChild
                     size="lg"
                     className={cn(
-                      'mt-8 w-full sm:mt-10', // Removido 'block'
+                      'mt-8 w-full sm:mt-10', 
                       tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
@@ -461,8 +516,58 @@ export default function LandingPage() {
                     </Link>
                   </Button>
                 </div>
-              ))}
+              )})}
             </div>
+
+            {/* Corporate Plan Card - rendered separately below the grid */}
+            {pricingTiers[2] && (() => {
+                const tier = pricingTiers[2];
+                const TierIcon = tier.icon;
+                return (
+                    <div 
+                        ref={corporatePricingCardRef}
+                        key={tier.id}
+                        className={cn(
+                        'opacity-0 mt-8 mx-auto max-w-2xl w-full', // Styling for full width and centering
+                        'bg-card/70 backdrop-blur-md',
+                        'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col'
+                        )}
+                    >
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg bg-primary/30")}>
+                                <TierIcon className={cn("h-5 w-5 text-primary")} />
+                            </div>
+                            <h3 id={tier.id} className={cn('text-primary', 'text-xl font-headline font-semibold')}>
+                                {tier.name}
+                            </h3>
+                        </div>
+                        <p className="mt-1 flex items-baseline gap-x-2">
+                            <span className={cn('text-foreground', 'text-4xl font-bold tracking-tight')}>
+                            {tier.priceMonthly}
+                            </span>
+                        </p>
+                        {tier.priceAnnotation && (
+                            <p className={cn('text-muted-foreground', 'text-sm -mt-1 mb-2')}>{tier.priceAnnotation}</p>
+                        )}
+                        <p className={cn('text-muted-foreground', 'mt-3 text-sm/6 flex-grow')}>
+                            {tier.description}
+                        </p>
+                        <ul role="list" className={cn('text-muted-foreground', 'mt-6 space-y-2.5 text-sm/6 sm:mt-8')}>
+                            {tier.features.map((feature) => (
+                            <li key={feature} className="flex gap-x-3">
+                                <Check aria-hidden="true" className={cn('text-primary', 'h-5 w-5 flex-none mt-0.5')} />
+                                {feature}
+                            </li>
+                            ))}
+                        </ul>
+                        <Button asChild size="lg" className={cn('mt-8 w-full sm:mt-10', 'bg-primary text-primary-foreground hover:bg-primary/90')}>
+                            <Link href={tier.href} aria-describedby={tier.id}>
+                            Contatar Vendas
+                            </Link>
+                        </Button>
+                    </div>
+                );
+            })()}
           </section>
 
           {!session && !isLoading && (
@@ -494,3 +599,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
