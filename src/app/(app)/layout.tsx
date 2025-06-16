@@ -5,8 +5,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { useAuth } from "@/contexts/auth-context";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation"; // Usar next/navigation
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation"; // Usar next/navigation
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AppLayout({
@@ -16,18 +16,32 @@ export default function AppLayout({
 }) {
   const { isLoading, session } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const [initialAuthCheckComplete, setInitialAuthCheckComplete] = useState(false);
 
   useEffect(() => {
-    // Este useEffect é mais para garantir que, se o estado de autenticação mudar
-    // e o middleware não pegar por algum motivo (ex: navegação no lado do cliente
-    // que não aciona o middleware), nós ainda redirecionamos.
-    // O middleware deve ser a primeira linha de defesa.
-    if (!isLoading && !session) {
-      router.replace('/login'); // Usar replace para não adicionar ao histórico
+    // Se o carregamento inicial do AuthContext ainda não terminou, não fazemos nada ainda.
+    if (isLoading) {
+      setInitialAuthCheckComplete(false); // Garante que a verificação é refeita se isLoading mudar
+      return;
     }
-  }, [isLoading, session, router]);
 
-  if (isLoading) {
+    // Se o carregamento terminou, marcamos que a verificação inicial foi completa.
+    setInitialAuthCheckComplete(true);
+
+    // Se a verificação inicial está completa E não há sessão, redireciona para o login.
+    if (!session) {
+      console.log(`(AppLayout) Auth check complete, no session. Current path: ${pathname}. Redirecting to /login.`);
+      router.replace('/login');
+    } else {
+      console.log(`(AppLayout) Auth check complete, session found. User: ${session.user.id}. Current path: ${pathname}.`);
+    }
+  }, [isLoading, session, router, pathname]);
+
+
+  if (isLoading || !initialAuthCheckComplete) {
+    // Mostra skeleton enquanto o AuthContext está carregando OU
+    // se a primeira verificação após isLoading=false ainda não determinou o estado da sessão.
     return (
       <div className="flex min-h-screen flex-col bg-background">
         {/* Skeleton para AppHeader */}
@@ -61,17 +75,16 @@ export default function AppLayout({
     );
   }
   
-  // Só renderiza o layout do aplicativo se houver uma sessão (após o carregamento)
-  // O middleware já deve ter redirecionado se não houver sessão,
-  // mas esta é uma verificação adicional.
+  // Se chegou aqui, initialAuthCheckComplete é true.
+  // Se não há sessão neste ponto (e o useEffect acima já rodou e tentou redirecionar),
+  // este return null previne um flash de conteúdo antes do redirecionamento efetivo.
   if (!session) { 
-    // Este return null é para o caso de o useEffect de redirecionamento ainda não ter rodado,
-    // ou para evitar flash de conteúdo não autenticado.
-    // O ideal é que o middleware já tenha feito o redirect.
+    console.log("(AppLayout) No session after initial check, rendering null (redirect should occur).");
     return null; 
   }
 
-
+  // Se há sessão e a verificação inicial está completa, renderiza o layout do app.
+  console.log("(AppLayout) Session present and auth check complete, rendering app.");
   return (
     <SidebarProvider defaultOpen> 
       <div className="flex min-h-screen flex-col bg-background">

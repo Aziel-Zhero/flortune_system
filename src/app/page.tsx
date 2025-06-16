@@ -2,13 +2,15 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight } from "lucide-react";
+import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton"; // Added Skeleton import
 
 const FeatureCard = ({ icon: Icon, title, description, link }: { icon: React.ElementType, title: string, description: string, link?: string }) => (
   <div className="bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-shadow duration-300 h-full flex flex-col">
@@ -25,31 +27,59 @@ const FeatureCard = ({ icon: Icon, title, description, link }: { icon: React.Ele
   </div>
 );
 
+const pricingTiers = [
+  {
+    name: 'Cultivador Consciente',
+    id: 'tier-cultivador',
+    href: '/signup?plan=cultivador',
+    priceMonthly: 'Grátis',
+    description: "Comece a organizar suas finanças e cultivar bons hábitos financeiros sem custo.",
+    features: [
+      'Gerenciamento de transações', 
+      'Criação de orçamentos básicos', 
+      'Definição de metas financeiras', 
+      'Visão geral com calendário financeiro'
+    ],
+    featured: false,
+  },
+  {
+    name: 'Mestre Jardineiro',
+    id: 'tier-mestre',
+    href: '/signup?plan=mestre',
+    priceMonthly: 'R$19,90',
+    description: 'Desbloqueie todo o potencial do Flortune com análises avançadas e IA.',
+    features: [
+      'Todas as funcionalidades do plano Cultivador',
+      'Análise de dados detalhada',
+      'Sugestões financeiras com IA',
+      'Auto-categorização de transações por IA',
+      'Relatórios avançados',
+      'Suporte prioritário',
+    ],
+    featured: true,
+  },
+];
+
+
 export default function LandingPage() {
   const { session, isLoading } = useAuth();
 
-  // RGB for #16A381 (Deep Teal) = [22, 163, 129] -> [0.086, 0.639, 0.506]
   const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255];
-  // RGB for #E0F2F1 (Light Teal) = [224, 242, 241] -> [0.878, 0.949, 0.945]
-  // Let's try a slightly more vibrant base for the iridescence, maybe a desaturated teal background and primary teal for the effect
-  // Using the primary deep teal for the iridescence color itself.
   
-  // Determine button states based on auth loading and session
   let headerActions = null;
   let heroActions = null;
 
   if (isLoading) {
-    // Skeleton or placeholder for buttons while loading
     headerActions = (
       <>
-        <div className="h-10 w-24 bg-muted/50 rounded-md animate-pulse"></div>
-        <div className="h-10 w-32 bg-muted/50 rounded-md animate-pulse"></div>
+        <Skeleton className="h-10 w-24 bg-muted/50 rounded-md" />
+        <Skeleton className="h-10 w-32 bg-muted/50 rounded-md" />
       </>
     );
     heroActions = (
       <>
-        <div className="h-12 w-48 bg-muted/50 rounded-md animate-pulse"></div>
-        <div className="h-12 w-40 bg-muted/50 rounded-md animate-pulse"></div>
+        <Skeleton className="h-12 w-48 bg-muted/50 rounded-md" />
+        <Skeleton className="h-12 w-40 bg-muted/50 rounded-md" />
       </>
     );
   } else if (session) {
@@ -96,8 +126,7 @@ export default function LandingPage() {
         mouseReact={true} 
       />
       
-      <div className="relative z-10 isolate"> {/* Ensure content is above the canvas */}
-        {/* Header */}
+      <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
             <Link href="/" className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity">
@@ -110,7 +139,6 @@ export default function LandingPage() {
           </div>
         </header>
 
-        {/* Hero Section */}
         <main className="container mx-auto px-4 md:px-8">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
             <motion.h1 
@@ -155,7 +183,6 @@ export default function LandingPage() {
             </motion.div>
           </section>
 
-          {/* Features Section */}
           <section className="py-16 md:py-24">
             <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-4">Transforme sua Vida Financeira</h2>
             <p className="text-center text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">
@@ -175,7 +202,7 @@ export default function LandingPage() {
               <FeatureCard 
                 icon={BrainCircuit} 
                 title="Sugestões com Inteligência Artificial" 
-                description="Receba dicas personalizadas e insights gerados por IA para otimizar seus orçamentos e economizar mais."
+                description="Receba dicas personalizadas e insights gerados por IA para otimizar seus orçamentos e economizar mais. (Plano Mestre)"
               />
               <FeatureCard 
                 icon={Eye} 
@@ -195,7 +222,88 @@ export default function LandingPage() {
             </div>
           </section>
           
-          {/* Call to Action Section */}
+          {/* Pricing Section */}
+          <section className="py-16 md:py-24">
+            <div className="mx-auto max-w-4xl text-center">
+              <h2 className="text-base/7 font-semibold text-accent">Nossos Planos</h2>
+              <p className="mt-2 text-4xl md:text-5xl font-headline font-semibold tracking-tight text-white">
+                Escolha o Plano Ideal para Você
+              </p>
+            </div>
+            <p className="mx-auto mt-6 max-w-2xl text-center text-lg text-white/80 sm:text-xl/8">
+              Comece gratuitamente ou desbloqueie funcionalidades avançadas para levar suas finanças ao próximo nível.
+            </p>
+            <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-center gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
+              {pricingTiers.map((tier, tierIdx) => (
+                <div
+                  key={tier.id}
+                  className={cn(
+                    tier.featured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
+                    tier.featured
+                      ? 'rounded-3xl' 
+                      : tierIdx === 0
+                        ? 'rounded-t-3xl sm:rounded-b-none lg:rounded-tr-none lg:rounded-bl-3xl'
+                        : 'sm:rounded-t-none lg:rounded-tr-3xl lg:rounded-bl-none',
+                    'p-8 ring-1 ring-white/20 sm:p-10'
+                  )}
+                >
+                  <h3
+                    id={tier.id}
+                    className={cn(tier.featured ? 'text-accent' : 'text-primary', 'text-base/7 font-semibold')}
+                  >
+                    {tier.name}
+                  </h3>
+                  <p className="mt-4 flex items-baseline gap-x-2">
+                    <span
+                      className={cn(
+                        tier.featured ? 'text-white' : 'text-foreground', 
+                        'text-5xl font-semibold tracking-tight'
+                      )}
+                    >
+                      {tier.priceMonthly}
+                    </span>
+                    {tier.priceMonthly !== 'Grátis' && (
+                       <span className={cn(tier.featured ? 'text-white/70' : 'text-muted-foreground', 'text-base')}>/mês</span>
+                    )}
+                  </p>
+                  <p className={cn(tier.featured ? 'text-white/80' : 'text-muted-foreground', 'mt-6 text-base/7')}>
+                    {tier.description}
+                  </p>
+                  <ul
+                    role="list"
+                    className={cn(
+                      tier.featured ? 'text-white/80' : 'text-muted-foreground',
+                      'mt-8 space-y-3 text-sm/6 sm:mt-10'
+                    )}
+                  >
+                    {tier.features.map((feature) => (
+                      <li key={feature} className="flex gap-x-3">
+                        <Check
+                          aria-hidden="true"
+                          className={cn(tier.featured ? 'text-accent' : 'text-primary', 'h-6 w-5 flex-none')}
+                        />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    asChild
+                    size="lg"
+                    variant={tier.featured ? "default" : "outline"}
+                    className={cn(
+                      'mt-8 block w-full sm:mt-10',
+                      tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'text-primary border-primary hover:bg-primary/10'
+                    )}
+                  >
+                    <Link href={tier.href} aria-describedby={tier.id}>
+                      Começar Agora
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {!session && !isLoading && (
             <section className="py-16 md:py-24 text-center">
                  <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
@@ -211,7 +319,6 @@ export default function LandingPage() {
           )}
         </main>
 
-        {/* Footer */}
         <footer className="py-8 border-t border-white/10 mt-16">
           <div className="container mx-auto text-center text-sm text-white/60">
             <p>&copy; {new Date().getFullYear()} {APP_NAME}. Todos os direitos reservados.</p>
@@ -226,9 +333,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-// Adicionando Framer Motion para animações
-// Precisamos adicionar framer-motion às dependências se ainda não estiver lá.
-// No package.json já consta: "framer-motion": "^11.3.19", então está ok.
-// Adicionando motion aos elementos para animar.
-import { motion } from "framer-motion";
