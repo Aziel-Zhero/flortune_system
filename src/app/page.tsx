@@ -9,11 +9,18 @@ import { APP_NAME } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Skeleton } from "@/components/ui/skeleton"; // Added Skeleton import
+import { Skeleton } from "@/components/ui/skeleton";
 
-const FeatureCard = ({ icon: Icon, title, description, link }: { icon: React.ElementType, title: string, description: string, link?: string }) => (
-  <div className="bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-shadow duration-300 h-full flex flex-col">
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
+import { useRef, useEffect } from 'react';
+
+gsap.registerPlugin(ScrollTrigger);
+
+
+const FeatureCard = ({ icon: Icon, title, description, link, className }: { icon: React.ElementType, title: string, description: string, link?: string, className?: string }) => (
+  <div className={cn("bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-shadow duration-300 h-full flex flex-col", className)}>
     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
       <Icon className="w-6 h-6" />
     </div>
@@ -64,8 +71,99 @@ const pricingTiers = [
 export default function LandingPage() {
   const { session, isLoading } = useAuth();
 
-  const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255];
+  const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255]; // Teal: #16A381
   
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const heroTitleRef = useRef<HTMLHeadingElement>(null);
+  const heroParagraphRef = useRef<HTMLParagraphElement>(null);
+  const heroButtonsRef = useRef<HTMLDivElement>(null);
+  const heroImageRef = useRef<HTMLDivElement>(null);
+  
+  const featuresSectionRef = useRef<HTMLElement>(null);
+  const featuresHeaderRef = useRef<HTMLDivElement>(null);
+  
+  const pricingSectionRef = useRef<HTMLElement>(null);
+  const pricingHeaderRef = useRef<HTMLDivElement>(null);
+
+  const finalCtaSectionRef = useRef<HTMLElement>(null);
+
+  useGSAP(() => {
+    if (isLoading) return; 
+
+    const tlHero = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+    tlHero.fromTo(heroTitleRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8 })
+      .fromTo(heroParagraphRef.current, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, "-=0.6")
+      .fromTo(heroButtonsRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 }, "-=0.6")
+      .fromTo(heroImageRef.current, { opacity: 0, scale: 0.9, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.5");
+
+    if (featuresSectionRef.current && featuresHeaderRef.current) {
+      gsap.fromTo(featuresHeaderRef.current.children, 
+        { opacity: 0, y: 30 }, 
+        { 
+          opacity: 1, y: 0, duration: 0.7, stagger: 0.2,
+          scrollTrigger: {
+            trigger: featuresSectionRef.current,
+            start: "top 85%",
+            toggleActions: "play none none none",
+          }
+        }
+      );
+      gsap.fromTo(".feature-card", 
+        { opacity: 0, y: 50, scale: 0.95 }, 
+        { 
+          opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
+          scrollTrigger: {
+            trigger: featuresSectionRef.current,
+            start: "top 75%",
+            toggleActions: "play none none none",
+          }
+        }
+      );
+    }
+
+    if (pricingSectionRef.current && pricingHeaderRef.current) {
+      gsap.fromTo(pricingHeaderRef.current.children, 
+        { opacity: 0, y: 30 }, 
+        { 
+          opacity: 1, y: 0, duration: 0.7, stagger: 0.2,
+          scrollTrigger: {
+            trigger: pricingSectionRef.current,
+            start: "top 85%",
+            toggleActions: "play none none none",
+          }
+        }
+      );
+      gsap.fromTo(".pricing-tier", 
+        { opacity: 0, y: 50, scale: 0.95 }, 
+        { 
+          opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.15, ease: "power2.out",
+          scrollTrigger: {
+            trigger: pricingSectionRef.current,
+            start: "top 75%",
+            toggleActions: "play none none none",
+          }
+        }
+      );
+    }
+    
+    if (finalCtaSectionRef.current && (!session && !isLoading)) {
+        gsap.fromTo(finalCtaSectionRef.current,
+            { opacity: 0, y: 50 },
+            {
+                opacity: 1, y: 0, duration: 0.8,
+                scrollTrigger: {
+                    trigger: finalCtaSectionRef.current,
+                    start: "top 85%",
+                    toggleActions: "play none none none",
+                }
+            }
+        );
+    }
+
+  }, { scope: mainContainerRef, dependencies: [isLoading, session] });
+
+
   let headerActions = null;
   let heroActions = null;
 
@@ -77,10 +175,10 @@ export default function LandingPage() {
       </>
     );
     heroActions = (
-      <>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}>
         <Skeleton className="h-12 w-48 bg-muted/50 rounded-md" />
         <Skeleton className="h-12 w-40 bg-muted/50 rounded-md" />
-      </>
+      </div>
     );
   } else if (session) {
     headerActions = (
@@ -89,9 +187,11 @@ export default function LandingPage() {
       </Button>
     );
     heroActions = (
-      <Button asChild size="lg">
-        <Link href="/dashboard">Ir para o Painel</Link>
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}>
+        <Button asChild size="lg">
+          <Link href="/dashboard">Ir para o Painel</Link>
+        </Button>
+      </div>
     );
   } else {
     headerActions = (
@@ -105,20 +205,20 @@ export default function LandingPage() {
       </>
     );
     heroActions = (
-      <>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}>
         <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
           <Link href="/signup">Comece Agora (Grátis)</Link>
         </Button>
         <Button asChild variant="outline" size="lg" className="text-white border-white/50 hover:bg-white/10 hover:text-white">
           <Link href="/login">Já Tenho Conta</Link>
         </Button>
-      </>
+      </div>
     );
   }
 
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden text-white">
+    <div className="relative min-h-screen w-full overflow-x-hidden text-white" ref={mainContainerRef}>
       <Iridescence 
         color={flortuneTealRGB} 
         speed={0.3} 
@@ -141,35 +241,22 @@ export default function LandingPage() {
 
         <main className="container mx-auto px-4 md:px-8">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight"
+            <h1 
+              ref={heroTitleRef}
+              className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0" // Initial opacity 0 for GSAP
             >
               Cultive Suas Finanças com <span className="text-accent">Inteligência</span> e Estilo.
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto"
+            </h1>
+            <p 
+              ref={heroParagraphRef}
+              className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto opacity-0" // Initial opacity 0 for GSAP
             >
               {APP_NAME} ajuda você a organizar, analisar e alcançar seus objetivos financeiros com ferramentas intuitivas e insights poderosos.
-            </motion.p>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-            >
-              {heroActions}
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, y:20}}
-              animate={{ opacity: 1, y: 0}}
-              transition={{ duration: 0.5, delay: 0.6}}
-              className="mt-16 md:mt-24"
+            </p>
+            {heroActions} 
+            <div 
+              ref={heroImageRef}
+              className="mt-16 md:mt-24 opacity-0" // Initial opacity 0 for GSAP
             >
                 <Image 
                     src="https://placehold.co/800x450.png" 
@@ -180,64 +267,72 @@ export default function LandingPage() {
                     data-ai-hint="app dashboard"
                     priority
                 />
-            </motion.div>
+            </div>
           </section>
 
-          <section className="py-16 md:py-24">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-4">Transforme sua Vida Financeira</h2>
-            <p className="text-center text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">
-              Descubra como o {APP_NAME} pode simplificar o gerenciamento do seu dinheiro e impulsionar seu crescimento financeiro.
-            </p>
+          <section className="py-16 md:py-24" ref={featuresSectionRef}>
+            <div ref={featuresHeaderRef} className="text-center">
+              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4 opacity-0">Transforme sua Vida Financeira</h2>
+              <p className="text-white/80 mb-12 md:mb-16 max-w-xl mx-auto opacity-0">
+                Descubra como o {APP_NAME} pode simplificar o gerenciamento do seu dinheiro e impulsionar seu crescimento financeiro.
+              </p>
+            </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <FeatureCard 
                 icon={CalendarDays} 
                 title="Calendário Financeiro Intuitivo" 
                 description="Visualize suas despesas e receitas de forma clara, dia a dia, mês a mês. Nunca mais perca um vencimento."
+                className="feature-card opacity-0"
               />
               <FeatureCard 
                 icon={BarChart3} 
                 title="Análise de Dados Poderosa" 
                 description="Entenda seus padrões de gastos com gráficos e relatórios detalhados. Tome decisões financeiras mais inteligentes."
+                className="feature-card opacity-0"
               />
               <FeatureCard 
                 icon={BrainCircuit} 
                 title="Sugestões com Inteligência Artificial" 
                 description="Receba dicas personalizadas e insights gerados por IA para otimizar seus orçamentos e economizar mais. (Plano Mestre)"
+                className="feature-card opacity-0"
               />
               <FeatureCard 
                 icon={Eye} 
                 title="Modo Privado Inteligente" 
                 description="Oculte seus dados financeiros com um clique. Privacidade e discrição quando você mais precisa."
+                className="feature-card opacity-0"
               />
                <FeatureCard 
                 icon={ShieldCheck} 
                 title="Segurança em Primeiro Lugar" 
                 description="Seus dados são protegidos com criptografia de ponta e as melhores práticas de segurança do mercado."
+                className="feature-card opacity-0"
               />
                <FeatureCard 
                 icon={Leaf} 
                 title="Metas e Orçamentos Flexíveis" 
                 description="Defina metas alcançáveis e crie orçamentos que se adaptam ao seu estilo de vida. Veja seu progresso florescer."
+                className="feature-card opacity-0"
               />
             </div>
           </section>
           
-          {/* Pricing Section */}
-          <section className="py-16 md:py-24">
-            <div className="mx-auto max-w-4xl text-center">
-              <h2 className="text-base/7 font-semibold text-accent">Nossos Planos</h2>
-              <p className="mt-2 text-4xl md:text-5xl font-headline font-semibold tracking-tight text-white">
+          <section className="py-16 md:py-24" ref={pricingSectionRef}>
+            <div ref={pricingHeaderRef} className="mx-auto max-w-4xl text-center">
+              <h2 className="text-base/7 font-semibold text-accent opacity-0">Nossos Planos</h2>
+              <p className="mt-2 text-4xl md:text-5xl font-headline font-semibold tracking-tight text-white opacity-0">
                 Escolha o Plano Ideal para Você
               </p>
+              <p className="mx-auto mt-6 max-w-2xl text-center text-lg text-white/80 sm:text-xl/8 opacity-0">
+                Comece gratuitamente ou desbloqueie funcionalidades avançadas para levar suas finanças ao próximo nível.
+              </p>
             </div>
-            <p className="mx-auto mt-6 max-w-2xl text-center text-lg text-white/80 sm:text-xl/8">
-              Comece gratuitamente ou desbloqueie funcionalidades avançadas para levar suas finanças ao próximo nível.
-            </p>
             <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-center gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
               {pricingTiers.map((tier, tierIdx) => (
                 <div
                   key={tier.id}
                   className={cn(
+                    'pricing-tier opacity-0', // Added class for GSAP and initial opacity
                     tier.featured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
                     tier.featured
                       ? 'rounded-3xl' 
@@ -289,10 +384,9 @@ export default function LandingPage() {
                   <Button
                     asChild
                     size="lg"
-                    variant={tier.featured ? "default" : "outline"}
                     className={cn(
                       'mt-8 block w-full sm:mt-10',
-                      tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'text-primary border-primary hover:bg-primary/10'
+                      tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90' // Padronizado o botão não destacado
                     )}
                   >
                     <Link href={tier.href} aria-describedby={tier.id}>
@@ -305,8 +399,8 @@ export default function LandingPage() {
           </section>
 
           {!session && !isLoading && (
-            <section className="py-16 md:py-24 text-center">
-                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
+            <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
+                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto opacity-0"> {/* Initial opacity for GSAP */}
                     <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro Financeiro?</h2>
                     <p className="text-white/80 mb-8">
                         Junte-se a milhares de usuários que estão transformando suas finanças com o {APP_NAME}. É rápido, fácil e gratuito para começar.
