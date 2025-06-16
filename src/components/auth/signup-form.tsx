@@ -4,7 +4,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, Building, Fingerprint, LogIn, Phone as PhoneIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // Keep for unmasked inputs
+import { Input } from "@/components/ui/input"; 
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -15,7 +15,7 @@ import { SubmitButton } from "./submit-button";
 import { toast } from "@/hooks/use-toast";
 import InputMask from "react-input-mask";
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
-import 'react-phone-number-input/style.css'; // Estilos para o componente de telefone
+import 'react-phone-number-input/style.css'; 
 import { cn } from "@/lib/utils";
 
 
@@ -24,6 +24,9 @@ export function SignupForm() {
   const [state, dispatch] = useActionState(signupUser, initialState);
   const [accountType, setAccountType] = useState<'pessoa' | 'empresa'>('pessoa');
   const [phoneValue, setPhoneValue] = useState<string | undefined>();
+  const [cpfValue, setCpfValue] = useState('');
+  const [rgValue, setRgValue] = useState('');
+  const [cnpjValue, setCnpjValue] = useState('');
 
 
   useEffect(() => {
@@ -66,7 +69,13 @@ export function SignupForm() {
           <RadioGroup
             name="accountType"
             defaultValue="pessoa"
-            onValueChange={(value: 'pessoa' | 'empresa') => setAccountType(value)}
+            onValueChange={(value: 'pessoa' | 'empresa') => {
+              setAccountType(value);
+              // Limpar campos ao trocar de tipo para evitar envio de dados irrelevantes
+              setCpfValue('');
+              setRgValue('');
+              setCnpjValue('');
+            }}
             className="flex space-x-4"
           >
             <div className="flex items-center space-x-2">
@@ -161,15 +170,16 @@ export function SignupForm() {
                 <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <InputMask
                   mask="999.999.999-99"
-                  name="cpf"
+                  value={cpfValue}
+                  onChange={(e) => setCpfValue(e.target.value)}
                   disabled={accountType !== 'pessoa'}
-                  value={undefined} // Control value via form data or state if needed
-                  // onChange={...} // If you need controlled input
                 >
                   {(inputProps: any) => (
                     <input
                       {...inputProps}
                       id="cpf"
+                      name="cpf" 
+                      type="text"
                       placeholder="000.000.000-00"
                       required={accountType === 'pessoa'}
                       className={cn(shadcnInputClasses, "pl-10")}
@@ -182,19 +192,21 @@ export function SignupForm() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="rg">RG (Opcional)</Label>
-              <div className="relative">
+               <div className="relative">
                 <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <InputMask
-                  mask="99.999.999-9"
-                  name="rg"
+                  mask="99.999.999-*" 
+                  value={rgValue}
+                  onChange={(e) => setRgValue(e.target.value)}
                   disabled={accountType !== 'pessoa'}
-                  value={undefined}
                 >
                   {(inputProps: any) => (
                     <input
                       {...inputProps}
                       id="rg"
-                      placeholder="00.000.000-0"
+                      name="rg"
+                      type="text"
+                      placeholder="00.000.000-X"
                       className={cn(shadcnInputClasses, "pl-10")}
                       aria-describedby="rg-error"
                     />
@@ -213,14 +225,16 @@ export function SignupForm() {
               <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
               <InputMask
                 mask="99.999.999/9999-99"
-                name="cnpj"
+                value={cnpjValue}
+                onChange={(e) => setCnpjValue(e.target.value)}
                 disabled={accountType !== 'empresa'}
-                value={undefined}
               >
                 {(inputProps: any) => (
                   <input
                     {...inputProps}
                     id="cnpj"
+                    name="cnpj"
+                    type="text"
                     placeholder="00.000.000/0000-00"
                     required={accountType === 'empresa'}
                     className={cn(shadcnInputClasses, "pl-10")}
@@ -242,15 +256,18 @@ export function SignupForm() {
       <OAuthButton providerName="Google" Icon={LogIn} action={handleGoogleSignIn} buttonText="Inscrever-se com Google" />
       
       <style jsx global>{`
+        .PhoneInput {
+          display: flex;
+          align-items: center;
+        }
         .PhoneInputInput {
           border: none !important;
           box-shadow: none !important;
-          padding-left: 0.5rem !important; /* Adjust as needed */
-          margin-left: 0.25rem !important; /* Adjust as needed */
+          padding-left: 0.5rem !important; 
+          margin-left: 0.25rem !important; 
           background-color: transparent;
           outline: none;
           flex: 1;
-          /* Inherit text size from parent */
           font-size: inherit; 
           line-height: inherit;
         }
@@ -261,9 +278,10 @@ export function SignupForm() {
             box-shadow: none !important;
         }
         .PhoneInputCountryIcon--border {
-            box-shadow: none !important; /* Override default shadow if any */
+            box-shadow: none !important;
         }
       `}</style>
     </div>
   );
 }
+
