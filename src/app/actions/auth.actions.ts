@@ -14,19 +14,40 @@ const loginSchema = z.object({
   password: passwordSchema,
 });
 
-const signupSchema = z.object({
-  fullName: z.string().min(2, { message: "O nome completo deve ter pelo menos 2 caracteres." }),
-  displayName: z.string().min(2, { message: "O nome de exibição deve ter pelo menos 2 caracteres." }),
-  phone: z.string().optional(), // Opcional por enquanto
-  cpfCnpj: z.string().optional(), // Opcional
-  rg: z.string().optional(), // Opcional
+const signupSchemaBase = z.object({
+  fullName: z.string().min(2, { message: "O nome completo/razão social deve ter pelo menos 2 caracteres." }),
+  displayName: z.string().min(2, { message: "O nome de exibição/fantasia deve ter pelo menos 2 caracteres." }),
+  phone: z.string().optional(),
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: passwordSchema,
-}).refine(data => data.password === data.confirmPassword, {
+  accountType: z.enum(['pessoa', 'empresa'], { required_error: "Selecione o tipo de conta." }),
+  cpf: z.string().optional(),
+  cnpj: z.string().optional(),
+  rg: z.string().optional(),
+});
+
+const signupSchema = signupSchemaBase.refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
-});
+}).refine(data => {
+    if (data.accountType === 'pessoa') {
+      return !!data.cpf && data.cpf.replace(/\D/g, '').length === 11;
+    }
+    return true;
+  }, {
+    message: "CPF é obrigatório e deve ser válido para pessoa física.",
+    path: ["cpf"],
+  })
+  .refine(data => {
+    if (data.accountType === 'empresa') {
+      return !!data.cnpj && data.cnpj.replace(/\D/g, '').length === 14;
+    }
+    return true;
+  }, {
+    message: "CNPJ é obrigatório e deve ser válido para pessoa jurídica.",
+    path: ["cnpj"],
+  });
 
 
 export type LoginFormState = {
@@ -34,7 +55,7 @@ export type LoginFormState = {
   errors?: {
     email?: string[];
     password?: string[];
-    _form?: string[]; // Erros gerais do formulário
+    _form?: string[];
   };
   success?: boolean;
 };
@@ -61,12 +82,6 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
         success: false,
       };
     }
-    // O redirecionamento após login/signup bem-sucedido será tratado pelo middleware
-    // ou por uma verificação no lado do cliente que monitora o estado de autenticação.
-    // Server Actions não devem redirecionar diretamente em fluxos de useActionState
-    // a menos que seja o último passo após um sucesso definitivo e sem necessidade de feedback no form.
-    // Aqui, é melhor deixar o middleware/cliente lidar com isso.
-    // Para forçar o redirecionamento se tudo der certo no Supabase:
     redirect('/dashboard');
 
   } catch (error: any) {
@@ -88,11 +103,13 @@ export type SignupFormState = {
     fullName?: string[];
     displayName?: string[];
     phone?: string[];
-    cpfCnpj?: string[];
-    rg?: string[];
     email?: string[];
     password?: string[];
     confirmPassword?: string[];
+    accountType?: string[];
+    cpf?: string[];
+    cnpj?: string[];
+    rg?: string[];
     _form?: string[];
   };
   success?: boolean;
@@ -101,6 +118,12 @@ export type SignupFormState = {
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
  try {
     const rawData = Object.fromEntries(formData.entries());
+    // Convert empty strings from optional fields to undefined so Zod treats them as optional
+    if (rawData.cpf === '') rawData.cpf = undefined;
+    if (rawData.cnpj === '') rawData.cnpj = undefined;
+    if (rawData.rg === '') rawData.rg = undefined;
+    if (rawData.phone === '') rawData.phone = undefined;
+    
     const validatedFields = signupSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
@@ -111,20 +134,28 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       };
     }
 
-    const { email, password, fullName, displayName, phone, cpfCnpj, rg } = validatedFields.data;
+    const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
+
+    let cpfCnpjValue: string | null = null;
+    if (accountType === 'pessoa' && cpf) {
+      cpfCnpjValue = cpf.replace(/\D/g, ''); // Remove máscara
+    } else if (accountType === 'empresa' && cnpj) {
+      cpfCnpjValue = cnpj.replace(/\D/g, ''); // Remove máscara
+    }
+
+    const rgValue = (accountType === 'pessoa' && rg) ? rg.replace(/\D/g, '') : null; // Remove máscara
 
     const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // Estes dados serão usados pela trigger handle_new_user para popular a tabela 'profiles'
         data: { 
           full_name: fullName,
           display_name: displayName,
-          phone: phone || null, // Envia null se vazio
-          cpf_cnpj: cpfCnpj || null,
-          rg: rg || null,
-          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`, // Placeholder avatar
+          phone: phone || null, 
+          cpf_cnpj: cpfCnpjValue,
+          rg: rgValue,
+          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
         },
       },
     });
@@ -138,7 +169,6 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     }
 
     if (signUpData.user && signUpData.user.identities && signUpData.user.identities.length === 0) {
-      // Email já existe, mas não confirmado, ou outro problema
       return {
           message: "Este email já está registrado ou ocorreu um problema. Se você já se cadastrou, verifique seu email para confirmação ou tente fazer login.",
           errors: { email: ["Email já registrado ou necessita confirmação."] },
@@ -146,13 +176,9 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       };
     }
     
-    // Se o Supabase requer confirmação por email (configuração padrão)
-    // O usuário não será logado imediatamente.
-    // Redirecionar para login com uma mensagem para verificar o email.
     if (signUpData.session === null && signUpData.user) {
         redirect('/login?signup=success_email_confirmation');
     } else {
-        // Se o usuário é logado automaticamente (confirmação de email desabilitada no Supabase)
         redirect('/dashboard');
     }
 
@@ -180,16 +206,12 @@ export async function signInWithOAuth(provider: Provider) {
 
     if (error) {
       console.error(`Google Sign In Action Error: ${error.message}`);
-      // Normalmente, o redirecionamento para o Google acontece antes,
-      // então este erro seria para problemas na chamada inicial.
-      // Redirecionar para uma página de erro ou login com mensagem.
       return redirect(`/login?error=${encodeURIComponent(error.message)}`);
     }
 
     if (data.url) {
-      redirect(data.url); // Redireciona para a página de consentimento do Google
+      redirect(data.url); 
     } else {
-      // Caso inesperado onde não há URL mas também não há erro.
       return redirect('/login?error=oauth_url_missing');
     }
 
@@ -207,14 +229,12 @@ export async function logoutUser() {
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Logout User Action Error:", error);
-      // Mesmo com erro, tentamos redirecionar. O usuário pode querer sair de qualquer jeito.
     }
   } catch (error: any) {
-    // Se o erro for de redirect, ele será lançado pelo middleware se necessário.
     if (error.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
     }
     console.error("Logout User Action Error (catch):", error);
   }
-  redirect('/login'); // Sempre redireciona para o login após a tentativa de logout.
+  redirect('/login'); 
 }
