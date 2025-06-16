@@ -3,7 +3,7 @@
 # Specifies the build command Netlify should run and the directory where
 # the build output will be located. For Next.js, this is typically ".next".
 [build]
-  command = "npm run build" # Or "yarn build", "pnpm build" depending on your package manager
+  command = "npm run build" 
   publish = ".next"
 
 # Ensures the Netlify Next.js plugin is used.
