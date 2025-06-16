@@ -1,12 +1,12 @@
 
-"use client"; 
+"use client";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { useAuth } from "@/contexts/auth-context";
-import { useEffect, useState } from "react"; // useState added
-import { useRouter, usePathname } from "next/navigation"; 
+import { useEffect } from "react"; // Removido useState
+import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AppLayout({
@@ -14,39 +14,33 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isLoading: authLoading, session } = useAuth(); // Renamed to authLoading for clarity
+  const { isLoading: authLoading, session } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [initialAuthCheckComplete, setInitialAuthCheckComplete] = useState(false);
 
   useEffect(() => {
-    console.log(`(AppLayout) Auth state updated: authLoading=${authLoading}, session=${session ? 'Exists' : 'Null'}, initialAuthCheckComplete=${initialAuthCheckComplete}, Path: ${pathname}`);
-    
-    // This block ensures initialAuthCheckComplete is set to true ONCE authLoading becomes false.
-    if (!authLoading && !initialAuthCheckComplete) {
-      console.log("(AppLayout) AuthContext has finished loading (authLoading is false). Marking initial auth check as complete.");
-      setInitialAuthCheckComplete(true);
+    console.log(`(AppLayout) Effect triggered. AuthLoading: ${authLoading}, Session: ${session ? 'Exists' : 'Null'}, Path: ${pathname}`);
+
+    // Não faça nada se ainda estiver carregando
+    if (authLoading) {
+      console.log("(AppLayout) Auth is loading. No action taken.");
+      return;
     }
 
-    // Only attempt to redirect IF the initial auth check is complete.
-    if (initialAuthCheckComplete) {
-      if (!session) {
-        console.log(`(AppLayout) Initial auth check complete AND no session. Redirecting to /login from ${pathname}.`);
-        router.replace('/login');
-      } else {
-        console.log(`(AppLayout) Initial auth check complete AND session exists. User: ${session.user.id}. Allowing app render for ${pathname}.`);
-        // Session exists, allow rendering of children (handled by the return statement below).
-      }
-    } else {
-      console.log("(AppLayout) Waiting for initial auth check to complete (authLoading is true or initialAuthCheckComplete is false).");
+    // Se terminou de carregar e não há sessão, redirecione para login
+    // Apenas redireciona se não estiver já em uma rota de autenticação (para evitar loop no logout)
+    if (!session && pathname !== '/login' && pathname !== '/signup') {
+      console.log(`(AppLayout) Auth finished loading, NO session. Redirecting to /login from ${pathname}.`);
+      router.replace('/login');
+    } else if (session) {
+      // Se terminou de carregar e HÁ sessão, permita a renderização
+      console.log(`(AppLayout) Auth finished loading, session EXISTS. User: ${session.user.id}. Allowing app render for ${pathname}.`);
     }
-  }, [authLoading, session, router, pathname, initialAuthCheckComplete]);
+  }, [authLoading, session, router, pathname]);
 
 
-  // Show skeleton if EITHER the initial auth check isn't marked complete OR authContext is still loading.
-  // This ensures we show a skeleton until we are certain about the auth state.
-  if (!initialAuthCheckComplete || authLoading) {
-    console.log(`(AppLayout) Rendering SKELETON because initialAuthCheckComplete=${initialAuthCheckComplete} OR authLoading=${authLoading}.`);
+  if (authLoading) {
+    console.log("(AppLayout) Rendering SKELETON because authLoading is true.");
     return (
       <div className="flex min-h-screen flex-col bg-background">
         {/* Skeleton para AppHeader */}
@@ -79,23 +73,22 @@ export default function AppLayout({
       </div>
     );
   }
-  
-  // If initial check is complete but there's no session,
-  // the useEffect above should have initiated a redirect.
-  // Returning null here prevents a flash of content before redirect completes.
-  if (initialAuthCheckComplete && !session) { 
-    console.log("(AppLayout) Initial auth check complete, but NO session. Rendering NULL (redirect to /login should be in progress).");
-    return null; 
+
+  // Se terminou de carregar e não há sessão, o useEffect acima já deve ter iniciado o redirecionamento.
+  // Renderizar null evita um flash de conteúdo.
+  if (!authLoading && !session && pathname !== '/login' && pathname !== '/signup') {
+    console.log("(AppLayout) Auth finished loading, NO session. Rendering NULL (redirect should be in progress).");
+    return null;
   }
 
-  // If initial check is complete AND a session exists, render the app.
-  console.log("(AppLayout) Initial auth check complete and session IS present. Rendering APP LAYOUT.");
+  // Se terminou de carregar e há sessão, ou se está numa rota pública (login/signup) enquanto não logado, renderize.
+  console.log("(AppLayout) Conditions met for rendering APP LAYOUT or child component.");
   return (
-    <SidebarProvider defaultOpen> 
+    <SidebarProvider defaultOpen>
       <div className="flex min-h-screen flex-col bg-background">
-        <AppHeader /> 
-        <div className="flex flex-1 pt-16"> 
-          <AppSidebar /> 
+        <AppHeader />
+        <div className="flex flex-1 pt-16">
+          <AppSidebar />
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             {children}
           </main>
