@@ -1,5 +1,5 @@
 
-'use server'; // Embora as funções possam ser chamadas do cliente, Supabase SDK lida com isso.
+'use server';
 
 import { supabase } from '@/lib/supabase/client';
 import type { Category, ServiceListResponse, ServiceResponse } from '@/types/database.types';
@@ -10,14 +10,13 @@ export async function getCategories(userId: string | null): Promise<ServiceListR
     let query = supabase
       .from('categories')
       .select('*')
+      .order('is_default', { ascending: false }) // Padrão primeiro
       .order('name', { ascending: true });
 
     if (userId) {
-      // Busca categorias padrão (user_id IS NULL) OU categorias do usuário específico
-      query = query.or(`user_id.eq.${userId},user_id.is.null`);
+      query = query.or(`user_id.eq.${userId},is_default.is.true`);
     } else {
-      // Se não houver userId (ex: usuário não logado, embora não deva acontecer em rotas protegidas), busca apenas padrão
-      query = query.is('user_id', null);
+      query = query.is('is_default', true);
     }
     
     const { data, error, count } = await query;
@@ -26,7 +25,7 @@ export async function getCategories(userId: string | null): Promise<ServiceListR
       console.error('Error fetching categories:', error.message);
       throw new Error(error.message);
     }
-    return { data, error: null, count };
+    return { data: data as Category[], error: null, count };
   } catch (err) {
     const error = err as Error;
     console.error('Service error fetching categories:', error.message);
@@ -35,7 +34,8 @@ export async function getCategories(userId: string | null): Promise<ServiceListR
 }
 
 // Função para adicionar uma nova categoria (apenas para usuário logado)
-export async function addCategory(userId: string, categoryData: Omit<Category, 'id' | 'user_id' | 'created_at'>): Promise<ServiceResponse<Category>> {
+// Note: is_default será FALSE por padrão para categorias criadas pelo usuário.
+export async function addCategory(userId: string, categoryData: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'is_default'>): Promise<ServiceResponse<Category>> {
   if (!userId) {
     const error = new Error("User ID is required to add a category.");
     console.error(error.message);
@@ -44,7 +44,7 @@ export async function addCategory(userId: string, categoryData: Omit<Category, '
   try {
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ ...categoryData, user_id: userId }])
+      .insert([{ ...categoryData, user_id: userId, is_default: false }])
       .select()
       .single();
 
@@ -52,7 +52,7 @@ export async function addCategory(userId: string, categoryData: Omit<Category, '
       console.error('Error adding category:', error.message);
       throw new Error(error.message);
     }
-    return { data, error: null };
+    return { data: data as Category, error: null };
   } catch (err) {
     const error = err as Error;
     console.error('Service error adding category:', error.message);

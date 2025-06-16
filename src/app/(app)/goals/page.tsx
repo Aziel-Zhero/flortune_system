@@ -1,3 +1,4 @@
+
 // src/app/(app)/goals/page.tsx
 "use client";
 
@@ -23,32 +24,80 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
+import type { FinancialGoal } from "@/types/database.types"; // Import FinancialGoal type
 
-const goalsData = [
-  { id: "goal_1", name: "Fundo de Emergência", targetAmount: 5000, currentAmount: 3500, deadline: "31/12/2024", icon: ShieldCheck, iconHint: "shield security" },
-  { id: "goal_2", name: "Férias para Bali", targetAmount: 3000, currentAmount: 1200, deadline: "30/06/2025", icon: Plane, iconHint: "travel plane" },
-  { id: "goal_3", name: "Novo Laptop", targetAmount: 1500, currentAmount: 1500, deadline: "30/09/2024", icon: Laptop, iconHint: "tech computer" }, // Achieved
+// Updated mock data to reflect new FinancialGoal structure (with UUIDs as strings)
+// TODO: Replace this with actual data fetching using goal.service.ts
+const goalsData: FinancialGoal[] = [
+  { 
+    id: "goal_uuid_1", 
+    user_id: "user_uuid_placeholder",
+    name: "Fundo de Emergência", 
+    target_amount: 5000, 
+    current_amount: 3500, 
+    deadline_date: "2024-12-31", 
+    icon: "ShieldCheck", 
+    status: 'in_progress', 
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  { 
+    id: "goal_uuid_2", 
+    user_id: "user_uuid_placeholder",
+    name: "Férias para Bali", 
+    target_amount: 3000, 
+    current_amount: 1200, 
+    deadline_date: "2025-06-30", 
+    icon: "Plane", 
+    status: 'in_progress',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  { 
+    id: "goal_uuid_3", 
+    user_id: "user_uuid_placeholder",
+    name: "Novo Laptop", 
+    target_amount: 1500, 
+    current_amount: 1500, 
+    deadline_date: "2024-09-30", 
+    icon: "Laptop", 
+    status: 'achieved', // Achieved
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ];
+
+// Helper to get Lucide icon component by name string
+const getLucideIcon = (iconName?: string | null): React.ElementType => {
+  if (!iconName) return Trophy; // Default icon
+  const IconComponent = (LucideIcons as any)[iconName];
+  return IconComponent || Trophy;
+};
+// Need to import all of LucideIcons for the helper above
+import * as LucideIcons from "lucide-react";
+
 
 export default function GoalsPage() {
   const [currentGoals, setCurrentGoals] = useState(goalsData);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null); // ID is string
 
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
+    // TODO: Fetch goals using goal.service.ts
   }, []);
 
-  const handleDeleteClick = (goalId: string, goalName: string) => {
+  const handleDeleteClick = (goalId: string, goalName: string) => { // ID is string
     setItemToDelete({ id: goalId, name: goalName });
     setDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
     if (itemToDelete) {
+      // TODO: Call deleteFinancialGoal from goal.service.ts
       setCurrentGoals(prevGoals => prevGoals.filter(g => g.id !== itemToDelete.id));
       toast({
-        title: "Meta Deletada",
+        title: "Meta Deletada (Simulado)",
         description: `A meta "${itemToDelete.name}" foi deletada com sucesso.`,
       });
       setItemToDelete(null);
@@ -56,7 +105,7 @@ export default function GoalsPage() {
     setDialogOpen(false);
   };
 
-  const handleEditClick = (goalId: string, goalName: string) => {
+  const handleEditClick = (goalId: string, goalName: string) => { // ID is string
     console.log(`Editando meta: ${goalName} (ID: ${goalId})`);
     toast({
       title: "Ação de Edição",
@@ -85,7 +134,7 @@ export default function GoalsPage() {
         description="Defina, acompanhe e alcance suas aspirações financeiras."
         actions={
           <Button asChild>
-            <Link href="/goals/new"> {/* Placeholder: Link para criar nova meta */}
+            <Link href="/goals/new"> 
               <PlusCircle className="mr-2 h-4 w-4" />
               Definir Nova Meta
             </Link>
@@ -94,9 +143,9 @@ export default function GoalsPage() {
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {currentGoals.map((goal, index) => {
-          const progressValue = goal.targetAmount > 0 ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) : 0;
-          const isAchieved = goal.currentAmount >= goal.targetAmount;
-          const GoalIcon = goal.icon;
+          const progressValue = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
+          const isAchieved = goal.status === 'achieved'; // Use status field
+          const GoalIcon = getLucideIcon(goal.icon);
 
           return (
             <motion.div
@@ -122,9 +171,11 @@ export default function GoalsPage() {
                               {isAchieved && <Trophy className="inline mr-1.5 h-5 w-5 text-yellow-500" />}
                               {goal.name}
                               </CardTitle>
-                              <CardDescription className="flex items-center text-xs text-muted-foreground">
-                                  <CalendarClock className="mr-1 h-3 w-3"/> Prazo: {goal.deadline}
-                              </CardDescription>
+                              {goal.deadline_date && (
+                                <CardDescription className="flex items-center text-xs text-muted-foreground">
+                                    <CalendarClock className="mr-1 h-3 w-3"/> Prazo: {new Date(goal.deadline_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                </CardDescription>
+                              )}
                           </div>
                       </div>
                     <div className="flex gap-1">
@@ -146,16 +197,21 @@ export default function GoalsPage() {
                     />
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Guardado:</span>
-                      <PrivateValue value={`R$${goal.currentAmount.toFixed(2)}`} className={cn(isAchieved && "text-emerald-600 dark:text-emerald-400 font-semibold")} />
+                      <PrivateValue value={`R$${goal.current_amount.toFixed(2)}`} className={cn(isAchieved && "text-emerald-600 dark:text-emerald-400 font-semibold")} />
                     </div>
                     <div className="flex justify-between text-sm font-medium text-muted-foreground">
                       <span>Meta:</span>
-                      <PrivateValue value={`R$${goal.targetAmount.toFixed(2)}`} />
+                      <PrivateValue value={`R$${goal.target_amount.toFixed(2)}`} />
                     </div>
                   </div>
                   {isAchieved && (
                       <p className="text-center mt-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400 p-2 bg-emerald-100 dark:bg-emerald-800/50 rounded-md">
                           Meta Alcançada! 🎉
+                      </p>
+                  )}
+                   {goal.status === 'cancelled' && (
+                      <p className="text-center mt-4 text-sm font-semibold text-muted-foreground p-2 bg-muted/50 rounded-md">
+                          Meta Cancelada
                       </p>
                   )}
                 </CardContent>
@@ -165,7 +221,7 @@ export default function GoalsPage() {
         })}
          <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
             <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
-                <Link href="/goals/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> {/* Placeholder */}
+                <Link href="/goals/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> 
                     <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
                     <p className="font-semibold">Definir Nova Meta Financeira</p>
                 </Link>

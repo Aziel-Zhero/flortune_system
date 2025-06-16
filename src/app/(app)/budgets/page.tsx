@@ -1,3 +1,4 @@
+
 // src/app/(app)/budgets/page.tsx
 "use client";
 
@@ -23,33 +24,82 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
+import type { Budget } from "@/types/database.types"; // Import Budget type
 
-const budgetsData = [
-  { id: "budget_1", category: "Alimentação", limit: 400, spent: 250.75 },
-  { id: "budget_2", category: "Restaurantes", limit: 200, spent: 180.50 },
-  { id: "budget_3", category: "Entretenimento", limit: 150, spent: 75.00 },
-  { id: "budget_4", category: "Compras", limit: 300, spent: 320.00 }, // Overspent
+// Updated mock data to reflect new Budget structure (with UUIDs as strings)
+// TODO: Replace this with actual data fetching using budget.service.ts
+const budgetsData: Budget[] = [
+  { 
+    id: "budget_uuid_1", 
+    user_id: "user_uuid_placeholder",
+    category_id: "cat_uuid_food",
+    category: { id: "cat_uuid_food", name: "Alimentação", type: "expense", icon: "Utensils", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: true, user_id: null },
+    limit_amount: 400, 
+    spent_amount: 250.75,
+    period_start_date: "2024-08-01",
+    period_end_date: "2024-08-31",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  { 
+    id: "budget_uuid_2", 
+    user_id: "user_uuid_placeholder",
+    category_id: "cat_uuid_restaurants",
+    category: { id: "cat_uuid_restaurants", name: "Restaurantes", type: "expense", icon: "Utensils", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: false, user_id: "user_uuid_placeholder" },
+    limit_amount: 200, 
+    spent_amount: 180.50,
+    period_start_date: "2024-08-01",
+    period_end_date: "2024-08-31",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+   { 
+    id: "budget_uuid_3", 
+    user_id: "user_uuid_placeholder",
+    category_id: "cat_uuid_entertainment",
+    category: { id: "cat_uuid_entertainment", name: "Entretenimento", type: "expense", icon: "Ticket", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: true, user_id: null },
+    limit_amount: 150, 
+    spent_amount: 75.00,
+    period_start_date: "2024-08-01",
+    period_end_date: "2024-08-31",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  { 
+    id: "budget_uuid_4", 
+    user_id: "user_uuid_placeholder",
+    category_id: "cat_uuid_shopping",
+    category: { id: "cat_uuid_shopping", name: "Compras", type: "expense", icon: "ShoppingCart", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: true, user_id: null },
+    limit_amount: 300, 
+    spent_amount: 320.00, // Overspent
+    period_start_date: "2024-08-01",
+    period_end_date: "2024-08-31",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ];
 
 export default function BudgetsPage() {
   const [currentBudgets, setCurrentBudgets] = useState(budgetsData);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null); // ID is string
 
   useEffect(() => {
     document.title = `Orçamentos - ${APP_NAME}`;
+    // TODO: Fetch budgets using budget.service.ts
   }, []);
 
-  const handleDeleteClick = (budgetId: string, budgetCategory: string) => {
-    setItemToDelete({ id: budgetId, name: budgetCategory });
+  const handleDeleteClick = (budgetId: string, budgetCategoryName: string) => { // ID is string
+    setItemToDelete({ id: budgetId, name: budgetCategoryName });
     setDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
     if (itemToDelete) {
+      // TODO: Call deleteBudget from budget.service.ts
       setCurrentBudgets(prevBudgets => prevBudgets.filter(b => b.id !== itemToDelete.id));
       toast({
-        title: "Orçamento Deletado",
+        title: "Orçamento Deletado (Simulado)",
         description: `O orçamento "${itemToDelete.name}" foi deletado com sucesso.`,
       });
       setItemToDelete(null);
@@ -57,11 +107,11 @@ export default function BudgetsPage() {
     setDialogOpen(false);
   };
 
-  const handleEditClick = (budgetId: string, budgetCategory: string) => {
-    console.log(`Editando orçamento: ${budgetCategory} (ID: ${budgetId})`);
+  const handleEditClick = (budgetId: string, budgetCategoryName: string) => { // ID is string
+    console.log(`Editando orçamento: ${budgetCategoryName} (ID: ${budgetId})`);
     toast({
       title: "Ação de Edição",
-      description: `Redirecionando para editar o orçamento "${budgetCategory}" (placeholder).`,
+      description: `Redirecionando para editar o orçamento "${budgetCategoryName}" (placeholder).`,
     });
     // Em um app real: router.push(`/budgets/edit/${budgetId}`);
   };
@@ -86,7 +136,7 @@ export default function BudgetsPage() {
         description="Defina e acompanhe seus limites de gastos para diferentes categorias."
         actions={
           <Button asChild>
-            <Link href="/budgets/new"> {/* Placeholder: Link para criar novo orçamento */}
+            <Link href="/budgets/new"> 
               <PlusCircle className="mr-2 h-4 w-4" />
               Criar Orçamento
             </Link>
@@ -95,8 +145,8 @@ export default function BudgetsPage() {
       />
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {currentBudgets.map((budget, index) => {
-          const remaining = budget.limit - budget.spent;
-          const progressValue = budget.limit > 0 ? Math.min((budget.spent / budget.limit) * 100, 100) : 0;
+          const remaining = budget.limit_amount - budget.spent_amount;
+          const progressValue = budget.limit_amount > 0 ? Math.min((budget.spent_amount / budget.limit_amount) * 100, 100) : 0;
           const isOverspent = remaining < 0;
           
           return (
@@ -114,17 +164,19 @@ export default function BudgetsPage() {
                     <div>
                       <CardTitle className="font-headline flex items-center">
                         <Target className="mr-2 h-5 w-5 text-primary" />
-                        {budget.category}
+                        {budget.category?.name || 'Categoria Desconhecida'}
                       </CardTitle>
                       <CardDescription>
-                        Limite: <PrivateValue value={`R$${budget.limit.toFixed(2)}`} />
+                        Período: {new Date(budget.period_start_date + 'T00:00:00').toLocaleDateString('pt-BR')} - {new Date(budget.period_end_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                         <br/>
+                        Limite: <PrivateValue value={`R$${budget.limit_amount.toFixed(2)}`} />
                       </CardDescription>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditClick(budget.id, budget.category)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditClick(budget.id, budget.category?.name || 'N/A')}>
                         <Edit3 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(budget.id, budget.category)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(budget.id, budget.category?.name || 'N/A')}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -139,7 +191,7 @@ export default function BudgetsPage() {
                     />
                     <div className="mt-3 flex justify-between text-sm">
                       <span className="text-muted-foreground">Gasto:</span>
-                      <PrivateValue value={`R$${budget.spent.toFixed(2)}`} className={cn(isOverspent && "text-destructive font-semibold")} />
+                      <PrivateValue value={`R$${budget.spent_amount.toFixed(2)}`} className={cn(isOverspent && "text-destructive font-semibold")} />
                     </div>
                     <div className="flex justify-between text-sm font-medium">
                       <span className={cn(isOverspent ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
@@ -158,7 +210,7 @@ export default function BudgetsPage() {
         })}
          <motion.div custom={currentBudgets.length} variants={cardVariants} initial="hidden" animate="visible" layout>
             <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
-                <Link href="/budgets/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> {/* Placeholder */}
+                <Link href="/budgets/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> 
                     <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
                     <p className="font-semibold">Criar Novo Orçamento</p>
                 </Link>
@@ -185,7 +237,7 @@ export default function BudgetsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Deleção</AlertDialogTitle>
             <AlertDialogDescription>
-              Você tem certeza que deseja deletar o orçamento "{itemToDelete?.name}"? Esta ação não pode ser desfeita.
+              Você tem certeza que deseja deletar o orçamento para "{itemToDelete?.name}"? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

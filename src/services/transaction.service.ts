@@ -2,12 +2,17 @@
 'use server';
 
 import { supabase } from '@/lib/supabase/client';
-import type { Transaction, ServiceListResponse, ServiceResponse } from '@/types/database.types';
+import type { Transaction, ServiceListResponse, ServiceResponse, Category } from '@/types/database.types';
 
 // Tipo para os dados de entrada de uma nova transação
-export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'category'>;
+// category_id é string (UUID)
+export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'> & {
+  category_id: string; // Explicitly string for UUID
+};
 // Tipo para os dados de atualização de uma transação
-export type UpdateTransactionData = Partial<NewTransactionData>;
+export type UpdateTransactionData = Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>> & {
+  category_id?: string; // Explicitly string for UUID if updating
+};
 
 
 // Buscar transações de um usuário, com informações da categoria
@@ -21,8 +26,17 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
     const { data, error, count } = await supabase
       .from('transactions')
       .select(`
-        *,
-        category:categories(*)
+        id, 
+        user_id,
+        category_id,
+        description,
+        amount,
+        date,
+        type,
+        notes,
+        created_at,
+        updated_at,
+        category:categories (id, name, type, icon, is_default)
       `)
       .eq('user_id', userId)
       .order('date', { ascending: false })
@@ -32,11 +46,10 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
       console.error('Error fetching transactions:', error.message);
       throw new Error(error.message);
     }
-    // O Supabase retorna 'category' como um objeto ou null. Se for um array, pegamos o primeiro.
-    // Isso é mais uma garantia, pois a relação é one-to-one.
+    
     const transactions = data?.map(tx => ({
       ...tx,
-      category: Array.isArray(tx.category) ? tx.category[0] : tx.category,
+      category: tx.category as Category | null, // Supabase types might return array for one-to-one, ensure it's object or null
     })) || [];
 
     return { data: transactions as Transaction[], error: null, count };
@@ -59,8 +72,17 @@ export async function addTransaction(userId: string, transactionData: NewTransac
       .from('transactions')
       .insert([{ ...transactionData, user_id: userId }])
       .select(`
-        *,
-        category:categories(*)
+        id,
+        user_id,
+        category_id,
+        description,
+        amount,
+        date,
+        type,
+        notes,
+        created_at,
+        updated_at,
+        category:categories (id, name, type, icon, is_default)
       `)
       .single();
     
@@ -70,7 +92,7 @@ export async function addTransaction(userId: string, transactionData: NewTransac
     }
      const newTransaction = {
       ...data,
-      category: Array.isArray(data.category) ? data.category[0] : data.category,
+      category: data.category as Category | null,
     } as Transaction;
 
     return { data: newTransaction, error: null };
@@ -82,7 +104,7 @@ export async function addTransaction(userId: string, transactionData: NewTransac
 }
 
 // Atualizar uma transação existente
-export async function updateTransaction(transactionId: number, userId: string, transactionData: UpdateTransactionData): Promise<ServiceResponse<Transaction>> {
+export async function updateTransaction(transactionId: string, userId: string, transactionData: UpdateTransactionData): Promise<ServiceResponse<Transaction>> {
   if (!userId) {
     const error = new Error("User ID is required to update a transaction.");
     return { data: null, error };
@@ -92,10 +114,19 @@ export async function updateTransaction(transactionId: number, userId: string, t
       .from('transactions')
       .update(transactionData)
       .eq('id', transactionId)
-      .eq('user_id', userId) // Garante que o usuário só atualize suas próprias transações
+      .eq('user_id', userId) 
       .select(`
-        *,
-        category:categories(*)
+        id,
+        user_id,
+        category_id,
+        description,
+        amount,
+        date,
+        type,
+        notes,
+        created_at,
+        updated_at,
+        category:categories (id, name, type, icon, is_default)
       `)
       .single();
 
@@ -105,7 +136,7 @@ export async function updateTransaction(transactionId: number, userId: string, t
     }
     const updatedTransaction = {
       ...data,
-      category: Array.isArray(data.category) ? data.category[0] : data.category,
+      category: data.category as Category | null,
     } as Transaction;
     return { data: updatedTransaction, error: null };
   } catch (err) {
@@ -116,7 +147,7 @@ export async function updateTransaction(transactionId: number, userId: string, t
 }
 
 // Deletar uma transação
-export async function deleteTransaction(transactionId: number, userId: string): Promise<ServiceResponse<null>> {
+export async function deleteTransaction(transactionId: string, userId: string): Promise<ServiceResponse<null>> {
    if (!userId) {
     const error = new Error("User ID is required to delete a transaction.");
     console.error(error.message);
@@ -127,7 +158,7 @@ export async function deleteTransaction(transactionId: number, userId: string): 
       .from('transactions')
       .delete()
       .eq('id', transactionId)
-      .eq('user_id', userId); // Garante que o usuário só delete suas próprias transações
+      .eq('user_id', userId); 
 
     if (error) {
       console.error('Error deleting transaction:', error.message);

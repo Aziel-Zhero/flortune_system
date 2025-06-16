@@ -37,9 +37,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { getTransactions, deleteTransaction } from "@/services/transaction.service";
 import type { Transaction, Category } from "@/types/database.types";
 import { getCategories } from "@/services/category.service";
-import { Skeleton } from "@/components/ui/skeleton"; // Para loading state
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Mapeamento de cores para categorias (pode ser expandido ou movido para um utilitário)
 const categoryTypeColors: { [key: string]: string } = {
   income: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-800/30 dark:text-emerald-300 dark:border-emerald-700",
   expense: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-800/30 dark:text-amber-300 dark:border-amber-700",
@@ -52,14 +51,13 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
   return categoryTypeColors.default;
 };
 
-
 export default function TransactionsPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]); // Embora não usado diretamente para exibição aqui, pode ser útil para filtros/adição
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: number; description: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; description: string } | null>(null); // ID is now string
 
   const fetchPageData = useCallback(async () => {
     if (!user) return;
@@ -67,7 +65,7 @@ export default function TransactionsPage() {
     try {
       const [transactionsRes, categoriesRes] = await Promise.all([
         getTransactions(user.id),
-        getCategories(user.id) // Busca categorias padrão e do usuário
+        getCategories(user.id)
       ]);
 
       if (transactionsRes.error) {
@@ -90,16 +88,15 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user) {
+    if (user && !authLoading) {
       fetchPageData();
-    } else if (!authLoading) {
-      // Usuário não logado e autenticação não está carregando mais (ex: deslogado)
+    } else if (!authLoading && !user) {
       setIsLoading(false);
-      setTransactions([]); // Limpa transações se o usuário deslogar
+      setTransactions([]);
     }
   }, [user, authLoading, fetchPageData]);
 
-  const handleDeleteClick = (transactionId: number, transactionDescription: string) => {
+  const handleDeleteClick = (transactionId: string, transactionDescription: string) => { // ID is string
     setItemToDelete({ id: transactionId, description: transactionDescription });
     setDialogOpen(true);
   };
@@ -107,16 +104,16 @@ export default function TransactionsPage() {
   const handleConfirmDelete = async () => {
     if (itemToDelete && user) {
       const originalTransactions = [...transactions];
-      setTransactions(prev => prev.filter(t => t.id !== itemToDelete.id!)); // Otimista
+      setTransactions(prev => prev.filter(t => t.id !== itemToDelete.id!)); 
 
-      const { error } = await deleteTransaction(itemToDelete.id, user.id);
+      const { error } = await deleteTransaction(itemToDelete.id, user.id); // ID is string
       if (error) {
         toast({
           title: "Erro ao Deletar",
           description: error.message || `Não foi possível deletar a transação "${itemToDelete.description}".`,
           variant: "destructive",
         });
-        setTransactions(originalTransactions); // Reverte
+        setTransactions(originalTransactions); 
       } else {
         toast({
           title: "Transação Deletada",
@@ -128,7 +125,7 @@ export default function TransactionsPage() {
     setDialogOpen(false);
   };
 
-  const handleEditClick = (transactionId: number, transactionDescription: string) => {
+  const handleEditClick = (transactionId: string, transactionDescription: string) => { // ID is string
     console.log(`Editando transação: ${transactionDescription} (ID: ${transactionId})`);
     toast({
       title: "Ação de Edição",
@@ -295,7 +292,6 @@ export default function TransactionsPage() {
                         <DropdownMenuItem onClick={() => handleEditClick(transaction.id, transaction.description)}>
                           <Edit3 className="mr-2 h-4 w-4"/>Editar
                         </DropdownMenuItem>
-                        {/* <DropdownMenuItem onClick={() => handleViewDetailsClick(transaction.id, transaction.description)}>Ver Detalhes</DropdownMenuItem> */}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                             className="text-destructive focus:text-destructive focus:bg-destructive/10"

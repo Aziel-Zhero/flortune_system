@@ -2,39 +2,44 @@
 'use server';
 
 import { supabase } from '@/lib/supabase/client';
-import type { Budget, ServiceListResponse, ServiceResponse } from '@/types/database.types';
+import type { Budget, ServiceListResponse, ServiceResponse, Category } from '@/types/database.types';
 
-export type NewBudgetData = Omit<Budget, 'id' | 'user_id' | 'created_at' | 'category'>;
+// category_id é string (UUID)
+export type NewBudgetData = Omit<Budget, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'spent_amount' | 'category'> & {
+  category_id: string; // Explicitly string for UUID
+};
 
-// Buscar orçamentos de um usuário para um mês/ano específico ou todos
-export async function getBudgets(userId: string, month?: number, year?: number): Promise<ServiceListResponse<Budget>> {
+// Buscar orçamentos de um usuário
+export async function getBudgets(userId: string): Promise<ServiceListResponse<Budget>> {
   if (!userId) {
     const error = new Error("User ID is required to fetch budgets.");
     return { data: [], error, count: 0 };
   }
   try {
-    let query = supabase
+    const { data, error, count } = await supabase
       .from('budgets')
       .select(`
-        *,
-        category:categories(id, name, type, icon)
+        id,
+        user_id,
+        category_id,
+        limit_amount,
+        spent_amount,
+        period_start_date,
+        period_end_date,
+        created_at,
+        updated_at,
+        category:categories (id, name, type, icon, is_default)
       `)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .order('period_start_date', { ascending: false });
 
-    if (month && year) {
-      query = query.eq('month', month).eq('year', year);
-    }
-    query = query.order('category_id', { ascending: true }); // Ou como preferir ordenar
-
-    const { data, error, count } = await query;
-    
     if (error) {
       console.error('Error fetching budgets:', error.message);
       throw new Error(error.message);
     }
-     const budgets = data?.map(b => ({
+    const budgets = data?.map(b => ({
       ...b,
-      category: Array.isArray(b.category) ? b.category[0] : b.category,
+      category: b.category as Category, // Ensure correct typing
     })) || [];
 
     return { data: budgets as Budget[], error: null, count };
@@ -54,10 +59,18 @@ export async function addBudget(userId: string, budgetData: NewBudgetData): Prom
   try {
     const { data, error } = await supabase
       .from('budgets')
-      .insert([{ ...budgetData, user_id: userId }])
+      .insert([{ ...budgetData, user_id: userId, spent_amount: 0 }]) // spent_amount defaults to 0
       .select(`
-        *,
-        category:categories(id, name, type, icon)
+        id,
+        user_id,
+        category_id,
+        limit_amount,
+        spent_amount,
+        period_start_date,
+        period_end_date,
+        created_at,
+        updated_at,
+        category:categories (id, name, type, icon, is_default)
       `)
       .single();
 
@@ -67,7 +80,7 @@ export async function addBudget(userId: string, budgetData: NewBudgetData): Prom
     }
     const newBudget = {
       ...data,
-      category: Array.isArray(data.category) ? data.category[0] : data.category,
+      category: data.category as Category,
     } as Budget;
     return { data: newBudget, error: null };
   } catch (err) {
@@ -78,7 +91,7 @@ export async function addBudget(userId: string, budgetData: NewBudgetData): Prom
 }
 
 // Deletar um orçamento
-export async function deleteBudget(budgetId: number, userId: string): Promise<ServiceResponse<null>> {
+export async function deleteBudget(budgetId: string, userId: string): Promise<ServiceResponse<null>> {
   if (!userId) {
     const error = new Error("User ID is required to delete a budget.");
     return { data: null, error };
@@ -101,4 +114,6 @@ export async function deleteBudget(budgetId: number, userId: string): Promise<Se
     return { data: null, error };
   }
 }
-// Implementar updateBudget no futuro
+
+// TODO: Implementar updateBudget
+// export async function updateBudget(budgetId: string, userId: string, budgetData: Partial<NewBudgetData>): Promise<ServiceResponse<Budget>>

@@ -1,51 +1,56 @@
 
-// Baseado no schema SQL fornecido anteriormente
+// Baseado no schema SQL fornecido
 
 export interface Category {
-  id: number; // BIGSERIAL
+  id: string; // UUID
   user_id: string | null; // UUID, nulo para categorias padrão
   name: string;
   type: 'income' | 'expense';
   icon?: string | null; // Nome do ícone Lucide ou similar
+  is_default?: boolean; // True para categorias padrão
   created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
 }
 
 export interface Transaction {
-  id: number; // BIGSERIAL
+  id: string; // UUID
   user_id: string; // UUID
-  category_id: number; // BIGINT (FK para categories.id)
+  category_id: string | null; // UUID (FK para categories.id)
   description: string;
   amount: number; // NUMERIC
   date: string; // DATE (YYYY-MM-DD)
   type: 'income' | 'expense'; // Para consistência, embora a categoria já tenha
   notes?: string | null;
   created_at: string; // TIMESTAMPTZ
-  // Para exibição na UI, podemos querer buscar a categoria associada
-  category?: Category; 
+  updated_at: string; // TIMESTAMPTZ
+  category?: Category | null; // Categoria associada (pode ser null se category_id for null)
 }
 
 export interface Budget {
-  id: number; // BIGSERIAL
+  id: string; // UUID
   user_id: string; // UUID
-  category_id: number; // BIGINT (FK para categories.id)
-  amount: number; // NUMERIC
-  month: number; // INTEGER (1-12)
-  year: number; // INTEGER
+  category_id: string; // UUID (FK para categories.id)
+  limit_amount: number; // NUMERIC
+  spent_amount: number; // NUMERIC
+  period_start_date: string; // DATE (YYYY-MM-DD)
+  period_end_date: string; // DATE (YYYY-MM-DD)
   created_at: string; // TIMESTAMPTZ
-  // Para exibição na UI
-  category?: Category;
+  updated_at: string; // TIMESTAMPTZ
+  category?: Category; // Categoria associada
 }
 
 export interface FinancialGoal {
-  id: number; // BIGSERIAL
+  id: string; // UUID
   user_id: string; // UUID
   name: string;
   target_amount: number; // NUMERIC
   current_amount: number; // NUMERIC
-  deadline?: string | null; // DATE (YYYY-MM-DD)
+  deadline_date?: string | null; // DATE (YYYY-MM-DD)
   icon?: string | null; // Nome do ícone Lucide ou similar
-  description?: string | null;
+  notes?: string | null;
+  status: 'in_progress' | 'achieved' | 'cancelled';
   created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
 }
 
 // Tipos para os serviços, para evitar dependência direta do Supabase nos componentes

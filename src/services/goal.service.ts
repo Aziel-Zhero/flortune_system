@@ -4,7 +4,7 @@
 import { supabase } from '@/lib/supabase/client';
 import type { FinancialGoal, ServiceListResponse, ServiceResponse } from '@/types/database.types';
 
-export type NewFinancialGoalData = Omit<FinancialGoal, 'id' | 'user_id' | 'created_at' | 'current_amount'>;
+export type NewFinancialGoalData = Omit<FinancialGoal, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'current_amount' | 'status'>;
 
 // Buscar metas financeiras de um usuário
 export async function getFinancialGoals(userId: string): Promise<ServiceListResponse<FinancialGoal>> {
@@ -17,7 +17,7 @@ export async function getFinancialGoals(userId: string): Promise<ServiceListResp
       .from('financial_goals')
       .select('*')
       .eq('user_id', userId)
-      .order('deadline', { ascending: true, nullsFirst: false })
+      .order('deadline_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -41,7 +41,12 @@ export async function addFinancialGoal(userId: string, goalData: NewFinancialGoa
   try {
     const { data, error } = await supabase
       .from('financial_goals')
-      .insert([{ ...goalData, user_id: userId, current_amount: 0 }]) // current_amount inicia em 0
+      .insert([{ 
+        ...goalData, 
+        user_id: userId, 
+        current_amount: 0, // current_amount inicia em 0
+        status: 'in_progress' // status inicia em 'in_progress'
+      }])
       .select()
       .single();
 
@@ -58,7 +63,7 @@ export async function addFinancialGoal(userId: string, goalData: NewFinancialGoa
 }
 
 // Deletar uma meta financeira
-export async function deleteFinancialGoal(goalId: number, userId: string): Promise<ServiceResponse<null>> {
+export async function deleteFinancialGoal(goalId: string, userId: string): Promise<ServiceResponse<null>> {
   if (!userId) {
     const error = new Error("User ID is required to delete a financial goal.");
     return { data: null, error };
@@ -81,4 +86,6 @@ export async function deleteFinancialGoal(goalId: number, userId: string): Promi
     return { data: null, error };
   }
 }
-// Implementar updateFinancialGoal no futuro
+
+// TODO: Implementar updateFinancialGoal
+// export async function updateFinancialGoal(goalId: string, userId: string, goalData: Partial<NewFinancialGoalData & { current_amount?: number; status?: FinancialGoal['status'] }>): Promise<ServiceResponse<FinancialGoal>>

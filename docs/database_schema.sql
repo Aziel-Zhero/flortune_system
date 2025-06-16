@@ -1,3 +1,19 @@
+-- ### PROFILES TABLE ### (Assuming this was created previously as per user instructions)
+-- CREATE TABLE public.profiles (
+--   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+--   full_name TEXT,
+--   display_name TEXT,
+--   phone TEXT,
+--   avatar_url TEXT,
+--   cpf_cnpj TEXT,
+--   rg TEXT,
+--   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+-- );
+-- CREATE OR REPLACE FUNCTION public.handle_new_user() ...
+-- CREATE TRIGGER on_auth_user_created ...
+-- ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Users can view their own profile." ...
+-- CREATE POLICY "Users can update their own profile." ...
 
 -- ### CATEGORIES TABLE ###
 -- Stores transaction categories. Users can have custom categories.
@@ -9,7 +25,8 @@ CREATE TABLE public.categories (
   icon TEXT, -- Nome do ícone (ex: 'Home', 'Car', 'Utensils')
   is_default BOOLEAN DEFAULT FALSE, -- True para categorias padrão, False para criadas pelo usuário
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT categories_name_user_id_key UNIQUE (name, user_id) -- Added unique constraint
 );
 
 COMMENT ON COLUMN public.categories.user_id IS 'Null for default categories, user_id for user-specific ones.';
@@ -126,9 +143,9 @@ INSERT INTO public.categories (name, type, icon, is_default, user_id) VALUES
 ('Saúde', 'expense', 'HeartPulse', TRUE, NULL),
 ('Educação', 'expense', 'BookOpen', TRUE, NULL),
 ('Compras', 'expense', 'ShoppingCart', TRUE, NULL),
-('Investimentos', 'expense', 'TrendingUp', TRUE, NULL), -- Pode ser 'income' para dividendos, ou 'expense' para aportes. Aqui como despesa (aporte)
+('Investimentos', 'expense', 'TrendingUp', TRUE, NULL), 
 ('Outras Despesas', 'expense', 'PlusCircle', TRUE, NULL)
-ON CONFLICT (name, user_id) DO NOTHING; -- Avoids error if run multiple times and user_id is NULL
+ON CONFLICT (name, user_id) DO NOTHING; -- This should now work with the unique constraint on (name, user_id)
 
 -- (Optional) Function to update `updated_at` timestamp automatically
 CREATE OR REPLACE FUNCTION public.trigger_set_timestamp()
@@ -159,4 +176,3 @@ CREATE TRIGGER set_timestamp_financial_goals
 BEFORE UPDATE ON public.financial_goals
 FOR EACH ROW
 EXECUTE FUNCTION public.trigger_set_timestamp();
-
