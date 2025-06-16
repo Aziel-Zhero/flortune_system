@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, type ChangeEvent } from "react";
 import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, Building, Fingerprint, LogIn, Phone as PhoneIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"; 
@@ -13,10 +13,51 @@ import { signupUser, signInWithOAuth, type SignupFormState } from "@/app/actions
 import { OAuthButton } from "./oauth-button";
 import { SubmitButton } from "./submit-button";
 import { toast } from "@/hooks/use-toast";
-import InputMask from "react-input-mask";
-import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css'; 
 import { cn } from "@/lib/utils";
+
+// Helper functions for masking
+const formatCPF = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  let formatted = digits.slice(0, 11); // Max 11 digits for CPF
+  if (formatted.length > 9) {
+    formatted = `${formatted.slice(0, 9)}-${formatted.slice(9)}`;
+  }
+  if (formatted.length > 6) {
+    formatted = `${formatted.slice(0, 6)}.${formatted.slice(6)}`;
+  }
+  if (formatted.length > 3) {
+    formatted = `${formatted.slice(0, 3)}.${formatted.slice(3)}`;
+  }
+  return formatted;
+};
+
+const formatCNPJ = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  let formatted = digits.slice(0, 14); // Max 14 digits for CNPJ
+  if (formatted.length > 12) {
+    formatted = `${formatted.slice(0, 12)}-${formatted.slice(12)}`;
+  }
+  if (formatted.length > 8) {
+    formatted = `${formatted.slice(0, 8)}/${formatted.slice(8)}`;
+  }
+  if (formatted.length > 5) {
+    formatted = `${formatted.slice(0, 5)}.${formatted.slice(5)}`;
+  }
+  if (formatted.length > 2) {
+    formatted = `${formatted.slice(0, 2)}.${formatted.slice(2)}`;
+  }
+  return formatted;
+};
+
+const formatRG = (value: string): string => {
+  // RG formats vary a lot, this is a very generic numeric-only formatter for simplicity
+  // It just allows digits and keeps it to a certain length.
+  // A more robust RG mask would be very complex.
+  const digits = value.replace(/\D/g, '');
+  return digits.slice(0, 9); // Example: limit to 9 digits
+};
 
 
 export function SignupForm() {
@@ -24,6 +65,7 @@ export function SignupForm() {
   const [state, dispatch] = useActionState(signupUser, initialState);
   const [accountType, setAccountType] = useState<'pessoa' | 'empresa'>('pessoa');
   const [phoneValue, setPhoneValue] = useState<string | undefined>();
+  
   const [cpfValue, setCpfValue] = useState('');
   const [rgValue, setRgValue] = useState('');
   const [cnpjValue, setCnpjValue] = useState('');
@@ -51,7 +93,17 @@ export function SignupForm() {
   const fullNameLabel = accountType === 'pessoa' ? "Nome Completo" : "Razão Social";
   const displayNameLabel = accountType === 'pessoa' ? "Nome de Exibição" : "Nome Fantasia";
 
-  const shadcnInputClasses = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
+  const handleCpfChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setCpfValue(formatCPF(e.target.value));
+  };
+
+  const handleRgChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setRgValue(formatRG(e.target.value));
+  };
+
+  const handleCnpjChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setCnpjValue(formatCNPJ(e.target.value));
+  };
 
   return (
     <div className="space-y-6">
@@ -146,7 +198,7 @@ export function SignupForm() {
         
         <div className="space-y-2">
           <Label htmlFor="phone">Telefone (Opcional)</Label>
-          <PhoneInput
+           <PhoneInput
             id="phone"
             name="phone"
             placeholder="Seu número de telefone"
@@ -155,7 +207,9 @@ export function SignupForm() {
             defaultCountry="BR"
             international
             countryCallingCodeEditable={false}
-            className={cn(shadcnInputClasses, "text-base md:text-sm")}
+            className={cn(
+              "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+            )}
             aria-describedby="phone-error"
           />
           {state?.errors?.phone && <p id="phone-error" className="text-sm text-destructive">{state.errors.phone.join(', ')}</p>}
@@ -168,25 +222,18 @@ export function SignupForm() {
               <Label htmlFor="cpf">CPF</Label>
               <div className="relative">
                 <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                <InputMask
-                  mask="999.999.999-99"
+                <Input
+                  id="cpf"
+                  name="cpf"
+                  type="text"
+                  placeholder="000.000.000-00"
                   value={cpfValue}
-                  onChange={(e) => setCpfValue(e.target.value)}
-                  disabled={accountType !== 'pessoa'}
-                >
-                  {(inputProps: any) => (
-                    <input
-                      {...inputProps}
-                      id="cpf"
-                      name="cpf" 
-                      type="text"
-                      placeholder="000.000.000-00"
-                      required={accountType === 'pessoa'}
-                      className={cn(shadcnInputClasses, "pl-10")}
-                      aria-describedby="cpf-error"
-                    />
-                  )}
-                </InputMask>
+                  onChange={handleCpfChange}
+                  maxLength={14} // Max length for XXX.XXX.XXX-XX
+                  required
+                  className="pl-10"
+                  aria-describedby="cpf-error"
+                />
               </div>
               {state?.errors?.cpf && <p id="cpf-error" className="text-sm text-destructive">{state.errors.cpf.join(', ')}</p>}
             </div>
@@ -194,24 +241,17 @@ export function SignupForm() {
               <Label htmlFor="rg">RG (Opcional)</Label>
                <div className="relative">
                 <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                <InputMask
-                  mask="99.999.999-*" 
+                <Input
+                  id="rg"
+                  name="rg"
+                  type="text"
+                  placeholder="000000000"
                   value={rgValue}
-                  onChange={(e) => setRgValue(e.target.value)}
-                  disabled={accountType !== 'pessoa'}
-                >
-                  {(inputProps: any) => (
-                    <input
-                      {...inputProps}
-                      id="rg"
-                      name="rg"
-                      type="text"
-                      placeholder="00.000.000-X"
-                      className={cn(shadcnInputClasses, "pl-10")}
-                      aria-describedby="rg-error"
-                    />
-                  )}
-                </InputMask>
+                  onChange={handleRgChange}
+                  maxLength={9} // Max length for XXXXXXXXX
+                  className="pl-10"
+                  aria-describedby="rg-error"
+                />
               </div>
               {state?.errors?.rg && <p id="rg-error" className="text-sm text-destructive">{state.errors.rg.join(', ')}</p>}
             </div>
@@ -223,25 +263,18 @@ export function SignupForm() {
             <Label htmlFor="cnpj">CNPJ</Label>
             <div className="relative">
               <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-              <InputMask
-                mask="99.999.999/9999-99"
+              <Input
+                id="cnpj"
+                name="cnpj"
+                type="text"
+                placeholder="00.000.000/0000-00"
                 value={cnpjValue}
-                onChange={(e) => setCnpjValue(e.target.value)}
-                disabled={accountType !== 'empresa'}
-              >
-                {(inputProps: any) => (
-                  <input
-                    {...inputProps}
-                    id="cnpj"
-                    name="cnpj"
-                    type="text"
-                    placeholder="00.000.000/0000-00"
-                    required={accountType === 'empresa'}
-                    className={cn(shadcnInputClasses, "pl-10")}
-                    aria-describedby="cnpj-error"
-                  />
-                )}
-              </InputMask>
+                onChange={handleCnpjChange}
+                maxLength={18} // Max length for XX.XXX.XXX/XXXX-XX
+                required
+                className="pl-10"
+                aria-describedby="cnpj-error"
+              />
             </div>
             {state?.errors?.cnpj && <p id="cnpj-error" className="text-sm text-destructive">{state.errors.cnpj.join(', ')}</p>}
           </div>
@@ -264,12 +297,12 @@ export function SignupForm() {
           border: none !important;
           box-shadow: none !important;
           padding-left: 0.5rem !important; 
-          margin-left: 0.25rem !important; 
-          background-color: transparent;
-          outline: none;
-          flex: 1;
-          font-size: inherit; 
-          line-height: inherit;
+          margin-left: 0.25rem !important;
+          background-color: transparent; /* Ensure background is transparent */
+          outline: none; /* Ensure no outline from the library */
+          flex: 1; /* Allow it to take available space */
+          font-size: inherit; /* Inherit font size */
+          line-height: inherit; /* Inherit line height */
         }
         .PhoneInputCountrySelect {
           margin-right: 0.25rem !important;
@@ -284,4 +317,3 @@ export function SignupForm() {
     </div>
   );
 }
-
