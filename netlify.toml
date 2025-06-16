@@ -1,0 +1,14 @@
+# This file configures Netlify's build and deployment settings for your Next.js site.
+
+# Specifies the build command Netlify should run and the directory where
+# the build output will be located. For Next.js, this is typically ".next".
+[build]
+  command = "npm run build" # Or "yarn build", "pnpm build" depending on your package manager
+  publish = ".next"
+
+# Ensures the Netlify Next.js plugin is used.
+# This plugin is essential for correctly deploying Next.js sites on Netlify,
+# handling features like server-side rendering (SSR), Incremental Static Regeneration (ISR),
+# API routes, middleware, image optimization, and redirects.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
