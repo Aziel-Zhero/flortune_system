@@ -14,25 +14,88 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import { useRef, useEffect } from 'react';
+import anime from 'animejs'; // Import animejs
+import React, { useRef, useEffect } from 'react'; // Import React for types if needed
 
 gsap.registerPlugin(ScrollTrigger);
 
+interface FeatureCardProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  link?: string;
+  className?: string;
+}
 
-const FeatureCard = ({ icon: Icon, title, description, link, className }: { icon: React.ElementType, title: string, description: string, link?: string, className?: string }) => (
-  <div className={cn("bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-shadow duration-300 h-full flex flex-col", className)}>
-    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
-      <Icon className="w-6 h-6" />
+const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, description, link, className }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const currentCardRef = cardRef.current;
+    const currentIconRef = iconRef.current;
+
+    if (!currentCardRef || !currentIconRef) return;
+
+    const handleMouseEnter = () => {
+      anime.remove(currentIconRef); // Remove any ongoing animation on the icon
+      anime({
+        targets: currentIconRef,
+        scale: [
+          { value: 1.2, duration: 200, easing: 'easeOutQuad' },
+          { value: 1, duration: 300, easing: 'easeInOutQuad' }
+        ],
+        rotate: [
+          { value: 10, duration: 150, easing: 'easeOutSine' },
+          { value: -10, duration: 150, delay: 50, easing: 'easeInOutSine' },
+          { value: 0, duration: 150, delay: 50, easing: 'easeInSine' }
+        ],
+        translateY: [
+          { value: -5, duration: 150, easing: 'easeOutQuad' },
+          { value: 0, duration: 200, easing: 'easeInQuad' }
+        ],
+        duration: 600,
+      });
+    };
+
+    const handleMouseLeave = () => {
+      anime.remove(currentIconRef);
+      anime({
+        targets: currentIconRef,
+        scale: 1,
+        rotate: 0,
+        translateY: 0,
+        duration: 300,
+        easing: 'easeOutQuad'
+      });
+    };
+
+    currentCardRef.addEventListener('mouseenter', handleMouseEnter);
+    currentCardRef.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      currentCardRef.removeEventListener('mouseenter', handleMouseEnter);
+      currentCardRef.removeEventListener('mouseleave', handleMouseLeave);
+      anime.remove(currentIconRef); // Clean up animation on unmount
+    };
+  }, []);
+
+  return (
+    <div ref={cardRef} className={cn("bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-shadow duration-300 h-full flex flex-col", className)}>
+      <div ref={iconRef} className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
+        <Icon className="w-6 h-6" />
+      </div>
+      <h3 className="text-xl font-headline font-semibold mb-2 text-foreground">{title}</h3>
+      <p className="text-muted-foreground text-sm flex-grow">{description}</p>
+      {link && (
+        <Link href={link} className={cn(buttonVariants({ variant: "link" }), "text-primary p-0 mt-4 self-start")}>
+          Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
+        </Link>
+      )}
     </div>
-    <h3 className="text-xl font-headline font-semibold mb-2 text-foreground">{title}</h3>
-    <p className="text-muted-foreground text-sm flex-grow">{description}</p>
-    {link && (
-      <Link href={link} className={cn(buttonVariants({ variant: "link" }), "text-primary p-0 mt-4 self-start")}>
-        Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
-      </Link>
-    )}
-  </div>
-);
+  );
+};
+
 
 const pricingTiers = [
   {
@@ -243,20 +306,20 @@ export default function LandingPage() {
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
             <h1 
               ref={heroTitleRef}
-              className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0" // Initial opacity 0 for GSAP
+              className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0"
             >
               Cultive Suas Finanças com <span className="text-accent">Inteligência</span> e Estilo.
             </h1>
             <p 
               ref={heroParagraphRef}
-              className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto opacity-0" // Initial opacity 0 for GSAP
+              className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto opacity-0"
             >
               {APP_NAME} ajuda você a organizar, analisar e alcançar seus objetivos financeiros com ferramentas intuitivas e insights poderosos.
             </p>
             {heroActions} 
             <div 
               ref={heroImageRef}
-              className="mt-16 md:mt-24 opacity-0" // Initial opacity 0 for GSAP
+              className="mt-16 md:mt-24 opacity-0"
             >
                 <Image 
                     src="https://placehold.co/800x450.png" 
@@ -332,7 +395,7 @@ export default function LandingPage() {
                 <div
                   key={tier.id}
                   className={cn(
-                    'pricing-tier opacity-0', // Added class for GSAP and initial opacity
+                    'pricing-tier opacity-0', 
                     tier.featured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10' : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
                     tier.featured
                       ? 'rounded-3xl' 
@@ -386,7 +449,7 @@ export default function LandingPage() {
                     size="lg"
                     className={cn(
                       'mt-8 block w-full sm:mt-10',
-                      tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90' // Padronizado o botão não destacado
+                      tier.featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
                     <Link href={tier.href} aria-describedby={tier.id}>
@@ -400,7 +463,7 @@ export default function LandingPage() {
 
           {!session && !isLoading && (
             <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
-                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto opacity-0"> {/* Initial opacity for GSAP */}
+                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto opacity-0"> 
                     <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro Financeiro?</h2>
                     <p className="text-white/80 mb-8">
                         Junte-se a milhares de usuários que estão transformando suas finanças com o {APP_NAME}. É rápido, fácil e gratuito para começar.
@@ -427,3 +490,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
