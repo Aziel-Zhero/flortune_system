@@ -155,26 +155,26 @@ export function SignupForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cpf">CPF</Label>
-              <InputMask mask="999.999.999-99" name="cpf" disabled={accountType !== 'pessoa'}>
-                {(inputProps: any) => (
-                  <div className="relative">
-                    <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative">
+                <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <InputMask mask="999.999.999-99" name="cpf" disabled={accountType !== 'pessoa'}>
+                  {(inputProps: any) => (
                     <Input {...inputProps} id="cpf" placeholder="000.000.000-00" required={accountType === 'pessoa'} className="pl-10" aria-describedby="cpf-error" />
-                  </div>
-                )}
-              </InputMask>
+                  )}
+                </InputMask>
+              </div>
               {state?.errors?.cpf && <p id="cpf-error" className="text-sm text-destructive">{state.errors.cpf.join(', ')}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="rg">RG (Opcional)</Label>
-               <InputMask mask="99.999.999-9" name="rg" disabled={accountType !== 'pessoa'}>
-                {(inputProps: any) => (
-                  <div className="relative">
-                    <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative">
+                <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <InputMask mask="99.999.999-9" name="rg" disabled={accountType !== 'pessoa'}>
+                  {(inputProps: any) => (
                     <Input {...inputProps} id="rg" placeholder="00.000.000-0" className="pl-10" aria-describedby="rg-error" />
-                  </div>
-                )}
-              </InputMask>
+                  )}
+                </InputMask>
+              </div>
               {state?.errors?.rg && <p id="rg-error" className="text-sm text-destructive">{state.errors.rg.join(', ')}</p>}
             </div>
           </div>
@@ -183,14 +183,14 @@ export function SignupForm() {
         {accountType === 'empresa' && (
           <div className="space-y-2">
             <Label htmlFor="cnpj">CNPJ</Label>
-            <InputMask mask="99.999.999/9999-99" name="cnpj" disabled={accountType !== 'empresa'}>
-              {(inputProps: any) => (
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative">
+              <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+              <InputMask mask="99.999.999/9999-99" name="cnpj" disabled={accountType !== 'empresa'}>
+                {(inputProps: any) => (
                   <Input {...inputProps} id="cnpj" placeholder="00.000.000/0000-00" required={accountType === 'empresa'} className="pl-10" aria-describedby="cnpj-error" />
-                </div>
-              )}
-            </InputMask>
+                )}
+              </InputMask>
+            </div>
             {state?.errors?.cnpj && <p id="cnpj-error" className="text-sm text-destructive">{state.errors.cnpj.join(', ')}</p>}
           </div>
         )}
@@ -226,3 +226,4 @@ export function SignupForm() {
     </div>
   );
 }
+
