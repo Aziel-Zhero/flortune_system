@@ -48,29 +48,30 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   const { pathname } = request.nextUrl;
 
-  // Rotas públicas que não exigem autenticação
-  const publicRoutes = ['/login', '/signup', '/auth/callback'];
+  // Rotas públicas que não exigem autenticação (além da landing page)
+  const authRoutes = ['/login', '/signup', '/auth/callback'];
+  const publicLandingPage = '/';
+
+  // Se o usuário está logado e tenta acessar /login ou /signup, redireciona para o dashboard
+  if (session && authRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   // Se o usuário não está logado e tenta acessar uma rota protegida
-  if (!session && !publicRoutes.includes(pathname) && !pathname.startsWith('/_next') && !pathname.startsWith('/icon.svg') && !pathname.startsWith('/api')) {
+  // Rotas protegidas são todas que NÃO são authRoutes e NÃO são a landing page
+  // e NÃO são assets ou rotas de API.
+  const isProtectedRoute = !authRoutes.includes(pathname) && pathname !== publicLandingPage &&
+                           !pathname.startsWith('/_next') && 
+                           !pathname.startsWith('/icon.svg') && 
+                           !pathname.startsWith('/api');
+
+  if (!session && isProtectedRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-
-  // Se o usuário está logado e tenta acessar /login ou /signup
-  if (session && (pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
   
-  // Se o usuário está logado e tenta acessar a raiz, redireciona para o dashboard
-  if (session && pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-  
-  // Se o usuário não está logado e tenta acessar a raiz, redireciona para o login
-  if (!session && pathname === '/') {
-     return NextResponse.redirect(new URL('/login', request.url));
-  }
-
+  // A landing page (/) é sempre acessível.
+  // O redirecionamento de / para /dashboard ou /login foi removido daqui.
+  // A própria página / cuidará de mostrar conteúdo diferente para usuários logados/deslogados.
 
   return response;
 }
@@ -86,6 +87,6 @@ export const config = {
      * - *.png, *.jpg, etc. (outros arquivos de imagem em /public)
      */
     '/((?!api|_next/static|_next/image|.*\\..*).*)',
-    '/', // Inclui a rota raiz para lidar com o redirecionamento
+    '/', // Inclui a rota raiz para ser processada pelo middleware
   ],
 };

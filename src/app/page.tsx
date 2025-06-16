@@ -1,9 +1,234 @@
 
-// src/app/page.tsx
-// O middleware agora cuida dos redirecionamentos com base na autenticação.
-// Esta página pode ser um simples placeholder ou não ser renderizada se o middleware sempre redirecionar.
-export default function RootPage() {
-  // O middleware deve redirecionar para /login ou /dashboard.
-  // Este return é para satisfazer o TypeScript, pois o redirect no middleware interrompe.
-  return null;
+"use client";
+
+import Link from "next/link";
+import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import Iridescence from "@/components/shared/iridescence";
+import { APP_NAME } from "@/lib/constants";
+import { useAuth } from "@/contexts/auth-context";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+
+const FeatureCard = ({ icon: Icon, title, description, link }: { icon: React.ElementType, title: string, description: string, link?: string }) => (
+  <div className="bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-shadow duration-300 h-full flex flex-col">
+    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
+      <Icon className="w-6 h-6" />
+    </div>
+    <h3 className="text-xl font-headline font-semibold mb-2 text-foreground">{title}</h3>
+    <p className="text-muted-foreground text-sm flex-grow">{description}</p>
+    {link && (
+      <Link href={link} className={cn(buttonVariants({ variant: "link" }), "text-primary p-0 mt-4 self-start")}>
+        Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
+      </Link>
+    )}
+  </div>
+);
+
+export default function LandingPage() {
+  const { session, isLoading } = useAuth();
+
+  // RGB for #16A381 (Deep Teal) = [22, 163, 129] -> [0.086, 0.639, 0.506]
+  const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255];
+  // RGB for #E0F2F1 (Light Teal) = [224, 242, 241] -> [0.878, 0.949, 0.945]
+  // Let's try a slightly more vibrant base for the iridescence, maybe a desaturated teal background and primary teal for the effect
+  // Using the primary deep teal for the iridescence color itself.
+  
+  // Determine button states based on auth loading and session
+  let headerActions = null;
+  let heroActions = null;
+
+  if (isLoading) {
+    // Skeleton or placeholder for buttons while loading
+    headerActions = (
+      <>
+        <div className="h-10 w-24 bg-muted/50 rounded-md animate-pulse"></div>
+        <div className="h-10 w-32 bg-muted/50 rounded-md animate-pulse"></div>
+      </>
+    );
+    heroActions = (
+      <>
+        <div className="h-12 w-48 bg-muted/50 rounded-md animate-pulse"></div>
+        <div className="h-12 w-40 bg-muted/50 rounded-md animate-pulse"></div>
+      </>
+    );
+  } else if (session) {
+    headerActions = (
+      <Button asChild>
+        <Link href="/dashboard">Acessar Painel</Link>
+      </Button>
+    );
+    heroActions = (
+      <Button asChild size="lg">
+        <Link href="/dashboard">Ir para o Painel</Link>
+      </Button>
+    );
+  } else {
+    headerActions = (
+      <>
+        <Button variant="ghost" asChild className="text-white hover:bg-white/10 hover:text-white">
+          <Link href="/login">Login</Link>
+        </Button>
+        <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Link href="/signup">Criar Conta Grátis</Link>
+        </Button>
+      </>
+    );
+    heroActions = (
+      <>
+        <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Link href="/signup">Comece Agora (Grátis)</Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="text-white border-white/50 hover:bg-white/10 hover:text-white">
+          <Link href="/login">Já Tenho Conta</Link>
+        </Button>
+      </>
+    );
+  }
+
+
+  return (
+    <div className="relative min-h-screen w-full overflow-x-hidden text-white">
+      <Iridescence 
+        color={flortuneTealRGB} 
+        speed={0.3} 
+        amplitude={0.15} 
+        mouseReact={true} 
+      />
+      
+      <div className="relative z-10 isolate"> {/* Ensure content is above the canvas */}
+        {/* Header */}
+        <header className="py-4 px-4 md:px-8">
+          <div className="container mx-auto flex justify-between items-center">
+            <Link href="/" className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity">
+              <Leaf size={32} />
+              <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
+            </Link>
+            <nav className="flex items-center gap-2">
+              {headerActions}
+            </nav>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <main className="container mx-auto px-4 md:px-8">
+          <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight"
+            >
+              Cultive Suas Finanças com <span className="text-accent">Inteligência</span> e Estilo.
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto"
+            >
+              {APP_NAME} ajuda você a organizar, analisar e alcançar seus objetivos financeiros com ferramentas intuitivas e insights poderosos.
+            </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              {heroActions}
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, y:20}}
+              animate={{ opacity: 1, y: 0}}
+              transition={{ duration: 0.5, delay: 0.6}}
+              className="mt-16 md:mt-24"
+            >
+                <Image 
+                    src="https://placehold.co/800x450.png" 
+                    alt="Flortune App Mockup" 
+                    width={800} 
+                    height={450} 
+                    className="rounded-lg shadow-2xl border-4 border-white/20"
+                    data-ai-hint="app dashboard"
+                    priority
+                />
+            </motion.div>
+          </section>
+
+          {/* Features Section */}
+          <section className="py-16 md:py-24">
+            <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-4">Transforme sua Vida Financeira</h2>
+            <p className="text-center text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">
+              Descubra como o {APP_NAME} pode simplificar o gerenciamento do seu dinheiro e impulsionar seu crescimento financeiro.
+            </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <FeatureCard 
+                icon={CalendarDays} 
+                title="Calendário Financeiro Intuitivo" 
+                description="Visualize suas despesas e receitas de forma clara, dia a dia, mês a mês. Nunca mais perca um vencimento."
+              />
+              <FeatureCard 
+                icon={BarChart3} 
+                title="Análise de Dados Poderosa" 
+                description="Entenda seus padrões de gastos com gráficos e relatórios detalhados. Tome decisões financeiras mais inteligentes."
+              />
+              <FeatureCard 
+                icon={BrainCircuit} 
+                title="Sugestões com Inteligência Artificial" 
+                description="Receba dicas personalizadas e insights gerados por IA para otimizar seus orçamentos e economizar mais."
+              />
+              <FeatureCard 
+                icon={Eye} 
+                title="Modo Privado Inteligente" 
+                description="Oculte seus dados financeiros com um clique. Privacidade e discrição quando você mais precisa."
+              />
+               <FeatureCard 
+                icon={ShieldCheck} 
+                title="Segurança em Primeiro Lugar" 
+                description="Seus dados são protegidos com criptografia de ponta e as melhores práticas de segurança do mercado."
+              />
+               <FeatureCard 
+                icon={Leaf} 
+                title="Metas e Orçamentos Flexíveis" 
+                description="Defina metas alcançáveis e crie orçamentos que se adaptam ao seu estilo de vida. Veja seu progresso florescer."
+              />
+            </div>
+          </section>
+          
+          {/* Call to Action Section */}
+          {!session && !isLoading && (
+            <section className="py-16 md:py-24 text-center">
+                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro Financeiro?</h2>
+                    <p className="text-white/80 mb-8">
+                        Junte-se a milhares de usuários que estão transformando suas finanças com o {APP_NAME}. É rápido, fácil e gratuito para começar.
+                    </p>
+                    <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                        <Link href="/signup">Criar Minha Conta Grátis</Link>
+                    </Button>
+                 </div>
+            </section>
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="py-8 border-t border-white/10 mt-16">
+          <div className="container mx-auto text-center text-sm text-white/60">
+            <p>&copy; {new Date().getFullYear()} {APP_NAME}. Todos os direitos reservados.</p>
+            <nav className="mt-2">
+              <Link href="#" className="hover:text-white/80 px-2">Termos de Serviço</Link>
+              <span className="px-1">|</span>
+              <Link href="#" className="hover:text-white/80 px-2">Política de Privacidade</Link>
+            </nav>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
 }
+
+// Adicionando Framer Motion para animações
+// Precisamos adicionar framer-motion às dependências se ainda não estiver lá.
+// No package.json já consta: "framer-motion": "^11.3.19", então está ok.
+// Adicionando motion aos elementos para animar.
+import { motion } from "framer-motion";
