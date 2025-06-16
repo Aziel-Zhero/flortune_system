@@ -144,8 +144,7 @@ export function SignupForm() {
             defaultCountry="BR"
             international
             countryCallingCodeEditable={false}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm PhoneInputInput"
-            inputClassName="bg-transparent outline-none flex-1"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
             aria-describedby="phone-error"
           />
           {state?.errors?.phone && <p id="phone-error" className="text-sm text-destructive">{state.errors.phone.join(', ')}</p>}
@@ -210,6 +209,9 @@ export function SignupForm() {
           box-shadow: none !important;
           padding-left: 0.5rem !important;
           margin-left: 0.25rem !important;
+          background-color: transparent;
+          outline: none;
+          flex: 1;
         }
         .PhoneInputCountrySelect {
           margin-right: 0.25rem !important;
