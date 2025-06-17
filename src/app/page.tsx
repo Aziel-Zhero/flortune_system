@@ -9,14 +9,13 @@ import { APP_NAME } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-// import { Skeleton } from "@/components/ui/skeleton"; // Importado abaixo para evitar duplicidade
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import anime from 'animejs';
 import React, { useRef, useEffect, type FC } from 'react';
-import { Skeleton } from "@/components/ui/skeleton"; // Skeleton importado aqui
+import { Skeleton } from "@/components/ui/skeleton";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -291,36 +290,36 @@ export default function LandingPage() {
     );
   } else if (session) {
     headerActions = (
-      <Button asChild>
-        <Link href="/dashboard">Acessar Painel</Link>
-      </Button>
+      <Link href="/dashboard" className={cn(buttonVariants({ variant: 'default' }), "text-white hover:bg-white/10 hover:text-white")}>
+        Acessar Painel
+      </Link>
     );
     heroActions = (
       <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
-        <Button asChild size="lg">
-          <Link href="/dashboard">Ir para o Painel</Link>
-        </Button>
+        <Link href="/dashboard" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>
+          Ir para o Painel
+        </Link>
       </div>
     );
   } else {
     headerActions = (
       <>
-        <Button variant="ghost" asChild className="text-white hover:bg-white/10 hover:text-white">
-          <Link href="/login">Login</Link>
-        </Button>
-        <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-          <Link href="/signup">Criar Conta Grátis</Link>
-        </Button>
+        <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-white hover:bg-white/10 hover:text-white")}>
+          Login
+        </Link>
+        <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>
+          Criar Conta Grátis
+        </Link>
       </>
     );
     heroActions = (
       <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
-        <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-          <Link href="/signup">Comece Agora (Grátis)</Link>
-        </Button>
-        <Button asChild variant="outline" size="lg" className="text-white border-white/50 hover:bg-white/10 hover:text-white">
-          <Link href="/login">Já Tenho Conta</Link>
-        </Button>
+        <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>
+          Comece Agora (Grátis)
+        </Link>
+        <Link href="/login" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+          Já Tenho Conta
+        </Link>
       </div>
     );
   }
@@ -445,15 +444,16 @@ export default function LandingPage() {
                 <div
                   key={tier.id}
                   className={cn(
-                    'pricing-tier-grid opacity-0',
+                    'pricing-tier-grid opacity-0 flex flex-col', // Added flex flex-col
                     isFeatured ? 'relative bg-primary/80 backdrop-blur-md shadow-2xl z-10'
-                               : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0 self-start', // Added self-start here
+                               : 'bg-card/70 backdrop-blur-md sm:mx-8 lg:mx-0',
+                    !isFeatured && 'self-start', // Make non-featured card align to start
                     isFeatured
                       ? ''
                       : tierIdx === 0
                         ? 'lg:rounded-r-none lg:rounded-bl-3xl'
                         : 'lg:rounded-l-none lg:rounded-br-3xl',
-                    'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col'
+                    'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10'
                   )}
                 >
                   <div className="flex items-center gap-3 mb-3">
@@ -485,7 +485,7 @@ export default function LandingPage() {
                     <p className={cn(isFeatured ? 'text-white/70' : 'text-muted-foreground', 'text-sm -mt-1 mb-2')}>{tier.priceAnnotation}</p>
                   )}
 
-                  <p className={cn(isFeatured ? 'text-white/80' : 'text-muted-foreground', 'mt-3 text-sm/6', tier.id === 'tier-cultivador' ? '' : 'flex-grow')}>
+                  <p className={cn(isFeatured ? 'text-white/80' : 'text-muted-foreground', 'mt-3 text-sm/6', !isFeatured && 'flex-grow')}>
                     {tier.description}
                   </p>
                   <ul
@@ -493,7 +493,7 @@ export default function LandingPage() {
                     className={cn(
                       isFeatured ? 'text-white/80' : 'text-muted-foreground',
                       'mt-6 space-y-2.5 text-sm/6 sm:mt-8',
-                      tier.id === 'tier-cultivador' ? '' : 'flex-grow'
+                       !isFeatured && 'flex-grow' 
                     )}
                   >
                     {tier.features.map((feature) => (
@@ -506,18 +506,20 @@ export default function LandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    asChild
-                    size="lg"
+                  <Link
+                    href={tier.href}
+                    aria-describedby={tier.id}
                     className={cn(
-                      'w-full mt-auto',
-                      isFeatured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        buttonVariants({
+                            variant: isFeatured ? 'default' : 'default', // Both default, but featured will get accent bg
+                            size: 'lg',
+                        }),
+                        'w-full mt-auto', // Use mt-auto to push to bottom
+                        isFeatured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
-                    <Link href={tier.href} aria-describedby={tier.id}>
-                      Começar Agora
-                    </Link>
-                  </Button>
+                    Começar Agora
+                  </Link>
                 </div>
               )})}
             </div>
@@ -530,9 +532,9 @@ export default function LandingPage() {
                         ref={corporatePricingCardRef}
                         key={tier.id}
                         className={cn(
-                        'pricing-tier-corporate opacity-0 mt-8 mx-auto max-w-2xl w-full',
+                        'pricing-tier-corporate opacity-0 mt-8 mx-auto max-w-2xl w-full flex flex-col',
                         'bg-card/70 backdrop-blur-md',
-                        'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10 flex flex-col'
+                        'rounded-3xl p-8 ring-1 ring-white/20 sm:p-10'
                         )}
                     >
                         <div className="flex items-center gap-3 mb-3">
@@ -562,11 +564,13 @@ export default function LandingPage() {
                             </li>
                             ))}
                         </ul>
-                        <Button asChild size="lg" className={cn('w-full mt-auto', 'bg-primary text-primary-foreground hover:bg-primary/90')}>
-                            <Link href={tier.href} aria-describedby={tier.id}>
+                        <Link 
+                            href={tier.href} 
+                            aria-describedby={tier.id}
+                            className={cn(buttonVariants({variant: 'default', size: 'lg'}), 'w-full mt-auto bg-primary text-primary-foreground hover:bg-primary/90')}
+                        >
                             Contatar Vendas
-                            </Link>
-                        </Button>
+                        </Link>
                     </div>
                 );
             })()}
@@ -579,9 +583,9 @@ export default function LandingPage() {
                     <p className="text-white/80 mb-8">
                         Junte-se a milhares de usuários que estão transformando suas finanças com o {APP_NAME}. É rápido, fácil e gratuito para começar.
                     </p>
-                    <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                        <Link href="/signup">Criar Minha Conta Grátis</Link>
-                    </Button>
+                    <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>
+                        Criar Minha Conta Grátis
+                    </Link>
                  </div>
             </section>
           )}
@@ -601,4 +605,4 @@ export default function LandingPage() {
     </div>
   );
 }
-
+    
