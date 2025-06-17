@@ -121,7 +121,7 @@ export function SignupForm() {
        if (e.message?.includes("OAuthAccountNotLinked")) {
           friendlyError = "Esta conta já existe com outro método de login. Tente usar email e senha ou o método original."
        }
-       setError(friendlyError);
+       setFormError(friendlyError); // Corrigido aqui
        toast({ title: "Erro com Google", description: friendlyError, variant: "destructive" });
        setIsGoogleLoading(false);
     }
@@ -282,5 +282,3 @@ export function SignupForm() {
     </div>
   );
 }
-
-    
