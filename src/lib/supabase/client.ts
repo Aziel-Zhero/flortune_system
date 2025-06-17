@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrlFromEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKeyFromEnv = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+// Enhanced logging for debugging environment variable loading
 console.log('===================================================================================');
 console.log('[Supabase Client Env Check] Attempting to read environment variables...');
 console.log('[Supabase Client Env Check] Raw NEXT_PUBLIC_SUPABASE_URL from process.env:', `"${supabaseUrlFromEnv}"`);
