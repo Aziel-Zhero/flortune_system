@@ -1,21 +1,21 @@
 
--- Habilitar a extensão pgcrypto se ainda não estiver habilitada (necessária para uuid_generate_v4())
-CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA public;
+-- Certifique-se de que a extensão uuid-ossp está habilitada no schema 'extensions'
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
--- =================================================================
--- SCHEMA: next_auth (para o SupabaseAdapter do NextAuth.js)
--- Este schema e suas tabelas são gerenciados pelo SupabaseAdapter.
--- Referência: https://authjs.dev/reference/adapter/supabase
--- =================================================================
+--
+-- Schema: next_auth (para SupabaseAdapter do NextAuth.js)
+--
 CREATE SCHEMA IF NOT EXISTS next_auth;
 
 GRANT USAGE ON SCHEMA next_auth TO service_role;
 GRANT ALL ON SCHEMA next_auth TO postgres;
 
--- Tabela de Usuários do NextAuth
+--
+-- Tabela: next_auth.users
+--
 CREATE TABLE IF NOT EXISTS next_auth.users
 (
-    id uuid NOT NULL DEFAULT public.uuid_generate_v4(),
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(), -- Corrigido para usar extensions.
     name text,
     email text,
     "emailVerified" timestamp with time zone,
@@ -26,26 +26,12 @@ CREATE TABLE IF NOT EXISTS next_auth.users
 GRANT ALL ON TABLE next_auth.users TO postgres;
 GRANT ALL ON TABLE next_auth.users TO service_role;
 
-
--- Função UID do NextAuth (para RLS)
-CREATE OR REPLACE FUNCTION next_auth.uid() RETURNS uuid
-    LANGUAGE sql STABLE
-    AS $$
-  select
-    coalesce(
-        nullif(current_setting('request.jwt.claim.sub', true), ''),
-        (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
-    )::uuid
-$$;
-GRANT EXECUTE ON FUNCTION next_auth.uid() TO service_role;
-GRANT EXECUTE ON FUNCTION next_auth.uid() TO authenticated;
-GRANT EXECUTE ON FUNCTION next_auth.uid() TO anon;
-
-
--- Tabela de Sessões do NextAuth
+--
+-- Tabela: next_auth.sessions
+--
 CREATE TABLE IF NOT EXISTS next_auth.sessions
 (
-    id uuid NOT NULL DEFAULT public.uuid_generate_v4(),
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(), -- Corrigido
     expires timestamp with time zone NOT NULL,
     "sessionToken" text NOT NULL,
     "userId" uuid,
@@ -59,11 +45,12 @@ CREATE TABLE IF NOT EXISTS next_auth.sessions
 GRANT ALL ON TABLE next_auth.sessions TO postgres;
 GRANT ALL ON TABLE next_auth.sessions TO service_role;
 
-
--- Tabela de Contas OAuth do NextAuth
+--
+-- Tabela: next_auth.accounts
+--
 CREATE TABLE IF NOT EXISTS next_auth.accounts
 (
-    id uuid NOT NULL DEFAULT public.uuid_generate_v4(),
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(), -- Corrigido
     type text NOT NULL,
     provider text NOT NULL,
     "providerAccountId" text NOT NULL,
@@ -78,7 +65,7 @@ CREATE TABLE IF NOT EXISTS next_auth.accounts
     oauth_token text,
     "userId" uuid,
     CONSTRAINT accounts_pkey PRIMARY KEY (id),
-    CONSTRAINT provider_unique UNIQUE (provider, "providerAccountId"),
+    CONSTRAINT provider_account_unique UNIQUE (provider, "providerAccountId"),
     CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId")
         REFERENCES next_auth.users (id) MATCH SIMPLE
         ON UPDATE NO ACTION
@@ -87,110 +74,131 @@ CREATE TABLE IF NOT EXISTS next_auth.accounts
 GRANT ALL ON TABLE next_auth.accounts TO postgres;
 GRANT ALL ON TABLE next_auth.accounts TO service_role;
 
-
--- Tabela de Tokens de Verificação do NextAuth (para login por email mágico, se usado)
+--
+-- Tabela: next_auth.verification_tokens
+--
 CREATE TABLE IF NOT EXISTS next_auth.verification_tokens
 (
     identifier text,
     token text,
     expires timestamp with time zone NOT NULL,
-    CONSTRAINT verification_tokens_pkey PRIMARY KEY (token),
-    CONSTRAINT token_unique UNIQUE (token),
-    CONSTRAINT token_identifier_unique UNIQUE (token, identifier)
+    CONSTRAINT verification_tokens_pkey PRIMARY KEY (token, identifier) -- PK composta é mais comum aqui
+    -- CONSTRAINT token_unique UNIQUE (token), -- Redundante se token faz parte da PK
+    -- CONSTRAINT token_identifier_unique UNIQUE (token, identifier) -- Já coberto pela PK
 );
 GRANT ALL ON TABLE next_auth.verification_tokens TO postgres;
 GRANT ALL ON TABLE next_auth.verification_tokens TO service_role;
 
 
--- =================================================================
--- SCHEMA: public (para as tabelas da sua aplicação)
--- =================================================================
+--
+-- Função: next_auth.uid() - para uso em RLS policies
+--
+CREATE OR REPLACE FUNCTION next_auth.uid() RETURNS uuid
+    LANGUAGE sql STABLE
+    AS $$
+  select
+    coalesce(
+        nullif(current_setting('request.jwt.claim.sub', true), ''),
+        (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+    )::uuid
+$$;
 
--- Tabela de Perfis de Usuário (Flortune)
--- Esta tabela armazena informações adicionais do usuário e a senha hasheada para login por credenciais.
--- O 'id' aqui DEVE corresponder ao 'id' da tabela next_auth.users.
+
+--
+-- Schema: public (tabelas da aplicação)
+--
+
+--
+-- Tabela: public.profiles (para dados customizados do usuário, vinculada a next_auth.users)
+--
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id uuid NOT NULL PRIMARY KEY, -- FK para next_auth.users.id
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(), -- Chave primária, será o mesmo ID de next_auth.users.id
     full_name text,
     display_name text,
-    email text NOT NULL UNIQUE, -- Redundante mas útil para queries diretas e consistência
-    hashed_password text NOT NULL, -- Para login com credenciais
+    email text NOT NULL, -- Mantido para referência e consistência, mas o email canônico estará em next_auth.users
+    hashed_password text, -- Essencial para o CredentialsProvider
     phone text,
-    cpf_cnpj text UNIQUE,
+    cpf_cnpj text,
     rg text,
     avatar_url text,
     account_type text CHECK (account_type IN ('pessoa', 'empresa')),
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT fk_user_id FOREIGN KEY (id) REFERENCES next_auth.users(id) ON DELETE CASCADE
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT profiles_pkey PRIMARY KEY (id),
+    CONSTRAINT profiles_email_key UNIQUE (email), -- Email também deve ser único aqui
+    CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES next_auth.users(id) ON DELETE CASCADE -- Vincula ao next_auth.users
 );
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- Política de RLS para profiles:
--- 1. Permite que usuários anônimos criem seus perfis (necessário para o signup).
-CREATE POLICY "Allow anon to insert profiles"
-ON public.profiles
-FOR INSERT
-TO anon
-WITH CHECK (true);
-
--- 2. Permite que usuários autenticados leiam e atualizem SEU PRÓPRIO perfil.
-CREATE POLICY "Allow authenticated users to manage their own profile"
-ON public.profiles
-FOR ALL
-TO authenticated
-USING (next_auth.uid() = id)
-WITH CHECK (next_auth.uid() = id);
-
--- 3. (Opcional, para administradores) Permite que service_role acesse tudo.
--- CREATE POLICY "Allow service_role to manage all profiles"
--- ON public.profiles
--- FOR ALL
--- TO service_role
--- USING (true)
--- WITH CHECK (true);
-
+COMMENT ON TABLE public.profiles IS 'Stores custom user profile information, linked to next_auth.users.';
 GRANT ALL ON TABLE public.profiles TO postgres;
 GRANT ALL ON TABLE public.profiles TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO anon; -- Ajustado para ser mais permissivo temporariamente durante o signup
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO authenticated;
+-- RLS Policies para public.profiles
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Política: Usuários anônimos (anon role) podem criar seus próprios perfis (durante o cadastro)
+CREATE POLICY "Allow anon to insert their own profile"
+    ON public.profiles FOR INSERT
+    TO anon
+    WITH CHECK (true);
+
+-- Política: Usuários autenticados podem ler seus próprios perfis
+CREATE POLICY "Allow authenticated users to read their own profile"
+    ON public.profiles FOR SELECT
+    TO authenticated
+    USING (next_auth.uid() = id); -- next_auth.uid() obtém o ID do usuário do token JWT
+
+-- Política: Usuários autenticados podem atualizar seus próprios perfis
+CREATE POLICY "Allow authenticated users to update their own profile"
+    ON public.profiles FOR UPDATE
+    TO authenticated
+    USING (next_auth.uid() = id)
+    WITH CHECK (next_auth.uid() = id);
+
+-- Política (Opcional): Usuários autenticados podem ler o email para verificação de existência (usado no signup)
+-- Considere cuidadosamente as implicações de segurança. Uma alternativa é tratar o erro de constraint UNIQUE.
+-- Se a função de signup já tenta inserir e trata o erro de email duplicado, esta policy pode não ser estritamente necessária
+-- e pode ser removida para maior privacidade.
+CREATE POLICY "Allow anon to select email for signup check"
+    ON public.profiles FOR SELECT
+    TO anon
+    USING (true); -- Permite SELECT em todos os emails por anon; RESTRinja se possível.
+    -- Se esta policy for muito permissiva, a lógica de signup pode tentar inserir e capturar o erro de violação de constraint UNIQUE no email.
 
 
--- Tabela de Categorias
+--
+-- Tabela: public.categories
+--
 CREATE TABLE IF NOT EXISTS public.categories (
-    id uuid NOT NULL DEFAULT public.uuid_generate_v4() PRIMARY KEY,
-    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE, -- Nulo para categorias padrão
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE, -- Pode ser nulo para categorias padrão
     name text NOT NULL,
     type text NOT NULL CHECK (type IN ('income', 'expense')),
     icon text,
     is_default boolean NOT NULL DEFAULT false,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT categories_pkey PRIMARY KEY (id),
+    CONSTRAINT categories_user_name_type_unique UNIQUE (user_id, name, type) -- Evita categorias duplicadas para o mesmo usuário
 );
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow public read access to default categories"
-ON public.categories
-FOR SELECT
-TO anon, authenticated
-USING (is_default = true);
-
-CREATE POLICY "Allow users to manage their own categories"
-ON public.categories
-FOR ALL
-TO authenticated
-USING (user_id = next_auth.uid())
-WITH CHECK (user_id = next_auth.uid());
-
+COMMENT ON TABLE public.categories IS 'Stores user-defined and default financial categories.';
 GRANT ALL ON TABLE public.categories TO postgres;
 GRANT ALL ON TABLE public.categories TO service_role;
-GRANT SELECT ON TABLE public.categories TO anon;
-GRANT ALL ON TABLE public.categories TO authenticated;
+-- RLS Policies para public.categories
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated users to manage their own categories"
+    ON public.categories FOR ALL
+    TO authenticated
+    USING (user_id = next_auth.uid())
+    WITH CHECK (user_id = next_auth.uid());
+CREATE POLICY "Allow all users to read default categories"
+    ON public.categories FOR SELECT
+    USING (is_default = true);
 
 
--- Tabela de Transações
+--
+-- Tabela: public.transactions
+--
 CREATE TABLE IF NOT EXISTS public.transactions (
-    id uuid NOT NULL DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL,
     description text NOT NULL,
@@ -198,53 +206,55 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     date date NOT NULL,
     type text NOT NULL CHECK (type IN ('income', 'expense')),
     notes text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT transactions_pkey PRIMARY KEY (id)
 );
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow users to manage their own transactions"
-ON public.transactions
-FOR ALL
-TO authenticated
-USING (user_id = next_auth.uid())
-WITH CHECK (user_id = next_auth.uid());
-
+COMMENT ON TABLE public.transactions IS 'Stores individual financial transactions.';
 GRANT ALL ON TABLE public.transactions TO postgres;
 GRANT ALL ON TABLE public.transactions TO service_role;
-GRANT ALL ON TABLE public.transactions TO authenticated;
+-- RLS Policies para public.transactions
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated users to manage their own transactions"
+    ON public.transactions FOR ALL
+    TO authenticated
+    USING (user_id = next_auth.uid())
+    WITH CHECK (user_id = next_auth.uid());
 
 
--- Tabela de Orçamentos
+--
+-- Tabela: public.budgets
+--
 CREATE TABLE IF NOT EXISTS public.budgets (
-    id uuid NOT NULL DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id uuid NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
     limit_amount numeric(12, 2) NOT NULL,
     spent_amount numeric(12, 2) NOT NULL DEFAULT 0.00,
     period_start_date date NOT NULL,
     period_end_date date NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT unique_user_category_period UNIQUE (user_id, category_id, period_start_date)
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT budgets_pkey PRIMARY KEY (id),
+    CONSTRAINT budgets_user_category_period_unique UNIQUE (user_id, category_id, period_start_date)
 );
-ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow users to manage their own budgets"
-ON public.budgets
-FOR ALL
-TO authenticated
-USING (user_id = next_auth.uid())
-WITH CHECK (user_id = next_auth.uid());
-
+COMMENT ON TABLE public.budgets IS 'Stores user-defined budgets for categories over periods.';
 GRANT ALL ON TABLE public.budgets TO postgres;
 GRANT ALL ON TABLE public.budgets TO service_role;
-GRANT ALL ON TABLE public.budgets TO authenticated;
+-- RLS Policies para public.budgets
+ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated users to manage their own budgets"
+    ON public.budgets FOR ALL
+    TO authenticated
+    USING (user_id = next_auth.uid())
+    WITH CHECK (user_id = next_auth.uid());
 
 
--- Tabela de Metas Financeiras
+--
+-- Tabela: public.financial_goals
+--
 CREATE TABLE IF NOT EXISTS public.financial_goals (
-    id uuid NOT NULL DEFAULT public.uuid_generate_v4() PRIMARY KEY,
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name text NOT NULL,
     target_amount numeric(12, 2) NOT NULL,
@@ -252,96 +262,75 @@ CREATE TABLE IF NOT EXISTS public.financial_goals (
     deadline_date date,
     icon text,
     notes text,
-    status text NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'achieved', 'cancelled')),
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    status text NOT NULL DEFAULT 'in_progress'::text CHECK (status IN ('in_progress', 'achieved', 'cancelled')),
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT financial_goals_pkey PRIMARY KEY (id)
 );
-ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow users to manage their own financial goals"
-ON public.financial_goals
-FOR ALL
-TO authenticated
-USING (user_id = next_auth.uid())
-WITH CHECK (user_id = next_auth.uid());
-
+COMMENT ON TABLE public.financial_goals IS 'Stores user financial goals and tracks their progress.';
 GRANT ALL ON TABLE public.financial_goals TO postgres;
 GRANT ALL ON TABLE public.financial_goals TO service_role;
-GRANT ALL ON TABLE public.financial_goals TO authenticated;
+-- RLS Policies para public.financial_goals
+ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated users to manage their own financial goals"
+    ON public.financial_goals FOR ALL
+    TO authenticated
+    USING (user_id = next_auth.uid())
+    WITH CHECK (user_id = next_auth.uid());
 
--- Trigger para criar um perfil em public.profiles quando um usuário é criado em next_auth.users
--- Isso é crucial para OAuth (ex: Google login) e também para garantir que o ID seja o mesmo.
+--
+-- Trigger: handle_new_user_from_next_auth (para popular public.profiles quando um usuário do NextAuth é criado)
+--
 CREATE OR REPLACE FUNCTION public.handle_new_user_from_next_auth()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, hashed_password, account_type)
-  VALUES (
-    NEW.id, 
-    NEW.email,
-    NEW.name, -- SupabaseAdapter mapeia 'name' do Google para 'name' aqui
-    NEW.name, -- Pode ser o mesmo inicialmente
-    NEW.image, -- SupabaseAdapter mapeia 'picture' do Google para 'image' aqui
-    md5(random()::text || clock_timestamp()::text)::uuid::text, -- Placeholder para hashed_password, já que OAuth não fornece
-    'pessoa' -- Default account type, pode ser atualizado depois
-  )
-  ON CONFLICT (id) DO NOTHING; -- Não faz nada se o perfil já existir (ex: criado por credenciais primeiro)
-  RETURN NEW;
+    -- Insere um novo perfil em public.profiles com o id e email do novo usuário em next_auth.users
+    -- Outros campos como nome e avatar podem vir do perfil do provedor OAuth, se disponíveis.
+    -- hashed_password será nulo aqui, pois o CredentialsProvider lida com isso separadamente.
+    INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type)
+    VALUES (
+        NEW.id, 
+        NEW.email,
+        NEW.name, -- Pode ser o nome do Google, ou nulo
+        NEW.name, -- Repete, ou pode ser ajustado
+        NEW.image, -- Pode ser a imagem do Google, ou nulo
+        'pessoa' -- Define 'pessoa' como padrão para logins OAuth, pode ser ajustado depois pelo usuário
+    )
+    ON CONFLICT (id) DO NOTHING; -- Se já existir um perfil com esse ID (improvável, mas seguro)
+    -- ON CONFLICT (email) DO NOTHING; -- Se o email já existir em public.profiles, não faz nada (o usuário pode ter se cadastrado por credenciais antes)
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Criar o trigger na tabela next_auth.users
+DROP TRIGGER IF EXISTS on_next_auth_user_created ON next_auth.users; -- Remove o trigger antigo se existir
 CREATE TRIGGER on_next_auth_user_created
-  AFTER INSERT ON next_auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_from_next_auth();
-  
--- Função para atualizar `updated_at` automaticamente
-CREATE OR REPLACE FUNCTION public.trigger_set_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+    AFTER INSERT ON next_auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_from_next_auth();
 
--- Aplicar trigger às tabelas
-CREATE TRIGGER set_profiles_updated_at
-BEFORE UPDATE ON public.profiles
-FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
-
-CREATE TRIGGER set_categories_updated_at
-BEFORE UPDATE ON public.categories
-FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
-
-CREATE TRIGGER set_transactions_updated_at
-BEFORE UPDATE ON public.transactions
-FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
-
-CREATE TRIGGER set_budgets_updated_at
-BEFORE UPDATE ON public.budgets
-FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
-
-CREATE TRIGGER set_financial_goals_updated_at
-BEFORE UPDATE ON public.financial_goals
-FOR EACH ROW EXECUTE FUNCTION public.trigger_set_timestamp();
+COMMENT ON TRIGGER on_next_auth_user_created ON next_auth.users IS 'When a user is created in next_auth.users (e.g. via OAuth), this trigger creates a corresponding entry in public.profiles.';
 
 
--- Verificações finais após executar o script completo
-SELECT 'Script SQL executado. Verificações abaixo:' as script_status;
+-- QUERIES DE VERIFICAÇÃO (para ver o resultado no Supabase SQL Editor após executar o script)
+SELECT 'Schema next_auth e tabelas públicas configuradas.' as status_geral;
 
--- 1. Verificar se o schema next_auth foi criado
 SELECT schema_name 
 FROM information_schema.schemata 
 WHERE schema_name = 'next_auth';
 
--- 2. Verificar se a tabela next_auth.users existe e contar linhas (deve ser 0 se acabou de criar)
-SELECT COUNT(*) as next_auth_users_count 
+SELECT COUNT(*) as next_auth_tables_count 
 FROM pg_tables 
-WHERE schemaname = 'next_auth' AND tablename = 'users';
+WHERE schemaname = 'next_auth';
+-- Deve retornar 4 (users, sessions, accounts, verification_tokens)
 
--- 3. Verificar se a tabela public.profiles existe e a coluna 'email' está presente
 SELECT column_name, data_type 
 FROM information_schema.columns 
 WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'email';
+-- Deve retornar 'email' e 'text'
 
-SELECT 'Fim das verificações.' as script_end_status;
-
+SELECT tgname as trigger_name
+FROM pg_trigger
+WHERE tgrelid = 'next_auth.users'::regclass AND tgname = 'on_next_auth_user_created';
+-- Deve retornar 'on_next_auth_user_created' se o trigger foi criado corretamente
+    
     
