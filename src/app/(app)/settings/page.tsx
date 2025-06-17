@@ -10,21 +10,27 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save } from "lucide-react";
-import { useAuth, type Profile } from '@/contexts/auth-context'; // Usar o hook de autenticação
+import { useSession, signOut } from "next-auth/react"; // Usar useSession
+import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
-import { logoutUser } from '@/app/actions/auth.actions';
+// import { logoutUser } from '@/app/actions/auth.actions'; // Usaremos signOut do NextAuth
 import { APP_NAME } from '@/lib/constants';
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client'; // Para atualizar perfil no DB
+import type { Profile } from '@/types/database.types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
-  const { user, profile, setProfile, isLoading: authLoading, appSettings } = useAuth();
-  const { isDarkMode, toggleDarkMode } = appSettings;
+  const { data: session, status, update: updateSession } = useSession();
+  const { isDarkMode, toggleDarkMode } = useAppSettings(); // Mantém AppSettings para tema
+
+  const isLoading = status === "loading";
+  const userFromSession = session?.user;
+  const profileFromSession = session?.user?.profile;
 
   const [fullName, setFullName] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(""); // Email não será editável
   const [phone, setPhone] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [rg, setRg] = useState("");
@@ -39,49 +45,58 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name || "");
-      setDisplayName(profile.display_name || "");
-      setPhone(profile.phone || "");
-      setCpfCnpj(profile.cpf_cnpj || "");
-      setRg(profile.rg || "");
-      setAvatarUrl(profile.avatar_url || user?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${(profile.display_name || user?.email)?.charAt(0)?.toUpperCase() || 'U'}`);
-      setAvatarFallback((profile.display_name || user?.email)?.charAt(0)?.toUpperCase() || "U");
+    if (profileFromSession) {
+      setFullName(profileFromSession.full_name || "");
+      setDisplayName(profileFromSession.display_name || "");
+      setPhone(profileFromSession.phone || "");
+      setCpfCnpj(profileFromSession.cpf_cnpj || "");
+      setRg(profileFromSession.rg || "");
+      setAvatarUrl(profileFromSession.avatar_url || session?.user?.image || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || 'U'}`);
+      setAvatarFallback((profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || "U");
     }
-    if (user) {
-      setEmail(user.email || "");
+    if (session?.user?.email) {
+      setEmail(session.user.email);
     }
-  }, [profile, user]);
+  }, [profileFromSession, session?.user?.image, session?.user?.name, session?.user?.email]);
 
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user) {
+    if (!userFromSession?.id) { // Agora verificamos o ID da sessão NextAuth
       toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
       return;
     }
     setIsSavingProfile(true);
     try {
-      const updatedProfileData: Partial<Profile> = {
+      const updatedProfileData: Partial<Omit<Profile, 'id' | 'created_at' | 'hashed_password' | 'email'>> & {updated_at: string} = {
         full_name: fullName,
         display_name: displayName,
         phone,
         cpf_cnpj: cpfCnpj,
         rg,
-        // avatar_url: avatarUrl, // A atualização do avatar_url geralmente é um processo separado (upload de arquivo)
+        // avatar_url: avatarUrl, // Atualização de avatar é mais complexa
         updated_at: new Date().toISOString(),
       };
 
       const { data, error } = await supabase
         .from('profiles')
         .update(updatedProfileData)
-        .eq('id', user.id)
+        .eq('id', userFromSession.id) // Usa o ID do usuário da sessão NextAuth
         .select()
         .single();
 
       if (error) throw error;
 
       if (data) {
-        setProfile(data as Profile); // Atualiza o perfil no contexto
+        // Atualizar a sessão do NextAuth com o novo perfil
+        await updateSession({
+          ...session,
+          user: {
+            ...session?.user,
+            name: data.display_name || data.full_name,
+            image: data.avatar_url, // Se o avatar fosse atualizado
+            profile: data as Profile,
+          }
+        });
         toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso." });
       }
     } catch (error: any) {
@@ -94,7 +109,7 @@ export default function SettingsPage() {
   
   const handleLogout = async () => {
     toast({ title: "Saindo...", description: "Você está sendo desconectado." });
-    await logoutUser(); 
+    await signOut({ callbackUrl: '/login?logout=success' }); 
   };
 
   const handleFeatureClick = (featureName: string, isPlaceholder: boolean = true) => {
@@ -105,8 +120,7 @@ export default function SettingsPage() {
     });
   };
 
-
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <PageHeader title="Configurações" description="Gerencie sua conta, preferências e configurações do aplicativo."/>
@@ -116,6 +130,11 @@ export default function SettingsPage() {
       </div>
     );
   }
+  
+  if (!session) {
+    return <p>Redirecionando para o login...</p>;
+  }
+
 
   return (
     <div className="space-y-8">
@@ -152,7 +171,7 @@ export default function SettingsPage() {
               <div>
                 <Label htmlFor="email">Endereço de Email</Label>
                 <Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" />
-                <p className="text-xs text-muted-foreground mt-1">O email não pode ser alterado após o cadastro.</p>
+                <p className="text-xs text-muted-foreground mt-1">O email não pode ser alterado.</p>
               </div>
               <div>
                 <Label htmlFor="phone">Telefone</Label>
@@ -223,10 +242,10 @@ export default function SettingsPage() {
              <Label htmlFor="two-factor-auth" className="flex flex-col space-y-1 cursor-pointer">
               <span>Autenticação de Dois Fatores</span>
               <span className="font-normal leading-snug text-muted-foreground">
-                Adicione uma camada extra de segurança à sua conta.
+                Adicione uma camada extra de segurança à sua conta. (Em Breve)
               </span>
             </Label>
-            <Switch id="two-factor-auth" onCheckedChange={(checked) => handleFeatureClick(`Autenticação de Dois Fatores ${checked ? "ativada" : "desativada"}`, false)} />
+            <Switch id="two-factor-auth" disabled onCheckedChange={(checked) => handleFeatureClick(`Autenticação de Dois Fatores ${checked ? "ativada" : "desativada"}`, false)} />
           </div>
         </CardContent>
       </Card>
@@ -274,11 +293,11 @@ export default function SettingsPage() {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Share2 className="mr-2 h-5 w-5 text-primary"/>Compartilhamento e Colaboração</CardTitle>
-          <CardDescription>Gerencie módulos compartilhados e acesso colaborativo.</CardDescription>
+          <CardDescription>Gerencie módulos compartilhados e acesso colaborativo. (Em Breve)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">Gerencie com quem você compartilha módulos financeiros e suas permissões.</p>
-          <Button variant="outline" onClick={() => setIsShareModalOpen(true)}>Gerenciar Módulos Compartilhados</Button>
+          <Button variant="outline" onClick={() => setIsShareModalOpen(true)} disabled>Gerenciar Módulos Compartilhados</Button>
         </CardContent>
       </Card>
 

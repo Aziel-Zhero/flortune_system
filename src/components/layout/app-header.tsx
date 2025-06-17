@@ -6,14 +6,15 @@ import { Leaf, Eye, EyeOff, Search, Bell, Menu } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserNav } from "./user-nav";
-import { useAuth } from "@/contexts/auth-context"; // Usar o hook de autenticação e app settings
+import { UserNav } from "./user-nav"; // UserNav agora usa useSession
+import { useAppSettings } from "@/contexts/app-settings-context"; // Importa useAppSettings
 import { cn } from "@/lib/utils";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+// useAuth não é mais necessário aqui, pois appSettings vem de seu próprio contexto.
+// E UserNav lida com a sessão internamente.
 
 export function AppHeader() {
-  const { appSettings } = useAuth(); // Obter isPrivateMode e togglePrivateMode de appSettings no AuthContext
-  const { isPrivateMode, togglePrivateMode } = appSettings;
+  const { isPrivateMode, togglePrivateMode } = useAppSettings(); // Obter do AppSettingsContext
   const { isMobile, setOpenMobile } = useSidebar(); 
 
   return (

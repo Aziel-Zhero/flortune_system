@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
-import { useAuth } from "@/contexts/auth-context"; // Usar o hook de autenticação
-import { Skeleton } from "@/components/ui/skeleton"; // Para loading state
+import { useSession } from "next-auth/react"; // Usar useSession do NextAuth
+import { Skeleton } from "@/components/ui/skeleton"; 
 
 const summaryData = [
   { title: "Saldo Total", value: 12345.67, icon: DollarSign, trend: "+2,5%", trendColor: "text-emerald-500" },
@@ -30,7 +30,9 @@ const recentTransactions = [
 ];
 
 export default function DashboardPage() {
-  const { profile, isLoading: authLoading } = useAuth();
+  const { data: session, status } = useSession();
+  const isLoading = status === "loading";
+  const profile = session?.user?.profile; // Perfil do usuário da sessão NextAuth
 
   const handleViewAllInsights = () => {
     console.log("Botão 'Ver Todos os Insights' clicado.");
@@ -41,9 +43,10 @@ export default function DashboardPage() {
     document.title = `Painel - ${APP_NAME}`;
   }, []);
 
-  const welcomeName = profile?.display_name?.split(" ")[0] || profile?.full_name?.split(" ")[0] || "Usuário";
+  // Ajusta para pegar o nome do perfil ou do usuário da sessão
+  const welcomeName = profile?.display_name || profile?.full_name?.split(" ")[0] || session?.user?.name?.split(" ")[0] || "Usuário";
 
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
@@ -107,6 +110,13 @@ export default function DashboardPage() {
       </div>
     );
   }
+  
+  if (!session) {
+    // Isso não deveria acontecer se AppLayout estiver protegendo corretamente,
+    // mas é uma boa prática ter um fallback.
+    return <p>Redirecionando para o login...</p>;
+  }
+
 
   return (
     <div className="flex flex-col gap-6">

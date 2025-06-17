@@ -4,6 +4,7 @@
 import Link from "next/link"; 
 import { usePathname } from "next/navigation"; 
 import * as LucideIcons from "lucide-react";
+import { useSession } from "next-auth/react"; // Importa useSession do NextAuth
 
 import { cn } from "@/lib/utils";
 import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkIconName } from "@/lib/constants";
@@ -19,10 +20,11 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button"; // Não usado diretamente aqui
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/auth-context"; // Usar o hook de autenticação
+import { Skeleton } from "@/components/ui/skeleton";
+// useAuth (antigo) não é mais necessário
 
 const getIcon = (iconName: NavLinkIconName): React.ElementType => {
   return LucideIcons[iconName as keyof typeof LucideIcons] || LucideIcons.HelpCircle;
@@ -30,10 +32,10 @@ const getIcon = (iconName: NavLinkIconName): React.ElementType => {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, profile, isLoading: authLoading } = useAuth(); // Obter dados do usuário
+  const { data: session, status } = useSession(); // Usa o hook useSession
   const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
 
-  const isLoading = authLoading; // Usar o isLoading do AuthContext
+  const isLoading = status === "loading"; // Usa o status do useSession
   const skeletonItems = Array(5).fill(0);
 
   const closeMobileSidebar = () => {
@@ -42,8 +44,11 @@ export function AppSidebar() {
     }
   };
   
-  const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
-  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`;
+  const user = session?.user;
+  const userProfile = user?.profile; // Perfil aninhado na sessão
+
+  const displayName = userProfile?.display_name || user?.name || "Usuário";
+  const avatarUrl = userProfile?.avatar_url || user?.image || `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`;
   const avatarFallback = displayName.charAt(0).toUpperCase();
 
   return (
@@ -104,9 +109,6 @@ export function AppSidebar() {
                         <span className="text-sm font-medium font-headline">{displayName}</span>
                         <span className="text-xs text-muted-foreground">Conta Pessoal</span>
                     </div>
-                    {/* <Button variant="ghost" size="icon" className="ml-auto h-8 w-8">
-                        <LucideIcons.ChevronsUpDown className="h-4 w-4"/>
-                    </Button> */}
                 </div>
             </SidebarFooter>
             <SidebarFooter className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">

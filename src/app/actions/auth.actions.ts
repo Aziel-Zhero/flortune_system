@@ -3,9 +3,12 @@
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
+import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from '@/app/api/auth/[...nextauth]/route'; // Importa de authConfig
 import { supabase } from '@/lib/supabase/client';
-import type { Provider } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
+import type { Profile } from "@/types/database.types";
 
+// Esquemas Zod permanecem os mesmos para validação de formulário
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
   .regex(/[a-z]/, { message: "A senha deve conter pelo menos uma letra minúscula." })
@@ -15,7 +18,7 @@ const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos
 
 const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, { message: "A senha é obrigatória." }), // Senha não pode ser vazia, mas a validação de complexidade é mais para o cadastro
+  password: z.string().min(1, { message: "A senha é obrigatória." }),
 });
 
 const signupSchemaBase = z.object({
@@ -56,7 +59,7 @@ const signupSchema = signupSchemaBase.refine(data => data.password === data.conf
 })
 .refine(data => {
     if (data.accountType === 'empresa') {
-        return !!data.phone && data.phone.trim() !== '' && data.phone.replace(/\D/g, '').length >= 10; // Validação simples de telefone
+        return !!data.phone && data.phone.trim() !== '' && data.phone.replace(/\D/g, '').length >= 10;
     }
     return true;
 }, {
@@ -66,7 +69,7 @@ const signupSchema = signupSchemaBase.refine(data => data.password === data.conf
 .refine(data => {
     if (data.accountType === 'pessoa' && data.rg) {
         const rgCleaned = data.rg.replace(/[^0-9Xx]/gi, '');
-        return rgCleaned.length >= 5 && rgCleaned.length <= 10; // Ajustado para um intervalo mais comum
+        return rgCleaned.length >= 5 && rgCleaned.length <= 10;
     }
     return true;
 }, {
@@ -86,57 +89,70 @@ export type LoginFormState = {
 };
 
 export async function loginUser(prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
-  console.log("loginUser action: Iniciando processo de login...");
+  console.log("loginUser action (NextAuth): Iniciando processo de login...");
   try {
     const validatedFields = loginSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validatedFields.success) {
-      console.warn("loginUser action: Validação falhou.", validatedFields.error.flatten().fieldErrors);
       return {
         errors: validatedFields.error.flatten().fieldErrors,
-        message: "Campos inválidos. Por favor, verifique seus dados.",
+        message: "Campos inválidos.",
         success: false,
       };
     }
     
     const { email, password } = validatedFields.data;
-    console.log(`loginUser action: Tentando login para o email: ${email}`);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    // Usar o signIn do NextAuth para o provider 'credentials'
+    // O redirecionamento é tratado pelo NextAuth por padrão em caso de sucesso.
+    // Erros são retornados para o callback 'authorize' e podem ser pegos aqui se o signIn falhar.
+    await nextAuthSignIn('credentials', {
+      email,
+      password,
+      redirect: false, // Importante: define como false para lidar com o resultado aqui
+    });
+    
+    // Se nextAuthSignIn não lançar um erro e redirect for false, o login pode ou não ter sido bem-sucedido.
+    // O 'authorize' callback em auth.ts é quem realmente valida.
+    // Para dar feedback aqui, precisaríamos de uma forma de saber o resultado de 'authorize'.
+    // Uma maneira é o authorize lançar um erro customizado que o nextAuthSignIn propaga.
+    // Por agora, se não houver erro, assumimos que o NextAuth redirecionará se for sucesso,
+    // ou a página de login mostrará um erro vindo de um query param ?error=CredentialsSignin
+    // Para um controle mais fino, muitas vezes a lógica de chamada ao signIn é feita no lado do cliente.
+    // Vamos assumir que se chegou aqui sem erro do signIn, e redirect:true (padrão) fosse usado, o NextAuth lidaria.
+    // Com redirect:false, o fluxo continua aqui. Precisamos verificar se a sessão foi criada.
+    // No entanto, a maneira mais idiomática do NextAuth é deixar ele lidar com o redirect.
+    // Para manter o padrão de Server Action, o ideal seria que `nextAuthSignIn` retornasse um status ou lançasse erro.
 
-    if (error) {
-      console.error("loginUser action: Erro do Supabase ao tentar signInWithPassword:", error);
-      let userMessage = "Falha no login. Verifique suas credenciais.";
-      if (error.message.includes("Email not confirmed")) {
-        userMessage = "Seu email ainda não foi confirmado. Por favor, verifique sua caixa de entrada.";
-      } else if (error.message.includes("Invalid login credentials")) {
-        userMessage = "Email ou senha inválidos. Por favor, tente novamente.";
-      }
+    // Se você usar `redirect: true` (ou omitir), NextAuth redireciona para `callbackUrl` (padrão `/`) ou `pages.signIn` em erro.
+    // Como estamos em uma Server Action e queremos retornar um estado, `redirect: false` é mais complexo.
+    // Vamos tentar com redirecionamento direto.
+    
+    await nextAuthSignIn('credentials', {
+      email,
+      password,
+      redirectTo: '/dashboard', // Redireciona para o dashboard em sucesso
+    });
+    // Se o login falhar, o NextAuth geralmente redireciona para a página de login com um erro na URL.
+    // ex: /login?error=CredentialsSignin
+
+    // A linha abaixo não será alcançada se o signIn redirecionar ou lançar erro que redireciona.
+    return { message: "Tentativa de login processada.", success: true }; 
+
+  } catch (error: any) {
+    // NextAuth pode lançar erros específicos.
+    // O erro "CredentialsSignin" é comum e pode ser tratado.
+    if (error.type === 'CredentialsSignin' || (error.cause && error.cause.type === 'CredentialsSigninError')) {
+      console.error("loginUser action (NextAuth): Erro de credenciais:", error.message);
       return {
-        message: userMessage,
-        errors: { _form: [userMessage] },
+        message: "Email ou senha inválidos.",
+        errors: { _form: ["Email ou senha inválidos."] },
         success: false,
       };
     }
-
-    if (!data.session) {
-        console.error("loginUser action: Login bem-sucedido (sem erro), mas NENHUMA SESSÃO retornada. Usuário:", data.user);
-        return {
-            message: "Login falhou em estabelecer uma sessão. Tente novamente ou contate o suporte.",
-            errors: { _form: ["Não foi possível iniciar a sessão."] },
-            success: false,
-        };
-    }
-    
-    console.log("loginUser action: Login bem-sucedido! Sessão:", data.session?.id, "Usuário:", data.user?.id);
-    redirect('/dashboard');
-
-  } catch (error: any) {
-    if (error.digest?.startsWith('NEXT_REDIRECT')) {
-      throw error;
-    }
-    console.error("loginUser action: Erro inesperado durante o login:", error);
+    console.error("loginUser action (NextAuth): Erro inesperado durante o login:", error);
     return {
-      message: "Ocorreu um erro inesperado durante o login. Tente novamente.",
+      message: "Ocorreu um erro inesperado. Tente novamente.",
       errors: { _form: ["Falha no login devido a um erro no servidor."] },
       success: false,
     };
@@ -162,8 +178,8 @@ export type SignupFormState = {
 };
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
-  console.log("signupUser action: Iniciando processo de cadastro...");
- try {
+  console.log("signupUser action (NextAuth): Iniciando processo de cadastro...");
+  try {
     const rawData = Object.fromEntries(formData.entries());
     if (rawData.cpf === '') rawData.cpf = undefined;
     if (rawData.cnpj === '') rawData.cnpj = undefined;
@@ -173,161 +189,101 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     const validatedFields = signupSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
-      console.warn("signupUser action: Validação falhou.", validatedFields.error.flatten().fieldErrors);
       return {
         errors: validatedFields.error.flatten().fieldErrors,
-        message: "Campos inválidos. Por favor, verifique seus dados.",
+        message: "Campos inválidos.",
         success: false,
       };
     }
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
-    console.log(`signupUser action: Tentando cadastrar email: ${email}, Tipo de conta: ${accountType}`);
 
-    let cpfCnpjValue: string | null = null;
-    if (accountType === 'pessoa' && cpf) {
-      cpfCnpjValue = cpf.replace(/\D/g, ''); 
-    } else if (accountType === 'empresa' && cnpj) {
-      cpfCnpjValue = cnpj.replace(/\D/g, ''); 
+    // Verificar se o email já existe na tabela profiles
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('email', email)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = zero rows
+      console.error("signupUser action (NextAuth): Erro ao verificar perfil existente:", fetchError);
+      return { message: "Erro ao verificar dados. Tente novamente.", success: false };
     }
 
-    const rgValue = (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null;
-    const phoneValue = phone ? phone.replace(/\D/g, '') : null;
-
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { 
-          full_name: fullName,
-          display_name: displayName,
-          phone: phoneValue, 
-          cpf_cnpj: cpfCnpjValue,
-          rg: rgValue,
-          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-        },
-         emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9003'}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      console.error("signupUser action: Erro do Supabase ao tentar signUp:", error);
-      if (error.message.toLowerCase().includes("invalid api key") || error.message.toLowerCase().includes("failed to fetch")) {
-         return {
-            message: "Falha na comunicação com o servidor de autenticação. Verifique sua conexão e as configurações de API do Supabase.",
-            errors: { _form: ["Erro de configuração ou conexão com o serviço de autenticação."] },
-            success: false,
-        };
-      }
-      if (error.message.includes("User already registered")) {
-         return {
-            message: "Este email já está registrado. Tente fazer login ou recuperar sua senha.",
-            errors: { email: ["Email já cadastrado."] },
-            success: false,
-        };
-      }
+    if (existingProfile) {
       return {
-        message: error.message || "Falha ao criar conta.",
-        errors: { _form: [error.message || "Falha ao criar conta."] },
+        errors: { email: ["Este email já está registrado."] },
+        message: "Este email já está registrado.",
         success: false,
       };
     }
 
-    if (signUpData.user && signUpData.user.identities && signUpData.user.identities.length === 0) {
-      console.warn("signupUser action: Usuário criado, mas identities está vazio (pode indicar que o email já existe mas não confirmado).", signUpData.user);
-      return {
-          message: "Este email já está registrado ou ocorreu um problema. Se você já se cadastrou, verifique seu email para confirmação ou tente fazer login.",
-          errors: { email: ["Email já registrado ou necessita confirmação."] },
-          success: false,
-      };
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    let cpfCnpjValue: string | null = null;
+    if (accountType === 'pessoa' && cpf) cpfCnpjValue = cpf.replace(/\D/g, ''); 
+    else if (accountType === 'empresa' && cnpj) cpfCnpjValue = cnpj.replace(/\D/g, ''); 
+
+    const rgValue = (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null;
+    const phoneValue = phone ? phone.replace(/\D/g, '') : null;
+
+    // Supabase agora é apenas para armazenar o perfil. O ID será gerado pelo Supabase.
+    // NextAuth não cria o usuário no DB automaticamente com Credentials provider.
+    const newProfileData: Omit<Profile, 'id' | 'created_at' | 'updated_at'> & { hashed_password: string, email: string } = {
+        full_name: fullName,
+        display_name: displayName,
+        email: email, // Adicionando email ao perfil
+        hashed_password: hashedPassword,
+        phone: phoneValue,
+        cpf_cnpj: cpfCnpjValue,
+        rg: rgValue,
+        avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
+        // Outros campos do perfil como accountType podem ser adicionados se a tabela `profiles` os tiver
+    };
+    
+    // Insere na tabela profiles. O user_id será o id da tabela profiles.
+    const { data: createdProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert(newProfileData)
+        .select()
+        .single();
+
+    if (insertError) {
+        console.error("signupUser action (NextAuth): Erro ao criar perfil no Supabase:", insertError);
+        return { message: "Falha ao criar conta (DB). Tente novamente.", success: false, errors: {_form: [insertError.message]} };
     }
     
-    if (signUpData.user && !signUpData.session) {
-        // Isso é esperado se a confirmação de email estiver habilitada
-        console.log("signupUser action: Cadastro bem-sucedido! Usuário criado, aguardando confirmação de email. ID do usuário:", signUpData.user.id);
-        redirect('/login?signup=success_email_confirmation');
-    } else if (signUpData.user && signUpData.session) {
-        // Isso é esperado se a confirmação de email estiver DESABILITADA
-        console.log("signupUser action: Cadastro e login bem-sucedidos (sem confirmação de email)! ID do usuário:", signUpData.user.id, "ID da sessão:", signUpData.session.id);
-        redirect('/dashboard');
-    } else {
-        console.error("signupUser action: Situação inesperada após signUp. Nenhum usuário ou sessão.", signUpData);
-         return {
-            message: "Ocorreu uma situação inesperada durante o cadastro. Tente novamente.",
-            errors: { _form: ["Falha no cadastro."] },
-            success: false,
-        };
+    if (!createdProfile) {
+        return { message: "Falha ao criar perfil após inserção. Tente novamente.", success: false };
     }
+
+    console.log("signupUser action (NextAuth): Perfil criado com ID:", createdProfile.id);
+    
+    // Após o cadastro bem-sucedido, redireciona para o login
+    // Ou pode tentar logar o usuário automaticamente, mas é mais simples redirecionar.
+    redirect('/login?signup=success');
 
   } catch (error: any) {
     if (error.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
     }
-    console.error("signupUser action: Erro inesperado durante o cadastro:", error);
-     if (typeof error.message === 'string' && (error.message.toLowerCase().includes("invalid api key") || error.message.toLowerCase().includes("failed to fetch"))) {
-        return {
-            message: "Falha na comunicação com o servidor de autenticação. Verifique sua conexão e as configurações de API do Supabase.",
-            errors: { _form: ["Erro de configuração ou conexão com o serviço de autenticação."] },
-            success: false,
-        };
-    }
+    console.error("signupUser action (NextAuth): Erro inesperado:", error);
     return {
-      message: "Ocorreu um erro inesperado durante o cadastro. Tente novamente.",
+      message: "Ocorreu um erro inesperado. Tente novamente.",
       errors: { _form: ["Falha no cadastro devido a um erro no servidor."] },
       success: false,
     };
   }
 }
 
-export async function signInWithOAuth(provider: Provider) {
-  console.log(`signInWithOAuth action: Tentando login com ${provider}...`);
-  const redirectTo = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9003'}/auth/callback`;
-  console.log(`signInWithOAuth action: Redirecionando para: ${redirectTo}`);
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo,
-      }
-    });
 
-    if (error) {
-      console.error(`signInWithOAuth action: Erro do Supabase com ${provider}:`, error);
-      return redirect(`/login?error=${encodeURIComponent(`Falha ao autenticar com ${provider}: ${error.message}`)}`);
-    }
-
-    if (data.url) {
-      console.log(`signInWithOAuth action: URL de redirecionamento OAuth de ${provider} obtida: ${data.url}`);
-      redirect(data.url); 
-    } else {
-      console.error(`signInWithOAuth action: Nenhuma URL de redirecionamento OAuth de ${provider} retornada.`);
-      return redirect(`/login?error=oauth_url_missing&provider=${provider}`);
-    }
-
-  } catch (error: any) {
-     if (error.digest?.startsWith('NEXT_REDIRECT')) {
-      throw error;
-    }
-    console.error(`signInWithOAuth action: Erro inesperado com ${provider}:`, error);
-    return redirect(`/login?error=oauth_exception&provider=${provider}`);
-  }
-}
+// Google Sign-In com NextAuth (placeholder para quando for re-adicionado)
+// export async function signInWithGoogle() {
+//   await nextAuthSignIn('google', { redirectTo: '/dashboard' });
+// }
 
 export async function logoutUser() {
-  console.log("logoutUser action: Iniciando processo de logout...");
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("logoutUser action: Erro do Supabase ao tentar signOut:", error);
-    } else {
-      console.log("logoutUser action: Logout bem-sucedido.");
-    }
-  } catch (error: any) {
-    if (error.digest?.startsWith('NEXT_REDIRECT')) {
-      throw error;
-    }
-    console.error("logoutUser action: Erro inesperado durante o logout:", error);
-  }
-  redirect('/login?logout=success'); 
+  console.log("logoutUser action (NextAuth): Iniciando processo de logout...");
+  await nextAuthSignOut({ redirectTo: '/login?logout=success' });
+  // redirect('/login?logout=success'); // nextAuthSignOut já lida com o redirect
 }
-    

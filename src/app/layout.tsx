@@ -1,7 +1,8 @@
 
 import type { Metadata } from 'next';
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
-import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
+// import { AuthProvider } from '@/contexts/auth-context'; // Removido o AuthProvider antigo
+import { SessionProvider } from '@/components/auth/session-provider'; // Novo SessionProvider do NextAuth
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css'; 
 
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   title: 'Flortune - Seu Jardineiro Financeiro',
   description: 'Cultive suas finanças com o Flortune. Acompanhe, analise e faça seu patrimônio crescer com insights inteligentes e ferramentas intuitivas.',
   icons: {
-    icon: '/icon.svg', // Certifique-se que este arquivo existe em /public
+    icon: '/icon.svg', 
   }
 };
 
@@ -28,10 +29,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AppSettingsProvider>
-          <AuthProvider> {/* Envolve com AuthProvider */}
+          <SessionProvider> {/* Envolve com o novo SessionProvider */}
             {children}
             <Toaster />
-          </AuthProvider>
+          </SessionProvider>
         </AppSettingsProvider>
       </body>
     </html>

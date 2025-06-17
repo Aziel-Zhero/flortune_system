@@ -1,85 +1,134 @@
 
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { loginUser, signInWithOAuth, type LoginFormState } from "@/app/actions/auth.actions";
-import { OAuthButton } from "./oauth-button";
+import { loginUser, type LoginFormState } from "@/app/actions/auth.actions"; // Usará a action atualizada
+// import { OAuthButton } from "./oauth-button"; // Google login será re-adicionado depois
 import { SubmitButton } from "./submit-button";
 import { toast } from "@/hooks/use-toast";
+import { signIn } from "next-auth/react"; // Usar signIn do cliente para feedback melhor
+import { useRouter } from "next/navigation";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const initialState: LoginFormState = { message: undefined, errors: {}, success: undefined };
-  const [state, dispatch] = useActionState(loginUser, initialState);
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // const initialState: LoginFormState = { message: undefined, errors: {}, success: undefined };
+  // const [state, dispatch] = useActionState(loginUser, initialState); // Server action pode ser usada como fallback ou para lógicas mais complexas
 
   useEffect(() => {
     const signupStatus = searchParams.get('signup');
-    const errorParam = searchParams.get('error');
+    const errorParam = searchParams.get('error'); // Erros do NextAuth vêm por aqui
 
-    if (signupStatus === 'success_email_confirmation') {
-      toast({
-        title: "Cadastro realizado!",
-        description: "Enviamos um email de confirmação. Por favor, verifique sua caixa de entrada para ativar sua conta e depois faça login.",
-        variant: "default",
-        duration: 10000, // Manter por mais tempo
-      });
-    } else if (signupStatus === 'success') {
+    if (signupStatus === 'success') {
        toast({
-        title: "Sucesso!",
-        description: "Sua conta foi criada. Por favor, faça o login.",
-        variant: "default"
+        title: "Cadastro realizado!",
+        description: "Sua conta foi criada com sucesso. Por favor, faça o login.",
+        variant: "default",
+        duration: 7000,
       });
     }
-
+    
     if (errorParam) {
+      let friendlyError = "Falha no login. Verifique suas credenciais.";
+      if (errorParam === "CredentialsSignin") {
+        friendlyError = "Email ou senha inválidos.";
+      } else if (errorParam === "OAuthAccountNotLinked") {
+        // ... outros erros do NextAuth
+      }
+      setError(friendlyError);
       toast({
-        title: "Erro de Autenticação",
-        description: decodeURIComponent(errorParam) || "Ocorreu um erro durante a autenticação.",
+        title: "Erro de Login",
+        description: friendlyError,
         variant: "destructive",
       });
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (state?.message && !state.success) {
-      // Erros específicos de campo são tratados abaixo.
-      // Exibir apenas erros gerais do formulário (_form) aqui, ou mensagens de erro globais.
-      if (state.errors?._form) {
-        // Já exibido pela Alert
-      } else {
-          toast({
-            title: "Erro de Login",
-            description: state.message,
-            variant: "destructive",
-          });
-      }
-    }
-    // Sucesso é tratado por redirecionamento
-  }, [state]);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
-  const handleGoogleSignIn = async () => {
-    await signInWithOAuth('google');
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    // Validação básica no cliente
+    if (!email || !password) {
+        setError("Email e senha são obrigatórios.");
+        setIsLoading(false);
+        return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+        setError("Formato de email inválido.");
+        setIsLoading(false);
+        return;
+    }
+
+    try {
+      const result = await signIn('credentials', {
+        redirect: false, // Importante para manipular o resultado aqui
+        email,
+        password,
+      });
+
+      if (result?.error) {
+        console.error("LoginForm: NextAuth signIn error:", result.error);
+        let friendlyError = "Falha no login. Verifique suas credenciais.";
+        if (result.error === "CredentialsSignin") {
+            friendlyError = "Email ou senha inválidos.";
+        }
+        setError(friendlyError);
+        toast({ title: "Erro de Login", description: friendlyError, variant: "destructive" });
+      } else if (result?.ok && result?.url) {
+        // Login bem-sucedido, NextAuth tentaria redirecionar se redirect:true
+        // Como redirect:false, redirecionamos manualmente.
+        // O callbackUrl pode ser pego dos searchParams se necessário.
+        const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+        router.push(callbackUrl);
+        toast({ title: "Login bem-sucedido!", description: "Redirecionando..."});
+      } else {
+        // Caso inesperado
+        setError("Ocorreu um erro desconhecido durante o login.");
+        toast({ title: "Erro", description: "Ocorreu um erro desconhecido.", variant: "destructive" });
+      }
+    } catch (e) {
+      console.error("LoginForm: Exception during signIn:", e);
+      setError("Ocorreu um erro no servidor. Tente novamente.");
+      toast({ title: "Erro no Servidor", description: "Não foi possível processar seu login.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
+
+  // const handleGoogleSignIn = async () => {
+  //   setIsLoading(true);
+  //   await signIn('google', { callbackUrl: '/dashboard' }); 
+  //   // Quando o provider Google for adicionado em auth.ts
+  //   setIsLoading(false);
+  // };
 
   return (
     <div className="space-y-6">
-      <form action={dispatch} className="space-y-4">
-        {state?.errors?._form && (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
            <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Falha no Login</AlertTitle>
-            <AlertDescription>{state.errors._form.join(', ')}</AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        {/* Removida a segunda Alert genérica para evitar duplicidade com toast */}
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -92,10 +141,9 @@ export function LoginForm() {
               placeholder="nome@exemplo.com"
               required
               className="pl-10"
-              aria-describedby="email-error"
+              disabled={isLoading}
             />
           </div>
-          {state?.errors?.email && <p id="email-error" className="text-sm text-destructive">{state.errors.email.join(', ')}</p>}
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -113,18 +161,19 @@ export function LoginForm() {
               required
               placeholder="••••••••"
               className="pl-10"
-              aria-describedby="password-error"
+              disabled={isLoading}
             />
           </div>
-          {state?.errors?.password && <p id="password-error" className="text-sm text-destructive">{state.errors.password.join(', ')}</p>}
         </div>
-        <SubmitButton pendingText="Entrando...">
+        <SubmitButton pendingText="Entrando..." disabled={isLoading}>
           Entrar <LogIn className="ml-2 h-4 w-4" />
         </SubmitButton>
       </form>
       <Separator />
-      {/* O OAuthButton agora chama a server action via form */}
-      <OAuthButton providerName="Google" Icon={LogIn} action={handleGoogleSignIn} buttonText="Entrar com Google"/>
+      {/* <OAuthButton providerName="Google" Icon={LogIn} action={handleGoogleSignIn} buttonText="Entrar com Google" disabled={isLoading}/> */}
+      <p className="text-center text-sm text-muted-foreground">
+        Login com Google temporariamente desabilitado.
+      </p>
     </div>
   );
 }
