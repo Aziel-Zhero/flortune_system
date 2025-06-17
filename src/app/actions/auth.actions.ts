@@ -3,10 +3,11 @@
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
-import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from '@/app/api/auth/[...nextauth]/route';
+import { signIn as nextAuthSignIn } from '@/app/api/auth/[...nextauth]/route'; // signOut é exportado de lá também
 import { supabase } from '@/lib/supabase/client';
 import bcrypt from 'bcryptjs';
 import type { Profile } from "@/types/database.types";
+import { v4 as uuidv4 } from 'uuid'; // Para gerar UUID se necessário
 
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
@@ -87,8 +88,10 @@ export type LoginFormState = {
   success?: boolean;
 };
 
+// A action de login não é mais usada diretamente pelo form se o form usa signIn('credentials') do next-auth/react
+// Mas podemos mantê-la para outros usos ou se o form voltar a usar useActionState com Server Action.
 export async function loginUser(prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
-  console.log("loginUser action (NextAuth): Iniciando processo de login...");
+  console.log("loginUser action (Server Action): Iniciando processo de login...");
   try {
     const validatedFields = loginSchema.safeParse(Object.fromEntries(formData.entries()));
 
@@ -102,24 +105,19 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
     
     const { email, password } = validatedFields.data;
     
-    // Para usar o signIn de Server Action, o redirecionamento é implícito ou via throw/redirect()
-    // O NextAuth.js cuida de redirecionar ou lançar um erro que se manifesta.
+    // O nextAuthSignIn aqui chama a lógica do CredentialsProvider que definimos em [...nextauth]/route.ts
     await nextAuthSignIn('credentials', {
       email,
       password,
-      redirectTo: '/dashboard', // Redireciona para o dashboard em sucesso
+      redirectTo: '/dashboard', 
     });
 
-    // Se o login falhar, o NextAuth tipicamente redireciona para a página de login com um erro na URL
-    // ou lança um erro que a Server Action pode pegar se `redirect: false` fosse usado (mais complexo).
-    // Com redirectTo, a linha abaixo só é alcançada se houver um erro inesperado antes do redirect.
-    return { message: "Tentativa de login processada. Redirecionamento deveria ocorrer.", success: true }; 
+    // Se o login falhar, NextAuth tipicamente redireciona para a página de login com erro.
+    // Esta linha só seria alcançada se houvesse um erro inesperado antes do redirect.
+    return { message: "Tentativa de login processada.", success: true }; 
 
   } catch (error: any) {
-    console.error("loginUser action (NextAuth): Erro durante o login:", error);
-    // Erros do NextAuth (como CredentialsSignin) são geralmente tratados pelo próprio NextAuth
-    // resultando em um redirecionamento para a página de login com um parâmetro de erro.
-    // Se o erro for pego aqui, é algo mais fundamental ou uma configuração.
+    console.error("loginUser action (Server Action): Erro durante o login:", error);
     if (error.type === 'CredentialsSignin' || (error.cause && error.cause.type === 'CredentialsSigninError')) {
       return {
         message: "Email ou senha inválidos.",
@@ -127,7 +125,6 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
         success: false,
       };
     }
-    // Para erros que não são do NextAuth ou se a action prosseguir após uma falha não tratada pelo redirect
     return {
       message: error.message || "Ocorreu um erro inesperado. Tente novamente.",
       errors: { _form: [error.message || "Falha no login devido a um erro no servidor."] },
@@ -155,7 +152,7 @@ export type SignupFormState = {
 };
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
-  console.log("signupUser action (NextAuth): Iniciando processo de cadastro...");
+  console.log("signupUser action: Iniciando processo de cadastro...");
   try {
     const rawData = Object.fromEntries(formData.entries());
     if (rawData.cpf === '') rawData.cpf = undefined;
@@ -166,6 +163,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     const validatedFields = signupSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
+      console.log("signupUser action: Validação falhou", validatedFields.error.flatten().fieldErrors);
       return {
         errors: validatedFields.error.flatten().fieldErrors,
         message: "Campos inválidos.",
@@ -175,36 +173,49 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
 
+    // Esta verificação é crucial. O Supabase client aqui usará a anon key.
+    // A RLS na tabela profiles DEVE permitir que a role 'anon' faça SELECT no email para esta verificação.
+    // Se RLS bloquear, esta query falhará silenciosamente ou retornará erro, dependendo da policy.
+    // Com a policy "Allow anon to insert profiles" e "Allow authenticated users to read their own profile", 
+    // esta verificação de email existente pode falhar se não houver uma policy de SELECT para anon.
+    // Vamos adicionar uma policy para anon poder ler emails para a verificação.
+    // ALTERNATIVAMENTE, podemos tentar inserir e tratar o erro de constraint UNIQUE no email.
+
+    console.log(`signupUser action: Verificando se email ${email} já existe em public.profiles...`);
     const { data: existingProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('email')
       .eq('email', email)
       .single();
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = zero rows
-      console.error("signupUser action (NextAuth): Erro ao verificar perfil existente:", fetchError);
-      return { message: "Erro ao verificar dados. Tente novamente.", success: false };
+    // PGRST116: "Query result returned no rows" - significa que o email NÃO existe, o que é bom.
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error("signupUser action: Erro ao verificar perfil existente em public.profiles:", fetchError);
+      return { message: "Erro ao verificar dados (DB select). Tente novamente.", success: false, errors: {_form: [fetchError.message]} };
     }
 
     if (existingProfile) {
+      console.log("signupUser action: Email já registrado em public.profiles.");
       return {
         errors: { email: ["Este email já está registrado."] },
         message: "Este email já está registrado.",
         success: false,
       };
     }
+    console.log("signupUser action: Email não encontrado, prosseguindo com cadastro.");
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+    const profileId = uuidv4(); // Gerar UUID para o novo perfil
+
     let cpfCnpjValue: string | null = null;
     if (accountType === 'pessoa' && cpf) cpfCnpjValue = cpf.replace(/\D/g, ''); 
     else if (accountType === 'empresa' && cnpj) cpfCnpjValue = cnpj.replace(/\D/g, ''); 
 
     const rgValue = (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null;
     const phoneValue = phone ? phone.replace(/\D/g, '') : null;
-
-    // O ID será gerado automaticamente pelo Supabase (uuid_generate_v4())
-    const newProfileData: Omit<Profile, 'id' | 'created_at' | 'updated_at'> = {
+    
+    const newProfileData: Omit<Profile, 'created_at' | 'updated_at'> = {
+        id: profileId, // Usar o UUID gerado
         full_name: fullName,
         display_name: displayName,
         email: email,
@@ -216,41 +227,53 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         account_type: accountType,
     };
     
+    // A RLS na tabela profiles DEVE permitir que a role 'anon' faça INSERT.
+    console.log("signupUser action: Tentando inserir novo perfil em public.profiles:", newProfileData.email);
     const { data: createdProfile, error: insertError } = await supabase
         .from('profiles')
         .insert(newProfileData)
-        .select() // Seleciona todos os campos do perfil criado, incluindo o ID gerado
+        .select('id, email') // Selecionar apenas o necessário para confirmação
         .single();
 
     if (insertError) {
-        console.error("signupUser action (NextAuth): Erro ao criar perfil no Supabase:", insertError);
-        return { message: "Falha ao criar conta (DB). Tente novamente.", success: false, errors: {_form: [insertError.message]} };
+        console.error("signupUser action: Erro ao criar perfil em public.profiles:", insertError);
+        // Tratar erro de violação de constraint UNIQUE para email (código 23505 no PostgreSQL)
+        if (insertError.code === '23505' && insertError.message.includes('profiles_email_key')) {
+             return { message: "Este email já está registrado.", success: false, errors: {email: ["Este email já está registrado."] }};
+        }
+        return { message: `Falha ao criar conta (DB insert): ${insertError.message}. Verifique as RLS.`, success: false, errors: {_form: [insertError.message]} };
     }
     
     if (!createdProfile) {
-        return { message: "Falha ao criar perfil após inserção. Tente novamente.", success: false };
+        console.error("signupUser action: Falha ao criar perfil em public.profiles após inserção (nenhum dado retornado).");
+        return { message: "Falha ao criar perfil. Tente novamente.", success: false };
     }
 
-    console.log("signupUser action (NextAuth): Perfil criado com ID:", createdProfile.id);
+    console.log("signupUser action: Perfil criado com sucesso em public.profiles com ID:", createdProfile.id);
     
+    // Não é necessário criar manualmente em next_auth.users aqui.
+    // O SupabaseAdapter deve lidar com a criação do usuário em next_auth.users
+    // na primeira vez que o usuário fizer login com sucesso através do CredentialsProvider.
+    // O objeto retornado por `authorize` será usado pelo adapter.
+
     redirect('/login?signup=success');
 
   } catch (error: any) {
     if (error.digest?.startsWith('NEXT_REDIRECT')) {
-      throw error; // Necessário para o Next.js lidar com o redirect
+      throw error; 
     }
-    console.error("signupUser action (NextAuth): Erro inesperado:", error);
+    console.error("signupUser action: Erro inesperado:", error);
     return {
-      message: "Ocorreu um erro inesperado. Tente novamente.",
+      message: "Ocorreu um erro inesperado no cadastro. Tente novamente.",
       errors: { _form: ["Falha no cadastro devido a um erro no servidor."] },
       success: false,
     };
   }
 }
 
-export async function logoutUser() {
-  console.log("logoutUser action (NextAuth): Iniciando processo de logout...");
-  await nextAuthSignOut({ redirectTo: '/login?logout=success' });
-}
-
-    
+// A função logoutUser é fornecida por NextAuth, não precisamos de uma action customizada se usarmos o signOut do cliente.
+// import { signOut as nextAuthSignOut } from '@/app/api/auth/[...nextauth]/route';
+// export async function logoutUser() {
+//   console.log("logoutUser action: Iniciando processo de logout...");
+//   await nextAuthSignOut({ redirectTo: '/login?logout=success' });
+// }

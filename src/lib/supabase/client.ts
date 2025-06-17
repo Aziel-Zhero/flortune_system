@@ -1,16 +1,16 @@
 
 // src/lib/supabase/client.ts
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Session } from 'next-auth'; // Para usar o supabaseAccessToken
 
 const supabaseUrlFromEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKeyFromEnv = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Enhanced logging for debugging environment variable loading
-console.log('===================================================================================');
-console.log('[Supabase Client Env Check] Attempting to read environment variables...');
-console.log('[Supabase Client Env Check] Raw NEXT_PUBLIC_SUPABASE_URL from process.env:', `"${supabaseUrlFromEnv}"`);
-console.log('[Supabase Client Env Check] Raw NEXT_PUBLIC_SUPABASE_ANON_KEY from process.env:', supabaseAnonKeyFromEnv ? `Present (length ${supabaseAnonKeyFromEnv.length})` : 'MISSING or EMPTY');
-console.log('===================================================================================');
+// console.log('===================================================================================');
+// console.log('[Supabase Client Env Check] Attempting to read environment variables...');
+// console.log('[Supabase Client Env Check] Raw NEXT_PUBLIC_SUPABASE_URL from process.env:', `"${supabaseUrlFromEnv}"`);
+// console.log('[Supabase Client Env Check] Raw NEXT_PUBLIC_SUPABASE_ANON_KEY from process.env:', supabaseAnonKeyFromEnv ? `Present (length ${supabaseAnonKeyFromEnv.length})` : 'MISSING or EMPTY');
+// console.log('===================================================================================');
 
 
 if (!supabaseUrlFromEnv || typeof supabaseUrlFromEnv !== 'string' || supabaseUrlFromEnv.trim() === '' || supabaseUrlFromEnv.includes('<SEU_PROJECT_REF>')) {
@@ -32,25 +32,24 @@ if (!supabaseAnonKeyFromEnv || typeof supabaseAnonKeyFromEnv !== 'string' || sup
 const supabaseUrl: string = supabaseUrlFromEnv.trim();
 const supabaseAnonKey: string = supabaseAnonKeyFromEnv.trim();
 
-let supabaseInstance: SupabaseClient;
+// Cliente Supabase padrão (usa anon key) - para operações não autenticadas ou antes da sessão estar disponível
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// console.log('[Supabase Client Global Initialized Successfully! 🎉]');
 
-try {
-  console.log('[Supabase Client Attempting Create] FINAL URL being passed to createClient:', `"${supabaseUrl}"`);
-  console.log('[Supabase Client Attempting Create] FINAL Anon Key being passed to createClient (status):', supabaseAnonKey.length > 0 ? `Present (length ${supabaseAnonKey.length}, starts with "${supabaseAnonKey.substring(0, 5)}...")` : 'EMPTY - THIS IS A PROBLEM!');
 
-  if (supabaseAnonKey.length === 0) {
-    const errMsg = "Supabase Anon Key is present but empty after trimming. Cannot initialize client.";
-    console.error("🔴🔴🔴 " + errMsg + " 🔴🔴🔴");
-    throw new Error(errMsg);
+// Função para criar um cliente Supabase que usa o supabaseAccessToken da sessão NextAuth
+// Isso é útil para interagir com tabelas que têm RLS baseada no usuário autenticado.
+export function createSupabaseClientWithToken(session: Session | null): SupabaseClient {
+  if (session?.supabaseAccessToken) {
+    // console.log("[Supabase Client] Creating client with supabaseAccessToken.");
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${session.supabaseAccessToken}`,
+        },
+      },
+    });
   }
-
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-  console.log('[Supabase Client Initialized Successfully! 🎉]');
-} catch (error: any) {
-  const detailedErrorMessage = `Supabase client initialization FAILED using URL: "${supabaseUrl}". Original error: ${error.message}`;
-  console.error("🔴🔴🔴 CLIENT INITIALIZATION FAILED 🔴🔴🔴");
-  console.error("🔴🔴🔴 " + detailedErrorMessage + " 🔴🔴🔴", error);
-  throw new Error(detailedErrorMessage);
+  // console.log("[Supabase Client] No supabaseAccessToken in session, returning default client (anon key).");
+  return supabase; // Retorna o cliente padrão (anon key) se não houver token
 }
-
-export const supabase: SupabaseClient = supabaseInstance;

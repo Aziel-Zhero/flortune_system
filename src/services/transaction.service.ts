@@ -1,29 +1,31 @@
 
 'use server';
 
-import { supabase } from '@/lib/supabase/client';
+// import { supabase } from '@/lib/supabase/client'; // Usaremos o cliente com token quando apropriado
+import { createSupabaseClientWithToken } from '@/lib/supabase/client';
+import { auth } from '@/app/api/auth/[...nextauth]/route'; // Para obter a sessão no servidor
 import type { Transaction, ServiceListResponse, ServiceResponse, Category } from '@/types/database.types';
 
-// Tipo para os dados de entrada de uma nova transação
-// category_id é string (UUID)
 export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'> & {
-  category_id: string; // Explicitly string for UUID
+  category_id: string;
 };
-// Tipo para os dados de atualização de uma transação
 export type UpdateTransactionData = Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>> & {
-  category_id?: string; // Explicitly string for UUID if updating
+  category_id?: string;
 };
 
+async function getSupabaseClientForUser() {
+  const session = await auth(); // Obtém a sessão do NextAuth
+  return createSupabaseClientWithToken(session);
+}
 
-// Buscar transações de um usuário, com informações da categoria
 export async function getTransactions(userId: string): Promise<ServiceListResponse<Transaction>> {
+  const supabaseClient = await getSupabaseClientForUser();
   if (!userId) {
     const error = new Error("User ID is required to fetch transactions.");
-    console.error(error.message);
     return { data: [], error, count: 0 };
   }
   try {
-    const { data, error, count } = await supabase
+    const { data, error, count } = await supabaseClient
       .from('transactions')
       .select(`
         id, 
@@ -42,14 +44,11 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching transactions:', error.message);
-      throw new Error(error.message);
-    }
+    if (error) throw error;
     
     const transactions = data?.map(tx => ({
       ...tx,
-      category: tx.category as Category | null, // Supabase types might return array for one-to-one, ensure it's object or null
+      category: tx.category as Category | null,
     })) || [];
 
     return { data: transactions as Transaction[], error: null, count };
@@ -60,15 +59,14 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
   }
 }
 
-// Adicionar uma nova transação
 export async function addTransaction(userId: string, transactionData: NewTransactionData): Promise<ServiceResponse<Transaction>> {
+  const supabaseClient = await getSupabaseClientForUser();
   if (!userId) {
     const error = new Error("User ID is required to add a transaction.");
-    console.error(error.message);
     return { data: null, error };
   }
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('transactions')
       .insert([{ ...transactionData, user_id: userId }])
       .select(`
@@ -86,10 +84,7 @@ export async function addTransaction(userId: string, transactionData: NewTransac
       `)
       .single();
     
-    if (error) {
-      console.error('Error adding transaction:', error.message);
-      throw new Error(error.message);
-    }
+    if (error) throw error;
      const newTransaction = {
       ...data,
       category: data.category as Category | null,
@@ -103,14 +98,14 @@ export async function addTransaction(userId: string, transactionData: NewTransac
   }
 }
 
-// Atualizar uma transação existente
 export async function updateTransaction(transactionId: string, userId: string, transactionData: UpdateTransactionData): Promise<ServiceResponse<Transaction>> {
+  const supabaseClient = await getSupabaseClientForUser();
   if (!userId) {
     const error = new Error("User ID is required to update a transaction.");
     return { data: null, error };
   }
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('transactions')
       .update(transactionData)
       .eq('id', transactionId)
@@ -130,10 +125,7 @@ export async function updateTransaction(transactionId: string, userId: string, t
       `)
       .single();
 
-    if (error) {
-      console.error('Error updating transaction:', error.message);
-      throw new Error(error.message);
-    }
+    if (error) throw error;
     const updatedTransaction = {
       ...data,
       category: data.category as Category | null,
@@ -146,24 +138,20 @@ export async function updateTransaction(transactionId: string, userId: string, t
   }
 }
 
-// Deletar uma transação
 export async function deleteTransaction(transactionId: string, userId: string): Promise<ServiceResponse<null>> {
+  const supabaseClient = await getSupabaseClientForUser();
    if (!userId) {
     const error = new Error("User ID is required to delete a transaction.");
-    console.error(error.message);
     return { data: null, error };
   }
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('transactions')
       .delete()
       .eq('id', transactionId)
       .eq('user_id', userId); 
 
-    if (error) {
-      console.error('Error deleting transaction:', error.message);
-      throw new Error(error.message);
-    }
+    if (error) throw error;
     return { data: null, error: null };
   } catch (err) {
     const error = err as Error;
