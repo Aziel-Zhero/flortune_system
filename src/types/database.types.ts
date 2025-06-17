@@ -6,7 +6,7 @@ export interface Profile {
   full_name?: string | null;
   display_name?: string | null;
   email: string; // NOT NULL, UNIQUE
-  hashed_password?: string | null; // Armazenará a senha hasheada
+  hashed_password: string; // NOT NULL - Armazenará a senha hasheada para NextAuth
   phone?: string | null;
   cpf_cnpj?: string | null; // UNIQUE
   rg?: string | null;
