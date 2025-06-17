@@ -5,7 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { useAuth } from "@/contexts/auth-context";
-import { useEffect } from "react"; // Removido useState
+import { useEffect } from "react"; 
 import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -14,21 +14,21 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isLoading: authLoading, session } = useAuth();
+  const { isLoading: authLoading, session } = useAuth(); // authLoading é agora !initialLoadComplete do AuthContext
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log(`(AppLayout) Effect triggered. AuthLoading: ${authLoading}, Session: ${session ? 'Exists' : 'Null'}, Path: ${pathname}`);
+    console.log(`(AppLayout) Effect triggered. AuthLoading (from useAuth): ${authLoading}, Session: ${session ? 'Exists' : 'Null'}, Path: ${pathname}`);
 
-    // Não faça nada se ainda estiver carregando
+    // Não faça nada se ainda estiver carregando (ou seja, authLoading é true)
     if (authLoading) {
-      console.log("(AppLayout) Auth is loading. No action taken.");
+      console.log("(AppLayout) Auth is loading (initial AuthContext load not complete). No redirection action taken.");
       return;
     }
 
-    // Se terminou de carregar e não há sessão, redirecione para login
-    // Apenas redireciona se não estiver já em uma rota de autenticação (para evitar loop no logout)
+    // Se terminou de carregar (authLoading é false) e NÃO há sessão, redirecione para login
+    // Apenas redireciona se não estiver já em uma rota de autenticação
     if (!session && pathname !== '/login' && pathname !== '/signup') {
       console.log(`(AppLayout) Auth finished loading, NO session. Redirecting to /login from ${pathname}.`);
       router.replace('/login');
@@ -40,7 +40,7 @@ export default function AppLayout({
 
 
   if (authLoading) {
-    console.log("(AppLayout) Rendering SKELETON because authLoading is true.");
+    console.log("(AppLayout) Rendering SKELETON because authLoading is true (initial AuthContext load not complete).");
     return (
       <div className="flex min-h-screen flex-col bg-background">
         {/* Skeleton para AppHeader */}
@@ -76,7 +76,8 @@ export default function AppLayout({
 
   // Se terminou de carregar e não há sessão, o useEffect acima já deve ter iniciado o redirecionamento.
   // Renderizar null evita um flash de conteúdo.
-  if (!authLoading && !session && pathname !== '/login' && pathname !== '/signup') {
+  // Esta condição também verifica se não estamos já em /login ou /signup para evitar loops se o redirecionamento demorar.
+  if (!session && pathname !== '/login' && pathname !== '/signup') {
     console.log("(AppLayout) Auth finished loading, NO session. Rendering NULL (redirect should be in progress).");
     return null;
   }

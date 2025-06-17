@@ -22,7 +22,7 @@ interface AuthContextType {
   session: AuthSession | null;
   user: User | null;
   profile: Profile | null;
-  isLoading: boolean;
+  isLoading: boolean; // Agora será !initialLoadComplete
   setProfile: Dispatch<SetStateAction<Profile | null>>;
   appSettings: AppSettingsProviderValue;
 }
@@ -33,8 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfileState] = useState<Profile | null>(null);
-  // Initialize isLoading to true. It will be set to false once the initial auth check is complete.
-  const [isLoading, setIsLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const appSettings = useAppSettings();
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
@@ -49,8 +48,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('*')
         .eq('id', userId)
         .single();
-      if (error && status !== 406) { // 406 means no rows found, which is not an "error" in this context if profile doesn't exist yet
-        console.error('AuthContext: Error fetching profile:', error.message, {userId, status});
+      if (error && status !== 406) {
+        console.error('AuthContext: Error fetching profile:', error.message, { userId, status });
         return null;
       }
       if (data) {
@@ -69,89 +68,96 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfileState(newProfile);
   }, []);
 
+  // Função centralizada para lidar com mudanças de autenticação e perfil
+  const handleAuthAndProfileState = useCallback(async (currentSession: AuthSession | null, eventName?: string) => {
+    console.log(`AuthContext: handleAuthAndProfileState. Event: ${eventName || 'update'}, Session User ID: ${currentSession?.user?.id || 'null'}`);
+    setSession(currentSession);
+    const currentUser = currentSession?.user ?? null;
+    setUser(currentUser);
+
+    if (currentUser) {
+      console.log(`AuthContext: User ${currentUser.id} detected in handleAuthAndProfileState. Fetching profile...`);
+      const userProfile = await fetchProfile(currentUser.id);
+      setProfileState(userProfile);
+      console.log(`AuthContext: Profile ${userProfile ? 'fetched/set' : 'not found/set to null'} for ${currentUser.id}.`);
+    } else {
+      setProfileState(null);
+      console.log("AuthContext: No current user in handleAuthAndProfileState. Profile set to null.");
+    }
+  }, [fetchProfile]);
+
+
   useEffect(() => {
     let isMounted = true;
-    // isLoading is already true by default
-    console.log("AuthContext: Main useEffect running. isLoading is initially true.");
+    console.log("AuthContext: Mount effect running. initialLoadComplete is false.");
 
-    const processAuthAndProfile = async (currentSession: AuthSession | null, eventName?: string) => {
-      if (!isMounted) {
-        console.log(`AuthContext: processAuthAndProfile (${eventName || 'unknown'}) - component unmounted. Aborting.`);
-        return;
-      }
-      console.log(`AuthContext: processAuthAndProfile. Event: ${eventName || 'initial_load'}, Session User ID: ${currentSession?.user?.id || 'null'}`);
+    const performInitialAuthCheck = async () => {
+      try {
+        console.log("AuthContext: Starting initial supabase.auth.getSession()...");
+        const { data: { session: initialSession }, error: initialSessionError } = await supabase.auth.getSession();
 
-      setSession(currentSession);
-      const currentUser = currentSession?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        console.log(`AuthContext: User ${currentUser.id} detected. Fetching profile...`);
-        const userProfile = await fetchProfile(currentUser.id);
-        if (isMounted) {
-          setProfileState(userProfile);
-          console.log(`AuthContext: Profile ${userProfile ? 'fetched/set' : 'not found/set to null'} for ${currentUser.id}.`);
+        if (!isMounted) {
+            console.log("AuthContext: Unmounted during initial getSession. Aborting.");
+            return;
         }
-      } else {
-        if (isMounted) {
-          setProfileState(null);
-          console.log("AuthContext: No current user. Profile set to null.");
+
+        if (initialSessionError) {
+          console.error("AuthContext: Error in initial supabase.auth.getSession():", initialSessionError);
         }
-      }
-      
-      // This is the critical point: set isLoading to false only after all processing for this auth state is done.
-      if (isMounted) {
-        console.log(`AuthContext: processAuthAndProfile for ${eventName || 'initial_load'} finished. Setting isLoading to false.`);
-        setIsLoading(false);
+        
+        console.log(`AuthContext: Initial supabase.auth.getSession() responded. Session User ID: ${initialSession?.user?.id || 'null'}`);
+        // Atualiza sessão, usuário e perfil com base na sessão inicial
+        await handleAuthAndProfileState(initialSession, 'INITIAL_SESSION_CHECK');
+
+      } catch (error) {
+        console.error("AuthContext: Exception during initial auth check:", error);
+        if (isMounted) {
+            await handleAuthAndProfileState(null, 'INITIAL_SESSION_EXCEPTION');
+        }
+      } finally {
+        if (isMounted) {
+          console.log("AuthContext: Initial auth check process (getSession + fetchProfile if any) finished. Setting initialLoadComplete to true.");
+          setInitialLoadComplete(true);
+        }
       }
     };
 
-    // Initial session check
-    supabase.auth.getSession()
-      .then(({ data: { session: initialSession } }) => {
-        console.log(`AuthContext: Initial supabase.auth.getSession() responded. Session User ID: ${initialSession?.user?.id || 'null'}`);
-        if(isMounted) {
-          processAuthAndProfile(initialSession, 'INITIAL_SESSION_CHECK');
-        } else {
-           console.log("AuthContext: Component unmounted before initial session could be processed.");
-        }
-      })
-      .catch(error => {
-        console.error("AuthContext: Error in initial supabase.auth.getSession():", error);
-        if (isMounted) {
-          processAuthAndProfile(null, 'INITIAL_SESSION_ERROR'); // Treat error as no session, then set isLoading false
-        }
-      });
+    performInitialAuthCheck();
 
-    // Auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+      if (!isMounted) {
+        console.log("AuthContext: Unmounted during onAuthStateChange. Aborting.");
+        return;
+      }
       console.log(`AuthContext: supabase.auth.onAuthStateChange listener fired. Event: ${_event}, Session User ID: ${currentSession?.user?.id || 'null'}`);
-      if(isMounted) {
-        // If isLoading is still true, it means the initial getSession() hasn't finished processing yet.
-        // In this case, onAuthStateChange (e.g., for SIGNED_IN) might complete the initial setup.
-        // If isLoading is already false, this is a subsequent change (like TOKEN_REFRESHED or SIGNED_OUT).
-        // We don't want to set isLoading back to true for these subsequent events.
-        const wasLoading = isLoading;
-        await processAuthAndProfile(currentSession, _event);
-        if (wasLoading && !isLoading) {
-          console.log(`AuthContext: onAuthStateChange event '${_event}' was responsible for setting isLoading to false.`);
-        }
+      
+      await handleAuthAndProfileState(currentSession, _event);
+
+      // Se o listener for acionado e o carregamento inicial AINDA não estiver completo,
+      // e agora temos uma sessão (ou um evento de SIGNED_IN claro),
+      // isso pode significar que o listener completou a configuração inicial.
+      // Também trata o caso de um SIGNED_OUT durante o carregamento inicial.
+      if (!initialLoadComplete && (currentSession || _event === 'SIGNED_IN' || _event === 'SIGNED_OUT' || _event === 'USER_DELETED')) {
+          console.log(`AuthContext: onAuthStateChange ('${_event}') occurred during/completing initial load. Setting initialLoadComplete to true.`);
+          setInitialLoadComplete(true);
       }
     });
 
     return () => {
       console.log("AuthContext: Unmount effect running. Unsubscribing auth listener.");
       isMounted = false;
-      authListener?.subscription?.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
-  }, [fetchProfile, isLoading]); // isLoading is included to re-evaluate if `processAuthAndProfile` needs to run if an external factor changes it, though unlikely with this setup.
+  }, [handleAuthAndProfileState]); // fetchProfile foi movido para dentro de handleAuthAndProfileState
 
   useEffect(() => {
-    console.log(`AuthContext STATE UPDATE --- isLoading: ${isLoading}, User: ${user?.id || 'null'}, Profile: ${profile ? 'Loaded' : 'Null'}`);
-  }, [isLoading, user, profile, session]);
+    // Este log é para cada vez que o estado relevante muda.
+    // initialLoadComplete se torna true uma vez. isLoading (que é !initialLoadComplete) muda de true para false.
+    console.log(`AuthContext STATE UPDATE --- isLoading: ${!initialLoadComplete}, User: ${user?.id || 'null'}, Profile: ${profile ? 'Loaded' : 'Null'}, Session: ${session ? 'Exists' : 'Null'}`);
+  }, [initialLoadComplete, user, profile, session]);
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, isLoading, setProfile, appSettings }}>
+    <AuthContext.Provider value={{ session, user, profile, isLoading: !initialLoadComplete, setProfile, appSettings }}>
       {children}
     </AuthContext.Provider>
   );
