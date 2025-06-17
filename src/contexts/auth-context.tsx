@@ -4,7 +4,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import type { AuthSession, User } from '@supabase/supabase-js'; // Subscription não é mais usado diretamente aqui
+import type { AuthSession, User } from '@supabase/supabase-js';
 import { AppSettingsProviderValue, useAppSettings } from './app-settings-context';
 
 export interface Profile {
@@ -22,7 +22,7 @@ interface AuthContextType {
   session: AuthSession | null;
   user: User | null;
   profile: Profile | null;
-  isLoading: boolean; // Será !initialLoadAttempted E !mounted
+  isLoading: boolean; // Este isLoading reflete o estado de carregamento inicial da autenticação
   setProfile: Dispatch<SetStateAction<Profile | null>>;
   appSettings: AppSettingsProviderValue;
 }
@@ -33,12 +33,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfileState] = useState<Profile | null>(null);
-  const [initialLoadAttempted, setInitialLoadAttempted] = useState(false);
-  const [mounted, setMounted] = useState(false); // Novo estado para controle de montagem
+  const [isLoading, setIsLoading] = useState(true); // Começa true, só se torna false após a carga inicial
+  const [mounted, setMounted] = useState(false);
   const appSettings = useAppSettings();
 
   useEffect(() => {
-    setMounted(true); // Componente montado no cliente
+    setMounted(true);
+    console.log("AuthContext: Mounting. isLoading is true.");
   }, []);
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
@@ -73,99 +74,101 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfileState(newProfile);
   }, []);
 
-  const handleAuthAndProfileState = useCallback(async (currentSession: AuthSession | null, eventName?: string) => {
-    console.log(`AuthContext: handleAuthAndProfileState. Event: ${eventName || 'update'}, Session User ID: ${currentSession?.user?.id || 'null'}`);
-    setSession(currentSession);
-    const currentUser = currentSession?.user ?? null;
-    setUser(currentUser);
-
-    if (currentUser) {
-      console.log(`AuthContext: User ${currentUser.id} detected. Fetching profile...`);
-      const userProfile = await fetchProfile(currentUser.id);
-      setProfileState(userProfile);
-      console.log(`AuthContext: Profile ${userProfile ? 'fetched/set' : 'not found/set to null'} for ${currentUser.id}.`);
-    } else {
-      setProfileState(null);
-      console.log("AuthContext: No current user. Profile set to null.");
-    }
-  }, [fetchProfile]);
-
   useEffect(() => {
-    if (!mounted) return; // Não fazer nada se não estiver montado no cliente
+    if (!mounted) return;
 
     let isEffectMounted = true;
-    console.log("AuthContext: Mount effect running. initialLoadAttempted is false.");
+    console.log("AuthContext: Main effect running (mounted).");
 
-    const performInitialAuthCheck = async () => {
+    const performInitialAuthSetup = async () => {
+      console.log("AuthContext: Starting initial supabase.auth.getSession()...");
       try {
-        console.log("AuthContext: Starting initial supabase.auth.getSession()...");
-        const { data: { session: initialSession }, error: initialSessionError } = await supabase.auth.getSession();
-
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        
         if (!isEffectMounted) {
             console.log("AuthContext: Unmounted during initial getSession. Aborting.");
             return;
         }
 
-        if (initialSessionError) {
-          console.error("AuthContext: Error in initial supabase.auth.getSession():", initialSessionError);
+        if (sessionError) {
+          console.error("AuthContext: Error getting initial session:", sessionError.message);
         }
-        
         console.log(`AuthContext: Initial supabase.auth.getSession() responded. Session User ID: ${initialSession?.user?.id || 'null'}`);
-        await handleAuthAndProfileState(initialSession, 'INITIAL_SESSION_CHECK');
+        
+        setSession(initialSession);
+        const currentUser = initialSession?.user ?? null;
+        setUser(currentUser);
 
-      } catch (error) {
-        console.error("AuthContext: Exception during initial auth check:", error);
-        if (isEffectMounted) {
-            await handleAuthAndProfileState(null, 'INITIAL_SESSION_EXCEPTION');
+        if (currentUser) {
+          const userProfile = await fetchProfile(currentUser.id);
+          setProfileState(userProfile);
+          console.log(`AuthContext: Profile ${userProfile ? 'fetched/set' : 'not found/set to null'} for ${currentUser.id} after initial getSession.`);
+        } else {
+          setProfileState(null);
+          console.log("AuthContext: No current user after initial getSession. Profile set to null.");
         }
+      } catch (e) {
+         console.error("AuthContext: Exception during initial getSession or profile fetch:", e);
+         if (isEffectMounted) {
+            setSession(null);
+            setUser(null);
+            setProfileState(null);
+         }
       } finally {
         if (isEffectMounted) {
-          console.log("AuthContext: Initial auth check process finished. Setting initialLoadAttempted to true.");
-          setInitialLoadAttempted(true);
+          console.log("AuthContext: Initial session and profile check complete. Setting isLoading to false.");
+          setIsLoading(false);
         }
       }
     };
 
-    performInitialAuthCheck();
+    performInitialAuthSetup();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
-      if (!isEffectMounted) {
-        console.log("AuthContext: Unmounted during onAuthStateChange. Aborting.");
-        return;
-      }
-      console.log(`AuthContext: supabase.auth.onAuthStateChange listener fired. Event: ${_event}, Session User ID: ${currentSession?.user?.id || 'null'}`);
-      
-      await handleAuthAndProfileState(currentSession, _event);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, currentSession) => {
+        if (!isEffectMounted) {
+            console.log("AuthContext: Unmounted during onAuthStateChange. Aborting.");
+            return;
+        }
+        console.log(`AuthContext: supabase.auth.onAuthStateChange listener fired. Event: ${_event}, Session User ID: ${currentSession?.user?.id || 'null'}`);
+        
+        setSession(currentSession);
+        const currentUser = currentSession?.user ?? null;
+        setUser(currentUser);
 
-      if (!initialLoadAttempted && (currentSession || _event === 'SIGNED_IN' || _event === 'SIGNED_OUT' || _event === 'USER_DELETED')) {
-          console.log(`AuthContext: onAuthStateChange ('${_event}') occurred during/completing initial load. Setting initialLoadAttempted to true.`);
-          setInitialLoadAttempted(true);
+        if (currentUser) {
+          const userProfile = await fetchProfile(currentUser.id);
+          setProfileState(userProfile);
+          console.log(`AuthContext: Profile ${userProfile ? 'fetched/set' : 'not found/set to null'} for ${currentUser.id} from onAuthStateChange.`);
+        } else {
+          setProfileState(null);
+          console.log("AuthContext: No current user from onAuthStateChange. Profile set to null.");
+        }
+        // IMPORTANTE: Não mudar isLoading aqui, ele é definido uma vez após a carga inicial.
       }
-    });
+    );
 
     return () => {
-      console.log("AuthContext: Unmount effect running. Unsubscribing auth listener.");
+      console.log("AuthContext: Unmounting. Unsubscribing auth listener.");
       isEffectMounted = false;
       authListener?.subscription.unsubscribe();
     };
-  }, [mounted, handleAuthAndProfileState]); // Adicionado mounted e handleAuthAndProfileState
+  }, [mounted, fetchProfile]);
 
   useEffect(() => {
-     if (!mounted) return;
-    console.log(`AuthContext STATE UPDATE --- isLoading: ${!initialLoadAttempted}, User: ${user?.id || 'null'}, Profile: ${profile ? 'Loaded' : 'Null'}, Session: ${session ? 'Exists' : 'Null'}`);
-  }, [mounted, initialLoadAttempted, user, profile, session]);
-
-  // Se não estiver montado no cliente, não renderize o provedor nem os children.
+    if (!mounted) return;
+    // Log para depuração do estado final do contexto
+    console.log(`AuthContext STATE UPDATE --- isLoading: ${isLoading}, User: ${user?.id || 'null'}, Profile: ${profile ? 'Loaded' : 'Null'}, Session: ${session ? 'Exists' : 'Null'}`);
+  }, [mounted, isLoading, user, profile, session]);
+  
   if (!mounted) {
-    console.log("AuthContext: Not mounted yet, returning null to prevent hydration mismatch.");
+    // Este log já existe no useEffect de montagem.
+    // console.log("AuthContext: Not mounted yet, returning null to prevent hydration mismatch.");
     return null;
   }
 
-  // isLoading agora considera se a tentativa de carga inicial foi feita.
-  const isLoadingValue = !initialLoadAttempted;
-
   return (
-    <AuthContext.Provider value={{ session, user, profile, isLoading: isLoadingValue, setProfile, appSettings }}>
+    <AuthContext.Provider value={{ session, user, profile, isLoading, setProfile, appSettings }}>
       {children}
     </AuthContext.Provider>
   );
@@ -178,3 +181,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    
