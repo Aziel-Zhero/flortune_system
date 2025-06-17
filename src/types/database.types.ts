@@ -67,6 +67,53 @@ export interface FinancialGoal {
   updated_at: string;
 }
 
+// Tipos para Assinaturas
+export type SubscriptionStatus =
+  | 'trialing'
+  | 'active'
+  | 'canceled'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'past_due'
+  | 'unpaid'
+  | 'paused';
+
+export interface Price {
+  id: string; // Price ID from Stripe, e.g. price_123
+  product_id?: string | null; // Product ID from Stripe, e.g. prod_123
+  active?: boolean | null;
+  currency?: string | null;
+  description?: string | null;
+  type?: 'one_time' | 'recurring' | null;
+  unit_amount?: number | null; // Amount in cents
+  interval?: 'day' | 'week' | 'month' | 'year' | null;
+  interval_count?: number | null;
+  trial_period_days?: number | null;
+  metadata?: Record<string, any> | null; // JSONB
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Subscription {
+  id: string; // Subscription ID from Stripe, e.g. sub_123
+  user_id: string; // Foreign key to next_auth.users(id)
+  status?: SubscriptionStatus | null;
+  metadata?: Record<string, any> | null; // JSONB
+  price_id?: string | null; // Foreign key to prices(id)
+  quantity?: number | null;
+  cancel_at_period_end?: boolean | null;
+  created: string; // TIMESTAMPTZ
+  current_period_start: string; // TIMESTAMPTZ
+  current_period_end: string; // TIMESTAMPTZ
+  ended_at?: string | null; // TIMESTAMPTZ
+  cancel_at?: string | null; // TIMESTAMPTZ
+  canceled_at?: string | null; // TIMESTAMPTZ
+  trial_start?: string | null; // TIMESTAMPTZ
+  trial_end?: string | null; // TIMESTAMPTZ
+  price?: Price | null; // Para joins
+}
+
+
 // Tipos para o schema 'next_auth' (do SupabaseAdapter)
 export interface NextAuthUser {
   id: string; // uuid NOT NULL DEFAULT uuid_generate_v4()
@@ -118,3 +165,5 @@ export interface ServiceListResponse<T> {
   error: Error | null;
   count?: number | null;
 }
+
+```
