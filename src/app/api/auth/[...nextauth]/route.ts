@@ -27,7 +27,7 @@ console.log("[NextAuth Config] SUPABASE_SERVICE_ROLE_KEY:", supabaseServiceRoleK
 console.log("[NextAuth Config] SUPABASE_JWT_SECRET:", supabaseJwtSecret ? "Present" : "MISSING or EMPTY for supabaseAccessToken generation");
 console.log("[NextAuth Config] AUTH_SECRET:", nextAuthSecret ? "Present" : "MISSING or EMPTY (CRITICAL for production)");
 console.log("[NextAuth Config] GOOGLE_CLIENT_ID:", googleClientId ? "Present" : "MISSING or EMPTY for Google Provider");
-console.log("[NextAuth Config] GOOGLE_CLIENT_SECRET:", googleClientSecret ? "Present" : "MISSING or EMPTY for Google Provider");
+console.log("[NextAuth Config] GOOGLE_CLIENT_SECRET:", googleClientSecret ? "Present (Status)" : "MISSING or EMPTY for Google Provider");
 console.log("============================================================");
 
 if (!supabaseUrl) {
@@ -37,10 +37,8 @@ if (!supabaseServiceRoleKey) {
   throw new Error("CRITICAL: Missing environment variable SUPABASE_SERVICE_ROLE_KEY for SupabaseAdapter.");
 }
 if (!nextAuthSecret) {
-  console.warn("WARNING: Missing environment variable AUTH_SECRET. NextAuth.js will not work securely in production if this is a production environment.");
-}
-if (!googleClientId || !googleClientSecret) {
-    console.warn("WARNING: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing. Google Sign-In will not work.");
+  // Em desenvolvimento, pode continuar, mas avisa. Em produção, seria um erro fatal.
+  console.warn("CRITICAL WARNING: Missing environment variable AUTH_SECRET. NextAuth.js will not work securely in production. For development, a default insecure secret might be used, but this is NOT recommended.");
 }
 
 
@@ -60,7 +58,7 @@ export const authConfig: NextAuthConfig = {
         console.log("[NextAuth Authorize Attempt] For Email (Credentials):", credentials?.email);
         if (!credentials?.email || !credentials?.password) {
           console.error("[NextAuth Authorize Failed] Missing email or password in credentials.");
-          return null; // Retorna null para indicar falha na autorização
+          return null;
         }
 
         const email = credentials.email as string;
@@ -68,6 +66,10 @@ export const authConfig: NextAuthConfig = {
 
         try {
           console.log(`[NextAuth Authorize] Fetching profile from public.profiles for email: ${email}`);
+          // Usar o cliente Supabase global (anon key) para esta consulta é geralmente OK se as RLS permitirem SELECT no email
+          // ou se não houver RLS na tabela profiles para esta operação específica.
+          // No entanto, para consistência ou se RLS for restritiva, um cliente com service_role pode ser necessário aqui (usado com cuidado).
+          // Por ora, o cliente padrão com anon key deve funcionar com as RLS que configuramos.
           const { data: profile, error: dbError } = await supabase
             .from('profiles')
             .select('*') 
@@ -92,9 +94,6 @@ export const authConfig: NextAuthConfig = {
 
           if (passwordsMatch) {
             console.log(`[NextAuth Authorize Success] Password match for profile ID: ${profile.id}.`);
-            // Retornar o objeto User que o SupabaseAdapter espera para popular `next_auth.users`
-            // O adapter usará id, name, email, image.
-            // O `id` aqui DEVE ser o `id` de `public.profiles`.
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hashed_password, ...profileForUserObject } = profile;
             return {
@@ -113,21 +112,23 @@ export const authConfig: NextAuthConfig = {
         }
       },
     }),
-    ...(googleClientId && googleClientSecret ? [
+    // Adicionar GoogleProvider condicionalmente
+    ...( (googleClientId && googleClientSecret) ? [
         GoogleProvider({
             clientId: googleClientId,
             clientSecret: googleClientSecret,
-            // profile(profile) { // Opcional: para mapear campos do perfil do Google para o usuário NextAuth
+            // profile(profile) { // Opcional: para mapear campos do perfil do Google para o objeto User do NextAuth
+            //   // O adapter já deve lidar bem com os campos padrão do Google (sub, name, email, picture)
             //   return {
             //     id: profile.sub,
             //     name: profile.name,
             //     email: profile.email,
             //     image: profile.picture,
-            //     // Adicione outros campos se necessário para o objeto User do NextAuth
+            //     // Adicione outros campos se necessário
             //   }
             // }
         })
-    ] : [])
+    ] : [] )
   ],
   session: {
     strategy: 'jwt', 
@@ -138,6 +139,8 @@ export const authConfig: NextAuthConfig = {
       // console.log("[NextAuth JWT Callback] User In (at first login from authorize/OAuth):", JSON.stringify(user, null, 2));
       // console.log("[NextAuth JWT Callback] Account In (at first login/OAuth):", JSON.stringify(account, null, 2));
       // console.log("[NextAuth JWT Callback] OAuth Profile In:", JSON.stringify(oauthProfile, null, 2));
+      
+      // Se o usuário está logando (objeto 'user' presente), seu ID (que é o 'sub' do token) é o user.id
       if (user?.id) {
         token.sub = user.id; 
       }
@@ -148,9 +151,13 @@ export const authConfig: NextAuthConfig = {
       // console.log("[NextAuth Session Callback] Token In (from JWT callback):", JSON.stringify(token, null, 2));
 
       if (token.sub && session.user) {
-        session.user.id = token.sub; 
+        session.user.id = token.sub; // ID do usuário vem do subject do token JWT
 
         // Buscar o perfil customizado da tabela `public.profiles`
+        // É importante usar um cliente Supabase que tenha permissão para ler esta tabela.
+        // O cliente Supabase padrão (anon key) pode funcionar se as RLS permitirem.
+        // Ou, pode-se criar um cliente Supabase com service_role aqui (usado com cuidado).
+        // Por simplicidade e dado que o trigger já cria o perfil, vamos tentar com o cliente anon global.
         const { data: userProfileData, error: profileError } = await supabase
           .from('profiles')
           .select('*') 
@@ -158,18 +165,23 @@ export const authConfig: NextAuthConfig = {
           .single();
 
         if (profileError) {
-          console.error("[NextAuth Session Callback] Error fetching user profile from public.profiles:", profileError.message);
+          console.error(`[NextAuth Session Callback] Error fetching user profile (ID: ${token.sub}) from public.profiles:`, profileError.message);
           session.user.profile = null;
         } else if (userProfileData) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...profileForSession } = userProfileData; 
           session.user.profile = profileForSession as Omit<AppProfile, 'hashed_password'>;
+          // Atualizar os campos padrão da sessão com dados do perfil se disponíveis e mais completos
           session.user.name = userProfileData.display_name || userProfileData.full_name || session.user.name;
           session.user.email = userProfileData.email || session.user.email; 
           session.user.image = userProfileData.avatar_url || session.user.image;
+        } else {
+           console.warn(`[NextAuth Session Callback] No profile found in public.profiles for user ID: ${token.sub}. This might happen if the trigger to create a profile hasn't run or failed.`);
+           session.user.profile = null;
         }
       }
 
+      // Gerar o supabaseAccessToken (conforme documentação do SupabaseAdapter)
       if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
@@ -178,19 +190,28 @@ export const authConfig: NextAuthConfig = {
           email: token.email, 
           role: "authenticated", 
         };
-        session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
+        try {
+            session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
+        } catch (e: any) {
+            console.error("[NextAuth Session Callback] Error signing Supabase JWT:", e.message);
+        }
       } else if (!supabaseJwtSecret) {
         console.warn("[NextAuth Session Callback] SUPABASE_JWT_SECRET is not set. supabaseAccessToken will not be generated.");
       }
       
+      // console.log("[NextAuth Session Callback] Session Out:", JSON.stringify(session, null, 2));
       return session;
     },
   },
   pages: {
     signIn: '/login',
+    // error: '/auth/error', // Opcional: página de erro customizada
+    // signOut: '/auth/signout', // Opcional
   },
-  secret: nextAuthSecret, 
-  // debug: process.env.NODE_ENV === 'development', 
+  secret: nextAuthSecret, // Essencial para JWT
+  // debug: process.env.NODE_ENV === 'development', // Habilita logs detalhados do NextAuth
 };
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
+
+    

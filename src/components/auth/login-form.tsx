@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-// import { loginUser, type LoginFormState } from "@/app/actions/auth.actions"; // Usando signIn direto
 import { SubmitButton } from "./submit-button";
 import { toast } from "@/hooks/use-toast";
 import { signIn } from "next-auth/react"; 
@@ -32,6 +31,7 @@ export function LoginForm() {
   useEffect(() => {
     const signupStatus = searchParams.get('signup');
     const errorParam = searchParams.get('error'); 
+    const logoutStatus = searchParams.get('logout');
 
     if (signupStatus === 'success') {
        toast({
@@ -40,20 +40,31 @@ export function LoginForm() {
         variant: "default",
         duration: 7000,
       });
-      // Remove o parâmetro da URL para evitar que o toast apareça novamente ao recarregar
+      const newPath = window.location.pathname;
+      window.history.replaceState({...window.history.state, as: newPath, url: newPath }, '', newPath);
+    }
+    
+    if (logoutStatus === 'success') {
+      toast({
+        title: "Logout Efetuado",
+        description: "Você saiu da sua conta com sucesso.",
+        variant: "default",
+        duration: 5000,
+      });
       const newPath = window.location.pathname;
       window.history.replaceState({...window.history.state, as: newPath, url: newPath }, '', newPath);
     }
     
     if (errorParam) {
       let friendlyError = "Falha no login. Verifique suas credenciais ou tente outra forma de login.";
-      // Códigos de erro comuns do NextAuth: https://next-auth.js.org/configuration/pages#error-codes
       if (errorParam === "CredentialsSignin") {
         friendlyError = "Email ou senha inválidos.";
       } else if (errorParam === "OAuthAccountNotLinked") {
         friendlyError = "Esta conta de email já foi usada com outro provedor. Tente fazer login com o provedor original.";
       } else if (errorParam === "Callback") {
         friendlyError = "Erro ao processar o login com o provedor externo. Tente novamente."
+      } else if (errorParam === "OAuthSignin") {
+        friendlyError = "Erro ao tentar entrar com o Google. Tente novamente."
       }
       setError(friendlyError);
       toast({
@@ -61,7 +72,6 @@ export function LoginForm() {
         description: friendlyError,
         variant: "destructive",
       });
-       // Remove o parâmetro da URL
       const newPath = window.location.pathname;
       window.history.replaceState({...window.history.state, as: newPath, url: newPath }, '', newPath);
     }
@@ -123,20 +133,23 @@ export function LoginForm() {
     setIsGoogleLoading(true);
     setError(null);
     try {
-      // O callbackUrl pode ser passado aqui também se necessário
       const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-      await signIn('google', { callbackUrl, redirect: false });
-      // NextAuth.js tentará redirecionar se a chamada for bem-sucedida e redirect não for false.
-      // Se redirect: false for usado, você precisaria verificar o resultado aqui como no Credentials.
-      // Para OAuth, o redirecionamento padrão geralmente é o desejado.
-      // Se houver um erro no fluxo OAuth, o NextAuth geralmente redireciona para a página de login com um parâmetro de erro.
-    } catch(e) {
+      // Para OAuth, o NextAuth.js gerencia o redirecionamento.
+      // O `redirect: false` não é tipicamente usado aqui, a menos que você queira
+      // um controle muito específico do fluxo, o que é raro para OAuth.
+      await signIn('google', { callbackUrl }); 
+    } catch(e: any) {
        console.error("LoginForm: Exception during signIn (Google):", e);
-       setError("Falha ao iniciar login com Google.");
-       toast({ title: "Erro de Login com Google", description: "Não foi possível iniciar o login com Google.", variant: "destructive" });
-    } finally {
-        setIsGoogleLoading(false);
+       let friendlyError = "Falha ao iniciar login com Google.";
+       if (e.message?.includes("OAuthAccountNotLinked")) {
+          friendlyError = "Esta conta já existe com outro método de login. Tente usar email e senha ou o método original."
+       }
+       setError(friendlyError);
+       toast({ title: "Erro de Login com Google", description: friendlyError, variant: "destructive" });
+       setIsGoogleLoading(false); // Garantir que o loading pare em caso de erro síncrono
     }
+    // setIsLoading(false) não é necessário aqui se o signIn redirecionar,
+    // pois o componente será desmontado. Mas se houver um erro que não redireciona, ele deve ser setado.
   };
 
   return (
@@ -168,7 +181,7 @@ export function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Senha</Label>
-            <Link href="#" className="text-sm text-primary hover:underline">
+            <Link href="#" className="text-sm text-primary hover:underline" onClick={(e) => {e.preventDefault(); alert("Funcionalidade 'Esqueceu a senha?' em desenvolvimento.")}}>
               Esqueceu a senha?
             </Link>
           </div>
@@ -196,3 +209,5 @@ export function LoginForm() {
     </div>
   );
 }
+
+    

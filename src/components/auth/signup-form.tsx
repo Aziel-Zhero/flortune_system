@@ -47,17 +47,16 @@ const formatCNPJ = (value: string): string => {
 
 const formatRG = (value: string): string => {
   const cleaned = value.replace(/[^0-9Xx]/g, '').toUpperCase();
-  let formatted = cleaned.slice(0, 9); // Limite típico, mas RGs variam
-  // Exemplo simples de formatação, pode precisar de ajustes para diferentes estados
-  if (formatted.length > 2 && formatted.length <= 9) { // XX.XXX.XXX-X
+  let formatted = cleaned.slice(0, 9); 
+  if (formatted.length > 2 && formatted.length <= 9) { 
     formatted = formatted.replace(/(\d{2})(\d{3})(\d{3})([0-9Xx])$/, '$1.$2.$3-$4');
   }
-  return formatted.slice(0, 12); // Max length 12 incluindo pontos e traço
+  return formatted.slice(0, 12); 
 };
 
 export function SignupForm() {
   const initialState: SignupFormState = { message: undefined, errors: {}, success: undefined };
-  const [state, dispatch] = useActionState(signupUser, initialState);
+  const [state, dispatch, isPending] = useActionState(signupUser, initialState);
   const [accountType, setAccountType] = useState<'pessoa' | 'empresa'>('pessoa');
   const [phoneValue, setPhoneValue] = useState<string | undefined>();
   const [cpfValue, setCpfValue] = useState('');
@@ -76,25 +75,17 @@ export function SignupForm() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (state?.message && !state.success && !state.errors?._form) { 
+    if (state?.message && !state.success) { 
+        const formWideError = state.errors?._form?.join(', ') || state.message;
         toast({
           title: "Erro no Cadastro",
-          description: state.message,
+          description: formWideError,
           variant: "destructive",
         });
-        setFormError(state.message); // Também definir como erro de formulário para exibição
-    } else if (state?.errors?._form) {
-        setFormError(state.errors._form.join(', '));
+        setFormError(formWideError);
     } else {
-        setFormError(null); // Limpar erro se não houver mais
+        setFormError(null);
     }
-    // O redirecionamento é tratado pela action agora.
-    // if (state?.success && state.message) { 
-    //     toast({
-    //         title: "Sucesso!",
-    //         description: state.message,
-    //     });
-    // }
   }, [state]);
 
   useEffect(() => {
@@ -104,8 +95,8 @@ export function SignupForm() {
 
   useEffect(() => {
     let score = 0;
-    let calculatedLabel = "Muito Fraca"; // Renomeado para evitar conflito de escopo
-    let calculatedColor = "bg-destructive"; // Renomeado para evitar conflito de escopo
+    let calculatedLabel = "Muito Fraca";
+    let calculatedColor = "bg-destructive";
     if (password.length >= 8) score += 1;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
     if (/[0-9]/.test(password)) score += 1;
@@ -120,20 +111,19 @@ export function SignupForm() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    setFormError(null); // Limpar erros de formulário
+    setFormError(null);
     try {
       const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-      await signIn('google', { callbackUrl, redirect: false });
-      // Se signIn com redirect: false for bem-sucedido e o usuário for novo, 
-      // o adapter e o trigger do BD devem criar o usuário.
-      // O NextAuth tipicamente redireciona para a página de erro se algo falhar no OAuth.
-      // Se a intenção é sempre ir para o dashboard: signIn('google', { callbackUrl: '/dashboard' });
-    } catch(e) {
+      await signIn('google', { callbackUrl });
+    } catch(e: any) {
        console.error("SignupForm: Exception during signIn (Google):", e);
-       setFormError("Falha ao iniciar cadastro com Google.");
-       toast({ title: "Erro com Google", description: "Não foi possível iniciar o cadastro com Google.", variant: "destructive" });
-    } finally {
-        setIsGoogleLoading(false);
+       let friendlyError = "Falha ao iniciar cadastro com Google.";
+       if (e.message?.includes("OAuthAccountNotLinked")) {
+          friendlyError = "Esta conta já existe com outro método de login. Tente usar email e senha ou o método original."
+       }
+       setError(friendlyError);
+       toast({ title: "Erro com Google", description: friendlyError, variant: "destructive" });
+       setIsGoogleLoading(false);
     }
   };
 
@@ -160,8 +150,8 @@ export function SignupForm() {
             onValueChange={(value: 'pessoa' | 'empresa') => {
               setAccountType(value);
               setCpfValue(''); setRgValue(''); setCnpjValue(''); setPhoneValue(undefined);
-              setFormError(null); // Limpar erro ao mudar tipo de conta
-              if (state?.errors) state.errors = {}; // Limpar erros de validação anteriores
+              setFormError(null); 
+              if (state?.errors) state.errors = {}; 
             }}
             className="flex space-x-4"
           >
@@ -268,15 +258,15 @@ export function SignupForm() {
           </div>
         )}
 
-        <SubmitButton pendingText="Criando Conta..." disabled={isGoogleLoading}>
+        <SubmitButton pendingText="Criando Conta..." disabled={isGoogleLoading || isPending}>
           Criar Conta <UserPlus className="ml-2 h-4 w-4" />
         </SubmitButton>
       </form>
       
-      {accountType === 'pessoa' && ( // Login com Google geralmente é para Pessoa Física
+      {accountType === 'pessoa' && ( 
         <>
           <Separator />
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || state?.pending}>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isPending}>
              {isGoogleLoading ? "Redirecionando..." : (<><GoogleIcon /> Inscrever-se com Google</>)}
           </Button>
         </>
@@ -292,3 +282,5 @@ export function SignupForm() {
     </div>
   );
 }
+
+    
