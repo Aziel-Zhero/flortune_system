@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS next_auth.accounts
     oauth_token_secret TEXT,
     oauth_token TEXT,
     "userId" uuid,
-    CONSTRAINT贫 "accounts_userId_fkey" FOREIGN KEY ("userId")
+    CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId")
         REFERENCES next_auth.users (id) ON DELETE CASCADE,
     CONSTRAINT provider_account_unique UNIQUE (provider, "providerAccountId")
 );
