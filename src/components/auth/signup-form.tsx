@@ -3,21 +3,28 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, Building, Fingerprint, Phone as PhoneIcon, Eye, EyeOff } from "lucide-react";
-// import { Button } from "@/components/ui/button"; // Usaremos SubmitButton
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { signupUser, type SignupFormState } from "@/app/actions/auth.actions"; // Action atualizada
-// import { OAuthButton } from "./oauth-button"; // Google removido temporariamente
+import { signupUser, type SignupFormState } from "@/app/actions/auth.actions"; 
 import { SubmitButton } from "./submit-button";
 import { toast } from "@/hooks/use-toast";
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-// import { signIn } from "next-auth/react"; // Para Google Sign In futuro
+import { signIn } from "next-auth/react"; 
+import { useSearchParams, useRouter } from 'next/navigation';
+
+// Placeholder Google icon as SVG component
+const GoogleIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" className="mr-2">
+    <path fill="currentColor" d="M21.35 11.1h-9.17v2.73h5.22c-.46 2.07-2.13 3.42-4.09 3.42a5.34 5.34 0 0 1-5.34-5.34a5.34 5.34 0 0 1 5.34-5.34c1.41 0 2.42.52 3.2 1.26l1.96-1.96A8.74 8.74 0 0 0 12.18 2a9.34 9.34 0 0 0-9.34 9.34a9.34 9.34 0 0 0 9.34 9.34c5.04 0 8.92-3.76 8.92-8.92c0-.61-.05-1.11-.15-1.56Z"/>
+  </svg>
+);
 
 const formatCPF = (value: string): string => {
   const digits = value.replace(/\D/g, '');
@@ -40,15 +47,12 @@ const formatCNPJ = (value: string): string => {
 
 const formatRG = (value: string): string => {
   const cleaned = value.replace(/[^0-9Xx]/g, '').toUpperCase();
-  let formatted = cleaned.slice(0, 9);
-  if (formatted.length > 8) {
-    const lastChar = formatted.slice(8);
-    if (!/^[0-9X]$/.test(lastChar)) formatted = formatted.slice(0,8);
+  let formatted = cleaned.slice(0, 9); // Limite típico, mas RGs variam
+  // Exemplo simples de formatação, pode precisar de ajustes para diferentes estados
+  if (formatted.length > 2 && formatted.length <= 9) { // XX.XXX.XXX-X
+    formatted = formatted.replace(/(\d{2})(\d{3})(\d{3})([0-9Xx])$/, '$1.$2.$3-$4');
   }
-  if (formatted.length > 6) formatted = `${formatted.slice(0, 6)}-${formatted.slice(6)}`;
-  if (formatted.length > 3) formatted = `${formatted.slice(0, 3)}.${formatted.slice(3)}`;
-  if (formatted.length > 2) formatted = `${formatted.slice(0, 2)}.${formatted.slice(2)}`;
-  return formatted.slice(0, 12);
+  return formatted.slice(0, 12); // Max length 12 incluindo pontos e traço
 };
 
 export function SignupForm() {
@@ -65,21 +69,32 @@ export function SignupForm() {
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: "Muito Fraca", color: "bg-destructive" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (state?.message && !state.success && !state.errors?._form) { // Mostra toast se não for erro _form (já na Alert)
+    if (state?.message && !state.success && !state.errors?._form) { 
         toast({
           title: "Erro no Cadastro",
           description: state.message,
           variant: "destructive",
         });
+        setFormError(state.message); // Também definir como erro de formulário para exibição
+    } else if (state?.errors?._form) {
+        setFormError(state.errors._form.join(', '));
+    } else {
+        setFormError(null); // Limpar erro se não houver mais
     }
-    if (state?.success && state.message) { // Para mensagem de sucesso se houver (embora redirect seja mais comum)
-        toast({
-            title: "Sucesso!",
-            description: state.message,
-        });
-    }
+    // O redirecionamento é tratado pela action agora.
+    // if (state?.success && state.message) { 
+    //     toast({
+    //         title: "Sucesso!",
+    //         description: state.message,
+    //     });
+    // }
   }, [state]);
 
   useEffect(() => {
@@ -89,19 +104,38 @@ export function SignupForm() {
 
   useEffect(() => {
     let score = 0;
-    let label = "Muito Fraca";
-    let color = "bg-destructive";
+    let calculatedLabel = "Muito Fraca"; // Renomeado para evitar conflito de escopo
+    let calculatedColor = "bg-destructive"; // Renomeado para evitar conflito de escopo
     if (password.length >= 8) score += 1;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
     if (/[0-9]/.test(password)) score += 1;
     if (/[^a-zA-Z0-9]/.test(password)) score += 1;
-    if (score <= 1 && password.length > 0) { label = "Fraca"; color = "bg-red-500"; }
-    else if (score === 2) { label = "Média"; color = "bg-yellow-500"; }
-    else if (score === 3) { label = "Forte"; color = "bg-green-500"; }
-    else if (score >= 4) { label = "Muito Forte"; color = "bg-emerald-500"; }
-    else if (password.length === 0) { label = "Muito Fraca"; color = "bg-destructive"; score = 0; }
-    setPasswordStrength({ score: (score/4)*100, label, color });
+    if (score <= 1 && password.length > 0) { calculatedLabel = "Fraca"; calculatedColor = "bg-red-500"; }
+    else if (score === 2) { calculatedLabel = "Média"; calculatedColor = "bg-yellow-500"; }
+    else if (score === 3) { calculatedLabel = "Forte"; calculatedColor = "bg-green-500"; }
+    else if (score >= 4) { calculatedLabel = "Muito Forte"; calculatedColor = "bg-emerald-500"; }
+    else if (password.length === 0) { calculatedLabel = "Muito Fraca"; calculatedColor = "bg-destructive"; score = 0; }
+    setPasswordStrength({ score: (score/4)*100, label: calculatedLabel, color: calculatedColor });
   }, [password]);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setFormError(null); // Limpar erros de formulário
+    try {
+      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+      await signIn('google', { callbackUrl, redirect: false });
+      // Se signIn com redirect: false for bem-sucedido e o usuário for novo, 
+      // o adapter e o trigger do BD devem criar o usuário.
+      // O NextAuth tipicamente redireciona para a página de erro se algo falhar no OAuth.
+      // Se a intenção é sempre ir para o dashboard: signIn('google', { callbackUrl: '/dashboard' });
+    } catch(e) {
+       console.error("SignupForm: Exception during signIn (Google):", e);
+       setFormError("Falha ao iniciar cadastro com Google.");
+       toast({ title: "Erro com Google", description: "Não foi possível iniciar o cadastro com Google.", variant: "destructive" });
+    } finally {
+        setIsGoogleLoading(false);
+    }
+  };
 
   const fullNameLabel = accountType === 'pessoa' ? "Nome Completo" : "Razão Social";
   const displayNameLabel = accountType === 'pessoa' ? "Nome de Exibição" : "Nome Fantasia";
@@ -110,19 +144,12 @@ export function SignupForm() {
   return (
     <div className="space-y-6">
       <form action={dispatch} className="space-y-4">
-        {state?.errors?._form && (
+        {formError && (
            <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Falha ao Inscrever-se</AlertTitle>
-            <AlertDescription>{state.errors._form.join(', ')}</AlertDescription>
+            <AlertTitle>Falha no Cadastro</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
           </Alert>
-        )}
-        {state?.message && !state.success && !state.errors?._form && (
-             <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro</AlertTitle>
-                <AlertDescription>{state.message}</AlertDescription>
-            </Alert>
         )}
 
         <div className="space-y-2">
@@ -133,6 +160,8 @@ export function SignupForm() {
             onValueChange={(value: 'pessoa' | 'empresa') => {
               setAccountType(value);
               setCpfValue(''); setRgValue(''); setCnpjValue(''); setPhoneValue(undefined);
+              setFormError(null); // Limpar erro ao mudar tipo de conta
+              if (state?.errors) state.errors = {}; // Limpar erros de validação anteriores
             }}
             className="flex space-x-4"
           >
@@ -182,7 +211,7 @@ export function SignupForm() {
             <div className="relative">
               <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="••••••••" required className="pl-10 pr-10" aria-describedby="password-error" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <button type="button" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 px-1 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
+              <button type="button" aria-label={showPassword ? "Esconder senha" : "Mostrar senha"} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 px-1 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
             </div>
             {state?.errors?.password && <p id="password-error" className="text-sm text-destructive">{state.errors.password.join(', ')}</p>}
             {password.length > 0 && (<div className="mt-1"><Progress value={passwordStrength.score} className={cn("h-2 w-full", passwordStrength.color)} indicatorClassName={cn(passwordStrength.color)} /><p className="text-xs mt-1 text-muted-foreground">Força da senha: {passwordStrength.label}</p></div>)}
@@ -192,7 +221,7 @@ export function SignupForm() {
             <div className="relative">
               <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" required className="pl-10 pr-10" aria-describedby="confirmPassword-error" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-              <button type="button" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 px-1 text-muted-foreground hover:text-foreground" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
+              <button type="button" aria-label={showConfirmPassword ? "Esconder confirmação de senha" : "Mostrar confirmação de senha"} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 px-1 text-muted-foreground hover:text-foreground" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button>
             </div>
             {state?.errors?.confirmPassword && <p id="confirmPassword-error" className="text-sm text-destructive">{state.errors.confirmPassword.join(', ')}</p>}
             {passwordsMatch === false && <p className="text-sm text-destructive mt-1">As senhas não coincidem.</p>}
@@ -239,21 +268,19 @@ export function SignupForm() {
           </div>
         )}
 
-        <SubmitButton pendingText="Criando Conta...">
+        <SubmitButton pendingText="Criando Conta..." disabled={isGoogleLoading}>
           Criar Conta <UserPlus className="ml-2 h-4 w-4" />
         </SubmitButton>
       </form>
       
-      {/* Google Sign-In com NextAuth será adicionado aqui quando o provider for configurado em auth.ts */}
-      {/* {accountType === 'pessoa' && (
+      {accountType === 'pessoa' && ( // Login com Google geralmente é para Pessoa Física
         <>
           <Separator />
-          <Button variant="outline" className="w-full" onClick={async () => await signIn('google', { callbackUrl: '/dashboard' })} disabled={true}> Inscrever-se com Google (Em Breve)</Button>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || state?.pending}>
+             {isGoogleLoading ? "Redirecionando..." : (<><GoogleIcon /> Inscrever-se com Google</>)}
+          </Button>
         </>
-      )} */}
-      <p className="text-center text-sm text-muted-foreground">
-        Login com Google temporariamente desabilitado.
-      </p>
+      )}
       
       <style jsx global>{`
         .PhoneInput { display: flex; align-items: center; }
