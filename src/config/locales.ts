@@ -1,2 +1,5 @@
-// Este arquivo não é mais necessário pois o app usará apenas Português.
-// Por favor, delete este arquivo do seu projeto.
+// A funcionalidade de internacionalização (i18n) foi removida.
+// O aplicativo agora usará apenas Português diretamente nos componentes.
+// Este arquivo não é mais necessário e pode ser deletado do seu projeto.
+
+    

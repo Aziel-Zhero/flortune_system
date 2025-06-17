@@ -1,3 +1,5 @@
-// Este arquivo e toda a pasta [locale] devem ser deletados.
-// A funcionalidade de internacionalização foi removida.
+// A funcionalidade de internacionalização (i18n) com rotas baseadas em [locale] foi removida.
 // A página de signup agora é src/app/signup/page.tsx.
+// Esta pasta [locale] e todos os seus conteúdos podem ser deletados.
+
+    

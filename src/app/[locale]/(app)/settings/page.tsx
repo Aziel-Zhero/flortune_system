@@ -1,3 +1,5 @@
-// Este arquivo e toda a pasta [locale] devem ser deletados.
-// A funcionalidade de internacionalização foi removida.
-// A página de settings agora é src/app/(app)/settings/page.tsx.
+// A funcionalidade de internacionalização (i18n) com rotas baseadas em [locale] foi removida.
+// Esta página foi movida para src/app/(app)/settings/page.tsx.
+// Esta pasta [locale] e todos os seus conteúdos podem ser deletados.
+
+    

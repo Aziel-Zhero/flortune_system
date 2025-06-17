@@ -10,19 +10,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save } from "lucide-react";
-import { useSession, signOut } from "next-auth/react"; // Usar useSession
+import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
-// import { logoutUser } from '@/app/actions/auth.actions'; // Usaremos signOut do NextAuth
 import { APP_NAME } from '@/lib/constants';
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
-import { supabase } from '@/lib/supabase/client'; // Para atualizar perfil no DB
+import { supabase } from '@/lib/supabase/client';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
   const { data: session, status, update: updateSession } = useSession();
-  const { isDarkMode, toggleDarkMode } = useAppSettings(); // Mantém AppSettings para tema
+  const { isDarkMode, toggleDarkMode } = useAppSettings();
 
   const isLoading = status === "loading";
   const userFromSession = session?.user;
@@ -30,7 +29,7 @@ export default function SettingsPage() {
 
   const [fullName, setFullName] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState(""); // Email não será editável
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [rg, setRg] = useState("");
@@ -51,7 +50,8 @@ export default function SettingsPage() {
       setPhone(profileFromSession.phone || "");
       setCpfCnpj(profileFromSession.cpf_cnpj || "");
       setRg(profileFromSession.rg || "");
-      setAvatarUrl(profileFromSession.avatar_url || session?.user?.image || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || 'U'}`);
+      const currentAvatar = profileFromSession.avatar_url || session?.user?.image || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || 'U'}`;
+      setAvatarUrl(currentAvatar);
       setAvatarFallback((profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || "U");
     }
     if (session?.user?.email) {
@@ -61,40 +61,43 @@ export default function SettingsPage() {
 
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
-    if (!userFromSession?.id) { // Agora verificamos o ID da sessão NextAuth
+    if (!userFromSession?.id) {
       toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
       return;
     }
     setIsSavingProfile(true);
     try {
-      const updatedProfileData: Partial<Omit<Profile, 'id' | 'created_at' | 'hashed_password' | 'email'>> & {updated_at: string} = {
+      const updatedProfileData: Partial<Omit<Profile, 'id' | 'created_at' | 'email' | 'hashed_password'>> & {updated_at: string} = {
         full_name: fullName,
         display_name: displayName,
         phone,
         cpf_cnpj: cpfCnpj,
         rg,
-        // avatar_url: avatarUrl, // Atualização de avatar é mais complexa
+        // avatar_url: avatarUrl, // Atualização de avatar é mais complexa, envolveria upload para Supabase Storage
         updated_at: new Date().toISOString(),
+        account_type: profileFromSession?.account_type, // Manter o tipo de conta
       };
 
-      const { data, error } = await supabase
+      const { data: updatedProfile, error } = await supabase
         .from('profiles')
         .update(updatedProfileData)
-        .eq('id', userFromSession.id) // Usa o ID do usuário da sessão NextAuth
+        .eq('id', userFromSession.id)
         .select()
         .single();
 
       if (error) throw error;
 
-      if (data) {
+      if (updatedProfile) {
         // Atualizar a sessão do NextAuth com o novo perfil
+        // O objeto passado para `updateSession` será mesclado com a sessão existente.
+        // É importante garantir que a estrutura corresponda à da sua sessão.
         await updateSession({
-          ...session,
-          user: {
+          ...session, // Preserva outros dados da sessão
+          user: { // Atualiza apenas a parte `user` da sessão
             ...session?.user,
-            name: data.display_name || data.full_name,
-            image: data.avatar_url, // Se o avatar fosse atualizado
-            profile: data as Profile,
+            name: updatedProfile.display_name || updatedProfile.full_name,
+            // image: updatedProfile.avatar_url, // Se o avatar fosse atualizado
+            profile: updatedProfile as Profile, // Atualiza o perfil aninhado
           }
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso." });
@@ -135,7 +138,6 @@ export default function SettingsPage() {
     return <p>Redirecionando para o login...</p>;
   }
 
-
   return (
     <div className="space-y-8">
       <PageHeader
@@ -152,18 +154,18 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar" />
+                <AvatarImage src={avatarUrl} alt={displayName || "Avatar"} data-ai-hint="user avatar" />
                 <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
               <Button type="button" variant="outline" onClick={() => handleFeatureClick("Mudar Foto")}>Mudar Foto</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="fullName">Nome Completo</Label>
+                <Label htmlFor="fullName">Nome Completo / Razão Social</Label>
                 <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="displayName">Nome de Exibição</Label>
+                <Label htmlFor="displayName">Nome de Exibição / Fantasia</Label>
                 <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               </div>
             </div>
@@ -181,22 +183,35 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="cpfCnpj">CPF/CNPJ</Label>
-                 <div className="relative">
-                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
+            {profileFromSession?.account_type === 'pessoa' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cpfCnpj">CPF</Label>
+                  <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="rg">RG</Label>
+                  <div className="relative">
+                      <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input id="rg" value={rg} onChange={(e) => setRg(e.target.value)} className="pl-10" />
+                  </div>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="rg">RG</Label>
-                <div className="relative">
-                    <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="rg" value={rg} onChange={(e) => setRg(e.target.value)} className="pl-10" />
+            )}
+            {profileFromSession?.account_type === 'empresa' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cpfCnpj">CNPJ</Label>
+                  <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <Button type="submit" disabled={isSavingProfile}>
               {isSavingProfile ? "Salvando..." : "Salvar Alterações do Perfil"} <Save className="ml-2 h-4 w-4" />
             </Button>
@@ -311,3 +326,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

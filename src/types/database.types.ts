@@ -1,9 +1,24 @@
 
 // Baseado no schema SQL fornecido
 
+export interface Profile {
+  id: string; // UUID, chave primária
+  full_name?: string | null;
+  display_name?: string | null;
+  email: string; // NOT NULL, UNIQUE
+  hashed_password?: string | null; // Armazenará a senha hasheada
+  phone?: string | null;
+  cpf_cnpj?: string | null; // UNIQUE
+  rg?: string | null;
+  avatar_url?: string | null;
+  account_type?: 'pessoa' | 'empresa' | null;
+  created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
+}
+
 export interface Category {
   id: string; // UUID
-  user_id: string | null; // UUID, nulo para categorias padrão
+  user_id: string | null; // UUID, nulo para categorias padrão, FK para profiles.id
   name: string;
   type: 'income' | 'expense';
   icon?: string | null; // Nome do ícone Lucide ou similar
@@ -14,7 +29,7 @@ export interface Category {
 
 export interface Transaction {
   id: string; // UUID
-  user_id: string; // UUID
+  user_id: string; // UUID, FK para profiles.id
   category_id: string | null; // UUID (FK para categories.id)
   description: string;
   amount: number; // NUMERIC
@@ -28,7 +43,7 @@ export interface Transaction {
 
 export interface Budget {
   id: string; // UUID
-  user_id: string; // UUID
+  user_id: string; // UUID, FK para profiles.id
   category_id: string; // UUID (FK para categories.id)
   limit_amount: number; // NUMERIC
   spent_amount: number; // NUMERIC
@@ -41,7 +56,7 @@ export interface Budget {
 
 export interface FinancialGoal {
   id: string; // UUID
-  user_id: string; // UUID
+  user_id: string; // UUID, FK para profiles.id
   name: string;
   target_amount: number; // NUMERIC
   current_amount: number; // NUMERIC
@@ -64,3 +79,5 @@ export interface ServiceListResponse<T> {
   error: Error | null;
   count?: number | null;
 }
+
+    

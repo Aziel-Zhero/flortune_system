@@ -1,3 +1,5 @@
-// Este arquivo e toda a pasta [locale] devem ser deletados.
-// A funcionalidade de internacionalização foi removida.
-// O layout do app agora é src/app/(app)/layout.tsx.
+// A funcionalidade de internacionalização (i18n) com rotas baseadas em [locale] foi removida.
+// O layout principal do app agora é src/app/(app)/layout.tsx.
+// Esta pasta [locale] e todos os seus conteúdos podem ser deletados.
+
+    

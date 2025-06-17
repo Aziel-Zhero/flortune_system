@@ -1,4 +1,5 @@
 {}
-// Os conteúdos deste arquivo foram movidos diretamente para os componentes.
-// Esta pasta "messages" e todos os seus arquivos JSON (en.json, es.json, etc.)
-// podem ser deletados do seu projeto.
+// A pasta "messages" e todos os seus arquivos JSON podem ser deletados.
+// A funcionalidade de internacionalização foi removida.
+
+    

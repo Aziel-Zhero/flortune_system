@@ -3,12 +3,11 @@
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
-import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from '@/app/api/auth/[...nextauth]/route'; // Importa de authConfig
+import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from '@/app/api/auth/[...nextauth]/route';
 import { supabase } from '@/lib/supabase/client';
 import bcrypt from 'bcryptjs';
 import type { Profile } from "@/types/database.types";
 
-// Esquemas Zod permanecem os mesmos para validação de formulário
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
   .regex(/[a-z]/, { message: "A senha deve conter pelo menos uma letra minúscula." })
@@ -103,57 +102,35 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
     
     const { email, password } = validatedFields.data;
     
-    // Usar o signIn do NextAuth para o provider 'credentials'
-    // O redirecionamento é tratado pelo NextAuth por padrão em caso de sucesso.
-    // Erros são retornados para o callback 'authorize' e podem ser pegos aqui se o signIn falhar.
-    await nextAuthSignIn('credentials', {
-      email,
-      password,
-      redirect: false, // Importante: define como false para lidar com o resultado aqui
-    });
-    
-    // Se nextAuthSignIn não lançar um erro e redirect for false, o login pode ou não ter sido bem-sucedido.
-    // O 'authorize' callback em auth.ts é quem realmente valida.
-    // Para dar feedback aqui, precisaríamos de uma forma de saber o resultado de 'authorize'.
-    // Uma maneira é o authorize lançar um erro customizado que o nextAuthSignIn propaga.
-    // Por agora, se não houver erro, assumimos que o NextAuth redirecionará se for sucesso,
-    // ou a página de login mostrará um erro vindo de um query param ?error=CredentialsSignin
-    // Para um controle mais fino, muitas vezes a lógica de chamada ao signIn é feita no lado do cliente.
-    // Vamos assumir que se chegou aqui sem erro do signIn, e redirect:true (padrão) fosse usado, o NextAuth lidaria.
-    // Com redirect:false, o fluxo continua aqui. Precisamos verificar se a sessão foi criada.
-    // No entanto, a maneira mais idiomática do NextAuth é deixar ele lidar com o redirect.
-    // Para manter o padrão de Server Action, o ideal seria que `nextAuthSignIn` retornasse um status ou lançasse erro.
-
-    // Se você usar `redirect: true` (ou omitir), NextAuth redireciona para `callbackUrl` (padrão `/`) ou `pages.signIn` em erro.
-    // Como estamos em uma Server Action e queremos retornar um estado, `redirect: false` é mais complexo.
-    // Vamos tentar com redirecionamento direto.
-    
+    // Para usar o signIn de Server Action, o redirecionamento é implícito ou via throw/redirect()
+    // O NextAuth.js cuida de redirecionar ou lançar um erro que se manifesta.
     await nextAuthSignIn('credentials', {
       email,
       password,
       redirectTo: '/dashboard', // Redireciona para o dashboard em sucesso
     });
-    // Se o login falhar, o NextAuth geralmente redireciona para a página de login com um erro na URL.
-    // ex: /login?error=CredentialsSignin
 
-    // A linha abaixo não será alcançada se o signIn redirecionar ou lançar erro que redireciona.
-    return { message: "Tentativa de login processada.", success: true }; 
+    // Se o login falhar, o NextAuth tipicamente redireciona para a página de login com um erro na URL
+    // ou lança um erro que a Server Action pode pegar se `redirect: false` fosse usado (mais complexo).
+    // Com redirectTo, a linha abaixo só é alcançada se houver um erro inesperado antes do redirect.
+    return { message: "Tentativa de login processada. Redirecionamento deveria ocorrer.", success: true }; 
 
   } catch (error: any) {
-    // NextAuth pode lançar erros específicos.
-    // O erro "CredentialsSignin" é comum e pode ser tratado.
+    console.error("loginUser action (NextAuth): Erro durante o login:", error);
+    // Erros do NextAuth (como CredentialsSignin) são geralmente tratados pelo próprio NextAuth
+    // resultando em um redirecionamento para a página de login com um parâmetro de erro.
+    // Se o erro for pego aqui, é algo mais fundamental ou uma configuração.
     if (error.type === 'CredentialsSignin' || (error.cause && error.cause.type === 'CredentialsSigninError')) {
-      console.error("loginUser action (NextAuth): Erro de credenciais:", error.message);
       return {
         message: "Email ou senha inválidos.",
         errors: { _form: ["Email ou senha inválidos."] },
         success: false,
       };
     }
-    console.error("loginUser action (NextAuth): Erro inesperado durante o login:", error);
+    // Para erros que não são do NextAuth ou se a action prosseguir após uma falha não tratada pelo redirect
     return {
-      message: "Ocorreu um erro inesperado. Tente novamente.",
-      errors: { _form: ["Falha no login devido a um erro no servidor."] },
+      message: error.message || "Ocorreu um erro inesperado. Tente novamente.",
+      errors: { _form: [error.message || "Falha no login devido a um erro no servidor."] },
       success: false,
     };
   }
@@ -198,7 +175,6 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
 
-    // Verificar se o email já existe na tabela profiles
     const { data: existingProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('email')
@@ -227,25 +203,23 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     const rgValue = (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null;
     const phoneValue = phone ? phone.replace(/\D/g, '') : null;
 
-    // Supabase agora é apenas para armazenar o perfil. O ID será gerado pelo Supabase.
-    // NextAuth não cria o usuário no DB automaticamente com Credentials provider.
-    const newProfileData: Omit<Profile, 'id' | 'created_at' | 'updated_at'> & { hashed_password: string, email: string } = {
+    // O ID será gerado automaticamente pelo Supabase (uuid_generate_v4())
+    const newProfileData: Omit<Profile, 'id' | 'created_at' | 'updated_at'> = {
         full_name: fullName,
         display_name: displayName,
-        email: email, // Adicionando email ao perfil
+        email: email,
         hashed_password: hashedPassword,
         phone: phoneValue,
         cpf_cnpj: cpfCnpjValue,
         rg: rgValue,
         avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-        // Outros campos do perfil como accountType podem ser adicionados se a tabela `profiles` os tiver
+        account_type: accountType,
     };
     
-    // Insere na tabela profiles. O user_id será o id da tabela profiles.
     const { data: createdProfile, error: insertError } = await supabase
         .from('profiles')
         .insert(newProfileData)
-        .select()
+        .select() // Seleciona todos os campos do perfil criado, incluindo o ID gerado
         .single();
 
     if (insertError) {
@@ -259,13 +233,11 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     console.log("signupUser action (NextAuth): Perfil criado com ID:", createdProfile.id);
     
-    // Após o cadastro bem-sucedido, redireciona para o login
-    // Ou pode tentar logar o usuário automaticamente, mas é mais simples redirecionar.
     redirect('/login?signup=success');
 
   } catch (error: any) {
     if (error.digest?.startsWith('NEXT_REDIRECT')) {
-      throw error;
+      throw error; // Necessário para o Next.js lidar com o redirect
     }
     console.error("signupUser action (NextAuth): Erro inesperado:", error);
     return {
@@ -276,14 +248,9 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
   }
 }
 
-
-// Google Sign-In com NextAuth (placeholder para quando for re-adicionado)
-// export async function signInWithGoogle() {
-//   await nextAuthSignIn('google', { redirectTo: '/dashboard' });
-// }
-
 export async function logoutUser() {
   console.log("logoutUser action (NextAuth): Iniciando processo de logout...");
   await nextAuthSignOut({ redirectTo: '/login?logout=success' });
-  // redirect('/login?logout=success'); // nextAuthSignOut já lida com o redirect
 }
+
+    
