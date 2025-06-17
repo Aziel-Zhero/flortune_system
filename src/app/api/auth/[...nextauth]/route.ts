@@ -44,9 +44,10 @@ export const authConfig: NextAuthConfig = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log("Auth.js: Authorize attempt for email:", credentials?.email);
+        console.log("[NextAuth Authorize] Attempting authorization for email:", credentials?.email);
+
         if (!credentials?.email || !credentials?.password) {
-          console.log("Auth.js: Missing email or password");
+          console.log("[NextAuth Authorize] Missing email or password in credentials.");
           return null;
         }
 
@@ -54,68 +55,68 @@ export const authConfig: NextAuthConfig = {
         const password = credentials.password as string;
 
         try {
-          // Busca o perfil na sua tabela public.profiles
-          const { data: profile, error } = await supabase
+          console.log(`[NextAuth Authorize] Fetching profile for email: ${email}`);
+          const { data: profile, error: dbError } = await supabase
             .from('profiles')
-            .select('*') // Seleciona todas as colunas, incluindo hashed_password
+            .select('*')
             .eq('email', email)
             .single();
 
-          if (error || !profile) {
-            console.error('Auth.js: Profile not found or Supabase error:', error?.message);
-            return null; // Usuário não encontrado
+          if (dbError) {
+            console.error('[NextAuth Authorize] Supabase DB error fetching profile:', dbError.message);
+            // Do not return null yet, check if it's "profile not found" vs other DB error
+            if (dbError.code === 'PGRST116') { // PGRST116: "Query result returned no rows"
+                 console.log(`[NextAuth Authorize] Profile not found for email: ${email}`);
+                 return null; 
+            }
+            // For other DB errors, it's a server issue
+            throw new Error(`Database error: ${dbError.message}`);
+          }
+          
+          if (!profile) {
+            console.log(`[NextAuth Authorize] No profile found for email: ${email} (after DB query).`);
+            return null; 
           }
 
+          console.log(`[NextAuth Authorize] Profile found for ID: ${profile.id}. Checking password.`);
           if (!profile.hashed_password) {
-            console.error('Auth.js: User profile does not have a hashed password.');
-            return null; // Perfil não tem senha, não pode logar por credenciais
+            console.error(`[NextAuth Authorize] User profile (ID: ${profile.id}) does not have a hashed password.`);
+            return null; 
           }
           
           const passwordsMatch = await bcrypt.compare(password, profile.hashed_password);
 
           if (passwordsMatch) {
-            console.log("Auth.js: Password match for profile ID:", profile.id);
-            // Retorna o objeto User como definido pelo NextAuth.
-            // O `id` aqui será o `profile.id` da sua tabela.
+            console.log(`[NextAuth Authorize] Password match for profile ID: ${profile.id}. Returning user object.`);
             return { 
               id: profile.id, 
               email: profile.email, 
               name: profile.display_name || profile.full_name, 
               image: profile.avatar_url,
-              profile: profile as AppProfile // Passando o perfil completo para os callbacks
+              profile: profile as AppProfile 
             };
           } else {
-            console.log("Auth.js: Password mismatch for profile ID:", profile.id);
-            return null; // Senha não confere
+            console.log(`[NextAuth Authorize] Password mismatch for profile ID: ${profile.id}.`);
+            return null; 
           }
         } catch (e: any) {
-          console.error('Auth.js: Exception during authorize:', e.message);
+          console.error('[NextAuth Authorize] Exception during authorization process:', e.message, e.stack);
+          // Rethrow or return null to indicate failure. Returning null is typical for authorize.
           return null;
         }
       },
     }),
-    // Provedor Google será configurado aqui em um passo futuro, se necessário.
-    // GoogleProvider({
-    //   clientId: process.env.GOOGLE_CLIENT_ID,
-    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    // }),
   ],
-  // adapter: undefined, // Não usando adaptador DB do NextAuth diretamente
   session: {
-    strategy: 'jwt', // JWT é recomendado
+    strategy: 'jwt', 
   },
   callbacks: {
     async jwt({ token, user, account, profile: oauthProfile }) {
-      // `user` só está presente no primeiro login.
-      // `account` e `oauthProfile` estão presentes para logins OAuth.
-      if (user) { // Este `user` é o que foi retornado pelo `authorize` ou pelo provider OAuth
-        token.id = user.id; // `user.id` do nosso `authorize` ou do provider OAuth
-        if (user.profile) { // Se o `profile` foi anexado em `authorize` (nosso caso para Credentials)
+      if (user) { 
+        token.id = user.id; 
+        if (user.profile) { 
             token.profile = user.profile;
         }
-        // Para OAuth, poderíamos mapear `oauthProfile` aqui se necessário,
-        // ou lidar com isso no `signIn` callback se quisermos criar/linkar perfis.
-        // Por agora, focamos em Credentials.
         token.name = user.name;
         token.email = user.email;
         token.picture = user.image;
@@ -123,38 +124,27 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
-      // O token JWT (do callback jwt) é usado para popular a sessão.
       if (token?.id && session.user) {
         session.user.id = token.id as string;
       }
-      if (token?.profile && session.user) { // Nosso perfil customizado
+      if (token?.profile && session.user) { 
         session.user.profile = token.profile as AppProfile;
-        // Popular campos padrão da sessão com base no perfil, se não já definidos pelo token
         session.user.name = token.name ?? (token.profile as AppProfile).display_name ?? (token.profile as AppProfile).full_name;
         session.user.email = token.email ?? (token.profile as AppProfile).email;
         session.user.image = token.picture ?? (token.profile as AppProfile).avatar_url;
-      } else if (session.user) { // Fallback se não houver token.profile, mas houver token.name etc.
+      } else if (session.user) { 
         session.user.name = token.name;
         session.user.email = token.email;
         session.user.image = token.picture;
       }
       return session;
     },
-    // async signIn({ user, account, profile, email, credentials }) {
-    //   if (account?.provider === "google") {
-    //     // Lógica para criar/linkar usuário na sua tabela `profiles` com dados do Google.
-    //     // Ex: const { data, error } = await supabase.from('profiles').upsert({ ... });
-    //     // Retornar true para permitir o login, false para negar.
-    //   }
-    //   return true; // Permitir login por credentials por padrão
-    // }
   },
   pages: {
     signIn: '/login',
-    // error: '/login', // Opcional: redirecionar para /login em caso de erro
   },
-  secret: process.env.AUTH_SECRET, // ESSENCIAL para JWTs!
-  // debug: process.env.NODE_ENV === 'development', // Opcional para logs detalhados
+  secret: process.env.AUTH_SECRET, 
+  // debug: process.env.NODE_ENV === 'development',
 };
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
