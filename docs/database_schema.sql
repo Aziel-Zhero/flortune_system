@@ -1,31 +1,22 @@
 
--- Remover schema existente 'next_auth' e 'public' se existirem, para um novo começo.
--- CUIDADO: ISSO APAGARÁ TODOS OS DADOS NOS SCHEMAS 'public' e 'next_auth'.
--- FAÇA BACKUP SE NECESSÁRIO. EM PRODUÇÃO, USE MIGRAÇÕES CUIDADOSAS.
-DROP SCHEMA IF EXISTS next_auth CASCADE;
--- Não vamos dropar 'public' inteiro, mas sim as tabelas específicas do app
-DROP TABLE IF EXISTS public.financial_goals CASCADE;
-DROP TABLE IF EXISTS public.budgets CASCADE;
-DROP TABLE IF EXISTS public.transactions CASCADE;
-DROP TABLE IF EXISTS public.categories CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE; -- Esta será recriada com a nova estrutura
+-- Habilitar a extensão pgcrypto se ainda não estiver habilitada (necessária para uuid_generate_v4() em algumas configurações)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
-
--- Habilitar extensão pgcrypto se não estiver habilitada (para uuid_generate_v4())
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
---------------------------------------------------------------------------------
--- Schema: next_auth (para SupabaseAdapter do NextAuth.js)
---------------------------------------------------------------------------------
-CREATE SCHEMA next_auth;
+--
+-- Name: next_auth; Type: SCHEMA;
+--
+CREATE SCHEMA IF NOT EXISTS next_auth;
 
 GRANT USAGE ON SCHEMA next_auth TO service_role;
 GRANT ALL ON SCHEMA next_auth TO postgres;
 
--- Tabela next_auth.users
+--
+-- Create users table for NextAuth.js Supabase Adapter
+--
 CREATE TABLE IF NOT EXISTS next_auth.users
 (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
     name text,
     email text,
     "emailVerified" timestamp with time zone,
@@ -33,41 +24,53 @@ CREATE TABLE IF NOT EXISTS next_auth.users
     CONSTRAINT users_pkey PRIMARY KEY (id),
     CONSTRAINT email_unique UNIQUE (email)
 );
+
 GRANT ALL ON TABLE next_auth.users TO postgres;
 GRANT ALL ON TABLE next_auth.users TO service_role;
 
--- Função next_auth.uid()
+
+-- uid() function to be used in RLS policies
 CREATE OR REPLACE FUNCTION next_auth.uid() RETURNS uuid
     LANGUAGE sql STABLE
     AS $$
   select
-  	coalesce(
-		nullif(current_setting('request.jwt.claim.sub', true), ''),
-		(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
-	)::uuid
+    coalesce(
+        nullif(current_setting('request.jwt.claim.sub', true), ''),
+        (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+    )::uuid
 $$;
+GRANT EXECUTE ON FUNCTION next_auth.uid() TO service_role;
+GRANT EXECUTE ON FUNCTION next_auth.uid() TO authenticated;
+GRANT EXECUTE ON FUNCTION next_auth.uid() TO anon;
 
--- Tabela next_auth.sessions
+
+--
+-- Create sessions table for NextAuth.js Supabase Adapter
+--
 CREATE TABLE IF NOT EXISTS next_auth.sessions
 (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
     expires timestamp with time zone NOT NULL,
     "sessionToken" text NOT NULL,
     "userId" uuid,
     CONSTRAINT sessions_pkey PRIMARY KEY (id),
-    CONSTRAINT sessionToken_unique UNIQUE ("sessionToken"),
+    CONSTRAINT "sessionToken_unique" UNIQUE ("sessionToken"),
     CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId")
         REFERENCES next_auth.users (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE CASCADE
 );
+
 GRANT ALL ON TABLE next_auth.sessions TO postgres;
 GRANT ALL ON TABLE next_auth.sessions TO service_role;
 
--- Tabela next_auth.accounts
+
+--
+-- Create accounts table for NextAuth.js Supabase Adapter
+--
 CREATE TABLE IF NOT EXISTS next_auth.accounts
 (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
     type text NOT NULL,
     provider text NOT NULL,
     "providerAccountId" text NOT NULL,
@@ -88,34 +91,42 @@ CREATE TABLE IF NOT EXISTS next_auth.accounts
         ON UPDATE NO ACTION
         ON DELETE CASCADE
 );
+
 GRANT ALL ON TABLE next_auth.accounts TO postgres;
 GRANT ALL ON TABLE next_auth.accounts TO service_role;
 
--- Tabela next_auth.verification_tokens
+--
+-- Create verification_tokens table for NextAuth.js Supabase Adapter
+--
 CREATE TABLE IF NOT EXISTS next_auth.verification_tokens
 (
     identifier text,
-    token text NOT NULL,
+    token text,
     expires timestamp with time zone NOT NULL,
-    CONSTRAINT verification_tokens_pkey PRIMARY KEY (token),
-    -- CONSTRAINT token_identifier_unique UNIQUE (token, identifier) -- Removido, PK em token é suficiente
-    CONSTRAINT token_unique UNIQUE (token)
+    CONSTRAINT verification_tokens_pkey PRIMARY KEY (token, identifier)
 );
+
 GRANT ALL ON TABLE next_auth.verification_tokens TO postgres;
 GRANT ALL ON TABLE next_auth.verification_tokens TO service_role;
 
 
---------------------------------------------------------------------------------
--- Schema: public (para tabelas específicas da aplicação Flortune)
---------------------------------------------------------------------------------
+-- Grant usage on schema and all tables within to anon and authenticated roles
+-- This is broad for development; in production, you'd be more granular.
+GRANT USAGE ON SCHEMA next_auth TO anon, authenticated;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA next_auth TO anon, authenticated;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA next_auth TO anon, authenticated;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA next_auth TO anon, authenticated;
 
--- Tabela public.profiles (Armazena detalhes do perfil do usuário, incluindo senha hasheada)
+
+--
+-- Tabela public.profiles para armazenar dados customizados dos usuários
+--
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id uuid NOT NULL PRIMARY KEY, -- Este ID DEVE ser o mesmo que next_auth.users.id
+    id uuid NOT NULL PRIMARY KEY, -- Este ID será o mesmo que next_auth.users.id
     full_name text,
     display_name text,
-    email text NOT NULL UNIQUE, -- Email também é UNIQUE aqui para consistência
-    hashed_password text, -- Senha hasheada para login por credenciais
+    email text NOT NULL UNIQUE, -- Email deve ser NOT NULL e UNIQUE
+    hashed_password text, -- Para login com credenciais
     phone text,
     cpf_cnpj text UNIQUE,
     rg text,
@@ -123,61 +134,105 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     account_type text CHECK (account_type IN ('pessoa', 'empresa')),
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL,
-    CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") -- Garante que o ID do perfil existe em next_auth.users
-        REFERENCES  next_auth.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE -- Se o usuário for deletado em next_auth, o perfil também será.
+    CONSTRAINT fk_user_id FOREIGN KEY (id) REFERENCES next_auth.users(id) ON DELETE CASCADE
 );
+
+-- Policies para public.profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Policies para public.profiles:
--- 1. Permitir que usuários anônimos criem seus próprios perfis (essencial para o cadastro).
-CREATE POLICY "Allow anon to insert their own profile"
-ON public.profiles FOR INSERT TO anon WITH CHECK (true);
+-- Anon pode inserir (para o cadastro com CredentialsProvider)
+CREATE POLICY "Allow anon to insert profiles"
+ON public.profiles
+FOR INSERT
+TO anon
+WITH CHECK (true);
 
--- 2. Permitir que usuários autenticados leiam SEU PRÓPRIO perfil.
+-- Usuários autenticados podem ler seu próprio perfil
 CREATE POLICY "Allow authenticated users to read their own profile"
-ON public.profiles FOR SELECT TO authenticated USING (auth.uid() = id);
+ON public.profiles
+FOR SELECT
+TO authenticated
+USING (next_auth.uid() = id);
 
--- 3. Permitir que usuários autenticados atualizem SEU PRÓPRIO perfil.
+-- Usuários autenticados podem atualizar seu próprio perfil
 CREATE POLICY "Allow authenticated users to update their own profile"
-ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+ON public.profiles
+FOR UPDATE
+TO authenticated
+USING (next_auth.uid() = id)
+WITH CHECK (next_auth.uid() = id);
 
--- 4. (Opcional, mas útil para o admin do Supabase) Permitir que service_role acesse tudo.
-CREATE POLICY "Allow service_role full access to profiles"
-ON public.profiles TO service_role USING (true) WITH CHECK (true);
+-- SERVICE_ROLE pode fazer tudo (o Adapter e triggers usarão isso implicitamente ou explicitamente)
+CREATE POLICY "Allow service_role full access"
+ON public.profiles
+FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
 
--- 5. Permitir que ANÔNIMOS leiam o email para verificar se já existe durante o cadastro
---    Esta policy é crucial para a verificação de email existente na action de signup.
-CREATE POLICY "Allow anon to select email for signup check"
-ON public.profiles FOR SELECT TO anon USING (true); -- Restringir colunas se necessário, mas para `select('email')` isso funciona
+
+-- Trigger para popular public.profiles quando um usuário é criado em next_auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user_from_next_auth()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER -- importante para permitir a inserção mesmo que o usuário não tenha permissão direta
+SET search_path = public -- Garante que estamos referenciando public.profiles
+AS $$
+BEGIN
+  -- Insere na public.profiles, usando o ID, email, nome e imagem do novo usuário em next_auth.users
+  -- COALESCE é usado para fornecer valores padrão caso name ou image sejam nulos
+  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.name, NEW.email), -- display_name usa o nome, ou email como fallback
+    NEW.name,                     -- full_name usa o nome
+    NEW.image,                    -- avatar_url usa a imagem
+    'pessoa'                      -- account_type padrão; ajuste se necessário (ex: pode ser null e definido depois)
+  )
+  -- Se já existir um perfil com o mesmo ID (improvável se o trigger só roda em INSERT)
+  -- ou com o mesmo email, não faz nada para evitar erro de duplicação.
+  -- O constraint UNIQUE no email em public.profiles já protege contra duplicatas de email.
+  -- O constraint fk_user_id protege contra IDs que não existem em next_auth.users.
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+-- Remove o trigger antigo se existir para evitar duplicidade
+DROP TRIGGER IF EXISTS on_auth_user_created ON next_auth.users;
+DROP TRIGGER IF EXISTS on_next_auth_user_created ON next_auth.users;
+
+-- Cria o novo trigger
+CREATE TRIGGER on_next_auth_user_created
+  AFTER INSERT ON next_auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user_from_next_auth();
 
 
+--
 -- Tabela public.categories
+--
 CREATE TABLE IF NOT EXISTS public.categories (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE, -- Nulo para categorias padrão
     name text NOT NULL,
     type text NOT NULL CHECK (type IN ('income', 'expense')),
     icon text,
-    is_default boolean DEFAULT false,
+    is_default boolean DEFAULT false NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL
 );
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
--- Policies para categories (Exemplos, ajuste conforme necessário):
-CREATE POLICY "Allow users to manage their own categories"
-ON public.categories FOR ALL TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Allow public read access to default categories"
-ON public.categories FOR SELECT TO public -- anon e authenticated
-USING (is_default = true);
+CREATE POLICY "Allow public read access to default categories" ON public.categories FOR SELECT TO anon, authenticated USING (is_default = true);
+CREATE POLICY "Allow users to manage their own categories" ON public.categories FOR ALL TO authenticated USING (user_id = next_auth.uid()) WITH CHECK (user_id = next_auth.uid());
+CREATE POLICY "Allow service_role full access to categories" ON public.categories FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-
+--
 -- Tabela public.transactions
+--
 CREATE TABLE IF NOT EXISTS public.transactions (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL,
     description text NOT NULL,
@@ -189,141 +244,84 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     updated_at timestamptz DEFAULT now() NOT NULL
 );
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow users to manage their own transactions"
-ON public.transactions FOR ALL TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Allow users to manage their own transactions" ON public.transactions FOR ALL TO authenticated USING (user_id = next_auth.uid()) WITH CHECK (user_id = next_auth.uid());
+CREATE POLICY "Allow service_role full access to transactions" ON public.transactions FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-
+--
 -- Tabela public.budgets
+--
 CREATE TABLE IF NOT EXISTS public.budgets (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id uuid NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
     limit_amount numeric(10, 2) NOT NULL,
-    spent_amount numeric(10, 2) DEFAULT 0 NOT NULL,
+    spent_amount numeric(10, 2) DEFAULT 0.00 NOT NULL,
     period_start_date date NOT NULL,
     period_end_date date NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL,
-    UNIQUE (user_id, category_id, period_start_date) -- Evitar orçamentos duplicados para mesma categoria e período
+    CONSTRAINT unique_budget_period_category UNIQUE (user_id, category_id, period_start_date, period_end_date)
 );
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow users to manage their own budgets"
-ON public.budgets FOR ALL TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Allow users to manage their own budgets" ON public.budgets FOR ALL TO authenticated USING (user_id = next_auth.uid()) WITH CHECK (user_id = next_auth.uid());
+CREATE POLICY "Allow service_role full access to budgets" ON public.budgets FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-
+--
 -- Tabela public.financial_goals
+--
 CREATE TABLE IF NOT EXISTS public.financial_goals (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name text NOT NULL,
-    target_amount numeric(12, 2) NOT NULL,
-    current_amount numeric(12, 2) DEFAULT 0 NOT NULL,
+    target_amount numeric(10, 2) NOT NULL,
+    current_amount numeric(10, 2) DEFAULT 0.00 NOT NULL,
     deadline_date date,
     icon text,
     notes text,
-    status text DEFAULT 'in_progress' NOT NULL CHECK (status IN ('in_progress', 'achieved', 'cancelled')),
+    status text DEFAULT 'in_progress'::text NOT NULL CHECK (status IN ('in_progress', 'achieved', 'cancelled')),
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL
 );
 ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow users to manage their own financial goals"
-ON public.financial_goals FOR ALL TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Allow users to manage their own financial goals" ON public.financial_goals FOR ALL TO authenticated USING (user_id = next_auth.uid()) WITH CHECK (user_id = next_auth.uid());
+CREATE POLICY "Allow service_role full access to financial_goals" ON public.financial_goals FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- Grant permissions on public schema to service_role for it to manage these tables
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO service_role;
 
--- Função para atualizar 'updated_at' automaticamente
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-   NEW.updated_at = now();
-   RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- Grant permissions to anon and authenticated as well for RLS to work through them
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated; -- RLS will restrict actual access
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
--- Aplicar trigger às tabelas
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_budgets_updated_at BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_financial_goals_updated_at BEFORE UPDATE ON public.financial_goals FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+-- Populating default categories if they don't exist
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Salário', 'income', 'Briefcase', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Salário' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Freelance', 'income', 'Laptop', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Freelance' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Investimentos', 'income', 'TrendingUp', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Investimentos' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Alimentação', 'expense', 'Utensils', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Alimentação' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Transporte', 'expense', 'Car', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Transporte' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Moradia', 'expense', 'Home', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Moradia' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Saúde', 'expense', 'HeartPulse', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Saúde' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Educação', 'expense', 'BookOpen', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Educação' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Lazer', 'expense', 'Smile', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Lazer' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Contas Fixas', 'expense', 'FileText', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Contas Fixas' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Compras', 'expense', 'ShoppingCart', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Compras' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Outras Receitas', 'income', 'DollarSign', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Outras Receitas' AND is_default = true);
+INSERT INTO public.categories (name, type, icon, is_default)
+SELECT 'Outras Despesas', 'expense', 'Archive', true WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Outras Despesas' AND is_default = true);
 
--- Trigger para criar um perfil em public.profiles quando um usuário é inserido em next_auth.users
--- Isso é crucial para que usuários de OAuth (como Google) também tenham um perfil no Flortune.
-CREATE OR REPLACE FUNCTION public.handle_new_user_from_next_auth()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Insere na tabela public.profiles usando os dados de next_auth.users
-  -- e valores padrão para campos específicos do Flortune
-  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type, hashed_password)
-  VALUES (
-    NEW.id, 
-    NEW.email, 
-    NEW.name, -- Usa o 'name' do NextAuth como 'display_name' e 'full_name' inicialmente
-    NEW.name, 
-    NEW.image, -- Usa a 'image' do NextAuth como 'avatar_url'
-    'pessoa', -- Assume 'pessoa' como tipo de conta padrão para OAuth
-    NULL -- OAuth users não terão senha hasheada aqui, o login é pelo provider
-  )
-  ON CONFLICT (id) DO NOTHING; -- Se o perfil já existe (ex: criado por Credentials e depois OAuth com mesmo email)
-  -- Se o usuário OAuth já tem um perfil (ex: criou com email/senha antes), não faz nada.
-  -- Se quiser mesclar/atualizar, a lógica ON CONFLICT seria mais complexa.
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER; -- SECURITY DEFINER é importante aqui
-
--- Remover trigger antigo se existir, para evitar duplicação ou erro
-DROP TRIGGER IF EXISTS on_next_auth_user_created ON next_auth.users;
--- Criar o novo trigger
-CREATE TRIGGER on_next_auth_user_created
-  AFTER INSERT ON next_auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_from_next_auth();
-
-
--- Adicionar categorias padrão (se não existirem)
-INSERT INTO public.categories (name, type, icon, is_default, user_id)
-VALUES
-    ('Salário', 'income', 'Briefcase', true, NULL),
-    ('Renda Extra', 'income', 'DollarSign', true, NULL),
-    ('Investimentos', 'income', 'TrendingUp', true, NULL),
-    ('Moradia', 'expense', 'Home', true, NULL),
-    ('Alimentação', 'expense', 'Utensils', true, NULL),
-    ('Transporte', 'expense', 'Car', true, NULL),
-    ('Saúde', 'expense', 'HeartPulse', true, NULL),
-    ('Educação', 'expense', 'BookOpen', true, NULL),
-    ('Lazer', 'expense', 'Gamepad2', true, NULL),
-    ('Vestuário', 'expense', 'Shirt', true, NULL),
-    ('Contas', 'expense', 'FileText', true, NULL),
-    ('Impostos', 'expense', 'Landmark', true, NULL),
-    ('Doações', 'expense', 'Gift', true, NULL),
-    ('Outras Receitas', 'income', 'PlusCircle', true, NULL),
-    ('Outras Despesas', 'expense', 'MinusCircle', true, NULL)
-ON CONFLICT (name, user_id, is_default) DO NOTHING; -- Evita duplicatas se user_id for NULL para padrão
-
--- Conceder permissões básicas no schema public para anon e authenticated
--- O Supabase Adapter já lida com permissões para o schema next_auth.
--- Para o schema public, as RLS são a principal forma de controle.
--- Estes grants são mais sobre a capacidade de usar o schema.
-GRANT USAGE ON SCHEMA public TO anon;
-GRANT USAGE ON SCHEMA public TO authenticated;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon; -- Permite SELECT para anon, RLS cuidará da restrição de linhas
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated; -- RLS cuidará da restrição de linhas
-
--- As RLS definidas acima para cada tabela especificarão quem pode fazer o quê.
--- Por exemplo, embora 'anon' possa ter SELECT em public.transactions,
--- a RLS "Allow users to manage their own transactions" impedirá que anon veja quaisquer linhas
--- porque auth.uid() será nulo para anon, e user_id nunca será nulo em transactions.
-
--- Para o `service_role` (usado pelo SupabaseAdapter e possivelmente pelo backend),
--- ele ignora RLS por padrão.
--- Para o usuário `postgres` (superusuário), ele também ignora RLS.
-
--- Garantir que `anon` e `authenticated` possam executar a função `next_auth.uid()`
-GRANT EXECUTE ON FUNCTION next_auth.uid() TO anon;
-GRANT EXECUTE ON FUNCTION next_auth.uid() TO authenticated;
-
-    

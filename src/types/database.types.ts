@@ -1,11 +1,11 @@
 
 // Tipos para o schema 'public'
 export interface Profile {
-  id: string; // UUID, chave primária
+  id: string; // UUID, chave primária, FK para next_auth.users.id
   full_name?: string | null;
   display_name?: string | null;
   email: string; // NOT NULL, UNIQUE
-  hashed_password: string; // NOT NULL - Armazenará a senha hasheada
+  hashed_password?: string | null; // Para login com credenciais, pode ser nulo se o usuário só usa OAuth
   phone?: string | null;
   cpf_cnpj?: string | null; // UNIQUE
   rg?: string | null;
@@ -21,7 +21,7 @@ export interface Category {
   name: string;
   type: 'income' | 'expense';
   icon?: string | null;
-  is_default?: boolean;
+  is_default: boolean; // NOT NULL
   created_at: string;
   updated_at: string;
 }
@@ -29,40 +29,40 @@ export interface Category {
 export interface Transaction {
   id: string; // UUID
   user_id: string; // UUID, FK para profiles.id
-  category_id: string | null;
+  category_id: string | null; // FK para categories.id
   description: string;
-  amount: number;
-  date: string; // YYYY-MM-DD
+  amount: number; // NUMERIC(10,2)
+  date: string; // DATE (YYYY-MM-DD)
   type: 'income' | 'expense';
   notes?: string | null;
   created_at: string;
   updated_at: string;
-  category?: Category | null;
+  category?: Category | null; // Para joins
 }
 
 export interface Budget {
   id: string; // UUID
-  user_id: string;
-  category_id: string;
-  limit_amount: number;
-  spent_amount: number;
-  period_start_date: string; // YYYY-MM-DD
-  period_end_date: string; // YYYY-MM-DD
+  user_id: string; // FK para profiles.id
+  category_id: string; // FK para categories.id
+  limit_amount: number; // NUMERIC(10,2)
+  spent_amount: number; // NUMERIC(10,2)
+  period_start_date: string; // DATE (YYYY-MM-DD)
+  period_end_date: string; // DATE (YYYY-MM-DD)
   created_at: string;
   updated_at: string;
-  category?: Category;
+  category?: Category; // Para joins
 }
 
 export interface FinancialGoal {
   id: string; // UUID
-  user_id: string;
+  user_id: string; // FK para profiles.id
   name: string;
-  target_amount: number;
-  current_amount: number;
-  deadline_date?: string | null; // YYYY-MM-DD
+  target_amount: number; // NUMERIC(10,2)
+  current_amount: number; // NUMERIC(10,2)
+  deadline_date?: string | null; // DATE (YYYY-MM-DD)
   icon?: string | null;
   notes?: string | null;
-  status: 'in_progress' | 'achieved' | 'cancelled';
+  status: 'in_progress' | 'achieved' | 'cancelled'; // NOT NULL
   created_at: string;
   updated_at: string;
 }
@@ -98,14 +98,12 @@ export interface NextAuthAccount {
   oauth_token_secret?: string | null; // text
   oauth_token?: string | null; // text
   userId?: string | null; // uuid, FK to next_auth.users(id)
-  //CONSTRAINT provider_account_unique UNIQUE (provider, "providerAccountId")
 }
 
 export interface NextAuthVerificationToken {
   identifier?: string | null; // text
   token: string; // text, UNIQUE (ou parte da PK)
   expires: string; // timestamp with time zone NOT NULL
-  //CONSTRAINT verification_tokens_pkey PRIMARY KEY (token, identifier)
 }
 
 
