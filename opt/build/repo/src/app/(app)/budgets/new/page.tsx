@@ -44,8 +44,8 @@ const budgetFormSchema = z.object({
 type BudgetFormData = z.infer<typeof budgetFormSchema>;
 
 const newCategorySchema = z.object({
-  name: z.string().min(2, "Nome da categoria é obrigatório."),
-  icon: z.string().optional(),
+  name: z.string().min(2, "Nome da categoria é obrigatório (mínimo 2 caracteres).").max(50, "Nome da categoria muito longo (máximo 50 caracteres)."),
+  icon: z.string().optional(), // Ícone ainda é opcional
 });
 type NewCategoryFormData = z.infer<typeof newCategorySchema>;
 
@@ -142,13 +142,13 @@ export default function NewBudgetPage() {
       return;
     }
     try {
-      const result = await addCategory(user.id, { name: data.name, type: 'expense', icon: data.icon });
+      const result = await addCategory(user.id, { name: data.name, type: 'expense', icon: data.icon }); // Força 'expense'
       if (result.error) throw result.error;
 
       toast({ title: "Categoria Criada!", description: `Categoria "${result.data?.name}" criada com sucesso.` });
-      fetchCategories(); // Re-fetch categories
+      await fetchCategories(); // Re-fetch categories e espera
       if (result.data?.id) {
-         setValue("category_id", result.data.id); // Auto-seleciona a categoria criada
+         setValue("category_id", result.data.id); 
       }
       resetCategoryForm();
       setIsCategoryModalOpen(false);
@@ -238,7 +238,7 @@ export default function NewBudgetPage() {
                                 <Input id="new_category_name" {...categoryFormRegister("name")} />
                                 {categoryFormErrors.name && <p className="text-sm text-destructive mt-1">{categoryFormErrors.name.message}</p>}
                             </div>
-                            {/* Adicionar seleção de ícone aqui se desejar */}
+                            {/* Adicionar seleção de ícone aqui se desejar no futuro */}
                             <DialogFooter className="pt-2">
                                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                                 <Button type="submit">Criar Categoria</Button>
@@ -353,5 +353,3 @@ export default function NewBudgetPage() {
     </div>
   );
 }
-
-    

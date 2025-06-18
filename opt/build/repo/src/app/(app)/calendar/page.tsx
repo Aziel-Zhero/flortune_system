@@ -11,7 +11,7 @@ import {
   Clock,
   MapPin,
   Users,
-  Calendar as CalendarIconLucide, // Renomeado para evitar conflito
+  Calendar as CalendarIconLucide, 
   ListChecks
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,12 +42,14 @@ interface CalendarEvent {
   isAllDay?: boolean;
 }
 
+// Sample financial events
 const sampleEvents: CalendarEvent[] = [
-  { id: 1, title: "Supermercado Semanal", startTime: "09:00", endTime: "10:00", color: "bg-accent", date: "2024-08-19", description: "Compra de mantimentos", location: "Mercado Local"},
-  { id: 2, title: "Pagamento Aluguel", startTime: "10:00", endTime: "10:30", color: "bg-destructive/70", date: "2024-08-19", description: "Vencimento do aluguel mensal", location: "Online"},
-  { id: 3, title: "Salário", startTime: "00:00", endTime: "23:59", color: "bg-primary", date: "2024-08-19", description: "Recebimento do salário", location: "Conta Bancária", isAllDay: true },
-  { id: 4, title: "Consulta Dentista", startTime: "14:00", endTime: "15:00", color: "bg-secondary", date: "2024-08-21", description: "Check-up anual", location: "Clínica Sorriso"},
-  { id: 5, title: "Aniversário da Flora", startTime: "19:00", endTime: "22:00", color: "bg-pink-500", date: "2024-08-23", description: "Jantar de comemoração", location: "Restaurante Flor & Sabor"},
+  { id: 1, title: "Pagamento Aluguel", startTime: "09:00", endTime: "09:30", color: "bg-destructive/80", date: "2024-08-19", description: "Vencimento do aluguel mensal", location: "Online"},
+  { id: 2, title: "Salário", startTime: "00:00", endTime: "23:59", color: "bg-primary", date: "2024-08-19", description: "Recebimento do salário", location: "Conta Bancária", isAllDay: true },
+  { id: 3, title: "Supermercado", startTime: "16:00", endTime: "17:00", color: "bg-accent", date: "2024-08-20", description: "Compras da semana", location: "Mercado Local"},
+  { id: 4, title: "Conta de Luz", startTime: "10:00", endTime: "10:15", color: "bg-amber-500", date: "2024-08-21", description: "Vencimento da conta de energia elétrica", location: "App do Banco"},
+  { id: 5, title: "Rendimento Investimento", startTime: "00:00", endTime: "23:59", color: "bg-emerald-500", date: "2024-08-22", description: "Crédito do rendimento mensal", location: "Corretora", isAllDay: true},
+  { id: 6, title: "Assinatura Streaming", startTime: "11:00", endTime: "11:05", color: "bg-sky-500", date: "2024-08-23", description: "Débito da assinatura mensal", location: "Cartão de Crédito"},
 ];
 
 const weekDays = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
@@ -58,7 +60,7 @@ const getWeekDates = (refDate: Date): Date[] => {
   const currentDay = refDate.getDay(); 
   const firstDayOfWeek = new Date(refDate);
   firstDayOfWeek.setDate(refDate.getDate() - currentDay);
-  firstDayOfWeek.setHours(0, 0, 0, 0); // Normalizar para o início do dia
+  firstDayOfWeek.setHours(0, 0, 0, 0); 
 
   for (let i = 0; i < 7; i++) {
     const day = new Date(firstDayOfWeek);
@@ -79,10 +81,8 @@ export default function CalendarPage() {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
   const assignEventsToCurrentWeek = useCallback((baseEvents: CalendarEvent[], currentWeekDates: Date[]) => {
-    // Para demonstração, vamos distribuir os eventos de exemplo ao longo da semana atual.
-    // Em um app real, você buscaria os eventos para o intervalo de datas visível.
     return baseEvents.map((event, index) => {
-      const dayOfWeekIndex = index % 7; // Distribui os eventos
+      const dayOfWeekIndex = (new Date(event.date).getDay() + index) % 7; // Distribute sample events for demo
       const targetDate = new Date(currentWeekDates[dayOfWeekIndex]);
       return {
         ...event,
@@ -94,7 +94,6 @@ export default function CalendarPage() {
   useEffect(() => {
     document.title = `Calendário Financeiro - ${APP_NAME}`;
     setIsLoadingEvents(true);
-    // Simula o fetch de eventos para a semana atual
     setTimeout(() => {
       setEvents(assignEventsToCurrentWeek(sampleEvents, weekDates));
       setIsLoadingEvents(false);
@@ -128,19 +127,18 @@ export default function CalendarPage() {
 
   const calculateEventStyle = (startTime: string, endTime: string, isAllDay?: boolean) => {
     if (isAllDay) {
-      return { top: `0px`, height: `28px`, zIndex: 10 }; // Altura reduzida para all-day
+      return { top: `0px`, height: `28px`, zIndex: 10 }; 
     }
     const startHour = parseInt(startTime.split(":")[0]);
     const startMinute = parseInt(startTime.split(":")[1]);
     const endHour = parseInt(endTime.split(":")[0]);
     const endMinute = parseInt(endTime.split(":")[1]);
 
-    // Grid de horários começa às 7h
-    const topOffset = ((startHour - 7 + startMinute / 60) * 60); // 60px por hora
+    const topOffset = ((startHour - 7 + startMinute / 60) * 60); 
     const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-    const height = (durationMinutes); // 1px por minuto
+    const height = (durationMinutes); 
 
-    return { top: `${topOffset}px`, height: `${Math.max(height, 20)}px`, zIndex: 10 }; // Altura mínima de 20px
+    return { top: `${topOffset}px`, height: `${Math.max(height, 20)}px`, zIndex: 10 }; 
   };
 
   const currentMonthYear = weekDates[0] 
@@ -168,7 +166,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden"> {/* Garante que ocupe a altura */}
+    <div className="flex flex-col h-full overflow-hidden">
       <PageHeader
         title="Calendário Financeiro"
         description={currentMonthYear.charAt(0).toUpperCase() + currentMonthYear.slice(1)}
@@ -190,8 +188,8 @@ export default function CalendarPage() {
       
       <div className="flex-1 overflow-hidden border bg-card rounded-lg shadow-sm flex flex-col">
         {/* Cabeçalho da Semana */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b sticky top-0 bg-card z-20"> {/* Aumentado o espaço para horários */}
-          <div className="p-2 text-center text-xs text-muted-foreground border-r"></div> {/* Canto para horários */}
+        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b sticky top-0 bg-card z-20">
+          <div className="p-2 text-center text-xs text-muted-foreground border-r"></div> 
           {weekDates.map((date, i) => (
             <div key={i} className={cn("p-2 text-center border-r", i === 6 && "border-r-0")}>
               <div className="text-xs text-muted-foreground font-medium">{weekDays[date.getDay()]}</div>
@@ -208,12 +206,12 @@ export default function CalendarPage() {
         </div>
 
         {/* Grid de Horários e Eventos */}
-        <div className="flex-1 overflow-y-auto relative"> {/* Adicionado relative aqui */}
-          <div className="grid grid-cols-[60px_repeat(7,1fr)]"> {/* Aumentado o espaço para horários */}
+        <div className="flex-1 overflow-y-auto relative">
+          <div className="grid grid-cols-[60px_repeat(7,1fr)]">
             {/* Labels de Horário */}
             <div className="text-muted-foreground">
               {timeSlots.map((time, i) => (
-                <div key={i} className="h-[60px] border-b border-r pr-2 text-right text-xs pt-1 flex items-start justify-end"> {/* Flex para alinhar */}
+                <div key={i} className="h-[60px] border-b border-r pr-2 text-right text-xs pt-1 flex items-start justify-end">
                   <span>{time > 12 ? `${time - 12} PM` : `${time} AM`}</span>
                 </div>
               ))}
@@ -227,7 +225,7 @@ export default function CalendarPage() {
                   <div key={timeIndex} className="h-[60px] border-b"></div>
                 ))}
 
-                {/* Eventos All-Day (acima das linhas de horário) */}
+                {/* Eventos All-Day */}
                  <div className="absolute top-0 left-0 right-0 z-10 p-1 space-y-0.5">
                   {events
                     .filter(event => new Date(event.date + "T00:00:00").toDateString() === date.toDateString() && event.isAllDay)
@@ -250,7 +248,7 @@ export default function CalendarPage() {
                 </div>
                 
                 {/* Eventos com Horário Específico */}
-                <div className="absolute top-0 left-0 right-0 bottom-0 mt-[30px]"> {/* Adicionado mt para eventos não all-day */}
+                <div className="absolute top-0 left-0 right-0 bottom-0 mt-[30px]"> 
                   {events
                     .filter(event => new Date(event.date + "T00:00:00").toDateString() === date.toDateString() && !event.isAllDay)
                     .map((event) => {
@@ -333,5 +331,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    
