@@ -23,7 +23,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
+import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
@@ -52,16 +52,16 @@ export default function AnalysisPage() {
   const user = session?.user;
   const authLoading = status === "loading";
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timePeriod, setTimePeriod] = useState("monthly"); // "monthly", "yearly", "all"
+  const [timePeriod, setTimePeriod] = useState("monthly");
 
   const [spendingByCategory, setSpendingByCategory] = useState<CategoryData[]>([]);
   const [incomeBySource, setIncomeBySource] = useState<CategoryData[]>([]);
   const [cashFlowTrend, setCashFlowTrend] = useState<MonthlyFlow[]>([]);
 
-  const processTransactionData = useCallback((allTransactions: Transaction[], currentPeriod: string) => {
-    const filteredTransactions = allTransactions.filter(tx => {
+  const processChartData = useCallback((transactionsToProcess: Transaction[], currentPeriod: string) => {
+    const filteredTransactions = transactionsToProcess.filter(tx => {
       if (currentPeriod === "all") return true;
       const txDate = new Date(tx.date + "T00:00:00Z"); // Ensure UTC for consistent month/year
       const now = new Date();
@@ -78,7 +78,7 @@ export default function AnalysisPage() {
     filteredTransactions
       .filter(tx => tx.type === 'expense' && tx.category)
       .forEach(tx => {
-        const categoryName = tx.category!.name;
+        const categoryName = tx.category?.name || 'Outros';
         spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
       });
     setSpendingByCategory(Array.from(spendingMap, ([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a,b) => b.value - a.value));
@@ -87,27 +87,26 @@ export default function AnalysisPage() {
     filteredTransactions
       .filter(tx => tx.type === 'income' && tx.category)
       .forEach(tx => {
-        const categoryName = tx.category!.name;
+        const categoryName = tx.category?.name || 'Outras Receitas';
         incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
       });
     setIncomeBySource(Array.from(incomeMap, ([name, value], index) => ({ name, value, fill: chartColors[(index + 1) % chartColors.length] })).sort((a,b) => b.value - a.value));
     
+    // Cash flow trend always uses all transactions to show historical data
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     
-    // Consider last 6 months including current for cash flow trend
     for (let i = 5; i >= 0; i--) {
         const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
         monthlyData[monthKey] = { income: 0, expense: 0 };
     }
 
-    // Use allTransactions for the cash flow trend, not just filtered by timePeriod for pie charts
-    allTransactions.forEach(tx => {
+    transactionsToProcess.forEach(tx => { // Use allTransactions for the cash flow trend
         const txDate = new Date(tx.date + "T00:00:00Z");
         const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey] !== undefined) { // Check if the monthKey exists (it should due to pre-population)
+        if (monthlyData[monthKey] !== undefined) {
             if (tx.type === 'income') monthlyData[monthKey].income += tx.amount;
             else if (tx.type === 'expense') monthlyData[monthKey].expense += tx.amount;
         }
@@ -122,58 +121,55 @@ export default function AnalysisPage() {
         }))
     );
 
-  }, []);
+  }, []); // No dependencies, as it relies on passed arguments
 
-  const fetchTransactions = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-    try {
-      const { data, error } = await getTransactions(user.id);
-      if (error) {
-        toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
-        setTransactions([]);
-      } else {
-        setTransactions(data || []);
-        processTransactionData(data || [], timePeriod); 
-      }
-    } catch (err) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, processTransactionData, timePeriod]);
-
+  // Effect to fetch all transactions
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
-    if (user?.id && !authLoading) {
-      fetchTransactions();
-    } else if (!authLoading && !user?.id) {
-      setIsLoading(false);
-      setTransactions([]);
-      processTransactionData([], timePeriod); // Process with empty data if not logged in
+    if (!user?.id || authLoading) {
+      setIsLoading(authLoading); // Set loading based on auth status
+      if (!authLoading && !user?.id) { // If auth is done and no user, clear data
+        setAllTransactions([]);
+        setSpendingByCategory([]);
+        setIncomeBySource([]);
+        setCashFlowTrend([]);
+      }
+      return;
     }
-  }, [user, authLoading, fetchTransactions, timePeriod, processTransactionData]);
-  
+
+    const fetchAllTransactions = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await getTransactions(user.id);
+        if (error) {
+          toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
+          setAllTransactions([]);
+        } else {
+          setAllTransactions(data || []);
+        }
+      } catch (err) {
+        toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
+        setAllTransactions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllTransactions();
+  }, [user?.id, authLoading]);
+
+  // Effect to process transactions when allTransactions or timePeriod changes
   useEffect(() => {
-    // Re-process data when timePeriod changes and transactions are already loaded
-    if (transactions.length > 0 || (transactions.length === 0 && !isLoading && !authLoading)) { // Also process if no tx but loading finished
-        processTransactionData(transactions, timePeriod);
+    if (!isLoading && !authLoading) { // Process only when data is loaded and auth is complete
+      processChartData(allTransactions, timePeriod);
     }
-  }, [timePeriod, transactions, processTransactionData, isLoading, authLoading]);
+  }, [allTransactions, timePeriod, processChartData, isLoading, authLoading]);
 
 
-  const chartConfig = {
+  const chartConfig = { // Keep chartConfig relatively static or memoize if complex
     amount: { label: "Valor (R$)" },
     income: { label: "Receita", color: "hsl(var(--chart-1))" },
     expense: { label: "Despesa", color: "hsl(var(--chart-2))" },
-    ...spendingByCategory.reduce((acc, cur) => {
-      acc[cur.name] = { label: cur.name, color: cur.fill };
-      return acc;
-    }, {} as any),
-    ...incomeBySource.reduce((acc, cur) => {
-      acc[cur.name] = { label: cur.name, color: cur.fill };
-      return acc;
-    }, {} as any),
+    // Dynamic parts can be handled by Recharts directly or with a more complex memoized config
   };
   
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -194,7 +190,7 @@ export default function AnalysisPage() {
   
   const PieCustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload; // Access the actual data object for the pie slice
+      const data = payload[0].payload;
       return (
         <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
           <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name}`}</p>
@@ -221,7 +217,7 @@ export default function AnalysisPage() {
   }
   
   const noDataForPeriod = spendingByCategory.length === 0 && incomeBySource.length === 0 && (timePeriod === "monthly" || timePeriod === "yearly");
-  const noTransactionsAtAll = transactions.length === 0;
+  const noTransactionsAtAll = allTransactions.length === 0;
 
   return (
     <div>
@@ -242,7 +238,7 @@ export default function AnalysisPage() {
           </Select>
         }
       />
-      {noTransactionsAtAll && !isLoading ? (
+      {noTransactionsAtAll && !isLoading && !authLoading ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -254,7 +250,7 @@ export default function AnalysisPage() {
                 </CardDescription>
             </CardContent>
         </Card>
-      ) : noDataForPeriod && !isLoading && (timePeriod === "monthly" || timePeriod === "yearly") ? (
+      ) : noDataForPeriod && !isLoading && !authLoading && (timePeriod === "monthly" || timePeriod === "yearly") ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
