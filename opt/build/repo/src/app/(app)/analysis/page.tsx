@@ -20,12 +20,10 @@ import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip as RechartsTooltip } from "recharts";
+import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
@@ -98,20 +96,23 @@ export default function AnalysisPage() {
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     
+    // Consider last 6 months including current for cash flow trend
     for (let i = 5; i >= 0; i--) {
         const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthKey = `${monthNames[date.getMonth()]}/${date.getFullYear().toString().slice(-2)}`;
+        const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
         monthlyData[monthKey] = { income: 0, expense: 0 };
     }
 
+    // Use allTransactions for the cash flow trend, not just filtered by timePeriod for pie charts
     allTransactions.forEach(tx => {
         const txDate = new Date(tx.date + "T00:00:00Z");
         const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey]) {
+        if (monthlyData[monthKey] !== undefined) { // Check if the monthKey exists (it should due to pre-population)
             if (tx.type === 'income') monthlyData[monthKey].income += tx.amount;
             else if (tx.type === 'expense') monthlyData[monthKey].expense += tx.amount;
         }
     });
+
     setCashFlowTrend(
         Object.entries(monthlyData).map(([month, data]) => ({
             month,
@@ -149,16 +150,16 @@ export default function AnalysisPage() {
     } else if (!authLoading && !user?.id) {
       setIsLoading(false);
       setTransactions([]);
-      processTransactionData([], timePeriod); // Process with empty data
+      processTransactionData([], timePeriod); // Process with empty data if not logged in
     }
   }, [user, authLoading, fetchTransactions, timePeriod, processTransactionData]);
   
   useEffect(() => {
     // Re-process data when timePeriod changes and transactions are already loaded
-    if (transactions.length > 0) {
+    if (transactions.length > 0 || (transactions.length === 0 && !isLoading && !authLoading)) { // Also process if no tx but loading finished
         processTransactionData(transactions, timePeriod);
     }
-  }, [timePeriod, transactions, processTransactionData]);
+  }, [timePeriod, transactions, processTransactionData, isLoading, authLoading]);
 
 
   const chartConfig = {
@@ -193,12 +194,12 @@ export default function AnalysisPage() {
   
   const PieCustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const data = payload[0].payload; // Access the actual data object for the pie slice
       return (
         <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
           <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name}`}</p>
           <p className="text-xs text-foreground">{`Valor: ${data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
-          <p className="text-xs text-muted-foreground">{`(${ (payload[0].percent * 100).toFixed(2)}%)`}</p>
+          <p className="text-xs text-muted-foreground">{`(${(payload[0].percent * 100).toFixed(2)}%)`}</p>
         </div>
       );
     }
@@ -209,7 +210,7 @@ export default function AnalysisPage() {
   if (authLoading || (isLoading && user)) {
     return (
       <div>
-        <PageHeader title="Análise Financeira" description="Carregando seus insights..." />
+        <PageHeader title="Análise Financeira" description="Carregando seus insights..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="shadow-sm"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
           <Card className="shadow-sm"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
@@ -253,11 +254,11 @@ export default function AnalysisPage() {
                 </CardDescription>
             </CardContent>
         </Card>
-      ) : noDataForPeriod && !isLoading ? (
+      ) : noDataForPeriod && !isLoading && (timePeriod === "monthly" || timePeriod === "yearly") ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <CardTitle className="mt-4">Sem Dados para o Período</CardTitle>
+                <CardTitle className="mt-4">Sem Dados para o Período Selecionado</CardTitle>
             </CardHeader>
             <CardContent>
                 <CardDescription>
@@ -276,19 +277,25 @@ export default function AnalysisPage() {
                 <CardDescription>Detalhamento de suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                       <RechartsTooltip content={<PieCustomTooltip />} />
-                        <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                        {spendingByCategory.map((entry, index) => (
-                            <Cell key={`cell-spending-${index}`} fill={entry.fill} />
-                        ))}
-                        </Pie>
-                        <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                    </PieChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+                {spendingByCategory.length > 0 ? (
+                    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                        <RechartsTooltip content={<PieCustomTooltip />} />
+                            <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                            {spendingByCategory.map((entry, index) => (
+                                <Cell key={`cell-spending-${index}`} fill={entry.fill} />
+                            ))}
+                            </Pie>
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                        </PieChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                       <p>Sem dados de despesas para exibir {timePeriod !== 'all' ? `neste ${timePeriod === 'monthly' ? 'mês' : 'ano'}` : ''}.</p>
+                    </div>
+                )}
             </CardContent>
             </Card>
 
@@ -301,19 +308,25 @@ export default function AnalysisPage() {
                 <CardDescription>Distribuição de sua renda ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-                 <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <RechartsTooltip content={<PieCustomTooltip />} />
-                        <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                        {incomeBySource.map((entry, index) => (
-                            <Cell key={`cell-income-${index}`} fill={entry.fill} />
-                        ))}
-                        </Pie>
-                        <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                    </PieChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+                {incomeBySource.length > 0 ? (
+                    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <RechartsTooltip content={<PieCustomTooltip />} />
+                            <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                            {incomeBySource.map((entry, index) => (
+                                <Cell key={`cell-income-${index}`} fill={entry.fill} />
+                            ))}
+                            </Pie>
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                        </PieChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                ) : (
+                     <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <p>Sem dados de receitas para exibir {timePeriod !== 'all' ? `neste ${timePeriod === 'monthly' ? 'mês' : 'ano'}` : ''}.</p>
+                    </div>
+                )}
             </CardContent>
             </Card>
 
@@ -326,19 +339,25 @@ export default function AnalysisPage() {
                 <CardDescription>Sua renda vs. despesas ao longo do tempo.</CardDescription>
             </CardHeader>
             <CardContent className="h-96">
-                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={cashFlowTrend} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={40}/>
-                        <YAxis tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
-                        <RechartsTooltip content={<CustomTooltip />} />
-                        <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
-                        <Bar dataKey="income" fill="var(--color-income)" name="Receita" radius={[4, 4, 0, 0]} barSize={20} />
-                        <Bar dataKey="expense" fill="var(--color-expense)" name="Despesa" radius={[4, 4, 0, 0]} barSize={20} />
-                    </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+                 {cashFlowTrend.some(d => d.income > 0 || d.expense > 0) ? (
+                    <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={cashFlowTrend} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={40}/>
+                            <YAxis tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                            <RechartsTooltip content={<CustomTooltip />} />
+                            <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
+                            <Bar dataKey="income" fill="var(--color-income)" name="Receita" radius={[4, 4, 0, 0]} barSize={20} />
+                            <Bar dataKey="expense" fill="var(--color-expense)" name="Despesa" radius={[4, 4, 0, 0]} barSize={20} />
+                        </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <p>Sem dados suficientes para exibir a tendência do fluxo de caixa.</p>
+                    </div>
+                )}
             </CardContent>
             </Card>
         </div>
