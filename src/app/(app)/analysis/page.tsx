@@ -2,7 +2,7 @@
 // src/app/(app)/analysis/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, PieChart as PieIcon, TrendingUp, AlertTriangle, Wallet } from "lucide-react";
@@ -20,17 +20,16 @@ import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { toast } from "@/hooks/use-toast";
 
-interface CategorySpending {
+interface CategoryData {
   name: string;
   value: number;
+  fill: string;
 }
 
 interface MonthlyFlow {
@@ -40,126 +39,195 @@ interface MonthlyFlow {
   balance: number;
 }
 
-const COLORS_SPENDING = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
-const COLORS_INCOME = ["hsl(var(--chart-2))", "hsl(var(--chart-1))", "hsl(var(--chart-4))", "hsl(var(--chart-3))", "hsl(var(--chart-5))"]; // Reordered for visual difference
+const chartColors = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
+// Tooltip Components
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
+        <p className="label text-sm font-medium text-foreground">{`${label}`}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={`item-${index}`} style={{ color: entry.color }} className="text-xs">
+            {`${entry.name}: ${entry.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const PieCustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
+        <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name}`}</p>
+        <p className="text-xs text-foreground">{`Valor: ${data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
+        <p className="text-xs text-muted-foreground">{`(${(payload[0].percent * 100).toFixed(2)}%)`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 
 export default function AnalysisPage() {
   const { data: session, status } = useSession();
   const user = session?.user;
   const authLoading = status === "loading";
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [timePeriod, setTimePeriod] = useState("monthly"); // "monthly", "yearly", "all"
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [isFetchingTransactions, setIsFetchingTransactions] = useState(true);
+  const [timePeriod, setTimePeriod] = useState("monthly");
 
-  const [spendingByCategory, setSpendingByCategory] = useState<CategorySpending[]>([]);
-  const [incomeBySource, setIncomeBySource] = useState<CategorySpending[]>([]);
-  const [cashFlowTrend, setCashFlowTrend] = useState<MonthlyFlow[]>([]);
-
-  const processTransactionData = useCallback((allTransactions: Transaction[]) => {
-    const filteredTransactions = allTransactions.filter(tx => {
-      if (timePeriod === "all") return true;
-      const txDate = new Date(tx.date + "T00:00:00");
-      const now = new Date();
-      if (timePeriod === "monthly") {
-        return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+  useEffect(() => {
+    document.title = `Análise Financeira - ${APP_NAME}`;
+    if (!user?.id || authLoading) {
+      setIsFetchingTransactions(authLoading);
+      if (!authLoading && !user?.id) {
+        setAllTransactions([]);
       }
-      if (timePeriod === "yearly") {
-        return txDate.getFullYear() === now.getFullYear();
+      return;
+    }
+
+    const fetchAllTransactions = async () => {
+      setIsFetchingTransactions(true);
+      try {
+        const { data, error } = await getTransactions(user.id);
+        if (error) {
+          toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
+          setAllTransactions([]);
+        } else {
+          setAllTransactions(data || []);
+        }
+      } catch (err) {
+        toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
+        setAllTransactions([]);
+      } finally {
+        setIsFetchingTransactions(false);
+      }
+    };
+    fetchAllTransactions();
+  }, [user?.id, authLoading]);
+
+  const filteredTransactionsForPeriod = useMemo(() => {
+    if (isFetchingTransactions || authLoading) return [];
+    return allTransactions.filter(tx => {
+      if (timePeriod === "all") return true;
+      if (!tx.date || typeof tx.date !== 'string') return false;
+      try {
+        const txDate = new Date(tx.date + "T00:00:00Z"); // Assume date is YYYY-MM-DD, parse as UTC
+        if (isNaN(txDate.getTime())) return false; // Invalid date
+
+        const now = new Date();
+        if (timePeriod === "monthly") {
+          return txDate.getUTCMonth() === now.getUTCMonth() && txDate.getUTCFullYear() === now.getUTCFullYear();
+        }
+        if (timePeriod === "yearly") {
+          return txDate.getUTCFullYear() === now.getUTCFullYear();
+        }
+      } catch(e) {
+        console.error("Error parsing transaction date in filteredTransactionsForPeriod:", tx.date, e);
+        return false;
       }
       return true;
     });
+  }, [allTransactions, timePeriod, isFetchingTransactions, authLoading]);
 
-    // Gastos por Categoria
+  const spendingByCategory = useMemo((): CategoryData[] => {
+    if (isFetchingTransactions || authLoading) return [];
     const spendingMap = new Map<string, number>();
-    filteredTransactions
+    filteredTransactionsForPeriod
       .filter(tx => tx.type === 'expense' && tx.category)
       .forEach(tx => {
-        const categoryName = tx.category!.name;
+        const categoryName = tx.category?.name || 'Outros';
         spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
       });
-    setSpendingByCategory(Array.from(spendingMap, ([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value));
+    return Array.from(spendingMap, ([name, value], index) => ({ 
+        name, 
+        value, 
+        fill: chartColors[index % chartColors.length] 
+    })).sort((a,b) => b.value - a.value);
+  }, [filteredTransactionsForPeriod, isFetchingTransactions, authLoading]);
 
-    // Fontes de Renda
+  const incomeBySource = useMemo((): CategoryData[] => {
+    if (isFetchingTransactions || authLoading) return [];
     const incomeMap = new Map<string, number>();
-    filteredTransactions
+    filteredTransactionsForPeriod
       .filter(tx => tx.type === 'income' && tx.category)
       .forEach(tx => {
-        const categoryName = tx.category!.name;
+        const categoryName = tx.category?.name || 'Outras Receitas';
         incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
       });
-    setIncomeBySource(Array.from(incomeMap, ([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value));
-    
-    // Tendência do Fluxo de Caixa (últimos 6 meses incluindo o atual)
+    return Array.from(incomeMap, ([name, value], index) => ({ 
+        name, 
+        value, 
+        fill: chartColors[(index + 1) % chartColors.length] // Offset colors for visual distinction
+    })).sort((a,b) => b.value - a.value);
+  }, [filteredTransactionsForPeriod, isFetchingTransactions, authLoading]);
+
+  const cashFlowTrend = useMemo((): MonthlyFlow[] => {
+    if (isFetchingTransactions || authLoading) return [];
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     
+    // Initialize last 6 months including current
     for (let i = 5; i >= 0; i--) {
-        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthKey = `${monthNames[date.getMonth()]}/${date.getFullYear().toString().slice(-2)}`;
+        const date = new Date(today.getUTCFullYear(), today.getUTCMonth() - i, 1);
+        const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
         monthlyData[monthKey] = { income: 0, expense: 0 };
     }
 
-    allTransactions.forEach(tx => { // Usa todas as transações para a tendência, não apenas as filtradas pelo período selecionado para os gráficos de pizza/barra
-        const txDate = new Date(tx.date + "T00:00:00");
-        const monthKey = `${monthNames[txDate.getMonth()]}/${txDate.getFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey]) {
+    allTransactions.forEach(tx => {
+      if (!tx.date || typeof tx.date !== 'string') return;
+      try {
+        const txDate = new Date(tx.date + "T00:00:00Z");
+        if (isNaN(txDate.getTime())) return;
+
+        const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
+        // Ensure the transaction's month is within our 6-month window for the cash flow chart
+        if (monthlyData[monthKey] !== undefined) { // Check if key exists in our pre-initialized object
             if (tx.type === 'income') monthlyData[monthKey].income += tx.amount;
             else if (tx.type === 'expense') monthlyData[monthKey].expense += tx.amount;
         }
-    });
-    setCashFlowTrend(
-        Object.entries(monthlyData).map(([month, data]) => ({
-            month,
-            income: data.income,
-            expense: data.expense,
-            balance: data.income - data.expense
-        }))
-    );
-
-  }, [timePeriod]);
-
-  const fetchTransactions = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-    try {
-      const { data, error } = await getTransactions(user.id);
-      if (error) {
-        toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
-        setTransactions([]);
-      } else {
-        setTransactions(data || []);
-        processTransactionData(data || []);
+      } catch(e) {
+         console.error("Error processing transaction for cash flow:", tx.date, e);
       }
-    } catch (err) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, processTransactionData]);
+    });
 
-  useEffect(() => {
-    document.title = `Análise Financeira - ${APP_NAME}`;
-    if (user?.id && !authLoading) {
-      fetchTransactions();
-    } else if (!authLoading && !user?.id) {
-      setIsLoading(false);
-      setTransactions([]);
-    }
-  }, [user, authLoading, fetchTransactions]);
+    return Object.entries(monthlyData).map(([month, data]) => ({
+        month,
+        income: data.income,
+        expense: data.expense,
+        balance: data.income - data.expense
+    }));
+  }, [allTransactions, isFetchingTransactions, authLoading]);
+
+  // Memoize chartConfig to prevent re-render issues with ChartContainer
+  const chartConfig = useMemo(() => ({
+    amount: { label: "Valor (R$)" },
+    income: { label: "Receita", color: "hsl(var(--chart-1))" },
+    expense: { label: "Despesa", color: "hsl(var(--chart-2))" },
+    // Add other keys for pie charts if necessary, though PieChart directly uses dataKey and nameKey
+    // For Pie Charts, the 'fill' property in the data array typically drives color.
+    // ChartLegendContent uses nameKey to map legend items.
+  }), []);
   
-  useEffect(() => {
-    if (transactions.length > 0) {
-        processTransactionData(transactions);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timePeriod, transactions]); // Não incluir processTransactionData aqui para evitar loop infinito
+  const isLoading = authLoading || (isFetchingTransactions && !!user); // Ensure user object is considered for loading state
 
-  if (authLoading || (isLoading && user)) {
+  if (isLoading) {
     return (
       <div>
-        <PageHeader title="Análise Financeira" description="Carregando seus insights..." />
+        <PageHeader title="Análise Financeira" description="Carregando seus insights..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="shadow-sm"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
           <Card className="shadow-sm"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
@@ -169,7 +237,11 @@ export default function AnalysisPage() {
     );
   }
   
-  const noDataForPeriod = spendingByCategory.length === 0 && incomeBySource.length === 0;
+  const noTransactionsAtAll = allTransactions.length === 0;
+  const noDataForSelectedPeriod = 
+    (timePeriod === "monthly" || timePeriod === "yearly") &&
+    spendingByCategory.length === 0 && 
+    incomeBySource.length === 0;
 
   return (
     <div>
@@ -178,7 +250,7 @@ export default function AnalysisPage() {
         description="Obtenha insights sobre seus padrões de gastos e receitas."
         icon={<Wallet className="h-6 w-6 text-primary"/>}
         actions={
-          <Select value={timePeriod} onValueChange={setTimePeriod}>
+          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isFetchingTransactions}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
@@ -190,7 +262,7 @@ export default function AnalysisPage() {
           </Select>
         }
       />
-      {transactions.length === 0 && !isLoading ? (
+      {noTransactionsAtAll && !isLoading ? ( // !isLoading check ensures this only shows after loading finishes
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -202,11 +274,11 @@ export default function AnalysisPage() {
                 </CardDescription>
             </CardContent>
         </Card>
-      ) : noDataForPeriod && !isLoading ? (
+      ) : noDataForSelectedPeriod && !isLoading ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <CardTitle className="mt-4">Sem Dados para o Período</CardTitle>
+                <CardTitle className="mt-4">Sem Dados para o Período Selecionado</CardTitle>
             </CardHeader>
             <CardContent>
                 <CardDescription>
@@ -216,58 +288,71 @@ export default function AnalysisPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
+            {/* Gastos por Categoria */}
             <Card className="shadow-sm">
             <CardHeader>
                 <CardTitle className="font-headline flex items-center">
                 <BarChart className="mr-2 h-5 w-5 text-primary" />
                 Gastos por Categoria
                 </CardTitle>
-                <CardDescription>Detalhamento de suas despesas em diferentes categorias ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription>
+                <CardDescription>Detalhamento de suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent hideLabel indicator="dot" nameKey="name" />}
-                    />
-                    <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                    {spendingByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS_SPENDING[index % COLORS_SPENDING.length]} />
-                    ))}
-                    </Pie>
-                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                </PieChart>
-                </ResponsiveContainer>
+                {spendingByCategory.length > 0 ? (
+                    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <RechartsTooltip content={<PieCustomTooltip />} />
+                            <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                            {spendingByCategory.map((entry, index) => (
+                                <Cell key={`cell-spending-${index}`} fill={entry.fill} />
+                            ))}
+                            </Pie>
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                        </PieChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                       <p>Sem dados de despesas para exibir {timePeriod !== 'all' ? `neste ${timePeriod === 'monthly' ? 'mês' : 'ano'}` : ''}.</p>
+                    </div>
+                )}
             </CardContent>
             </Card>
 
+            {/* Fontes de Renda */}
             <Card className="shadow-sm">
             <CardHeader>
                 <CardTitle className="font-headline flex items-center">
                 <PieIcon className="mr-2 h-5 w-5 text-primary" />
                 Fontes de Renda
                 </CardTitle>
-                <CardDescription>Distribuição de sua renda de várias fontes ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription>
+                <CardDescription>Distribuição de sua renda ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent hideLabel indicator="dot" nameKey="name" />}
-                    />
-                    <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                    {incomeBySource.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS_INCOME[index % COLORS_INCOME.length]} />
-                    ))}
-                    </Pie>
-                     <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                </PieChart>
-                </ResponsiveContainer>
+                {incomeBySource.length > 0 ? (
+                    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <RechartsTooltip content={<PieCustomTooltip />} />
+                            <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                            {incomeBySource.map((entry, index) => (
+                                <Cell key={`cell-income-${index}`} fill={entry.fill} />
+                            ))}
+                            </Pie>
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                        </PieChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                ) : (
+                     <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <p>Sem dados de receitas para exibir {timePeriod !== 'all' ? `neste ${timePeriod === 'monthly' ? 'mês' : 'ano'}` : ''}.</p>
+                    </div>
+                )}
             </CardContent>
             </Card>
 
+            {/* Tendência do Fluxo de Caixa */}
             <Card className="md:col-span-2 shadow-sm">
             <CardHeader>
                 <CardTitle className="font-headline flex items-center">
@@ -276,18 +361,26 @@ export default function AnalysisPage() {
                 </CardTitle>
                 <CardDescription>Sua renda vs. despesas ao longo do tempo.</CardDescription>
             </CardHeader>
-            <CardContent className="h-96"> {/* Aumentado altura para melhor visualização */}
-                <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cashFlowTrend} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={(value) => `R$${value/1000}k`} tick={{ fontSize: 12 }} />
-                    <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-                    <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px'}}/>
-                    <Bar dataKey="income" fill="hsl(var(--chart-1))" name="Receita" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="Despesa" radius={[4, 4, 0, 0]} />
-                </BarChart>
-                </ResponsiveContainer>
+            <CardContent className="h-96">
+                 {cashFlowTrend.some(d => d.income > 0 || d.expense > 0) ? (
+                    <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={cashFlowTrend} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}> {/* Ajustado left margin */}
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={40}/>
+                            <YAxis tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                            <RechartsTooltip content={<CustomTooltip />} />
+                            <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
+                            <Bar dataKey="income" fill="var(--color-income)" name="Receita" radius={[4, 4, 0, 0]} barSize={20} />
+                            <Bar dataKey="expense" fill="var(--color-expense)" name="Despesa" radius={[4, 4, 0, 0]} barSize={20} />
+                        </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <p>Sem dados suficientes para exibir a tendência do fluxo de caixa.</p>
+                    </div>
+                )}
             </CardContent>
             </Card>
         </div>
@@ -295,4 +388,5 @@ export default function AnalysisPage() {
     </div>
   );
 }
+
     

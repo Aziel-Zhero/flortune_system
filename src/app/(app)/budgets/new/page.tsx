@@ -15,16 +15,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Target } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Target, PlusCircle, Save, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { addBudget, type NewBudgetData } from "@/services/budget.service";
-import { getCategories } from "@/services/category.service";
+import { getCategories, addCategory } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
 import { APP_NAME } from "@/lib/constants";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const budgetFormSchema = z.object({
   category_id: z.string().min(1, "Selecione uma categoria."),
@@ -41,6 +43,13 @@ const budgetFormSchema = z.object({
 
 type BudgetFormData = z.infer<typeof budgetFormSchema>;
 
+const newCategorySchema = z.object({
+  name: z.string().min(2, "Nome da categoria é obrigatório (mínimo 2 caracteres).").max(50, "Nome da categoria muito longo (máximo 50 caracteres)."),
+  icon: z.string().optional(), // Ícone ainda é opcional
+});
+type NewCategoryFormData = z.infer<typeof newCategorySchema>;
+
+
 export default function NewBudgetPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -49,15 +58,21 @@ export default function NewBudgetPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<BudgetFormData>({
+  const { control, handleSubmit, register, formState: { errors }, reset, watch, setValue } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetFormSchema),
     defaultValues: {
       limit_amount: 0,
       period_start_date: new Date(),
-      period_end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), // Default to end of current month
+      period_end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 
     },
   });
+
+  const { control: categoryFormControl, handleSubmit: handleCategorySubmit, register: categoryFormRegister, formState: { errors: categoryFormErrors }, reset: resetCategoryForm } = useForm<NewCategoryFormData>({
+    resolver: zodResolver(newCategorySchema),
+  });
+
 
   const fetchCategories = useCallback(async () => {
     if (!user?.id) return;
@@ -68,7 +83,7 @@ export default function NewBudgetPage() {
         toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
         setCategories([]);
       } else {
-        setCategories(data?.filter(c => c.type === 'expense') || []); // Only expense categories for budgets
+        setCategories(data?.filter(c => c.type === 'expense') || []); 
       }
     } catch (err) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar as categorias.", variant: "destructive" });
@@ -84,7 +99,7 @@ export default function NewBudgetPage() {
     }
   }, [user, status, fetchCategories]);
   
-  const onSubmit: SubmitHandler<BudgetFormData> = async (data) => {
+  const onBudgetSubmit: SubmitHandler<BudgetFormData> = async (data) => {
     if (!user?.id) {
       toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
       return;
@@ -121,7 +136,29 @@ export default function NewBudgetPage() {
     }
   };
 
-  if (status === "loading") {
+  const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
+    if (!user?.id) {
+      toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
+      return;
+    }
+    try {
+      const result = await addCategory(user.id, { name: data.name, type: 'expense', icon: data.icon }); // Força 'expense'
+      if (result.error) throw result.error;
+
+      toast({ title: "Categoria Criada!", description: `Categoria "${result.data?.name}" criada com sucesso.` });
+      await fetchCategories(); // Re-fetch categories e espera
+      if (result.data?.id) {
+         setValue("category_id", result.data.id); // Pré-seleciona a categoria recém-criada
+      }
+      resetCategoryForm();
+      setIsCategoryModalOpen(false);
+    } catch (error: any) {
+      toast({ title: "Erro ao Criar Categoria", description: error.message, variant: "destructive" });
+    }
+  };
+
+
+  if (status === "loading" || (isLoadingCategories && !!user)) {
     return (
       <div className="space-y-6">
         <PageHeader title="Novo Orçamento" description="Defina um novo limite de gastos para uma categoria." />
@@ -146,7 +183,7 @@ export default function NewBudgetPage() {
         description="Defina um novo limite de gastos para uma categoria específica em um período."
         icon={<Target className="h-6 w-6 text-primary" />}
       />
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onBudgetSubmit)}>
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="font-headline">Detalhes do Orçamento</CardTitle>
@@ -157,27 +194,59 @@ export default function NewBudgetPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="category_id">Categoria</Label>
-              <Controller
-                name="category_id"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingCategories}>
-                    <SelectTrigger id="category_id">
-                      <SelectValue placeholder={isLoadingCategories ? "Carregando categorias..." : "Selecione uma categoria de despesa"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                      {categories.length === 0 && !isLoadingCategories && (
-                        <div className="p-4 text-sm text-muted-foreground">Nenhuma categoria de despesa encontrada. Crie uma primeiro.</div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+              <div className="flex items-center gap-2">
+                <Controller
+                  name="category_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories} >
+                      <SelectTrigger id="category_id" className="flex-grow">
+                        <SelectValue placeholder={isLoadingCategories ? "Carregando categorias..." : "Selecione uma categoria de despesa"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                        {categories.length === 0 && !isLoadingCategories && (
+                          <div className="p-4 text-sm text-muted-foreground">Nenhuma categoria de despesa encontrada.</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                 <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button type="button" variant="outline" size="icon" aria-label="Criar nova categoria">
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                        <DialogTitle className="font-headline flex items-center">
+                            <Settings2 className="mr-2 h-5 w-5 text-primary"/>
+                            Nova Categoria de Despesa
+                        </DialogTitle>
+                        <DialogDescription>
+                            Crie uma nova categoria para seus orçamentos.
+                        </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleCategorySubmit(onCategorySubmit)} className="space-y-4 py-2">
+                            <div>
+                                <Label htmlFor="new_category_name">Nome da Categoria</Label>
+                                <Input id="new_category_name" {...categoryFormRegister("name")} />
+                                {categoryFormErrors.name && <p className="text-sm text-destructive mt-1">{categoryFormErrors.name.message}</p>}
+                            </div>
+                            {/* Adicionar seleção de ícone aqui se desejar no futuro */}
+                            <DialogFooter className="pt-2">
+                                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                                <Button type="submit">Criar Categoria</Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+              </div>
               {errors.category_id && <p className="text-sm text-destructive mt-1">{errors.category_id.message}</p>}
             </div>
 
@@ -275,6 +344,7 @@ export default function NewBudgetPage() {
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting || isLoadingCategories}>
+              <Save className="mr-2 h-4 w-4"/>
               {isSubmitting ? "Salvando..." : "Criar Orçamento"}
             </Button>
           </CardFooter>

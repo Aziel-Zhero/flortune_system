@@ -42,14 +42,14 @@ interface CalendarEvent {
   isAllDay?: boolean;
 }
 
-const HOURLY_SLOT_HEIGHT = 80; // Increased height for time slots
+const HOURLY_SLOT_HEIGHT = 80; // Aumentado para mais espaço
 
 // Sample financial events (simplified for relevance)
 const sampleEvents: CalendarEvent[] = [
-  { id: 1, title: "Pagamento Aluguel", startTime: "09:00", endTime: "09:30", color: "bg-red-500/80", date: "2024-08-19", description: "Vencimento do aluguel mensal", location: "Online"},
-  { id: 2, title: "Salário", startTime: "00:00", endTime: "23:59", color: "bg-green-500", date: "2024-08-19", description: "Recebimento do salário", location: "Conta Bancária", isAllDay: true },
-  { id: 3, title: "Supermercado", startTime: "16:00", endTime: "17:00", color: "bg-yellow-500", date: "2024-08-20", description: "Compras da semana", location: "Mercado Local"},
-  { id: 4, title: "Conta de Luz", startTime: "10:00", endTime: "10:15", color: "bg-orange-500", date: "2024-08-21", description: "Vencimento da conta de energia elétrica", location: "App do Banco"},
+  { id: 1, title: "Pagamento Aluguel", startTime: "09:00", endTime: "09:30", color: "bg-destructive/80", date: "2024-08-19", description: "Vencimento do aluguel mensal", location: "Online"},
+  { id: 2, title: "Salário", startTime: "00:00", endTime: "23:59", color: "bg-primary", date: "2024-08-19", description: "Recebimento do salário", location: "Conta Bancária", isAllDay: true },
+  { id: 3, title: "Supermercado", startTime: "16:00", endTime: "17:00", color: "bg-accent", date: "2024-08-20", description: "Compras da semana", location: "Mercado Local"},
+  { id: 4, title: "Conta de Luz", startTime: "10:00", endTime: "10:15", color: "bg-amber-500", date: "2024-08-21", description: "Vencimento da conta de energia elétrica", location: "App do Banco"},
   { id: 5, title: "Rendimento Investimento", startTime: "00:00", endTime: "23:59", color: "bg-emerald-500", date: "2024-08-22", description: "Crédito do rendimento mensal", location: "Corretora", isAllDay: true},
   { id: 6, title: "Assinatura Streaming", startTime: "11:00", endTime: "11:05", color: "bg-sky-500", date: "2024-08-23", description: "Débito da assinatura mensal", location: "Cartão de Crédito"},
 ];
@@ -84,16 +84,11 @@ export default function CalendarPage() {
 
   const assignEventsToCurrentWeek = useCallback((baseEvents: CalendarEvent[], currentWeekDates: Date[]) => {
     return baseEvents.map((event, index) => {
-      // Distribute sample events somewhat realistically across the current week for demo
-      // This logic ensures the 'date' property of sample events matches a date in the current week view.
-      const dayOfWeekForEvent = new Date(event.date + "T00:00:00Z").getUTCDay(); // Original day of week
+      const dayOfWeekForEvent = new Date(event.date + "T00:00:00Z").getUTCDay(); 
       let targetDate = currentWeekDates[dayOfWeekForEvent];
       
-      // If the original event date's month/year is different from current week's,
-      // try to place it on a similar day of week but within the current view.
-      // This is a simplified demo logic. A real app would fetch events for the current date range.
       if (!targetDate || new Date(event.date).getUTCMonth() !== targetDate.getUTCMonth()) {
-         targetDate = currentWeekDates[index % 7]; // Fallback to distribute across week
+         targetDate = currentWeekDates[index % 7]; 
       }
 
       return {
@@ -106,7 +101,6 @@ export default function CalendarPage() {
   useEffect(() => {
     document.title = `Calendário Financeiro - ${APP_NAME}`;
     setIsLoadingEvents(true);
-    // Simulate fetching events for the current weekDates
     setTimeout(() => {
       setEvents(assignEventsToCurrentWeek(sampleEvents, weekDates));
       setIsLoadingEvents(false);
@@ -140,7 +134,6 @@ export default function CalendarPage() {
 
   const calculateEventStyle = (startTime: string, endTime: string, isAllDay?: boolean) => {
     if (isAllDay) {
-      // All-day events have a fixed height bar at the top of the day column
       return { top: `0px`, height: `28px`, zIndex: 10 }; 
     }
     const startHour = parseInt(startTime.split(":")[0]);
@@ -148,14 +141,12 @@ export default function CalendarPage() {
     const endHour = parseInt(endTime.split(":")[0]);
     const endMinute = parseInt(endTime.split(":")[1]);
 
-    // Calculate position based on 7 AM start and HOURLY_SLOT_HEIGHT
     const topOffset = ((startHour - 7 + startMinute / 60) * HOURLY_SLOT_HEIGHT); 
     
     const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-    // Scale event height: (duration in hours) * HOURLY_SLOT_HEIGHT
     const height = (durationMinutes / 60 * HOURLY_SLOT_HEIGHT); 
 
-    return { top: `${topOffset}px`, height: `${Math.max(height, 20)}px`, zIndex: 10 }; // Min height 20px
+    return { top: `${topOffset}px`, height: `${Math.max(height, 20)}px`, zIndex: 10 }; 
   };
 
   const currentMonthYear = weekDates[0] 
@@ -170,7 +161,8 @@ export default function CalendarPage() {
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
 
-  if (isLoadingAuth || (isLoadingEvents && session)) { // Show skeleton if auth is loading OR (events loading AND session exists)
+
+  if (isLoadingAuth || (isLoadingEvents && !!session)) {
     return (
       <div className="flex flex-col h-full">
         <PageHeader title="Calendário Financeiro" description="Carregando eventos..." />
@@ -208,11 +200,11 @@ export default function CalendarPage() {
         <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b sticky top-0 bg-card z-20">
           <div className="p-2 text-center text-xs text-muted-foreground border-r"></div> {/* Canto para horários */}
           {weekDates.map((date, i) => (
-            <div key={i} className={cn("p-3 text-center border-r", i === 6 && "border-r-0")}> {/* Increased padding */}
+            <div key={i} className={cn("p-3 text-center border-r", i === 6 && "border-r-0")}>
               <div className="text-sm text-muted-foreground font-medium">{weekDays[date.getDay()]}</div>
               <div
                 className={cn(
-                  "text-2xl font-semibold mt-1", // Slightly larger date number
+                  "text-2xl font-semibold mt-1",
                   date.toDateString() === new Date().toDateString() ? "text-primary" : "text-foreground"
                 )}
               >
@@ -229,7 +221,7 @@ export default function CalendarPage() {
             <div className="text-muted-foreground">
               {timeSlots.map((time, i) => (
                 <div key={i} className="pr-2 text-right text-xs pt-1 flex items-start justify-end border-r" style={{ height: `${HOURLY_SLOT_HEIGHT}px` }}>
-                  <span className="mt-[-4px]"> {/* Adjust for better vertical alignment with lines */}
+                  <span className="mt-[-4px]">
                     {time > 12 ? `${time - 12} PM` : `${time} AM`}
                   </span>
                 </div>
@@ -244,7 +236,6 @@ export default function CalendarPage() {
                   <div key={timeIndex} className="border-b" style={{ height: `${HOURLY_SLOT_HEIGHT}px` }}></div>
                 ))}
 
-                {/* Eventos All-Day - container for these events, appears above the timed grid */}
                  <div className="absolute top-0 left-0 right-0 z-10 p-1 space-y-0.5 border-b">
                   {events
                     .filter(event => new Date(event.date + "T00:00:00Z").toDateString() === date.toDateString() && event.isAllDay)
@@ -257,7 +248,7 @@ export default function CalendarPage() {
                             "rounded p-1 text-white text-xs shadow-md cursor-pointer overflow-hidden mr-1 flex items-center",
                             event.color
                           )}
-                          style={{ height: eventStyle.height, zIndex: eventStyle.zIndex }} // Height here is fixed (28px)
+                          style={{ height: eventStyle.height, zIndex: eventStyle.zIndex }}
                           onClick={() => handleEventClick(event)}
                         >
                           <div className="font-medium truncate">{event.title}</div>
@@ -266,8 +257,7 @@ export default function CalendarPage() {
                   })}
                 </div>
                 
-                {/* Eventos com Horário Específico - events are positioned absolutely within this container */}
-                <div className="absolute top-0 left-0 right-0 bottom-0 mt-[32px]"> {/* Margin top to account for all-day event bar area */}
+                <div className="absolute top-0 left-0 right-0 bottom-0 mt-[32px]"> 
                   {events
                     .filter(event => new Date(event.date + "T00:00:00Z").toDateString() === date.toDateString() && !event.isAllDay)
                     .map((event) => {
