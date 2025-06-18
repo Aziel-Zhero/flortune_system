@@ -12,14 +12,14 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter,
+  // SidebarFooter, // Removido pois info do usuário está no header
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuSkeleton,
-  SidebarTrigger, 
+  // SidebarTrigger, // Movido para AppHeader
   useSidebar,
-} from "@/components/ui/sidebar"; // Importações do componente Sidebar
+} from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +31,7 @@ const getIcon = (iconName: NavLinkIconName): React.ElementType => {
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session, status } = useSession(); 
-  const { isMobile, setOpenMobile, open: sidebarOpen } = useSidebar(); // Adicionado sidebarOpen
+  const { isMobile, setOpenMobile, open: sidebarOpen } = useSidebar();
 
   const isLoading = status === "loading"; 
   const skeletonItems = Array(NAV_LINKS_CONFIG.length).fill(0);
@@ -51,7 +51,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      variant={isMobile ? "floating" : "sidebar"} // Ajuste para mobile
+      variant={isMobile ? "floating" : "sidebar"}
       collapsible={isMobile ? "offcanvas" : "icon"} 
       side="left"
     >
@@ -59,27 +59,24 @@ export function AppSidebar() {
             {/* Logo e Nome do App - Visível quando expandido */}
             <Link 
               href="/dashboard" 
-              className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity group-data-[collapsible=icon]:hidden" 
+              className={cn(
+                "flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
+                {"group-data-[collapsible=icon]:hidden": !isMobile || (isMobile && sidebarOpen)}, // Esconder se colapsado no desktop OU se mobile e sidebar aberto
+                {"hidden": isMobile && !sidebarOpen} // Esconder se mobile e sidebar colapsado (AppHeader já mostra o logo)
+              )} 
               onClick={closeMobileSidebar}
             >
                 <LucideIcons.Leaf className="h-7 w-7" />
                 <span className="font-bold text-xl font-headline">{APP_NAME}</span>
             </Link>
-
-            {/* Botão de Toggle Sidebar - Visível quando expandido e não mobile */}
-            {!isMobile && (
-                <div className={cn("group-data-[collapsible=icon]:hidden")}>
-                    <SidebarTrigger />
-                </div>
-            )}
             
-            {/* Logo - Visível quando colapsado (desktop) ou no modo mobile (se o nome não couber) */}
+            {/* Logo - Visível quando colapsado (desktop) */}
             <Link 
                 href="/dashboard" 
                 className={cn(
                     "items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
                     {"hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full": !isMobile},
-                    {"flex md:hidden": isMobile && !sidebarOpen} // Mostrar logo no mobile quando colapsado
+                    {"hidden": isMobile} // Sempre escondido no mobile aqui, AppHeader cuida disso
                 )}
                 onClick={closeMobileSidebar}
             >
@@ -129,7 +126,7 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        tooltip={isMobile ? undefined : { children: link.label }} // Tooltip apenas em desktop
+                        tooltip={isMobile ? undefined : { children: link.label }} 
                         className="justify-start"
                         onClick={closeMobileSidebar}
                       >
@@ -143,9 +140,6 @@ export function AppSidebar() {
                 })}
           </SidebarMenu>
         </SidebarContent>
-        {/* O SidebarFooter foi removido */}
     </Sidebar>
   );
 }
-
-    

@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
 import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle } from "lucide-react";
-import Link from "next/link";
+// Link não é mais necessário para a ação principal, mas pode ser para edição futura.
+// import Link from "next/link"; 
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import {
@@ -56,7 +57,11 @@ export default function GoalsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchGoalsData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+        setIsLoadingData(false); // Se não há usuário, não há o que carregar
+        setCurrentGoals([]);
+        return;
+    }
     setIsLoadingData(true);
     try {
       const { data, error } = await getFinancialGoals(user.id);
@@ -76,13 +81,13 @@ export default function GoalsPage() {
 
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
-    if (user?.id && !authLoading) {
+    if (user?.id && status === "authenticated") {
       fetchGoalsData();
-    } else if (!authLoading && !user?.id) {
+    } else if (status === "unauthenticated") {
       setIsLoadingData(false);
       setCurrentGoals([]);
     }
-  }, [user, authLoading, fetchGoalsData]);
+  }, [user, status, fetchGoalsData]);
 
   const handleDeleteClick = (goalId: string, goalName: string) => {
     setDeleteDialog({ isOpen: true, item: { id: goalId, name: goalName } });
@@ -112,12 +117,11 @@ export default function GoalsPage() {
   };
 
   const handleEditClick = (goalId: string, goalName: string) => {
-    console.log(`Editando meta: ${goalName} (ID: ${goalId})`);
+    // Placeholder: Abrir modal de edição com FinancialGoalForm e initialData
     toast({
-      title: "Ação de Edição",
-      description: `Funcionalidade de edição de metas em desenvolvimento.`,
+      title: "Editar Meta",
+      description: `Funcionalidade de edição para "${goalName}" em desenvolvimento.`,
     });
-    // Em um app real: router.push(`/goals/edit/${goalId}`);
   };
 
   const handleGoalCreated = () => {
@@ -171,13 +175,11 @@ export default function GoalsPage() {
               </CardContent>
             </Card>
           ))}
-          <Card className="shadow-sm border-dashed border-2 flex items-center justify-center min-h-[200px] h-full">
-             <DialogTrigger asChild>
-                <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none text-muted-foreground">
-                    <Skeleton className="h-10 w-10 rounded-full mb-2" />
-                    <Skeleton className="h-5 w-3/4" />
-                </button>
-            </DialogTrigger>
+           <Card className="shadow-sm border-dashed border-2 flex items-center justify-center min-h-[200px] h-full">
+             <Button variant="ghost" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center text-muted-foreground focus:outline-none" disabled>
+                <Skeleton className="h-10 w-10 rounded-full mb-2" />
+                <Skeleton className="h-5 w-3/4" />
+            </Button>
           </Card>
         </div>
       </div>
@@ -246,7 +248,7 @@ export default function GoalsPage() {
                                 </CardTitle>
                                 {goal.deadline_date && (
                                   <CardDescription className="flex items-center text-xs text-muted-foreground">
-                                      <CalendarClock className="mr-1 h-3 w-3"/> Prazo: {new Date(goal.deadline_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                      <CalendarClock className="mr-1 h-3 w-3"/> Prazo: {new Date(goal.deadline_date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
                                   </CardDescription>
                                 )}
                             </div>
