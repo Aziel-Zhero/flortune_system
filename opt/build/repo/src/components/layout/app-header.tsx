@@ -6,14 +6,14 @@ import { Leaf, Eye, EyeOff, Search, Bell, Menu, PanelLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserNav } from "./user-nav"; 
-import { useAppSettings } from '@/contexts/app-settings-context'; 
+import { UserNav } from "./user-nav"; // Ensured import path
+import { useAppSettings } from '@/contexts/app-settings-context';
 import { cn } from "@/lib/utils";
-import { useSidebar } from "@/components/ui/sidebar"; 
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function AppHeader() {
-  const { isPrivateMode, togglePrivateMode } = useAppSettings(); 
-  const { isMobile, setOpenMobile, toggleSidebar: toggleDesktopSidebar } = useSidebar(); 
+  const { isPrivateMode, togglePrivateMode } = useAppSettings();
+  const { isMobile, setOpenMobile, toggleSidebar: toggleDesktopSidebar } = useSidebar();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
