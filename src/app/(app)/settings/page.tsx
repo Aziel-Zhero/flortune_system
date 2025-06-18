@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent, type ReactNode } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save } from "lucide-react";
+import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckCircle } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
@@ -18,10 +18,26 @@ import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { supabase } from '@/lib/supabase/client';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+
+interface ThemeOption {
+  name: string;
+  id: string;
+  primaryColorClass: string; // e.g., "bg-green-500"
+  description: string;
+  icon?: ReactNode;
+}
+
+const availableThemes: ThemeOption[] = [
+  { name: "Verde Flortune", id: "default", primaryColorClass: "bg-primary", description: "O tema padrão e original do Flortune.", icon: <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] ring-1 ring-border" /> },
+  { name: "Oceano Crepúsculo", id: "theme-ocean-dusk", primaryColorClass: "bg-[#3B82F6]", description: "Um tema escuro e elegante com tons de azul profundo.", icon: <span className="h-4 w-4 rounded-full bg-[hsl(210,80%,55%)] ring-1 ring-border" /> },
+  { name: "Aurora Dourada", id: "theme-golden-dawn", primaryColorClass: "bg-[#F59E0B]", description: "Um tema claro e vibrante com toques de dourado e laranja.", icon: <span className="h-4 w-4 rounded-full bg-[hsl(40,90%,55%)] ring-1 ring-border" /> },
+];
+
 
 export default function SettingsPage() {
   const { data: session, status, update: updateSession } = useSession();
-  const { isDarkMode, toggleDarkMode } = useAppSettings();
+  const { isDarkMode, toggleDarkMode, isPrivateMode, togglePrivateMode } = useAppSettings(); // Adicionado isPrivateMode e toggle
 
   const isLoading = status === "loading";
   const userFromSession = session?.user;
@@ -38,9 +54,13 @@ export default function SettingsPage() {
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<string>("default");
   
   useEffect(() => {
     document.title = `Configurações - ${APP_NAME}`;
+    const storedTheme = localStorage.getItem('flortune-theme') || 'default';
+    setSelectedTheme(storedTheme);
+    // A aplicação do tema ao HTML é feita no AppSettingsProvider
   }, []);
 
   useEffect(() => {
@@ -73,9 +93,8 @@ export default function SettingsPage() {
         phone,
         cpf_cnpj: cpfCnpj,
         rg,
-        // avatar_url: avatarUrl, // Atualização de avatar é mais complexa, envolveria upload para Supabase Storage
         updated_at: new Date().toISOString(),
-        account_type: profileFromSession?.account_type, // Manter o tipo de conta
+        account_type: profileFromSession?.account_type,
       };
 
       const { data: updatedProfile, error } = await supabase
@@ -88,16 +107,12 @@ export default function SettingsPage() {
       if (error) throw error;
 
       if (updatedProfile) {
-        // Atualizar a sessão do NextAuth com o novo perfil
-        // O objeto passado para `updateSession` será mesclado com a sessão existente.
-        // É importante garantir que a estrutura corresponda à da sua sessão.
         await updateSession({
-          ...session, // Preserva outros dados da sessão
-          user: { // Atualiza apenas a parte `user` da sessão
+          ...session, 
+          user: { 
             ...session?.user,
             name: updatedProfile.display_name || updatedProfile.full_name,
-            // image: updatedProfile.avatar_url, // Se o avatar fosse atualizado
-            profile: updatedProfile as Profile, // Atualiza o perfil aninhado
+            profile: updatedProfile as Profile, 
           }
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso." });
@@ -123,6 +138,14 @@ export default function SettingsPage() {
     });
   };
 
+  const handleThemeChange = (themeId: string) => {
+    setSelectedTheme(themeId);
+    localStorage.setItem('flortune-theme', themeId);
+    document.documentElement.className = themeId === 'default' ? '' : themeId; // Remove a classe se for default
+    if(isDarkMode) document.documentElement.classList.add('dark'); // Reaplicar .dark se necessário
+    toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.` });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -145,12 +168,13 @@ export default function SettingsPage() {
         description="Gerencie sua conta, preferências e configurações do aplicativo."
       />
 
-      <form onSubmit={handleProfileSave}>
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center"><User className="mr-2 h-5 w-5 text-primary"/>Perfil</CardTitle>
-            <CardDescription>Atualize suas informações pessoais.</CardDescription>
-          </CardHeader>
+      {/* Seção de Perfil */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center"><User className="mr-2 h-5 w-5 text-primary"/>Perfil</CardTitle>
+          <CardDescription>Atualize suas informações pessoais e de conta.</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleProfileSave}>
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
@@ -210,15 +234,70 @@ export default function SettingsPage() {
                       <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
                 </div>
+                 {/* Espaço reservado para outros campos de empresa, se necessário */}
               </div>
             )}
-            <Button type="submit" disabled={isSavingProfile}>
-              {isSavingProfile ? "Salvando..." : "Salvar Alterações do Perfil"} <Save className="ml-2 h-4 w-4" />
-            </Button>
           </CardContent>
-        </Card>
-      </form>
+          <CardFooter>
+            <Button type="submit" disabled={isSavingProfile} className="ml-auto">
+              {isSavingProfile ? "Salvando..." : "Salvar Perfil"} <Save className="ml-2 h-4 w-4" />
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
 
+      {/* Seção de Aparência (Temas) */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center"><Palette className="mr-2 h-5 w-5 text-primary"/>Aparência</CardTitle>
+          <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="dark-mode" className="flex flex-col space-y-1 cursor-pointer">
+              <span>Modo Escuro</span>
+               <span className="font-normal leading-snug text-muted-foreground">
+                Alterne entre temas claro e escuro.
+              </span>
+            </Label>
+            <Switch 
+              id="dark-mode" 
+              checked={isDarkMode}
+              onCheckedChange={() => {
+                toggleDarkMode(); // O provider já atualiza o localStorage e a classe HTML
+                handleFeatureClick(`Modo Escuro ${!isDarkMode ? "ativado" : "desativado"}`, false);
+              }} 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Temas de Cores</Label>
+            <p className="text-sm text-muted-foreground">Escolha um esquema de cores para o Flortune.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+              {availableThemes.map((theme) => (
+                <Button
+                  key={theme.id}
+                  variant={selectedTheme === theme.id ? "default" : "outline"}
+                  className={cn(
+                    "h-auto p-4 flex flex-col items-start text-left relative",
+                    selectedTheme === theme.id && "ring-2 ring-primary ring-offset-2"
+                  )}
+                  onClick={() => handleThemeChange(theme.id)}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {theme.icon || <span className={cn("h-4 w-4 rounded-full", theme.primaryColorClass)} />}
+                    <span className="font-semibold">{theme.name}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{theme.description}</p>
+                  {selectedTheme === theme.id && (
+                    <CheckCircle className="h-5 w-5 text-primary absolute top-2 right-2" />
+                  )}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Bell className="mr-2 h-5 w-5 text-primary"/>Notificações</CardTitle>
@@ -265,31 +344,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
-       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Palette className="mr-2 h-5 w-5 text-primary"/>Aparência</CardTitle>
-          <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="dark-mode" className="flex flex-col space-y-1 cursor-pointer">
-              <span>Modo Escuro</span>
-               <span className="font-normal leading-snug text-muted-foreground">
-                Alterne entre temas claro e escuro.
-              </span>
-            </Label>
-            <Switch 
-              id="dark-mode" 
-              checked={isDarkMode}
-              onCheckedChange={() => {
-                toggleDarkMode();
-                handleFeatureClick(`Modo Escuro ${!isDarkMode ? "ativado" : "desativado"}`, false);
-              }} 
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Gerenciamento de Dados</CardTitle>
@@ -326,5 +380,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

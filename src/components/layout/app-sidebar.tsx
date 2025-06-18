@@ -4,7 +4,7 @@
 import Link from "next/link"; 
 import { usePathname } from "next/navigation"; 
 import * as LucideIcons from "lucide-react";
-import { useSession } from "next-auth/react"; // Importa useSession do NextAuth
+import { useSession } from "next-auth/react"; 
 
 import { cn } from "@/lib/utils";
 import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkIconName } from "@/lib/constants";
@@ -17,14 +17,12 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuSkeleton,
-  SidebarTrigger,
+  SidebarTrigger, // Importado para usar aqui
   useSidebar,
 } from "@/components/ui/sidebar";
-// import { Button } from "@/components/ui/button"; // Não usado diretamente aqui
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-// useAuth (antigo) não é mais necessário
 
 const getIcon = (iconName: NavLinkIconName): React.ElementType => {
   return LucideIcons[iconName as keyof typeof LucideIcons] || LucideIcons.HelpCircle;
@@ -32,11 +30,11 @@ const getIcon = (iconName: NavLinkIconName): React.ElementType => {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { data: session, status } = useSession(); // Usa o hook useSession
-  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
+  const { data: session, status } = useSession(); 
+  const { isMobile, setOpenMobile } = useSidebar();
 
-  const isLoading = status === "loading"; // Usa o status do useSession
-  const skeletonItems = Array(5).fill(0);
+  const isLoading = status === "loading"; 
+  const skeletonItems = Array(NAV_LINKS_CONFIG.length).fill(0);
 
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -45,29 +43,60 @@ export function AppSidebar() {
   };
   
   const user = session?.user;
-  const userProfile = user?.profile; // Perfil aninhado na sessão
+  const userProfile = user?.profile; 
 
   const displayName = userProfile?.display_name || user?.name || "Usuário";
-  const avatarUrl = userProfile?.avatar_url || user?.image || `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`;
+  const avatarUrl = userProfile?.avatar_url || user?.image || `https://placehold.co/40x40.png?text=${displayName.charAt(0).toUpperCase()}`;
   const avatarFallback = displayName.charAt(0).toUpperCase();
 
   return (
     <Sidebar variant="sidebar" collapsible={isMobile ? "offcanvas" : "icon"} side="left">
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-             <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity group-data-[collapsible=icon]:hidden" onClick={closeMobileSidebar}>
+            {/* Logo e Nome do App - Visível quando expandido */}
+            <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity group-data-[collapsible=icon]:hidden" onClick={closeMobileSidebar}>
                 <LucideIcons.Leaf className="h-7 w-7" />
                 <span className="font-bold text-xl font-headline">{APP_NAME}</span>
             </Link>
+            {/* Botão de Toggle Sidebar - Visível quando expandido e não mobile */}
             <div className={cn("ml-auto", {"group-data-[collapsible=icon]:hidden": !isMobile, "hidden": isMobile })}>
                  <SidebarTrigger />
             </div>
+            {/* Logo - Visível quando colapsado */}
             <Link href="/dashboard" className="hidden items-center space-x-2 text-primary hover:opacity-80 transition-opacity group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full" onClick={closeMobileSidebar}>
                 <LucideIcons.Leaf className="h-7 w-7" />
             </Link>
           </div>
         </SidebarHeader>
-        <Separator className="mb-2 group-data-[collapsible=icon]:hidden" />
+
+        {/* Informações do Usuário - Movido para cima */}
+        {!isLoading && user && (
+          <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+            <Link href="/settings" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
+              <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
+                  <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>
+                  <AvatarFallback>{avatarFallback}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                  <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{displayName}</span>
+                  <span className="text-xs text-muted-foreground">Conta Pessoal</span>
+              </div>
+            </Link>
+          </div>
+        )}
+        {isLoading && (
+           <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+            <div className="flex items-center gap-3 p-2 -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+              <Skeleton className="h-9 w-9 rounded-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
+              <div className="space-y-1 group-data-[collapsible=icon]:hidden">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+          </div>
+        )}
+        <Separator className="my-2 group-data-[collapsible=icon]:hidden" />
+
         <SidebarContent className="p-2">
           <SidebarMenu>
             {isLoading
@@ -75,7 +104,7 @@ export function AppSidebar() {
                   <SidebarMenuSkeleton key={index} showIcon />
                 ))
               : NAV_LINKS_CONFIG.map((link) => {
-                  const IconComponent = getIcon(link.icon);
+                  const IconComponent = getIcon(link.icon as NavLinkIconName);
                   const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
                   return (
                     <SidebarMenuItem key={link.href}>
@@ -96,45 +125,7 @@ export function AppSidebar() {
                 })}
           </SidebarMenu>
         </SidebarContent>
-        <Separator className="mt-auto group-data-[collapsible=icon]:hidden" />
-        {!isLoading && user && (
-          <>
-            <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
-                <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>
-                        <AvatarFallback>{avatarFallback}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium font-headline">{displayName}</span>
-                        <span className="text-xs text-muted-foreground">Conta Pessoal</span>
-                    </div>
-                </div>
-            </SidebarFooter>
-            <SidebarFooter className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
-                <Avatar className="h-8 w-8">
-                    <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>
-                    <AvatarFallback>{avatarFallback}</AvatarFallback>
-                </Avatar>
-            </SidebarFooter>
-          </>
-        )}
-         {isLoading && (
-          <>
-            <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="space-y-1">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            </SidebarFooter>
-            <SidebarFooter className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
-              <Skeleton className="h-8 w-8 rounded-full" />
-            </SidebarFooter>
-          </>
-        )}
+        {/* O SidebarFooter foi removido pois as informações do usuário foram movidas para cima */}
     </Sidebar>
   );
 }

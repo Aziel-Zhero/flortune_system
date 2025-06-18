@@ -2,14 +2,14 @@
 // src/app/(app)/budgets/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, Target, Edit3, Trash2, Sprout } from "lucide-react";
+import { PlusCircle, Target, Edit3, Trash2, Sprout, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -24,90 +24,80 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import type { Budget } from "@/types/database.types"; // Import Budget type
-
-// Updated mock data to reflect new Budget structure (with UUIDs as strings)
-// TODO: Replace this with actual data fetching using budget.service.ts
-const budgetsData: Budget[] = [
-  { 
-    id: "budget_uuid_1", 
-    user_id: "user_uuid_placeholder",
-    category_id: "cat_uuid_food",
-    category: { id: "cat_uuid_food", name: "Alimentação", type: "expense", icon: "Utensils", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: true, user_id: null },
-    limit_amount: 400, 
-    spent_amount: 250.75,
-    period_start_date: "2024-08-01",
-    period_end_date: "2024-08-31",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  { 
-    id: "budget_uuid_2", 
-    user_id: "user_uuid_placeholder",
-    category_id: "cat_uuid_restaurants",
-    category: { id: "cat_uuid_restaurants", name: "Restaurantes", type: "expense", icon: "Utensils", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: false, user_id: "user_uuid_placeholder" },
-    limit_amount: 200, 
-    spent_amount: 180.50,
-    period_start_date: "2024-08-01",
-    period_end_date: "2024-08-31",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-   { 
-    id: "budget_uuid_3", 
-    user_id: "user_uuid_placeholder",
-    category_id: "cat_uuid_entertainment",
-    category: { id: "cat_uuid_entertainment", name: "Entretenimento", type: "expense", icon: "Ticket", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: true, user_id: null },
-    limit_amount: 150, 
-    spent_amount: 75.00,
-    period_start_date: "2024-08-01",
-    period_end_date: "2024-08-31",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  { 
-    id: "budget_uuid_4", 
-    user_id: "user_uuid_placeholder",
-    category_id: "cat_uuid_shopping",
-    category: { id: "cat_uuid_shopping", name: "Compras", type: "expense", icon: "ShoppingCart", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), is_default: true, user_id: null },
-    limit_amount: 300, 
-    spent_amount: 320.00, // Overspent
-    period_start_date: "2024-08-01",
-    period_end_date: "2024-08-31",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
+import { useSession } from "next-auth/react";
+import { getBudgets, deleteBudget } from "@/services/budget.service"; // Importar serviços reais
+import type { Budget } from "@/types/database.types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BudgetsPage() {
-  const [currentBudgets, setCurrentBudgets] = useState(budgetsData);
+  const { data: session, status } = useSession();
+  const authLoading = status === "loading";
+  const user = session?.user;
+
+  const [currentBudgets, setCurrentBudgets] = useState<Budget[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null); // ID is string
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const fetchBudgetsData = useCallback(async () => {
+    if (!user?.id) return;
+    setIsLoadingData(true);
+    try {
+      const { data, error } = await getBudgets(user.id);
+      if (error) {
+        toast({ title: "Erro ao buscar orçamentos", description: error.message, variant: "destructive" });
+        setCurrentBudgets([]);
+      } else {
+        setCurrentBudgets(data || []);
+      }
+    } catch (err) {
+      toast({ title: "Erro inesperado", description: "Não foi possível carregar os orçamentos.", variant: "destructive" });
+      setCurrentBudgets([]);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     document.title = `Orçamentos - ${APP_NAME}`;
-    // TODO: Fetch budgets using budget.service.ts
-  }, []);
+    if (user?.id && !authLoading) {
+      fetchBudgetsData();
+    } else if (!authLoading && !user?.id) {
+      setIsLoadingData(false); // Não está carregando se não há usuário
+      setCurrentBudgets([]);
+    }
+  }, [user, authLoading, fetchBudgetsData]);
 
-  const handleDeleteClick = (budgetId: string, budgetCategoryName: string) => { // ID is string
+  const handleDeleteClick = (budgetId: string, budgetCategoryName: string) => {
     setItemToDelete({ id: budgetId, name: budgetCategoryName });
     setDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (itemToDelete) {
-      // TODO: Call deleteBudget from budget.service.ts
+  const handleConfirmDelete = async () => {
+    if (itemToDelete && user?.id) {
+      const originalBudgets = [...currentBudgets];
       setCurrentBudgets(prevBudgets => prevBudgets.filter(b => b.id !== itemToDelete.id));
-      toast({
-        title: "Orçamento Deletado (Simulado)",
-        description: `O orçamento "${itemToDelete.name}" foi deletado com sucesso.`,
-      });
+      
+      const { error } = await deleteBudget(itemToDelete.id, user.id);
+      if (error) {
+        toast({
+          title: "Erro ao Deletar",
+          description: error.message || `Não foi possível deletar o orçamento "${itemToDelete.name}".`,
+          variant: "destructive",
+        });
+        setCurrentBudgets(originalBudgets);
+      } else {
+        toast({
+          title: "Orçamento Deletado",
+          description: `O orçamento para "${itemToDelete.name}" foi deletado com sucesso.`,
+        });
+      }
       setItemToDelete(null);
     }
     setDialogOpen(false);
   };
 
-  const handleEditClick = (budgetId: string, budgetCategoryName: string) => { // ID is string
+  const handleEditClick = (budgetId: string, budgetCategoryName: string) => {
     console.log(`Editando orçamento: ${budgetCategoryName} (ID: ${budgetId})`);
     toast({
       title: "Ação de Edição",
@@ -122,12 +112,52 @@ export default function BudgetsPage() {
       opacity: 1,
       y: 0,
       transition: {
-        delay: i * 0.1,
+        delay: i * 0.07,
         type: "spring",
         stiffness: 100,
       },
     }),
   };
+  
+  if (authLoading || (isLoadingData && user)) {
+    return (
+      <div>
+        <PageHeader
+          title="Orçamentos"
+          description="Defina e acompanhe seus limites de gastos para diferentes categorias."
+          actions={<Skeleton className="h-10 w-40 rounded-md" />}
+        />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array(3).fill(0).map((_, index) => (
+            <Card key={index} className="shadow-sm h-full">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Skeleton className="h-6 w-3/4 mb-1" />
+                    <Skeleton className="h-4 w-1/2 mb-2" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                  <div className="flex gap-1">
+                    <Skeleton className="h-7 w-7 rounded-sm" />
+                    <Skeleton className="h-7 w-7 rounded-sm" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-3 w-full mb-2" />
+                <Skeleton className="h-4 w-1/2 mb-1" />
+                <Skeleton className="h-4 w-1/3" />
+              </CardContent>
+            </Card>
+          ))}
+           <Card className="shadow-sm border-dashed border-2 flex items-center justify-center min-h-[200px] h-full">
+             <Skeleton className="h-10 w-10 rounded-full mb-2" />
+             <Skeleton className="h-5 w-3/4" />
+           </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -143,6 +173,21 @@ export default function BudgetsPage() {
           </Button>
         }
       />
+      {currentBudgets.length === 0 && !isLoadingData && (
+         <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
+            <Target className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold font-headline mb-2">Nenhum Orçamento Criado Ainda</h3>
+            <p className="text-muted-foreground mb-4 max-w-md">
+              Orçamentos ajudam você a controlar seus gastos e alcançar suas metas financeiras. Que tal criar seu primeiro orçamento?
+            </p>
+            <Button asChild size="lg">
+              <Link href="/budgets/new">
+                <PlusCircle className="mr-2 h-5 w-5" />
+                Criar Meu Primeiro Orçamento
+              </Link>
+            </Button>
+        </Card>
+      )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {currentBudgets.map((budget, index) => {
           const remaining = budget.limit_amount - budget.spent_amount;
@@ -169,7 +214,7 @@ export default function BudgetsPage() {
                       <CardDescription>
                         Período: {new Date(budget.period_start_date + 'T00:00:00').toLocaleDateString('pt-BR')} - {new Date(budget.period_end_date + 'T00:00:00').toLocaleDateString('pt-BR')}
                          <br/>
-                        Limite: <PrivateValue value={`R$${budget.limit_amount.toFixed(2)}`} />
+                        Limite: <PrivateValue value={budget.limit_amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                       </CardDescription>
                     </div>
                     <div className="flex gap-1">
@@ -191,14 +236,14 @@ export default function BudgetsPage() {
                     />
                     <div className="mt-3 flex justify-between text-sm">
                       <span className="text-muted-foreground">Gasto:</span>
-                      <PrivateValue value={`R$${budget.spent_amount.toFixed(2)}`} className={cn(isOverspent && "text-destructive font-semibold")} />
+                      <PrivateValue value={budget.spent_amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className={cn(isOverspent && "text-destructive font-semibold")} />
                     </div>
                     <div className="flex justify-between text-sm font-medium">
                       <span className={cn(isOverspent ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
                         {isOverspent ? "Excedido:" : "Restante:"}
                       </span>
                       <PrivateValue
-                        value={`R$${Math.abs(remaining).toFixed(2)}`}
+                        value={Math.abs(remaining).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         className={cn(isOverspent ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}
                       />
                     </div>
@@ -208,14 +253,16 @@ export default function BudgetsPage() {
             </motion.div>
           );
         })}
-         <motion.div custom={currentBudgets.length} variants={cardVariants} initial="hidden" animate="visible" layout>
-            <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
-                <Link href="/budgets/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> 
-                    <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
-                    <p className="font-semibold">Criar Novo Orçamento</p>
-                </Link>
-            </Card>
-        </motion.div>
+         {currentBudgets.length > 0 && (
+          <motion.div custom={currentBudgets.length} variants={cardVariants} initial="hidden" animate="visible" layout>
+              <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
+                  <Link href="/budgets/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> 
+                      <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
+                      <p className="font-semibold">Criar Novo Orçamento</p>
+                  </Link>
+              </Card>
+          </motion.div>
+         )}
       </div>
 
       <Card className="mt-8 shadow-sm bg-primary/10 border-primary/30">

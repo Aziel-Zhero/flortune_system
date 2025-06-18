@@ -6,30 +6,26 @@ import { Leaf, Eye, EyeOff, Search, Bell, Menu } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserNav } from "./user-nav"; // UserNav agora usa useSession
-import { useAppSettings } from "@/contexts/app-settings-context"; // Importa useAppSettings
+import { UserNav } from "./user-nav"; 
+import { useAppSettings } from '@/contexts/app-settings-context'; 
 import { cn } from "@/lib/utils";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-// useAuth não é mais necessário aqui, pois appSettings vem de seu próprio contexto.
-// E UserNav lida com a sessão internamente.
+import { useSidebar } from "@/components/ui/sidebar"; // Não precisa mais do SidebarTrigger aqui
 
 export function AppHeader() {
-  const { isPrivateMode, togglePrivateMode } = useAppSettings(); // Obter do AppSettingsContext
+  const { isPrivateMode, togglePrivateMode } = useAppSettings(); 
   const { isMobile, setOpenMobile } = useSidebar(); 
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
       <div className="container mx-auto flex h-full items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6">
         <div className="flex items-center gap-2 md:gap-4">
-          {isMobile && (
-            <Button variant="ghost" size="icon" onClick={() => setOpenMobile(true)} className="md:hidden">
+          {/* O SidebarTrigger foi movido para dentro do AppSidebar */}
+          {isMobile && ( // Manter o botão de menu para mobile, se o trigger no sidebar não for suficiente
+             <Button variant="ghost" size="icon" onClick={() => setOpenMobile(true)} className="md:hidden -ml-2">
               <Menu className="h-6 w-6" />
               <span className="sr-only">Abrir menu</span>
             </Button>
           )}
-           <div className="hidden md:flex">
-             <SidebarTrigger />
-           </div>
           <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
             <Leaf className="h-7 w-7" />
             <span className="font-bold text-xl font-headline hidden sm:inline-block">{APP_NAME}</span>

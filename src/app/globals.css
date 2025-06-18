@@ -19,7 +19,7 @@
     --border: 180 20% 80%;
     --input: 180 25% 88%;
 
-    --primary: 170 75% 36%; /* Deep Teal #16A381 (aproximado para HSL) */
+    --primary: 170 75% 36%; /* Deep Teal #16A381 (aproximado para HSL) - Flortune Verde */
     --primary-foreground: 170 75% 95%; /* Very Light Teal/White */
 
     --secondary: 175 50% 80%; /* Lighter, less saturated teal */
@@ -36,7 +36,7 @@
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 175 60% 88%; /* Adjusted to fit teal theme */
+    --sidebar-background: 175 60% 88%; 
     --sidebar-foreground: 175 40% 20%;
     --sidebar-primary: 170 75% 36%;
     --sidebar-primary-foreground: 170 75% 95%;
@@ -68,7 +68,7 @@
     --border: 180 15% 25%;
     --input: 180 15% 22%;
 
-    --primary: 170 70% 40%; /* Slightly desaturated Deep Teal for dark mode */
+    --primary: 170 70% 40%; /* Slightly desaturated Deep Teal for dark mode - Flortune Verde Dark */
     --primary-foreground: 170 70% 90%;
 
     --secondary: 175 40% 30%;
@@ -97,6 +97,107 @@
     --chart-3: 175 45% 65%;
     --chart-4: 170 55% 35%;
     --chart-5: 45 75% 50%;
+  }
+
+  /* Tema Oceano Crepúsculo (Azul Escuro) */
+  .theme-ocean-dusk {
+    --background: 220 40% 10%; /* Azul muito escuro */
+    --foreground: 210 30% 90%; /* Branco azulado claro */
+    --card: 220 35% 15%;
+    --card-foreground: 210 30% 88%;
+    --popover: 220 35% 12%;
+    --popover-foreground: 210 30% 88%;
+    --primary: 210 80% 55%; /* Azul vibrante (principal) */
+    --primary-foreground: 210 80% 95%;
+    --secondary: 200 50% 45%; /* Azul mais suave */
+    --secondary-foreground: 200 50% 90%;
+    --accent: 30 80% 60%; /* Laranja suave como acento (crepúsculo) */
+    --accent-foreground: 30 80% 15%;
+    --muted: 220 30% 25%;
+    --muted-foreground: 210 25% 65%;
+    --border: 220 30% 30%;
+    --input: 220 30% 22%;
+    --ring: 210 80% 65%;
+
+    --sidebar-background: 220 38% 12%;
+    --sidebar-foreground: 210 30% 85%;
+    --sidebar-primary: 210 80% 55%;
+    --sidebar-primary-foreground: 210 80% 95%;
+    --sidebar-accent: 200 45% 40%;
+    --sidebar-accent-foreground: 200 45% 88%;
+    --sidebar-border: 220 30% 25%;
+
+    --chart-1: 210 75% 50%; /* Azul Principal */
+    --chart-2: 30 70% 55%;  /* Laranja Suave */
+    --chart-3: 200 45% 55%; /* Azul Secundário */
+    --chart-4: 210 60% 35%; /* Azul Escuro */
+    --chart-5: 30 60% 40%;  /* Laranja Queimado */
+  }
+  .dark.theme-ocean-dusk { /* Variação dark do Ocean Dusk é o próprio Ocean Dusk, pois já é escuro */
+    /* As mesmas variáveis de .theme-ocean-dusk podem ser usadas, ou pequenas variações se necessário */
+  }
+
+
+  /* Tema Aurora Dourada (Amarelo/Laranja Claro) */
+  .theme-golden-dawn {
+    --background: 40 50% 97%; /* Creme muito claro */
+    --foreground: 35 40% 25%; /* Marrom escuro */
+    --card: 40 50% 99%;
+    --card-foreground: 35 40% 22%;
+    --popover: 40 50% 100%;
+    --popover-foreground: 35 40% 22%;
+    --primary: 40 90% 55%; /* Amarelo dourado vibrante (principal) */
+    --primary-foreground: 40 90% 15%;
+    --secondary: 35 70% 75%; /* Laranja claro */
+    --secondary-foreground: 35 70% 20%;
+    --accent: 15 85% 60%; /* Vermelho alaranjado suave (aurora) */
+    --accent-foreground: 15 85% 98%;
+    --muted: 40 40% 90%;
+    --muted-foreground: 35 30% 50%;
+    --border: 40 35% 85%;
+    --input: 40 40% 88%;
+    --ring: 40 90% 60%;
+
+    --sidebar-background: 40 60% 92%;
+    --sidebar-foreground: 35 40% 20%;
+    --sidebar-primary: 40 90% 55%;
+    --sidebar-primary-foreground: 40 90% 15%;
+    --sidebar-accent: 35 65% 70%;
+    --sidebar-accent-foreground: 35 65% 18%;
+    --sidebar-border: 40 50% 80%;
+
+    --chart-1: 40 85% 60%; /* Amarelo Dourado */
+    --chart-2: 15 80% 65%;  /* Vermelho Alaranjado */
+    --chart-3: 35 65% 70%; /* Laranja Claro */
+    --chart-4: 40 70% 40%; /* Amarelo Escuro/Ocre */
+    --chart-5: 15 70% 50%;  /* Laranja Queimado */
+  }
+  .dark.theme-golden-dawn { /* Variação escura para Aurora Dourada */
+    --background: 35 30% 12%; /* Marrom muito escuro */
+    --foreground: 40 40% 88%; /* Creme claro */
+    --card: 35 25% 18%;
+    --card-foreground: 40 40% 85%;
+    --popover: 35 25% 15%;
+    --popover-foreground: 40 40% 85%;
+    --primary: 40 80% 60%; /* Amarelo dourado, talvez um pouco mais saturado */
+    --primary-foreground: 40 80% 10%;
+    --secondary: 30 60% 40%; /* Laranja mais escuro */
+    --secondary-foreground: 30 60% 90%;
+    --accent: 15 75% 55%; /* Vermelho alaranjado, mais vibrante no escuro */
+    --accent-foreground: 15 75% 95%;
+    --muted: 35 20% 28%;
+    --muted-foreground: 40 30% 65%;
+    --border: 35 20% 35%;
+    --input: 35 20% 30%;
+    --ring: 40 80% 65%;
+
+    --sidebar-background: 35 28% 15%;
+    --sidebar-foreground: 40 40% 80%;
+    --sidebar-primary: 40 80% 60%;
+    --sidebar-primary-foreground: 40 80% 10%;
+    --sidebar-accent: 30 55% 35%;
+    --sidebar-accent-foreground: 30 55% 88%;
+    --sidebar-border: 35 20% 28%;
   }
 }
 

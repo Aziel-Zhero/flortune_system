@@ -12,6 +12,9 @@ export interface AppSettingsProviderValue {
   isDarkMode: boolean;
   setIsDarkMode: Dispatch<SetStateAction<boolean>>;
   toggleDarkMode: () => void;
+  currentTheme: string;
+  setCurrentTheme: Dispatch<SetStateAction<string>>;
+  applyTheme: (themeId: string) => void;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -19,13 +22,44 @@ const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(u
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState('default');
+
+  const applyTheme = useCallback((themeId: string) => {
+    document.documentElement.className = ''; // Limpa todas as classes de tema
+    if (themeId !== 'default') {
+      document.documentElement.classList.add(themeId);
+    }
+    if (isDarkMode) { // Reaplicar a classe .dark se o modo escuro estiver ativo
+      document.documentElement.classList.add('dark');
+    }
+    localStorage.setItem('flortune-theme', themeId);
+    setCurrentTheme(themeId);
+  }, [isDarkMode]);
 
   useEffect(() => {
     const storedPrivateMode = localStorage.getItem('flortune-private-mode');
     if (storedPrivateMode) {
       setIsPrivateMode(JSON.parse(storedPrivateMode));
     }
-  }, []);
+
+    const storedTheme = localStorage.getItem('flortune-theme') || 'default';
+    applyTheme(storedTheme); // Aplica o tema ao carregar
+
+    // Dark mode inicialização
+    const storedDarkMode = localStorage.getItem('flortune-dark-mode');
+    let darkModeEnabled = false;
+    if (storedDarkMode !== null) {
+      darkModeEnabled = JSON.parse(storedDarkMode);
+    } else {
+      // Se não houver preferência salva, verifica a preferência do sistema
+      darkModeEnabled = typeof window !== "undefined" && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    setIsDarkMode(darkModeEnabled);
+    // A aplicação inicial da classe .dark é feita no applyTheme se isDarkMode for true
+    // ou no useEffect abaixo que observa isDarkMode
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Executa apenas uma vez na montagem
 
   useEffect(() => {
     localStorage.setItem('flortune-private-mode', JSON.stringify(isPrivateMode));
@@ -35,23 +69,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsPrivateMode(prev => !prev);
   }, []);
 
-   useEffect(() => {
-    const storedDarkMode = localStorage.getItem('flortune-dark-mode');
-    let darkModeEnabled = false;
-    if (storedDarkMode !== null) {
-      darkModeEnabled = JSON.parse(storedDarkMode);
-    } else {
-      darkModeEnabled = document.documentElement.classList.contains('dark') || 
-                        (typeof window !== "undefined" && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    setIsDarkMode(darkModeEnabled);
-    if (darkModeEnabled) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -59,23 +76,26 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('flortune-dark-mode', JSON.stringify(isDarkMode));
-  }, [isDarkMode]);
+    // Reaplicar o tema atual para garantir que a classe .dark seja considerada
+    applyTheme(currentTheme); 
+  }, [isDarkMode, currentTheme, applyTheme]);
 
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode(prev => !prev);
   }, []);
 
+
   return (
     <AppSettingsContext.Provider value={{ 
       isPrivateMode, setIsPrivateMode, togglePrivateMode,
-      isDarkMode, setIsDarkMode, toggleDarkMode
+      isDarkMode, setIsDarkMode, toggleDarkMode,
+      currentTheme, setCurrentTheme, applyTheme
     }}>
       {children}
     </AppSettingsContext.Provider>
   );
 };
 
-// Renomeado o hook exportado para evitar conflito de nome e manter a consistência
 export const useAppSettings = (): AppSettingsProviderValue => {
   const context = useContext(AppSettingsContext);
   if (context === undefined) {

@@ -2,14 +2,14 @@
 // src/app/(app)/goals/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, ShieldCheck, Plane, Laptop } from "lucide-react";
+import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, ShieldCheck, Plane, Laptop, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -24,88 +24,87 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import type { FinancialGoal } from "@/types/database.types"; // Import FinancialGoal type
+import { useSession } from "next-auth/react";
+import { getFinancialGoals, deleteFinancialGoal } from "@/services/goal.service"; // Importar serviços reais
+import type { FinancialGoal } from "@/types/database.types";
+import { Skeleton } from "@/components/ui/skeleton";
+import * as LucideIcons from "lucide-react";
 
-// Updated mock data to reflect new FinancialGoal structure (with UUIDs as strings)
-// TODO: Replace this with actual data fetching using goal.service.ts
-const goalsData: FinancialGoal[] = [
-  { 
-    id: "goal_uuid_1", 
-    user_id: "user_uuid_placeholder",
-    name: "Fundo de Emergência", 
-    target_amount: 5000, 
-    current_amount: 3500, 
-    deadline_date: "2024-12-31", 
-    icon: "ShieldCheck", 
-    status: 'in_progress', 
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  { 
-    id: "goal_uuid_2", 
-    user_id: "user_uuid_placeholder",
-    name: "Férias para Bali", 
-    target_amount: 3000, 
-    current_amount: 1200, 
-    deadline_date: "2025-06-30", 
-    icon: "Plane", 
-    status: 'in_progress',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  { 
-    id: "goal_uuid_3", 
-    user_id: "user_uuid_placeholder",
-    name: "Novo Laptop", 
-    target_amount: 1500, 
-    current_amount: 1500, 
-    deadline_date: "2024-09-30", 
-    icon: "Laptop", 
-    status: 'achieved', // Achieved
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
-// Helper to get Lucide icon component by name string
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
-  if (!iconName) return Trophy; // Default icon
+  if (!iconName) return Trophy; 
   const IconComponent = (LucideIcons as any)[iconName];
   return IconComponent || Trophy;
 };
-// Need to import all of LucideIcons for the helper above
-import * as LucideIcons from "lucide-react";
-
 
 export default function GoalsPage() {
-  const [currentGoals, setCurrentGoals] = useState(goalsData);
+  const { data: session, status } = useSession();
+  const authLoading = status === "loading";
+  const user = session?.user;
+
+  const [currentGoals, setCurrentGoals] = useState<FinancialGoal[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null); // ID is string
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const fetchGoalsData = useCallback(async () => {
+    if (!user?.id) return;
+    setIsLoadingData(true);
+    try {
+      const { data, error } = await getFinancialGoals(user.id);
+      if (error) {
+        toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
+        setCurrentGoals([]);
+      } else {
+        setCurrentGoals(data || []);
+      }
+    } catch (err) {
+      toast({ title: "Erro inesperado", description: "Não foi possível carregar as metas.", variant: "destructive" });
+      setCurrentGoals([]);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
-    // TODO: Fetch goals using goal.service.ts
-  }, []);
+    if (user?.id && !authLoading) {
+      fetchGoalsData();
+    } else if (!authLoading && !user?.id) {
+      setIsLoadingData(false);
+      setCurrentGoals([]);
+    }
+  }, [user, authLoading, fetchGoalsData]);
 
-  const handleDeleteClick = (goalId: string, goalName: string) => { // ID is string
+  const handleDeleteClick = (goalId: string, goalName: string) => {
     setItemToDelete({ id: goalId, name: goalName });
     setDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (itemToDelete) {
-      // TODO: Call deleteFinancialGoal from goal.service.ts
+  const handleConfirmDelete = async () => {
+    if (itemToDelete && user?.id) {
+      const originalGoals = [...currentGoals];
       setCurrentGoals(prevGoals => prevGoals.filter(g => g.id !== itemToDelete.id));
-      toast({
-        title: "Meta Deletada (Simulado)",
-        description: `A meta "${itemToDelete.name}" foi deletada com sucesso.`,
-      });
+      
+      const { error } = await deleteFinancialGoal(itemToDelete.id, user.id);
+      if (error) {
+        toast({
+          title: "Erro ao Deletar",
+          description: error.message || `Não foi possível deletar a meta "${itemToDelete.name}".`,
+          variant: "destructive",
+        });
+        setCurrentGoals(originalGoals);
+      } else {
+        toast({
+          title: "Meta Deletada",
+          description: `A meta "${itemToDelete.name}" foi deletada com sucesso.`,
+        });
+      }
       setItemToDelete(null);
     }
     setDialogOpen(false);
   };
 
-  const handleEditClick = (goalId: string, goalName: string) => { // ID is string
+  const handleEditClick = (goalId: string, goalName: string) => {
     console.log(`Editando meta: ${goalName} (ID: ${goalId})`);
     toast({
       title: "Ação de Edição",
@@ -120,13 +119,55 @@ export default function GoalsPage() {
       opacity: 1,
       y: 0,
       transition: {
-        delay: i * 0.1,
+        delay: i * 0.07,
         type: "spring",
         stiffness: 100,
       },
     }),
   };
   
+  if (authLoading || (isLoadingData && user)) {
+    return (
+      <div>
+        <PageHeader
+          title="Metas Financeiras"
+          description="Defina, acompanhe e alcance suas aspirações financeiras."
+          actions={<Skeleton className="h-10 w-44 rounded-md" />}
+        />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array(3).fill(0).map((_, index) => (
+            <Card key={index} className="shadow-sm h-full">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-lg" />
+                    <div>
+                      <Skeleton className="h-6 w-32 mb-1" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Skeleton className="h-7 w-7 rounded-sm" />
+                    <Skeleton className="h-7 w-7 rounded-sm" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-3 w-full mb-3" />
+                <Skeleton className="h-4 w-3/4 mb-1" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+          <Card className="shadow-sm border-dashed border-2 flex items-center justify-center min-h-[200px] h-full">
+            <Skeleton className="h-10 w-10 rounded-full mb-2" />
+            <Skeleton className="h-5 w-3/4" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader
@@ -141,10 +182,25 @@ export default function GoalsPage() {
           </Button>
         }
       />
+      {currentGoals.length === 0 && !isLoadingData && (
+        <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
+            <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold font-headline mb-2">Nenhuma Meta Definida Ainda</h3>
+            <p className="text-muted-foreground mb-4 max-w-md">
+              Metas financeiras são o mapa para seus sonhos. Comece definindo sua primeira meta e veja seu progresso florescer!
+            </p>
+            <Button asChild size="lg">
+              <Link href="/goals/new">
+                <PlusCircle className="mr-2 h-5 w-5" />
+                Definir Minha Primeira Meta
+              </Link>
+            </Button>
+        </Card>
+      )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {currentGoals.map((goal, index) => {
           const progressValue = goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0;
-          const isAchieved = goal.status === 'achieved'; // Use status field
+          const isAchieved = goal.status === 'achieved';
           const GoalIcon = getLucideIcon(goal.icon);
 
           return (
@@ -197,11 +253,11 @@ export default function GoalsPage() {
                     />
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Guardado:</span>
-                      <PrivateValue value={`R$${goal.current_amount.toFixed(2)}`} className={cn(isAchieved && "text-emerald-600 dark:text-emerald-400 font-semibold")} />
+                      <PrivateValue value={goal.current_amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className={cn(isAchieved && "text-emerald-600 dark:text-emerald-400 font-semibold")} />
                     </div>
                     <div className="flex justify-between text-sm font-medium text-muted-foreground">
                       <span>Meta:</span>
-                      <PrivateValue value={`R$${goal.target_amount.toFixed(2)}`} />
+                      <PrivateValue value={goal.target_amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                     </div>
                   </div>
                   {isAchieved && (
@@ -219,14 +275,16 @@ export default function GoalsPage() {
             </motion.div>
           );
         })}
-         <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
-            <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
-                <Link href="/goals/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> 
-                    <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
-                    <p className="font-semibold">Definir Nova Meta Financeira</p>
-                </Link>
-            </Card>
-        </motion.div>
+         {currentGoals.length > 0 && (
+            <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
+                <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
+                    <Link href="/goals/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> 
+                        <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
+                        <p className="font-semibold">Definir Nova Meta Financeira</p>
+                    </Link>
+                </Card>
+            </motion.div>
+         )}
       </div>
 
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
