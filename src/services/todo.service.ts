@@ -25,7 +25,9 @@ export async function getTodos(userId: string): Promise<ServiceListResponse<Todo
       .from('todos')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('is_completed', { ascending: true }) // Tarefas pendentes primeiro
+      .order('due_date', { ascending: true, nullsLast: true }) // Depois por data de vencimento
+      .order('created_at', { ascending: false }); // E por data de criação
 
     if (error) throw error;
     return { data: data as Todo[], error: null, count };
@@ -103,5 +105,4 @@ export async function deleteTodo(todoId: string, userId: string): Promise<Servic
     return { data: null, error };
   }
 }
-
     

@@ -31,7 +31,7 @@ export interface Transaction {
   user_id: string; // UUID, FK para profiles.id
   category_id: string | null; // FK para categories.id
   description: string;
-  amount: number; // NUMERIC(10,2)
+  amount: number; // NUMERIC(12, 2)
   date: string; // DATE (YYYY-MM-DD)
   type: 'income' | 'expense';
   notes?: string | null;
@@ -44,8 +44,8 @@ export interface Budget {
   id: string; // UUID
   user_id: string; // FK para profiles.id
   category_id: string; // FK para categories.id
-  limit_amount: number; // NUMERIC(10,2)
-  spent_amount: number; // NUMERIC(10,2)
+  limit_amount: number; // NUMERIC(12, 2)
+  spent_amount: number; // NUMERIC(12, 2)
   period_start_date: string; // DATE (YYYY-MM-DD)
   period_end_date: string; // DATE (YYYY-MM-DD)
   created_at: string;
@@ -57,8 +57,8 @@ export interface FinancialGoal {
   id: string; // UUID
   user_id: string; // FK para profiles.id
   name: string;
-  target_amount: number; // NUMERIC(10,2)
-  current_amount: number; // NUMERIC(10,2)
+  target_amount: number; // NUMERIC(12, 2)
+  current_amount: number; // NUMERIC(12, 2)
   deadline_date?: string | null; // DATE (YYYY-MM-DD)
   icon?: string | null;
   notes?: string | null;
@@ -175,6 +175,4 @@ export interface ServiceListResponse<T> {
   error: Error | null;
   count?: number | null;
 }
-
-
     

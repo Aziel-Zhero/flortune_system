@@ -51,6 +51,11 @@
     --chart-3: 175 50% 60%; /* Muted teal shade */
     --chart-4: 170 60% 30%; /* Darker Teal shade */
     --chart-5: 45 80% 45%;  /* Darker Yellow shade */
+
+     /* Cores base para Amanhecer - serão sobrescritas pela classe */
+    --amanhecer-rosa: 330 90% 70%;
+    --amanhecer-roxo: 280 80% 65%;
+    --amanhecer-laranja: 30 95% 60%;
   }
 
   .dark {
@@ -162,7 +167,7 @@
     --sidebar-border: 217 30% 25%;
   }
 
-  /* Tema Aurora Dourada (Amarelo/Laranja Claro) - Revisado */
+  /* Tema Aurora Dourada (Amarelo/Laranja Claro) */
   .theme-golden-dawn {
     --background: 40 50% 97%; /* Creme muito claro */
     --foreground: 35 40% 25%; /* Marrom escuro */
@@ -170,7 +175,7 @@
     --card-foreground: 35 40% 22%;
     --popover: 40 50% 100%;
     --popover-foreground: 35 40% 22%;
-    --primary: 45 95% 51%; /* Amarelo dourado vibrante (Mustard Yellow) - mais próximo do original */
+    --primary: 45 95% 51%; /* Amarelo dourado vibrante (Mustard Yellow) */
     --primary-foreground: 45 95% 10%; /* Quase preto para contraste */
     --secondary: 38 80% 75%; /* Laranja pêssego claro */
     --secondary-foreground: 38 80% 20%;
@@ -196,7 +201,7 @@
     --chart-4: 45 80% 40%; 
     --chart-5: 30 75% 50%;
   }
-  .dark.theme-golden-dawn { /* Refinado para evitar marrom, mais dourado */
+  .dark.theme-golden-dawn {
     --background: 40 20% 10%; /* Um fundo escuro, mas não preto puro, talvez um sépia muito escuro */
     --foreground: 45 80% 85%; /* Dourado claro para texto */
     --card: 40 20% 13%;
@@ -281,15 +286,7 @@
   }
   
   /* Tema Amanhecer (Degradê Rosa/Roxo) */
-  /* Para o degradê de fundo, usaremos CSS diretamente onde necessário, 
-     e definiremos cores sólidas para componentes baseadas no degradê. */
-  :root { /* Cores base para Amanhecer - serão sobrescritas pela classe */
-    --amanhecer-rosa: 330 90% 70%;
-    --amanhecer-roxo: 280 80% 65%;
-    --amanhecer-laranja: 30 95% 60%;
-  }
   .theme-amanhecer {
-    --background-gradient: linear-gradient(135deg, hsl(var(--amanhecer-rosa)) 0%, hsl(var(--amanhecer-roxo)) 50%, hsl(var(--amanhecer-laranja)) 100%);
     /* Para os componentes, escolhemos um tom de rosa como primário */
     --background: 320 40% 96%; /* Um fundo claro quase branco para manter legibilidade dos cards */
     --foreground: 300 30% 25%; /* Um roxo escuro para texto */
@@ -318,7 +315,6 @@
     --sidebar-border: 320 40% 80%;
   }
   .dark.theme-amanhecer {
-    --background-gradient-dark: linear-gradient(135deg, hsl(330 70% 20%), hsl(280 60% 15%), hsl(30 50% 10%));
     /* Para componentes, um roxo escuro como primário no modo dark */
     --background: 290 30% 8%; /* Um fundo muito escuro */
     --foreground: 300 40% 88%; /* Rosa/lilás claro para texto */
@@ -347,13 +343,16 @@
     --sidebar-border: 290 20% 28%;
   }
   /* Aplica o gradiente ao body se o tema Amanhecer estiver ativo */
+  /* Nota: Aplicar gradiente diretamente ao `body` pode ser sobrescrito pelo `--background` da classe `.theme-amanhecer` no `html`.
+     Para um efeito de fundo gradiente global, pode ser melhor aplicar ao `html` ou a um wrapper de layout principal.
+     Por enquanto, as cores sólidas de `--background` definidas nos temas terão precedência. */
   body.theme-amanhecer {
-    background-image: var(--background-gradient);
-    background-attachment: fixed; /* Para o gradiente não rolar com o conteúdo */
+    /* background-image: linear-gradient(135deg, hsl(var(--amanhecer-rosa)) 0%, hsl(var(--amanhecer-roxo)) 50%, hsl(var(--amanhecer-laranja)) 100%); */
+    /* background-attachment: fixed; */
   }
   body.dark.theme-amanhecer {
-    background-image: var(--background-gradient-dark);
-    background-attachment: fixed;
+    /* background-image: linear-gradient(135deg, hsl(330 70% 20%), hsl(280 60% 15%), hsl(30 50% 10%)); */
+    /* background-attachment: fixed; */
   }
 
 }
@@ -372,5 +371,4 @@
     font-family: 'Inter', sans-serif;
   }
 }
-
     

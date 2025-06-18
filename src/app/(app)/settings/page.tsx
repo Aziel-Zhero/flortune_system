@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckCircle, CheckSquare, Wand2, Sparkles, Sunrise } from "lucide-react";
+import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckSquare, Settings2 } from "lucide-react"; // Adicionado Settings2
 import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
@@ -23,17 +23,17 @@ import { cn } from '@/lib/utils';
 interface ThemeOption {
   name: string;
   id: string;
-  primaryColorClassExample?: string; // e.g., "bg-green-500" - for visual cue (pode ser removido se o ícone for suficiente)
   icon: ReactNode;
   description: string;
 }
 
+// Lista de temas disponíveis atualizada
 const availableThemes: ThemeOption[] = [
   { name: "Verde Flortune", id: "default", icon: <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] ring-1 ring-border" />, description: "O tema padrão, fresco e original do Flortune." },
   { name: "Oceano Pacífico", id: "theme-ocean-pacific", icon: <span style={{backgroundColor: "hsl(221,83%,53%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema calmo e profissional com tons de azul clássico." },
   { name: "Aurora Dourada", id: "theme-golden-dawn", icon: <span style={{backgroundColor: "hsl(45,95%,51%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema claro e vibrante com destaques dourados e alaranjados." },
   { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: <span style={{backgroundColor: "hsl(270,65%,55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema envolvente com tons profundos e mágicos de roxo." },
-  { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(330,85%,62%)] to-[hsl(285,70%,60%)] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes de rosa e roxo." },
+  { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(var(--amanhecer-rosa))] to-[hsl(var(--amanhecer-roxo))] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes de rosa e roxo." },
 ];
 
 
@@ -92,7 +92,7 @@ export default function SettingsPage() {
         cpf_cnpj: cpfCnpj,
         rg,
         updated_at: new Date().toISOString(),
-        account_type: profileFromSession?.account_type,
+        account_type: profileFromSession?.account_type, // Preserva o tipo de conta
       };
 
       const { data: updatedProfile, error } = await supabase
@@ -105,15 +105,16 @@ export default function SettingsPage() {
       if (error) throw error;
 
       if (updatedProfile) {
+        // Atualiza a sessão do NextAuth para refletir as mudanças no perfil
         await updateSession({
           ...session, 
           user: { 
             ...session?.user,
-            name: updatedProfile.display_name || updatedProfile.full_name,
-            profile: updatedProfile as Profile, 
+            name: updatedProfile.display_name || updatedProfile.full_name, // Atualiza o nome na sessão
+            profile: updatedProfile as Profile, // Atualiza o objeto profile completo
           }
         });
-        toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso." });
+        toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
       }
     } catch (error: any) {
       console.error("Error saving profile:", error);
@@ -138,13 +139,13 @@ export default function SettingsPage() {
 
   const handleThemeChange = (themeId: string) => {
     applyTheme(themeId); 
-    toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.` });
+    toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.`, action: <CheckSquare className="text-green-500"/> });
   };
 
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <PageHeader title="Configurações" description="Gerencie sua conta, preferências e configurações do aplicativo."/>
+        <PageHeader title="Configurações" description="Gerencie sua conta, preferências e configurações do aplicativo." icon={<Settings2 className="h-6 w-6 text-primary"/>}/>
         <Skeleton className="h-64 w-full rounded-lg" />
         <Skeleton className="h-48 w-full rounded-lg" />
         <Skeleton className="h-32 w-full rounded-lg" />
@@ -153,7 +154,7 @@ export default function SettingsPage() {
   }
   
   if (!session) {
-    return <p>Redirecionando para o login...</p>;
+    return <p>Redirecionando para o login...</p>; // Ou um skeleton de página de login
   }
 
   return (
@@ -161,6 +162,7 @@ export default function SettingsPage() {
       <PageHeader
         title="Configurações da Conta"
         description="Gerencie sua conta, preferências e configurações do aplicativo."
+        icon={<Settings2 className="h-6 w-6 text-primary"/>}
       />
 
       <Card className="shadow-sm">
@@ -369,5 +371,4 @@ export default function SettingsPage() {
     </div>
   );
 }
-
     

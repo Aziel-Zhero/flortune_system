@@ -87,7 +87,7 @@ export default function TodosPage() {
     try {
       const { data: newTodo, error } = await addTodo(user.id, newTodoData);
       if (error) throw error;
-      if (newTodo) setTodos(prev => [newTodo, ...prev]);
+      if (newTodo) setTodos(prev => [newTodo, ...prev].sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
       toast({ title: "Tarefa Adicionada!", description: `"${newTodo?.description}" foi adicionada.` });
       reset();
     } catch (err: any) {
@@ -101,7 +101,8 @@ export default function TodosPage() {
     if (!user?.id) return;
     const originalTodos = [...todos];
     const updatedTodo = { ...todo, is_completed: !todo.is_completed };
-    setTodos(prev => prev.map(t => t.id === todo.id ? updatedTodo : t));
+    
+    setTodos(prev => prev.map(t => t.id === todo.id ? updatedTodo : t).sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
 
     const updateData: UpdateTodoData = { is_completed: updatedTodo.is_completed };
     const { error } = await updateTodo(todo.id, user.id, updateData);
@@ -134,6 +135,14 @@ export default function TodosPage() {
     return (
       <div>
         <PageHeader title="Lista de Tarefas" description="Organize suas pendências." icon={<ListChecks />} />
+        <Card className="shadow-lg mb-6">
+          <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
+          <CardContent className="space-y-4">
+             <Skeleton className="h-10 w-full" />
+             <Skeleton className="h-10 w-1/2" />
+          </CardContent>
+          <CardFooter><Skeleton className="h-10 w-32" /></CardFooter>
+        </Card>
         <Card>
           <CardHeader><Skeleton className="h-8 w-3/4" /></CardHeader>
           <CardContent className="space-y-3">
@@ -214,59 +223,61 @@ export default function TodosPage() {
               <p>Nenhuma tarefa encontrada. Adicione uma acima!</p>
             </div>
           )}
-          <ul className="space-y-3">
-            {todos.map(todo => (
-              <li
-                key={todo.id}
-                className={cn(
-                  "flex items-center gap-3 p-3 border rounded-md transition-all",
-                  todo.is_completed ? "bg-muted/50 opacity-70" : "bg-card hover:bg-muted/20"
-                )}
-              >
-                <Checkbox
-                  id={`todo-${todo.id}`}
-                  checked={todo.is_completed}
-                  onCheckedChange={() => handleToggleComplete(todo)}
-                  className="h-5 w-5"
-                />
-                <div className="flex-grow">
-                  <label
-                    htmlFor={`todo-${todo.id}`}
-                    className={cn(
-                      "font-medium cursor-pointer",
-                      todo.is_completed && "line-through text-muted-foreground"
-                    )}
-                  >
-                    {todo.description}
-                  </label>
-                  {todo.due_date && (
-                    <p className={cn(
-                      "text-xs text-muted-foreground",
-                      todo.is_completed && "line-through"
-                    )}>
-                      Vence em: {format(parseISO(todo.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                    </p>
+          {todos.length > 0 && (
+            <ul className="space-y-3">
+              {todos.map(todo => (
+                <li
+                  key={todo.id}
+                  className={cn(
+                    "flex items-center gap-3 p-3 border rounded-md transition-all",
+                    todo.is_completed ? "bg-muted/50 opacity-70" : "bg-card hover:bg-muted/20"
                   )}
-                </div>
-                <Button
+                >
+                  <Checkbox
+                    id={`todo-${todo.id}`}
+                    checked={todo.is_completed}
+                    onCheckedChange={() => handleToggleComplete(todo)}
+                    className="h-5 w-5"
+                  />
+                  <div className="flex-grow">
+                    <label
+                      htmlFor={`todo-${todo.id}`}
+                      className={cn(
+                        "font-medium cursor-pointer",
+                        todo.is_completed && "line-through text-muted-foreground"
+                      )}
+                    >
+                      {todo.description}
+                    </label>
+                    {todo.due_date && (
+                      <p className={cn(
+                        "text-xs text-muted-foreground",
+                        todo.is_completed && "line-through"
+                      )}>
+                        Vence em: {format(parseISO(todo.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => toast({ title: "Editar Tarefa", description: "Funcionalidade de edição em desenvolvimento."})} // Placeholder
+                  >
+                      <Edit3 className="h-4 w-4" />
+                  </Button>
+                  <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-primary"
-                    onClick={() => toast({ title: "Editar Tarefa", description: "Funcionalidade de edição em desenvolvimento."})} // Placeholder
-                >
-                    <Edit3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleDeleteClick(todo)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteClick(todo)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
@@ -289,5 +300,4 @@ export default function TodosPage() {
     </div>
   );
 }
-
     
