@@ -100,107 +100,8 @@
     --chart-5: 45 75% 50%;
   }
 
-  /* Tema Oceano Crepúsculo (Azul Escuro) */
-  .theme-ocean-dusk {
-    --background: 220 40% 10%; /* Azul muito escuro */
-    --foreground: 210 30% 90%; /* Branco azulado claro */
-    --card: 220 35% 15%;
-    --card-foreground: 210 30% 88%;
-    --popover: 220 35% 12%;
-    --popover-foreground: 210 30% 88%;
-    --primary: 210 80% 55%; /* Azul vibrante (principal) */
-    --primary-foreground: 210 80% 95%;
-    --secondary: 200 50% 45%; /* Azul mais suave */
-    --secondary-foreground: 200 50% 90%;
-    --accent: 30 80% 60%; /* Laranja suave como acento (crepúsculo) */
-    --accent-foreground: 30 80% 15%;
-    --muted: 220 30% 25%;
-    --muted-foreground: 210 25% 65%;
-    --border: 220 30% 30%;
-    --input: 220 30% 22%;
-    --ring: 210 80% 65%;
-
-    --sidebar-background: 220 38% 12%;
-    --sidebar-foreground: 210 30% 85%;
-    --sidebar-primary: 210 80% 55%;
-    --sidebar-primary-foreground: 210 80% 95%;
-    --sidebar-accent: 200 45% 40%;
-    --sidebar-accent-foreground: 200 45% 88%;
-    --sidebar-border: 220 30% 25%;
-
-    --chart-1: 210 75% 50%; /* Azul Principal */
-    --chart-2: 30 70% 55%;  /* Laranja Suave */
-    --chart-3: 200 45% 55%; /* Azul Secundário */
-    --chart-4: 210 60% 35%; /* Azul Escuro */
-    --chart-5: 30 60% 40%;  /* Laranja Queimado */
-  }
-  /* .dark.theme-ocean-dusk: a classe .dark é aplicada em conjunto */
-
-
-  /* Tema Aurora Dourada (Amarelo/Laranja Claro) */
-  .theme-golden-dawn {
-    --background: 40 50% 97%; /* Creme muito claro */
-    --foreground: 35 40% 25%; /* Marrom escuro */
-    --card: 40 50% 99%;
-    --card-foreground: 35 40% 22%;
-    --popover: 40 50% 100%;
-    --popover-foreground: 35 40% 22%;
-    --primary: 40 90% 55%; /* Amarelo dourado vibrante (principal) */
-    --primary-foreground: 40 90% 15%;
-    --secondary: 35 70% 75%; /* Laranja claro */
-    --secondary-foreground: 35 70% 20%;
-    --accent: 15 85% 60%; /* Vermelho alaranjado suave (aurora) */
-    --accent-foreground: 15 85% 98%;
-    --muted: 40 40% 90%;
-    --muted-foreground: 35 30% 50%;
-    --border: 40 35% 85%;
-    --input: 40 40% 88%;
-    --ring: 40 90% 60%;
-
-    --sidebar-background: 40 60% 92%;
-    --sidebar-foreground: 35 40% 20%;
-    --sidebar-primary: 40 90% 55%;
-    --sidebar-primary-foreground: 40 90% 15%;
-    --sidebar-accent: 35 65% 70%;
-    --sidebar-accent-foreground: 35 65% 18%;
-    --sidebar-border: 40 50% 80%;
-
-    --chart-1: 40 85% 60%; /* Amarelo Dourado */
-    --chart-2: 15 80% 65%;  /* Vermelho Alaranjado */
-    --chart-3: 35 65% 70%; /* Laranja Claro */
-    --chart-4: 40 70% 40%; /* Amarelo Escuro/Ocre */
-    --chart-5: 15 70% 50%;  /* Laranja Queimado */
-  }
-  .dark.theme-golden-dawn { 
-    --background: 35 30% 12%; 
-    --foreground: 40 40% 88%; 
-    --card: 35 25% 18%;
-    --card-foreground: 40 40% 85%;
-    --popover: 35 25% 15%;
-    --popover-foreground: 40 40% 85%;
-    --primary: 40 80% 60%; 
-    --primary-foreground: 40 80% 10%;
-    --secondary: 30 60% 40%; 
-    --secondary-foreground: 30 60% 90%;
-    --accent: 15 75% 55%; 
-    --accent-foreground: 15 75% 95%;
-    --muted: 35 20% 28%;
-    --muted-foreground: 40 30% 65%;
-    --border: 35 20% 35%;
-    --input: 35 20% 30%;
-    --ring: 40 80% 65%;
-
-    --sidebar-background: 35 28% 15%;
-    --sidebar-foreground: 40 40% 80%;
-    --sidebar-primary: 40 80% 60%;
-    --sidebar-primary-foreground: 40 80% 10%;
-    --sidebar-accent: 30 55% 35%;
-    --sidebar-accent-foreground: 30 55% 88%;
-    --sidebar-border: 35 20% 28%;
-  }
-
-  /* Tema Azul Sereno */
-  .theme-serene-blue {
+  /* Tema Oceano Pacífico (Antigo Azul Sereno) */
+  .theme-ocean-pacific {
     --background: 210 60% 97%; /* Azul muito claro, quase branco */
     --foreground: 220 40% 25%; /* Azul acinzentado escuro */
     --card: 210 60% 99%; 
@@ -233,7 +134,7 @@
     --chart-4: 221 70% 40%; 
     --chart-5: 190 55% 40%;  
   }
-  .dark.theme-serene-blue {
+  .dark.theme-ocean-pacific {
     --background: 222 84% 5%; /* Azul muito escuro (do exemplo dark) */
     --foreground: 210 40% 98%; /* Branco (do exemplo dark) */
     --card: 222 84% 7%;
@@ -260,6 +161,201 @@
     --sidebar-accent-foreground: 210 40% 90%;
     --sidebar-border: 217 30% 25%;
   }
+
+  /* Tema Aurora Dourada (Amarelo/Laranja Claro) - Revisado */
+  .theme-golden-dawn {
+    --background: 40 50% 97%; /* Creme muito claro */
+    --foreground: 35 40% 25%; /* Marrom escuro */
+    --card: 40 50% 99%;
+    --card-foreground: 35 40% 22%;
+    --popover: 40 50% 100%;
+    --popover-foreground: 35 40% 22%;
+    --primary: 45 95% 51%; /* Amarelo dourado vibrante (Mustard Yellow) - mais próximo do original */
+    --primary-foreground: 45 95% 10%; /* Quase preto para contraste */
+    --secondary: 38 80% 75%; /* Laranja pêssego claro */
+    --secondary-foreground: 38 80% 20%;
+    --accent: 30 90% 65%; /* Laranja vibrante */
+    --accent-foreground: 30 90% 10%;
+    --muted: 40 40% 90%;
+    --muted-foreground: 35 30% 50%;
+    --border: 40 35% 85%;
+    --input: 40 40% 88%;
+    --ring: 45 95% 55%;
+
+    --sidebar-background: 40 60% 92%;
+    --sidebar-foreground: 35 40% 20%;
+    --sidebar-primary: 45 95% 51%;
+    --sidebar-primary-foreground: 45 95% 10%;
+    --sidebar-accent: 38 75% 70%;
+    --sidebar-accent-foreground: 38 75% 18%;
+    --sidebar-border: 40 50% 80%;
+
+    --chart-1: 45 90% 55%; 
+    --chart-2: 30 85% 60%;  
+    --chart-3: 38 70% 70%; 
+    --chart-4: 45 80% 40%; 
+    --chart-5: 30 75% 50%;
+  }
+  .dark.theme-golden-dawn { /* Refinado para evitar marrom, mais dourado */
+    --background: 40 20% 10%; /* Um fundo escuro, mas não preto puro, talvez um sépia muito escuro */
+    --foreground: 45 80% 85%; /* Dourado claro para texto */
+    --card: 40 20% 13%;
+    --card-foreground: 45 78% 83%;
+    --popover: 40 20% 11%;
+    --popover-foreground: 45 78% 83%;
+    --primary: 45 90% 58%; /* Dourado vibrante principal */
+    --primary-foreground: 45 90% 10%; /* Preto ou marrom muito escuro para contraste */
+    --secondary: 40 70% 40%; /* Um dourado mais escuro ou âmbar */
+    --secondary-foreground: 40 70% 90%;
+    --accent: 50 100% 65%; /* Amarelo limão brilhante como acento */
+    --accent-foreground: 50 100% 10%;
+    --muted: 40 18% 25%;
+    --muted-foreground: 45 60% 65%;
+    --border: 40 18% 30%;
+    --input: 40 18% 28%;
+    --ring: 45 90% 62%;
+
+    --sidebar-background: 40 22% 12%;
+    --sidebar-foreground: 45 75% 80%;
+    --sidebar-primary: 45 90% 58%;
+    --sidebar-primary-foreground: 45 90% 10%;
+    --sidebar-accent: 40 65% 35%;
+    --sidebar-accent-foreground: 40 65% 88%;
+    --sidebar-border: 40 18% 25%;
+  }
+
+  /* Tema Mística Nebulosa (Roxo) */
+  .theme-mystic-nebula {
+    --background: 270 20% 96%; /* Lilás muito claro / Quase branco */
+    --foreground: 275 40% 25%; /* Roxo escuro acinzentado */
+    --card: 270 20% 98%;
+    --card-foreground: 275 40% 22%;
+    --popover: 270 20% 100%;
+    --popover-foreground: 275 40% 22%;
+    --primary: 270 65% 55%; /* Roxo vibrante principal */
+    --primary-foreground: 270 65% 95%; /* Quase branco */
+    --secondary: 280 40% 80%; /* Lavanda suave */
+    --secondary-foreground: 280 40% 25%;
+    --accent: 330 80% 60%; /* Rosa magenta como acento */
+    --accent-foreground: 330 80% 10%;
+    --muted: 270 25% 88%;
+    --muted-foreground: 275 20% 55%;
+    --border: 270 20% 80%;
+    --input: 270 25% 85%;
+    --ring: 270 65% 60%;
+
+    --sidebar-background: 275 30% 90%;
+    --sidebar-foreground: 275 40% 18%;
+    --sidebar-primary: 270 65% 55%;
+    --sidebar-primary-foreground: 270 65% 95%;
+    --sidebar-accent: 280 35% 75%;
+    --sidebar-accent-foreground: 280 35% 20%;
+    --sidebar-border: 275 25% 78%;
+  }
+  .dark.theme-mystic-nebula {
+    --background: 270 25% 8%; /* Roxo muito escuro, quase preto */
+    --foreground: 270 30% 88%; /* Lilás claro para texto */
+    --card: 270 25% 10%;
+    --card-foreground: 270 30% 85%;
+    --popover: 270 25% 7%;
+    --popover-foreground: 270 30% 85%;
+    --primary: 270 70% 65%; /* Roxo néon/brilhante */
+    --primary-foreground: 270 70% 10%; /* Roxo muito escuro para contraste */
+    --secondary: 280 40% 30%; /* Roxo profundo */
+    --secondary-foreground: 280 40% 90%;
+    --accent: 290 80% 70%; /* Violeta brilhante como acento */
+    --accent-foreground: 290 80% 15%;
+    --muted: 270 20% 20%;
+    --muted-foreground: 270 25% 60%;
+    --border: 270 20% 25%;
+    --input: 270 20% 22%;
+    --ring: 270 70% 70%;
+
+    --sidebar-background: 270 22% 12%;
+    --sidebar-foreground: 270 30% 80%;
+    --sidebar-primary: 270 70% 65%;
+    --sidebar-primary-foreground: 270 70% 10%;
+    --sidebar-accent: 280 35% 25%;
+    --sidebar-accent-foreground: 280 35% 88%;
+    --sidebar-border: 270 20% 28%;
+  }
+  
+  /* Tema Amanhecer (Degradê Rosa/Roxo) */
+  /* Para o degradê de fundo, usaremos CSS diretamente onde necessário, 
+     e definiremos cores sólidas para componentes baseadas no degradê. */
+  :root { /* Cores base para Amanhecer - serão sobrescritas pela classe */
+    --amanhecer-rosa: 330 90% 70%;
+    --amanhecer-roxo: 280 80% 65%;
+    --amanhecer-laranja: 30 95% 60%;
+  }
+  .theme-amanhecer {
+    --background-gradient: linear-gradient(135deg, hsl(var(--amanhecer-rosa)) 0%, hsl(var(--amanhecer-roxo)) 50%, hsl(var(--amanhecer-laranja)) 100%);
+    /* Para os componentes, escolhemos um tom de rosa como primário */
+    --background: 320 40% 96%; /* Um fundo claro quase branco para manter legibilidade dos cards */
+    --foreground: 300 30% 25%; /* Um roxo escuro para texto */
+    --card: 0 0% 100%; /* Cards brancos para legibilidade sobre fundo potencialmente gradiente (se aplicado no body) */
+    --card-foreground: 300 30% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 300 30% 20%;
+    --primary: 330 85% 62%; /* Rosa vibrante principal */
+    --primary-foreground: 330 85% 98%; /* Branco */
+    --secondary: 290 60% 75%; /* Roxo lavanda suave */
+    --secondary-foreground: 290 60% 20%;
+    --accent: 25 90% 60%; /* Laranja suave do amanhecer */
+    --accent-foreground: 25 90% 10%;
+    --muted: 310 30% 90%;
+    --muted-foreground: 300 20% 50%;
+    --border: 310 25% 85%;
+    --input: 310 30% 88%;
+    --ring: 330 85% 65%;
+
+    --sidebar-background: 325 50% 92%;
+    --sidebar-foreground: 300 30% 18%;
+    --sidebar-primary: 330 85% 62%;
+    --sidebar-primary-foreground: 330 85% 98%;
+    --sidebar-accent: 290 55% 70%;
+    --sidebar-accent-foreground: 290 55% 15%;
+    --sidebar-border: 320 40% 80%;
+  }
+  .dark.theme-amanhecer {
+    --background-gradient-dark: linear-gradient(135deg, hsl(330 70% 20%), hsl(280 60% 15%), hsl(30 50% 10%));
+    /* Para componentes, um roxo escuro como primário no modo dark */
+    --background: 290 30% 8%; /* Um fundo muito escuro */
+    --foreground: 300 40% 88%; /* Rosa/lilás claro para texto */
+    --card: 290 28% 12%;
+    --card-foreground: 300 40% 85%;
+    --popover: 290 28% 10%;
+    --popover-foreground: 300 40% 85%;
+    --primary: 285 70% 60%; /* Roxo vibrante principal */
+    --primary-foreground: 285 70% 95%; /* Lilás muito claro */
+    --secondary: 330 50% 40%; /* Rosa escuro */
+    --secondary-foreground: 330 50% 90%;
+    --accent: 30 80% 55%; /* Laranja vibrante do amanhecer */
+    --accent-foreground: 30 80% 95%;
+    --muted: 290 25% 20%;
+    --muted-foreground: 300 30% 60%;
+    --border: 290 25% 25%;
+    --input: 290 25% 22%;
+    --ring: 285 70% 65%;
+
+    --sidebar-background: 290 25% 15%;
+    --sidebar-foreground: 300 35% 80%;
+    --sidebar-primary: 285 70% 60%;
+    --sidebar-primary-foreground: 285 70% 95%;
+    --sidebar-accent: 330 45% 35%;
+    --sidebar-accent-foreground: 330 45% 88%;
+    --sidebar-border: 290 20% 28%;
+  }
+  /* Aplica o gradiente ao body se o tema Amanhecer estiver ativo */
+  body.theme-amanhecer {
+    background-image: var(--background-gradient);
+    background-attachment: fixed; /* Para o gradiente não rolar com o conteúdo */
+  }
+  body.dark.theme-amanhecer {
+    background-image: var(--background-gradient-dark);
+    background-attachment: fixed;
+  }
+
 }
 
 @layer base {
@@ -276,3 +372,5 @@
     font-family: 'Inter', sans-serif;
   }
 }
+
+    

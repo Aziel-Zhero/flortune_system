@@ -67,6 +67,16 @@ export interface FinancialGoal {
   updated_at: string;
 }
 
+export interface Todo {
+  id: string; // UUID
+  user_id: string; // FK para profiles.id
+  description: string;
+  is_completed: boolean; // DEFAULT false
+  due_date?: string | null; // DATE (YYYY-MM-DD)
+  created_at: string;
+  updated_at: string;
+}
+
 // Tipos para Assinaturas
 export type SubscriptionStatus =
   | 'trialing'
@@ -166,4 +176,5 @@ export interface ServiceListResponse<T> {
   count?: number | null;
 }
 
-```
+
+    

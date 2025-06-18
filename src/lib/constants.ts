@@ -9,8 +9,8 @@ export const NAV_LINKS_CONFIG = [
   { href: "/analysis", label: "Análise", icon: "BarChart3" },
   { href: "/budgets", label: "Orçamentos", icon: "Target"},
   { href: "/goals", label: "Metas", icon: "Trophy" },
-  { href: "/plans", label: "Nossos Planos", icon: "Gem" }, // Novo link para planos
-  // { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" }, // Temporariamente removido
+  { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" },
+  { href: "/plans", label: "Nossos Planos", icon: "Gem" },
   { href: "/settings", label: "Configurações", icon: "Settings" },
 ] as const;
 
@@ -28,7 +28,8 @@ export const PRICING_TIERS = [
       'Gerenciamento de transações',
       'Criação de orçamentos básicos',
       'Definição de metas financeiras',
-      'Visão geral com calendário financeiro'
+      'Visão geral com calendário financeiro',
+      'Lista de Tarefas básica'
     ],
     featured: false,
     icon: "Leaf",
@@ -71,3 +72,5 @@ export const PRICING_TIERS = [
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
+
+    
