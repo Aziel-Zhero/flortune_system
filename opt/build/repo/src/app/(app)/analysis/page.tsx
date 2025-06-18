@@ -2,7 +2,7 @@
 // src/app/(app)/analysis/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, PieChart as PieIcon, TrendingUp, AlertTriangle, Wallet } from "lucide-react";
@@ -47,98 +47,59 @@ const chartColors = [
   "hsl(var(--chart-5))",
 ];
 
+// Tooltip Components
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
+        <p className="label text-sm font-medium text-foreground">{`${label}`}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={`item-${index}`} style={{ color: entry.color }} className="text-xs">
+            {`${entry.name}: ${entry.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const PieCustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
+        <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name}`}</p>
+        <p className="text-xs text-foreground">{`Valor: ${data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
+        <p className="text-xs text-muted-foreground">{`(${(payload[0].percent * 100).toFixed(2)}%)`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+
 export default function AnalysisPage() {
   const { data: session, status } = useSession();
   const user = session?.user;
   const authLoading = status === "loading";
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingTransactions, setIsFetchingTransactions] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
 
-  const [spendingByCategory, setSpendingByCategory] = useState<CategoryData[]>([]);
-  const [incomeBySource, setIncomeBySource] = useState<CategoryData[]>([]);
-  const [cashFlowTrend, setCashFlowTrend] = useState<MonthlyFlow[]>([]);
-
-  const processChartData = useCallback((transactionsToProcess: Transaction[], currentPeriod: string) => {
-    const filteredTransactions = transactionsToProcess.filter(tx => {
-      if (currentPeriod === "all") return true;
-      const txDate = new Date(tx.date + "T00:00:00Z"); // Ensure UTC for consistent month/year
-      const now = new Date();
-      if (currentPeriod === "monthly") {
-        return txDate.getUTCMonth() === now.getUTCMonth() && txDate.getUTCFullYear() === now.getUTCFullYear();
-      }
-      if (currentPeriod === "yearly") {
-        return txDate.getUTCFullYear() === now.getUTCFullYear();
-      }
-      return true;
-    });
-
-    const spendingMap = new Map<string, number>();
-    filteredTransactions
-      .filter(tx => tx.type === 'expense' && tx.category)
-      .forEach(tx => {
-        const categoryName = tx.category?.name || 'Outros';
-        spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
-      });
-    setSpendingByCategory(Array.from(spendingMap, ([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a,b) => b.value - a.value));
-
-    const incomeMap = new Map<string, number>();
-    filteredTransactions
-      .filter(tx => tx.type === 'income' && tx.category)
-      .forEach(tx => {
-        const categoryName = tx.category?.name || 'Outras Receitas';
-        incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
-      });
-    setIncomeBySource(Array.from(incomeMap, ([name, value], index) => ({ name, value, fill: chartColors[(index + 1) % chartColors.length] })).sort((a,b) => b.value - a.value));
-    
-    // Cash flow trend always uses all transactions to show historical data
-    const monthlyData: { [key: string]: { income: number; expense: number } } = {};
-    const today = new Date();
-    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    
-    for (let i = 5; i >= 0; i--) {
-        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
-        monthlyData[monthKey] = { income: 0, expense: 0 };
-    }
-
-    transactionsToProcess.forEach(tx => { // Use allTransactions for the cash flow trend
-        const txDate = new Date(tx.date + "T00:00:00Z");
-        const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey] !== undefined) {
-            if (tx.type === 'income') monthlyData[monthKey].income += tx.amount;
-            else if (tx.type === 'expense') monthlyData[monthKey].expense += tx.amount;
-        }
-    });
-
-    setCashFlowTrend(
-        Object.entries(monthlyData).map(([month, data]) => ({
-            month,
-            income: data.income,
-            expense: data.expense,
-            balance: data.income - data.expense
-        }))
-    );
-
-  }, []); // No dependencies, as it relies on passed arguments
-
-  // Effect to fetch all transactions
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
     if (!user?.id || authLoading) {
-      setIsLoading(authLoading); // Set loading based on auth status
-      if (!authLoading && !user?.id) { // If auth is done and no user, clear data
+      setIsFetchingTransactions(authLoading);
+      if (!authLoading && !user?.id) {
         setAllTransactions([]);
-        setSpendingByCategory([]);
-        setIncomeBySource([]);
-        setCashFlowTrend([]);
       }
       return;
     }
 
     const fetchAllTransactions = async () => {
-      setIsLoading(true);
+      setIsFetchingTransactions(true);
       try {
         const { data, error } = await getTransactions(user.id);
         if (error) {
@@ -151,59 +112,113 @@ export default function AnalysisPage() {
         toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
         setAllTransactions([]);
       } finally {
-        setIsLoading(false);
+        setIsFetchingTransactions(false);
       }
     };
     fetchAllTransactions();
   }, [user?.id, authLoading]);
 
-  // Effect to process transactions when allTransactions or timePeriod changes
-  useEffect(() => {
-    if (!isLoading && !authLoading) { // Process only when data is loaded and auth is complete
-      processChartData(allTransactions, timePeriod);
+  const filteredTransactionsForPeriod = useMemo(() => {
+    if (isFetchingTransactions || authLoading) return [];
+    return allTransactions.filter(tx => {
+      if (timePeriod === "all") return true;
+      if (!tx.date || typeof tx.date !== 'string') return false;
+      try {
+        const txDate = new Date(tx.date + "T00:00:00Z");
+        if (isNaN(txDate.getTime())) return false;
+
+        const now = new Date();
+        if (timePeriod === "monthly") {
+          return txDate.getUTCMonth() === now.getUTCMonth() && txDate.getUTCFullYear() === now.getUTCFullYear();
+        }
+        if (timePeriod === "yearly") {
+          return txDate.getUTCFullYear() === now.getUTCFullYear();
+        }
+      } catch(e) {
+        console.error("Error parsing transaction date in filteredTransactionsForPeriod:", tx.date, e);
+        return false;
+      }
+      return true;
+    });
+  }, [allTransactions, timePeriod, isFetchingTransactions, authLoading]);
+
+  const spendingByCategory = useMemo(() => {
+    if (isFetchingTransactions || authLoading) return [];
+    const spendingMap = new Map<string, number>();
+    filteredTransactionsForPeriod
+      .filter(tx => tx.type === 'expense' && tx.category)
+      .forEach(tx => {
+        const categoryName = tx.category?.name || 'Outros';
+        spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
+      });
+    return Array.from(spendingMap, ([name, value], index) => ({ 
+        name, 
+        value, 
+        fill: chartColors[index % chartColors.length] 
+    })).sort((a,b) => b.value - a.value);
+  }, [filteredTransactionsForPeriod, isFetchingTransactions, authLoading]);
+
+  const incomeBySource = useMemo(() => {
+    if (isFetchingTransactions || authLoading) return [];
+    const incomeMap = new Map<string, number>();
+    filteredTransactionsForPeriod
+      .filter(tx => tx.type === 'income' && tx.category)
+      .forEach(tx => {
+        const categoryName = tx.category?.name || 'Outras Receitas';
+        incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
+      });
+    return Array.from(incomeMap, ([name, value], index) => ({ 
+        name, 
+        value, 
+        fill: chartColors[(index + 1) % chartColors.length]
+    })).sort((a,b) => b.value - a.value);
+  }, [filteredTransactionsForPeriod, isFetchingTransactions, authLoading]);
+
+  const cashFlowTrend = useMemo(() => {
+    if (isFetchingTransactions || authLoading) return [];
+    const monthlyData: { [key: string]: { income: number; expense: number } } = {};
+    const today = new Date();
+    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    
+    for (let i = 5; i >= 0; i--) {
+        const date = new Date(today.getUTCFullYear(), today.getUTCMonth() - i, 1);
+        const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
+        monthlyData[monthKey] = { income: 0, expense: 0 };
     }
-  }, [allTransactions, timePeriod, processChartData, isLoading, authLoading]);
 
+    allTransactions.forEach(tx => {
+      if (!tx.date || typeof tx.date !== 'string') return;
+      try {
+        const txDate = new Date(tx.date + "T00:00:00Z");
+        if (isNaN(txDate.getTime())) return;
 
-  const chartConfig = { // Keep chartConfig relatively static or memoize if complex
+        const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
+        if (monthlyData[monthKey] !== undefined) { 
+            if (tx.type === 'income') monthlyData[monthKey].income += tx.amount;
+            else if (tx.type === 'expense') monthlyData[monthKey].expense += tx.amount;
+        }
+      } catch(e) {
+         console.error("Error processing transaction for cash flow:", tx.date, e);
+      }
+    });
+
+    return Object.entries(monthlyData).map(([month, data]) => ({
+        month,
+        income: data.income,
+        expense: data.expense,
+        balance: data.income - data.expense
+    }));
+  }, [allTransactions, isFetchingTransactions, authLoading]);
+
+  const chartConfig = useMemo(() => ({
     amount: { label: "Valor (R$)" },
     income: { label: "Receita", color: "hsl(var(--chart-1))" },
     expense: { label: "Despesa", color: "hsl(var(--chart-2))" },
-    // Dynamic parts can be handled by Recharts directly or with a more complex memoized config
-  };
+  }), []);
   
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
-          <p className="label text-sm font-medium text-foreground">{`${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={`item-${index}`} style={{ color: entry.color }} className="text-xs">
-              {`${entry.name}: ${entry.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-  
-  const PieCustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
-          <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name}`}</p>
-          <p className="text-xs text-foreground">{`Valor: ${data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
-          <p className="text-xs text-muted-foreground">{`(${(payload[0].percent * 100).toFixed(2)}%)`}</p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const isLoading = authLoading || (isFetchingTransactions && !!user); // Ensure user object is considered for loading state
 
-
-  if (authLoading || (isLoading && user)) {
+  if (isLoading) {
     return (
       <div>
         <PageHeader title="Análise Financeira" description="Carregando seus insights..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
@@ -216,8 +231,11 @@ export default function AnalysisPage() {
     );
   }
   
-  const noDataForPeriod = spendingByCategory.length === 0 && incomeBySource.length === 0 && (timePeriod === "monthly" || timePeriod === "yearly");
   const noTransactionsAtAll = allTransactions.length === 0;
+  const noDataForSelectedPeriod = 
+    (timePeriod === "monthly" || timePeriod === "yearly") &&
+    spendingByCategory.length === 0 && 
+    incomeBySource.length === 0;
 
   return (
     <div>
@@ -226,7 +244,7 @@ export default function AnalysisPage() {
         description="Obtenha insights sobre seus padrões de gastos e receitas."
         icon={<Wallet className="h-6 w-6 text-primary"/>}
         actions={
-          <Select value={timePeriod} onValueChange={setTimePeriod}>
+          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isFetchingTransactions}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
@@ -238,7 +256,7 @@ export default function AnalysisPage() {
           </Select>
         }
       />
-      {noTransactionsAtAll && !isLoading && !authLoading ? (
+      {noTransactionsAtAll && !isLoading ? ( // !isLoading check ensures this only shows after loading finishes
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -250,7 +268,7 @@ export default function AnalysisPage() {
                 </CardDescription>
             </CardContent>
         </Card>
-      ) : noDataForPeriod && !isLoading && !authLoading && (timePeriod === "monthly" || timePeriod === "yearly") ? (
+      ) : noDataForSelectedPeriod && !isLoading ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -277,7 +295,7 @@ export default function AnalysisPage() {
                     <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                        <RechartsTooltip content={<PieCustomTooltip />} />
+                            <RechartsTooltip content={<PieCustomTooltip />} />
                             <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
                             {spendingByCategory.map((entry, index) => (
                                 <Cell key={`cell-spending-${index}`} fill={entry.fill} />
@@ -360,5 +378,5 @@ export default function AnalysisPage() {
       )}
     </div>
   );
-}
 
+    
