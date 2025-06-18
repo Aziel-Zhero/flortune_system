@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckCircle } from "lucide-react";
+import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckCircle, CheckSquare } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
@@ -23,21 +23,22 @@ import { cn } from '@/lib/utils';
 interface ThemeOption {
   name: string;
   id: string;
-  primaryColorClass: string; // e.g., "bg-green-500"
+  primaryColorClassExample: string; // e.g., "bg-green-500" - for visual cue
   description: string;
   icon?: ReactNode;
 }
 
 const availableThemes: ThemeOption[] = [
-  { name: "Verde Flortune", id: "default", primaryColorClass: "bg-primary", description: "O tema padrão e original do Flortune.", icon: <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] ring-1 ring-border" /> },
-  { name: "Oceano Crepúsculo", id: "theme-ocean-dusk", primaryColorClass: "bg-[#3B82F6]", description: "Um tema escuro e elegante com tons de azul profundo.", icon: <span className="h-4 w-4 rounded-full bg-[hsl(210,80%,55%)] ring-1 ring-border" /> },
-  { name: "Aurora Dourada", id: "theme-golden-dawn", primaryColorClass: "bg-[#F59E0B]", description: "Um tema claro e vibrante com toques de dourado e laranja.", icon: <span className="h-4 w-4 rounded-full bg-[hsl(40,90%,55%)] ring-1 ring-border" /> },
+  { name: "Verde Flortune", id: "default", primaryColorClassExample: "bg-[hsl(var(--primary))]", description: "O tema padrão, fresco e original do Flortune.", icon: <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] ring-1 ring-border" /> },
+  { name: "Oceano Crepúsculo", id: "theme-ocean-dusk", primaryColorClassExample: "bg-[#3B82F6]", description: "Um tema elegante com tons de azul profundo e toques de laranja.", icon: <span style={{backgroundColor: "hsl(210, 80%, 55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" /> },
+  { name: "Aurora Dourada", id: "theme-golden-dawn", primaryColorClassExample: "bg-[#F59E0B]", description: "Um tema claro e vibrante com destaques dourados e alaranjados.", icon: <span style={{backgroundColor: "hsl(40, 90%, 55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" /> },
+  { name: "Azul Sereno", id: "theme-serene-blue", primaryColorClassExample: "bg-[hsl(221,83%,53%)]", description: "Um tema calmo e profissional com tons de azul clássico.", icon: <span style={{backgroundColor: "hsl(221, 83%, 53%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" /> },
 ];
 
 
 export default function SettingsPage() {
   const { data: session, status, update: updateSession } = useSession();
-  const { isDarkMode, toggleDarkMode, isPrivateMode, togglePrivateMode } = useAppSettings(); // Adicionado isPrivateMode e toggle
+  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme } = useAppSettings();
 
   const isLoading = status === "loading";
   const userFromSession = session?.user;
@@ -54,13 +55,10 @@ export default function SettingsPage() {
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<string>("default");
   
   useEffect(() => {
     document.title = `Configurações - ${APP_NAME}`;
-    const storedTheme = localStorage.getItem('flortune-theme') || 'default';
-    setSelectedTheme(storedTheme);
-    // A aplicação do tema ao HTML é feita no AppSettingsProvider
+    // applyTheme é chamado no AppSettingsProvider na carga inicial
   }, []);
 
   useEffect(() => {
@@ -134,15 +132,12 @@ export default function SettingsPage() {
     console.log(`${featureName} clicado.`);
     toast({ 
       title: `Ação: ${featureName}`, 
-      description: isPlaceholder ? `Funcionalidade "${featureName}" (placeholder).` : `${featureName} foi ativado.`
+      description: isPlaceholder ? `Funcionalidade "${featureName}" (placeholder).` : `${featureName} foi ativado/desativado.`
     });
   };
 
   const handleThemeChange = (themeId: string) => {
-    setSelectedTheme(themeId);
-    localStorage.setItem('flortune-theme', themeId);
-    document.documentElement.className = themeId === 'default' ? '' : themeId; // Remove a classe se for default
-    if(isDarkMode) document.documentElement.classList.add('dark'); // Reaplicar .dark se necessário
+    applyTheme(themeId); // AppSettingsContext cuida de salvar e aplicar
     toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.` });
   };
 
@@ -150,9 +145,9 @@ export default function SettingsPage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Configurações" description="Gerencie sua conta, preferências e configurações do aplicativo."/>
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
+        <Skeleton className="h-32 w-full rounded-lg" />
       </div>
     );
   }
@@ -168,10 +163,9 @@ export default function SettingsPage() {
         description="Gerencie sua conta, preferências e configurações do aplicativo."
       />
 
-      {/* Seção de Perfil */}
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><User className="mr-2 h-5 w-5 text-primary"/>Perfil</CardTitle>
+          <CardTitle className="font-headline flex items-center"><User className="mr-2 h-5 w-5 text-primary"/>Perfil do Usuário</CardTitle>
           <CardDescription>Atualize suas informações pessoais e de conta.</CardDescription>
         </CardHeader>
         <form onSubmit={handleProfileSave}>
@@ -234,63 +228,58 @@ export default function SettingsPage() {
                       <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
                 </div>
-                 {/* Espaço reservado para outros campos de empresa, se necessário */}
               </div>
             )}
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={isSavingProfile} className="ml-auto">
-              {isSavingProfile ? "Salvando..." : "Salvar Perfil"} <Save className="ml-2 h-4 w-4" />
+              {isSavingProfile ? "Salvando..." : <><Save className="mr-2 h-4 w-4" /> Salvar Perfil</>}
             </Button>
           </CardFooter>
         </form>
       </Card>
 
-      {/* Seção de Aparência (Temas) */}
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Palette className="mr-2 h-5 w-5 text-primary"/>Aparência</CardTitle>
           <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="dark-mode" className="flex flex-col space-y-1 cursor-pointer">
+          <div className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/30">
+            <Label htmlFor="dark-mode" className="flex flex-col space-y-1 cursor-pointer flex-grow">
               <span>Modo Escuro</span>
-               <span className="font-normal leading-snug text-muted-foreground">
-                Alterne entre temas claro e escuro.
+               <span className="font-normal leading-snug text-muted-foreground text-sm">
+                Alterne entre temas claro e escuro para melhor conforto visual.
               </span>
             </Label>
             <Switch 
               id="dark-mode" 
               checked={isDarkMode}
-              onCheckedChange={() => {
-                toggleDarkMode(); // O provider já atualiza o localStorage e a classe HTML
-                handleFeatureClick(`Modo Escuro ${!isDarkMode ? "ativado" : "desativado"}`, false);
-              }} 
+              onCheckedChange={toggleDarkMode} 
             />
           </div>
           <div className="space-y-2">
-            <Label>Temas de Cores</Label>
-            <p className="text-sm text-muted-foreground">Escolha um esquema de cores para o Flortune.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+            <Label className="text-base">Temas de Cores</Label>
+            <p className="text-sm text-muted-foreground">Escolha um esquema de cores que mais lhe agrada para o Flortune.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               {availableThemes.map((theme) => (
                 <Button
                   key={theme.id}
-                  variant={selectedTheme === theme.id ? "default" : "outline"}
+                  variant={currentTheme === theme.id ? "default" : "outline"}
                   className={cn(
-                    "h-auto p-4 flex flex-col items-start text-left relative",
-                    selectedTheme === theme.id && "ring-2 ring-primary ring-offset-2"
+                    "h-auto p-4 flex flex-col items-start text-left space-y-2 transition-all duration-200",
+                    currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
                   )}
                   onClick={() => handleThemeChange(theme.id)}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    {theme.icon || <span className={cn("h-4 w-4 rounded-full", theme.primaryColorClass)} />}
-                    <span className="font-semibold">{theme.name}</span>
+                  <div className="flex items-center gap-3 w-full">
+                    {theme.icon || <span className={cn("h-5 w-5 rounded-full", theme.primaryColorClassExample)} />}
+                    <span className="font-semibold text-base">{theme.name}</span>
+                    {currentTheme === theme.id && (
+                      <CheckSquare className="h-5 w-5 text-primary-foreground ml-auto" />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">{theme.description}</p>
-                  {selectedTheme === theme.id && (
-                    <CheckCircle className="h-5 w-5 text-primary absolute top-2 right-2" />
-                  )}
                 </Button>
               ))}
             </div>
@@ -301,45 +290,45 @@ export default function SettingsPage() {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-headline flex items-center"><Bell className="mr-2 h-5 w-5 text-primary"/>Notificações</CardTitle>
-          <CardDescription>Gerencie como você recebe notificações.</CardDescription>
+          <CardDescription>Gerencie como você recebe atualizações e alertas.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="push-notifications" className="flex flex-col space-y-1 cursor-pointer">
+          <div className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/30">
+            <Label htmlFor="push-notifications" className="flex flex-col space-y-1 cursor-pointer flex-grow">
               <span>Notificações Push</span>
-              <span className="font-normal leading-snug text-muted-foreground">
-                Receba alertas de contas futuras e marcos de metas.
+              <span className="font-normal leading-snug text-muted-foreground text-sm">
+                Receba alertas de contas futuras, marcos de metas e dicas. (Em breve)
               </span>
             </Label>
-            <Switch id="push-notifications" defaultChecked onCheckedChange={(checked) => handleFeatureClick(`Notificações Push ${checked ? "ativadas" : "desativadas"}`, false)} />
+            <Switch id="push-notifications" onCheckedChange={(checked) => handleFeatureClick(`Notificações Push ${checked ? "ativadas" : "desativadas"}`)} disabled />
           </div>
-           <div className="flex items-center justify-between">
-            <Label htmlFor="email-summary" className="flex flex-col space-y-1 cursor-pointer">
+           <div className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/30">
+            <Label htmlFor="email-summary" className="flex flex-col space-y-1 cursor-pointer flex-grow">
               <span>Resumos por Email</span>
-              <span className="font-normal leading-snug text-muted-foreground">
-                Receba resumos financeiros semanais ou mensais por email.
+              <span className="font-normal leading-snug text-muted-foreground text-sm">
+                Receba resumos financeiros semanais ou mensais por email. (Em breve)
               </span>
             </Label>
-            <Switch id="email-summary" onCheckedChange={(checked) => handleFeatureClick(`Resumos por Email ${checked ? "ativados" : "desativados"}`, false)} />
+            <Switch id="email-summary" onCheckedChange={(checked) => handleFeatureClick(`Resumos por Email ${checked ? "ativados" : "desativados"}`)} disabled/>
           </div>
         </CardContent>
       </Card>
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><ShieldCheck className="mr-2 h-5 w-5 text-primary"/>Segurança</CardTitle>
-          <CardDescription>Gerencie as configurações de segurança da sua conta.</CardDescription>
+          <CardTitle className="font-headline flex items-center"><ShieldCheck className="mr-2 h-5 w-5 text-primary"/>Segurança e Privacidade</CardTitle>
+          <CardDescription>Gerencie as configurações de segurança e privacidade da sua conta.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" onClick={() => handleFeatureClick("Mudar Senha")}>Mudar Senha</Button>
-          <div className="flex items-center justify-between">
-             <Label htmlFor="two-factor-auth" className="flex flex-col space-y-1 cursor-pointer">
-              <span>Autenticação de Dois Fatores</span>
-              <span className="font-normal leading-snug text-muted-foreground">
+          <Button variant="outline" className="w-full md:w-auto" onClick={() => handleFeatureClick("Mudar Senha")}>Mudar Senha</Button>
+          <div className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/30">
+             <Label htmlFor="two-factor-auth" className="flex flex-col space-y-1 cursor-pointer flex-grow">
+              <span>Autenticação de Dois Fatores (2FA)</span>
+              <span className="font-normal leading-snug text-muted-foreground text-sm">
                 Adicione uma camada extra de segurança à sua conta. (Em Breve)
               </span>
             </Label>
-            <Switch id="two-factor-auth" disabled onCheckedChange={(checked) => handleFeatureClick(`Autenticação de Dois Fatores ${checked ? "ativada" : "desativada"}`, false)} />
+            <Switch id="two-factor-auth" disabled onCheckedChange={(checked) => handleFeatureClick(`Autenticação de Dois Fatores ${checked ? "ativada" : "desativada"}`)} />
           </div>
         </CardContent>
       </Card>
@@ -349,23 +338,23 @@ export default function SettingsPage() {
           <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Gerenciamento de Dados</CardTitle>
           <CardDescription>Importe, exporte ou gerencie seus dados financeiros.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 md:space-y-0 md:flex md:gap-2">
-          <Button variant="outline" className="w-full md:w-auto" onClick={() => handleFeatureClick("Importar Dados")}>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Button variant="outline" className="w-full" onClick={() => handleFeatureClick("Importar Dados")}>
             <UploadCloud className="mr-2 h-4 w-4"/>Importar Dados (.csv, .ofx)
           </Button>
-          <Button variant="outline" className="w-full md:w-auto" onClick={() => handleFeatureClick("Exportar Dados")}>
-            <DownloadCloud className="mr-2 h-4 w-4"/>Exportar Dados (PDF, CSV, JSON)
+          <Button variant="outline" className="w-full" onClick={() => handleFeatureClick("Exportar Dados")}>
+            <DownloadCloud className="mr-2 h-4 w-4"/>Exportar Dados (PDF, CSV)
           </Button>
         </CardContent>
       </Card>
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Share2 className="mr-2 h-5 w-5 text-primary"/>Compartilhamento e Colaboração</CardTitle>
-          <CardDescription>Gerencie módulos compartilhados e acesso colaborativo. (Em Breve)</CardDescription>
+          <CardTitle className="font-headline flex items-center"><Share2 className="mr-2 h-5 w-5 text-primary"/>Compartilhamento (Em Breve)</CardTitle>
+          <CardDescription>Gerencie módulos compartilhados e acesso colaborativo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">Gerencie com quem você compartilha módulos financeiros e suas permissões.</p>
+          <p className="text-sm text-muted-foreground">Em breve, você poderá compartilhar módulos financeiros específicos com outros usuários, definindo permissões de visualização ou edição.</p>
           <Button variant="outline" onClick={() => setIsShareModalOpen(true)} disabled>Gerenciar Módulos Compartilhados</Button>
         </CardContent>
       </Card>
@@ -373,7 +362,7 @@ export default function SettingsPage() {
       <div className="flex justify-end pt-4">
          <Button variant="destructive" className="w-full md:w-auto" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4"/>
-            Sair
+            Sair da Conta
         </Button>
       </div>
       <ShareModuleDialog isOpen={isShareModalOpen} onOpenChange={setIsShareModalOpen} />

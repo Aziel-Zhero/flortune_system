@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -133,9 +134,7 @@
     --chart-4: 210 60% 35%; /* Azul Escuro */
     --chart-5: 30 60% 40%;  /* Laranja Queimado */
   }
-  .dark.theme-ocean-dusk { /* Variação dark do Ocean Dusk é o próprio Ocean Dusk, pois já é escuro */
-    /* As mesmas variáveis de .theme-ocean-dusk podem ser usadas, ou pequenas variações se necessário */
-  }
+  /* .dark.theme-ocean-dusk: a classe .dark é aplicada em conjunto */
 
 
   /* Tema Aurora Dourada (Amarelo/Laranja Claro) */
@@ -172,18 +171,18 @@
     --chart-4: 40 70% 40%; /* Amarelo Escuro/Ocre */
     --chart-5: 15 70% 50%;  /* Laranja Queimado */
   }
-  .dark.theme-golden-dawn { /* Variação escura para Aurora Dourada */
-    --background: 35 30% 12%; /* Marrom muito escuro */
-    --foreground: 40 40% 88%; /* Creme claro */
+  .dark.theme-golden-dawn { 
+    --background: 35 30% 12%; 
+    --foreground: 40 40% 88%; 
     --card: 35 25% 18%;
     --card-foreground: 40 40% 85%;
     --popover: 35 25% 15%;
     --popover-foreground: 40 40% 85%;
-    --primary: 40 80% 60%; /* Amarelo dourado, talvez um pouco mais saturado */
+    --primary: 40 80% 60%; 
     --primary-foreground: 40 80% 10%;
-    --secondary: 30 60% 40%; /* Laranja mais escuro */
+    --secondary: 30 60% 40%; 
     --secondary-foreground: 30 60% 90%;
-    --accent: 15 75% 55%; /* Vermelho alaranjado, mais vibrante no escuro */
+    --accent: 15 75% 55%; 
     --accent-foreground: 15 75% 95%;
     --muted: 35 20% 28%;
     --muted-foreground: 40 30% 65%;
@@ -198,6 +197,68 @@
     --sidebar-accent: 30 55% 35%;
     --sidebar-accent-foreground: 30 55% 88%;
     --sidebar-border: 35 20% 28%;
+  }
+
+  /* Tema Azul Sereno */
+  .theme-serene-blue {
+    --background: 210 60% 97%; /* Azul muito claro, quase branco */
+    --foreground: 220 40% 25%; /* Azul acinzentado escuro */
+    --card: 210 60% 99%; 
+    --card-foreground: 220 40% 22%;
+    --popover: 210 60% 100%; 
+    --popover-foreground: 220 40% 22%;
+    --primary: 221 83% 53%; /* Azul Principal (do exemplo) */
+    --primary-foreground: 221 83% 95%; /* Branco azulado para texto no primário */
+    --secondary: 215 50% 85%; /* Azul mais claro e suave */
+    --secondary-foreground: 215 50% 30%;
+    --accent: 190 70% 50%; /* Ciano/Turquesa claro como acento */
+    --accent-foreground: 190 70% 10%;
+    --muted: 210 50% 90%;
+    --muted-foreground: 215 30% 55%;
+    --border: 210 40% 85%;
+    --input: 210 45% 88%;
+    --ring: 221 83% 60%;
+
+    --sidebar-background: 215 55% 90%;
+    --sidebar-foreground: 220 35% 20%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 221 83% 95%;
+    --sidebar-accent: 210 50% 80%;
+    --sidebar-accent-foreground: 210 50% 25%;
+    --sidebar-border: 215 45% 80%;
+    
+    --chart-1: 221 80% 55%; 
+    --chart-2: 190 65% 55%;  
+    --chart-3: 215 45% 65%; 
+    --chart-4: 221 70% 40%; 
+    --chart-5: 190 55% 40%;  
+  }
+  .dark.theme-serene-blue {
+    --background: 222 84% 5%; /* Azul muito escuro (do exemplo dark) */
+    --foreground: 210 40% 98%; /* Branco (do exemplo dark) */
+    --card: 222 84% 7%;
+    --card-foreground: 210 40% 95%;
+    --popover: 222 84% 6%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 217 91% 60%; /* Azul primário mais brilhante (do exemplo dark) */
+    --primary-foreground: 222 47% 11%; /* Azul escuro para texto (do exemplo dark) */
+    --secondary: 217 33% 18%; /* Azul escuro secundário (do exemplo dark) */
+    --secondary-foreground: 210 40% 95%;
+    --accent: 190 75% 50%; /* Ciano vibrante */
+    --accent-foreground: 190 75% 95%;
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 65%;
+    --border: 217 33% 17%;
+    --input: 217 33% 19%;
+    --ring: 224 76% 48%;
+
+    --sidebar-background: 222 80% 8%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 30% 22%;
+    --sidebar-accent-foreground: 210 40% 90%;
+    --sidebar-border: 217 30% 25%;
   }
 }
 
