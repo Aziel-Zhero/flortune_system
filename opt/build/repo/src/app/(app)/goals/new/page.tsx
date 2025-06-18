@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Trophy } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
-import { FinancialGoalForm } from "./goal-form";
+import { FinancialGoalForm } from "../goal-form"; // Caminho corrigido de "./goal-form" para "../goal-form"
 import { useRouter } from "next/navigation";
 
 // Esta página agora serve como um wrapper para o formulário se acessada diretamente.
