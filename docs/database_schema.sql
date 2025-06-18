@@ -1,175 +1,124 @@
 
--- Certifique-se de que a extensão uuid-ossp está habilitada e no schema 'extensions'
+-- docs/database_schema.sql
+
+-- PASSO 1: Habilitar a extensão uuid-ossp no schema 'extensions' (se ainda não estiver habilitada)
+-- O Supabase geralmente faz isso por padrão, mas para garantir:
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
--- Schema para o NextAuth.js Supabase Adapter
+-- PASSO 2: Criação do Schema next_auth e suas tabelas (para o SupabaseAdapter)
+-- Este schema é gerenciado pelo SupabaseAdapter, mas o definimos aqui para clareza e controle.
+
 CREATE SCHEMA IF NOT EXISTS next_auth;
 
--- Concede permissão ao usuário 'postgres' (e por extensão, à service_role key)
--- para usar o schema 'extensions' onde uuid_generate_v4 reside.
--- E também para o schema 'next_auth'.
-GRANT USAGE ON SCHEMA extensions TO postgres;
-GRANT USAGE ON SCHEMA next_auth TO postgres;
-GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA extensions TO postgres;
+-- Função para obter o UID do usuário autenticado via NextAuth
+CREATE OR REPLACE FUNCTION next_auth.uid() RETURNS uuid AS $$
+  SELECT nullif(current_setting('request.jwt.claims', true)::json->>'sub', '')::uuid;
+$$ LANGUAGE sql STABLE;
 
 
--- Tabela next_auth.users
-CREATE TABLE IF NOT EXISTS next_auth.users
-(
-    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
-    name text,
-    email text,
-    "emailVerified" timestamp with time zone,
-    image text,
-    CONSTRAINT users_pkey PRIMARY KEY (id),
-    CONSTRAINT email_unique UNIQUE (email)
+-- Tabelas do NextAuth Adapter (necessárias para @auth/supabase-adapter)
+CREATE TABLE IF NOT EXISTS next_auth.users (
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    name TEXT,
+    email TEXT UNIQUE,
+    "emailVerified" TIMESTAMPTZ,
+    image TEXT
 );
-GRANT ALL ON TABLE next_auth.users TO postgres;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE next_auth.users TO service_role;
-GRANT SELECT ON TABLE next_auth.users TO authenticated;
-GRANT SELECT ON TABLE next_auth.users TO anon;
 
-
--- Tabela next_auth.sessions
-CREATE TABLE IF NOT EXISTS next_auth.sessions
-(
-    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
-    expires timestamp with time zone NOT NULL,
-    "sessionToken" text NOT NULL,
-    "userId" uuid,
-    CONSTRAINT sessions_pkey PRIMARY KEY (id),
-    CONSTRAINT "sessionToken_unique" UNIQUE ("sessionToken"),
-    CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId")
-        REFERENCES next_auth.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS next_auth.accounts (
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    type TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    "providerAccountId" TEXT NOT NULL,
+    refresh_token TEXT,
+    access_token TEXT,
+    expires_at BIGINT,
+    token_type TEXT,
+    scope TEXT,
+    id_token TEXT,
+    session_state TEXT,
+    "userId" uuid REFERENCES next_auth.users(id) ON DELETE CASCADE
 );
-GRANT ALL ON TABLE next_auth.sessions TO postgres;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE next_auth.sessions TO service_role;
-GRANT SELECT ON TABLE next_auth.sessions TO authenticated;
-GRANT SELECT ON TABLE next_auth.sessions TO anon;
 
-
--- Tabela next_auth.accounts
-CREATE TABLE IF NOT EXISTS next_auth.accounts
-(
-    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
-    type text NOT NULL,
-    provider text NOT NULL,
-    "providerAccountId" text NOT NULL,
-    refresh_token text,
-    access_token text,
-    expires_at bigint,
-    token_type text,
-    scope text,
-    id_token text,
-    session_state text,
-    "userId" uuid,
-    CONSTRAINT accounts_pkey PRIMARY KEY (id),
-    CONSTRAINT "provider_providerAccountId_unique" UNIQUE (provider, "providerAccountId"),
-    CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId")
-        REFERENCES next_auth.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS next_auth.sessions (
+    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    expires TIMESTAMPTZ NOT NULL,
+    "sessionToken" TEXT NOT NULL UNIQUE,
+    "userId" uuid REFERENCES next_auth.users(id) ON DELETE CASCADE
 );
-GRANT ALL ON TABLE next_auth.accounts TO postgres;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE next_auth.accounts TO service_role;
-GRANT SELECT ON TABLE next_auth.accounts TO authenticated;
-GRANT SELECT ON TABLE next_auth.accounts TO anon;
 
-
--- Tabela next_auth.verification_tokens
-CREATE TABLE IF NOT EXISTS next_auth.verification_tokens
-(
-    identifier text,
-    token text NOT NULL,
-    expires timestamp with time zone NOT NULL,
-    CONSTRAINT verification_tokens_pkey PRIMARY KEY (token),
-    CONSTRAINT token_unique UNIQUE (token),
-    CONSTRAINT "identifier_token_unique" UNIQUE (identifier, token)
+CREATE TABLE IF NOT EXISTS next_auth.verification_tokens (
+    identifier TEXT,
+    token TEXT UNIQUE,
+    expires TIMESTAMPTZ,
+    PRIMARY KEY (identifier, token)
 );
-GRANT ALL ON TABLE next_auth.verification_tokens TO postgres;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE next_auth.verification_tokens TO service_role;
-GRANT SELECT ON TABLE next_auth.verification_tokens TO authenticated;
-GRANT SELECT ON TABLE next_auth.verification_tokens TO anon;
 
+-- PASSO 3: Criação da Tabela public.profiles e o Trigger de Sincronização
 
--- Tabela public.profiles (para informações adicionais do usuário)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid NOT NULL PRIMARY KEY, -- Chave primária, DEVE corresponder a next_auth.users.id
-  full_name TEXT,
-  display_name TEXT,
-  email TEXT NOT NULL UNIQUE, -- Email do usuário, DEVE corresponder a next_auth.users.email
-  hashed_password TEXT,       -- Para login com credenciais
-  phone TEXT,
-  cpf_cnpj TEXT UNIQUE,
-  rg TEXT,
-  avatar_url TEXT,
-  account_type TEXT CHECK (account_type IN ('pessoa', 'empresa')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES next_auth.users(id) ON DELETE CASCADE -- Chave estrangeira para next_auth.users
+    id uuid NOT NULL PRIMARY KEY REFERENCES next_auth.users(id) ON DELETE CASCADE, -- Chave estrangeira para next_auth.users.id
+    full_name TEXT,
+    display_name TEXT,
+    email TEXT UNIQUE NOT NULL, -- Garante que o email seja único e não nulo
+    hashed_password TEXT,       -- Para login com credenciais
+    phone TEXT,
+    cpf_cnpj TEXT UNIQUE,       -- Pode ser CPF ou CNPJ, único
+    rg TEXT,
+    avatar_url TEXT,
+    account_type TEXT CHECK (account_type IN ('pessoa', 'empresa')), -- 'pessoa' ou 'empresa'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-GRANT ALL ON TABLE public.profiles TO postgres;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO service_role;
--- As RLS abaixo são exemplos e precisam ser ajustadas à sua lógica de acesso
 
-
--- Função utilitária (opcional, mas usada pelo Supabase Adapter em algumas versões/configurações)
-CREATE OR REPLACE FUNCTION next_auth.uid() RETURNS uuid
-    LANGUAGE sql STABLE
-    AS $$
-  select
-    coalesce(
-      current_setting('request.jwt.claim.sub', true),
-      (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')
-    )::uuid
-$$;
-GRANT EXECUTE ON FUNCTION next_auth.uid() TO postgres, anon, authenticated, service_role;
-
-
--- Trigger para sincronizar novos usuários de next_auth.users para public.profiles
-CREATE OR REPLACE FUNCTION public.handle_new_user_from_next_auth()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER -- Importante para permitir que o trigger escreva em public.profiles
-AS $$
+-- Trigger para atualizar 'updated_at' na tabela 'profiles'
+CREATE OR REPLACE FUNCTION public.handle_profile_update_timestamp()
+RETURNS TRIGGER AS $$
 BEGIN
-  -- Define o search_path explicitamente dentro da função para garantir visibilidade dos schemas
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_profile_updated ON public.profiles;
+CREATE TRIGGER on_profile_updated
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_profile_update_timestamp();
+
+-- Função de Trigger para criar um perfil em public.profiles quando um novo usuário é criado em next_auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user_from_next_auth()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Define um search_path seguro para a função SECURITY DEFINER
   SET search_path = public, extensions;
 
-  -- Insere um novo perfil, pegando dados de new (o novo registro em next_auth.users)
   INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type)
   VALUES (
     NEW.id,
     NEW.email,
-    NEW.name, -- Usa 'name' de next_auth.users para display_name por padrão
-    NEW.name, -- Usa 'name' de next_auth.users para full_name por padrão
-    NEW.image, -- Usa 'image' de next_auth.users para avatar_url por padrão
-    'pessoa' -- Define 'pessoa' como tipo de conta padrão para usuários OAuth/novos.
-             -- Se for cadastro por credenciais, a action `signupUser` definirá o account_type.
+    NEW.name,  -- Usa o 'name' do NextAuth como 'display_name' inicial
+    NEW.name,  -- E também como 'full_name' inicial
+    NEW.image, -- Usa a 'image' do NextAuth como 'avatar_url'
+    'pessoa'   -- Define 'account_type' como 'pessoa' por padrão para usuários OAuth.
+               -- Isso pode ser atualizado pelo usuário posteriormente.
   )
-  ON CONFLICT (id) DO NOTHING; -- Se já existir um perfil com esse ID, não faz nada.
-                              -- Isso pode acontecer se o trigger rodar mais de uma vez ou se o perfil foi criado de outra forma.
-
-  -- Caso o usuário tenha sido criado por signup de credenciais, o `hashed_password` e `account_type`
-  -- já estarão em `public.profiles`. Para OAuth, esses campos não são preenchidos pelo `next_auth.users`.
-  -- O `email` em `public.profiles` é UNIQUE, então se o usuário OAuth tiver o mesmo email de um usuário
-  -- de credenciais, o `ON CONFLICT (email)` na action `signupUser` deve ter prevenido duplicatas.
-  -- O `ON CONFLICT (id)` aqui é mais uma segurança para o próprio trigger.
-
+  ON CONFLICT (id) DO NOTHING; -- Se o perfil já existir (ex: criado pela action de signup), não faz nada.
+  -- ON CONFLICT (email) DO NOTHING; -- Conflito de email deve ser tratado na lógica da aplicação ou constraint da tabela.
+                                  -- A tabela profiles já tem UNIQUE(email).
   RETURN NEW;
 END;
-$$;
-GRANT EXECUTE ON FUNCTION public.handle_new_user_from_next_auth() TO postgres, service_role;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Cria o trigger na tabela next_auth.users
-DROP TRIGGER IF EXISTS on_next_auth_user_created ON next_auth.users; -- Remove o trigger antigo se existir
+-- Trigger que chama a função acima quando um novo usuário é inserido em next_auth.users
+DROP TRIGGER IF EXISTS on_next_auth_user_created ON next_auth.users;
 CREATE TRIGGER on_next_auth_user_created
   AFTER INSERT ON next_auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user_from_next_auth();
 
+
+-- PASSO 4: RLS (Row Level Security) Policies
 
 -- RLS para public.profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -185,23 +134,6 @@ CREATE POLICY IF NOT EXISTS "Allow authenticated users to update their own profi
   USING (id = next_auth.uid())
   WITH CHECK (id = next_auth.uid());
 
--- Política para permitir que a função `handle_new_user_from_next_auth` (SECURITY DEFINER) insira.
--- A service_role já tem bypass RLS, mas para segurança, definimos que só pode inserir
--- se o email ainda não existir, para evitar conflitos de email que o `ON CONFLICT` do trigger pode não pegar.
--- Esta política é mais uma camada de segurança.
-CREATE POLICY IF NOT EXISTS "Allow service_role to insert new profiles if email does not exist"
-  ON public.profiles FOR INSERT
-  TO service_role -- Ou ao usuário que o trigger executa como, se não for SECURITY DEFINER
-  WITH CHECK (NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.email = public.profiles.email));
-  -- A linha acima é um exemplo de como restringir, mas o ON CONFLICT na função é mais robusto para emails.
-  -- A política mais simples seria apenas permitir insert para service_role.
-  -- Dado que o trigger é SECURITY DEFINER, ele opera com os privilégios do definidor (postgres).
-  -- Para simplificar e garantir que o trigger funcione, vamos permitir insert pela service_role (usada pelo SupabaseAdapter).
-  -- O SupabaseAdapter e o trigger SECURITY DEFINER devem ter permissão para inserir.
-  -- O `service_role` por padrão ignora RLS.
-  -- A verificação de email duplicado é feita na action `signupUser`.
-  -- O trigger usa `ON CONFLICT (id) DO NOTHING;`.
-
 -- Para a verificação de email existente na action `signupUser` (que usa anon key):
 CREATE POLICY IF NOT EXISTS "Allow anon to select email from profiles for signup check"
   ON public.profiles FOR SELECT
@@ -209,7 +141,7 @@ CREATE POLICY IF NOT EXISTS "Allow anon to select email from profiles for signup
   USING (true); -- Permite ler todos os emails, mas só selecionamos a coluna email.
 
 
--- RLS para outras tabelas (exemplo, ajuste conforme necessário)
+-- RLS para outras tabelas
 -- Categories
 CREATE TABLE IF NOT EXISTS public.categories (
   id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
@@ -231,6 +163,11 @@ CREATE POLICY IF NOT EXISTS "Allow users to read default categories"
   ON public.categories FOR SELECT
   TO authenticated
   USING (is_default = true);
+CREATE POLICY IF NOT EXISTS "Allow anon to read default categories"
+  ON public.categories FOR SELECT
+  TO anon
+  USING (is_default = true);
+
 
 -- Transactions
 CREATE TABLE IF NOT EXISTS public.transactions (
@@ -292,33 +229,39 @@ CREATE POLICY IF NOT EXISTS "Allow users to manage their own financial goals"
   USING (user_id = next_auth.uid())
   WITH CHECK (user_id = next_auth.uid());
 
+-- PASSO 5: Conceder permissões necessárias para os roles anon e authenticated
+-- O SupabaseAdapter precisa que esses roles tenham permissão de USAGE nos schemas.
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA next_auth TO anon, authenticated, service_role;
 
--- Concede permissões ao role anon e authenticated para os schemas
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT USAGE ON SCHEMA next_auth TO anon, authenticated;
+-- Permissões de SELECT em tabelas do next_auth para anon e authenticated (conforme necessidade do adapter e callbacks)
+GRANT SELECT ON next_auth.users TO anon, authenticated, service_role;
+GRANT SELECT ON next_auth.sessions TO anon, authenticated, service_role;
+GRANT SELECT ON next_auth.accounts TO anon, authenticated, service_role;
+GRANT SELECT ON next_auth.verification_tokens TO anon, authenticated, service_role;
 
--- Permissões para tabelas do next_auth (o adapter precisa disso)
-GRANT SELECT ON next_auth.users TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON next_auth.users TO service_role;
+-- Permissões de INSERT, UPDATE, DELETE para service_role (usado pelo adapter)
+GRANT INSERT, UPDATE, DELETE ON next_auth.users TO service_role;
+GRANT INSERT, UPDATE, DELETE ON next_auth.sessions TO service_role;
+GRANT INSERT, UPDATE, DELETE ON next_auth.accounts TO service_role;
+GRANT INSERT, UPDATE, DELETE ON next_auth.verification_tokens TO service_role;
 
-GRANT SELECT ON next_auth.sessions TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON next_auth.sessions TO service_role;
+-- Permissões para tabelas públicas para o role authenticated
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.profiles TO authenticated; -- Usuário gerencia seu perfil
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.categories TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.transactions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.budgets TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.financial_goals TO authenticated;
 
-GRANT SELECT ON next_auth.accounts TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON next_auth.accounts TO service_role;
+-- Permissões para anon (se necessário, ex: ler categorias padrão)
+GRANT SELECT ON public.categories TO anon; -- Para anon ler categorias default=true
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON next_auth.verification_tokens TO service_role;
-GRANT SELECT ON next_auth.verification_tokens TO anon, authenticated; -- Geralmente não necessário para anon/auth, mas não prejudica
-
-
--- Verifica se o schema next_auth foi criado
+-- PASSO 6: Queries de Verificação (Opcional, para debug no SQL Editor)
 SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'next_auth';
-
--- Verifica se a tabela next_auth.users foi criada
 SELECT COUNT(*) as next_auth_users_table_exists FROM pg_tables WHERE schemaname = 'next_auth' AND tablename = 'users';
-
--- Verifica se a coluna 'email' existe em 'public.profiles'
 SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'email';
+SELECT tgname FROM pg_trigger WHERE tgrelid = 'next_auth.users'::regclass; -- Verifica triggers em next_auth.users
+SELECT routine_name, routine_schema, routine_type from information_schema.routines where specific_name = 'handle_new_user_from_next_auth'; -- Verifica se a função do trigger existe
+
 
 SELECT 'Schema script executado. Verifique os resultados das queries de verificação acima.' as script_status;
-
