@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth-context";
+import { useSession } from "next-auth/react"; // Changed from useAuth
 import { getTransactions, deleteTransaction } from "@/services/transaction.service";
 import type { Transaction, Category } from "@/types/database.types";
 import { getCategories } from "@/services/category.service";
@@ -52,15 +52,18 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
 };
 
 export default function TransactionsPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { data: session, status } = useSession(); // Use useSession hook
+  const authLoading = status === "loading";
+  const user = session?.user; // Get user from session
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]); // Embora não usado diretamente para exibição aqui, pode ser útil para filtros/adição
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; description: string } | null>(null); // ID is now string
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; description: string } | null>(null);
 
   const fetchPageData = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) return; // Check for user.id
     setIsLoading(true);
     try {
       const [transactionsRes, categoriesRes] = await Promise.all([
@@ -88,25 +91,25 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user && !authLoading) {
+    if (user?.id && !authLoading) { // Check for user.id
       fetchPageData();
-    } else if (!authLoading && !user) {
+    } else if (!authLoading && !user?.id) {
       setIsLoading(false);
       setTransactions([]);
     }
   }, [user, authLoading, fetchPageData]);
 
-  const handleDeleteClick = (transactionId: string, transactionDescription: string) => { // ID is string
+  const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setItemToDelete({ id: transactionId, description: transactionDescription });
     setDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (itemToDelete && user) {
+    if (itemToDelete && user?.id) { // Check for user.id
       const originalTransactions = [...transactions];
       setTransactions(prev => prev.filter(t => t.id !== itemToDelete.id!)); 
 
-      const { error } = await deleteTransaction(itemToDelete.id, user.id); // ID is string
+      const { error } = await deleteTransaction(itemToDelete.id, user.id);
       if (error) {
         toast({
           title: "Erro ao Deletar",
@@ -125,7 +128,7 @@ export default function TransactionsPage() {
     setDialogOpen(false);
   };
 
-  const handleEditClick = (transactionId: string, transactionDescription: string) => { // ID is string
+  const handleEditClick = (transactionId: string, transactionDescription: string) => {
     console.log(`Editando transação: ${transactionDescription} (ID: ${transactionId})`);
     toast({
       title: "Ação de Edição",

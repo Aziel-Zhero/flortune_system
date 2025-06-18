@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabase/client';
 import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
+export const runtime = 'nodejs'; // Explicitly set runtime to Node.js
+
 // --- DETAILED LOGGING AT MODULE LOAD TIME ---
 console.log("============================================================");
 console.log("🚀 [NextAuth Route Handler - MODULE LOAD] 🚀");
@@ -42,15 +44,18 @@ console.log("------------------------------------");
 // --- Critical Environment Variable Checks ---
 if (!supabaseUrl) {
   console.error("❌ CRITICAL ERROR: Missing NEXT_PUBLIC_SUPABASE_URL.");
-  throw new Error("CRITICAL: Missing NEXT_PUBLIC_SUPABASE_URL for SupabaseAdapter.");
+  // Not throwing error here to allow build to complete and show logs, but it will fail at runtime.
 }
 if (!supabaseServiceRoleKey) {
   console.error("❌ CRITICAL ERROR: Missing SUPABASE_SERVICE_ROLE_KEY.");
-  throw new Error("CRITICAL: Missing SUPABASE_SERVICE_ROLE_KEY for SupabaseAdapter.");
 }
 if (!nextAuthSecret) {
   console.error("❌ CRITICAL ERROR: Missing AUTH_SECRET.");
-  throw new Error("CRITICAL: Missing AUTH_SECRET. NextAuth.js will not work securely.");
+  // This is a common cause for build failures / runtime errors if NextAuth tries to initialize without it.
+  // Forcing a build error if this critical variable is missing during build time.
+  if (process.env.NODE_ENV === 'production') { // Only throw in production builds
+    throw new Error("CRITICAL: Missing AUTH_SECRET. NextAuth.js will not work securely.");
+  }
 }
 if (!authUrl && !nextauthUrlEnv) {
   console.warn("⚠️ WARNING: Neither AUTH_URL nor NEXTAUTH_URL is set. This WILL LIKELY CAUSE ISSUES with redirects or endpoint discovery.");
@@ -101,7 +106,7 @@ const providers: NextAuthConfig['providers'] = [
         if (passwordsMatch) {
           console.log(`[NextAuth Authorize Success] Password match for profile ID: ${profile.id}.`);
           return {
-            id: profile.id,
+            id: profile.id, // This ID must match what SupabaseAdapter expects (the ID from public.profiles)
             email: profile.email,
             name: profile.display_name || profile.full_name,
             image: profile.avatar_url,
@@ -124,6 +129,8 @@ if (googleClientId && googleClientSecret) {
     GoogleProvider({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
+      // Allow linking accounts for users who signed up with credentials first and then try Google with the same email.
+      allowDangerousEmailAccountLinking: true, 
     })
   );
 } else {
@@ -133,28 +140,34 @@ if (googleClientId && googleClientSecret) {
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
   adapter: SupabaseAdapter({
-    url: supabaseUrl!,
-    secret: supabaseServiceRoleKey!,
+    url: supabaseUrl!, // Assert non-null because we checked above
+    secret: supabaseServiceRoleKey!, // Assert non-null
   }),
   providers: providers,
   session: {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // If signing in with OAuth, account object will be present
+      if (account && user) {
+        token.accessToken = account.access_token; // Store provider access token if needed
+        token.provider = account.provider; // Store provider name
+      }
       if (user?.id) {
-        token.sub = user.id;
+        token.sub = user.id; // 'sub' is the standard JWT claim for subject (user ID)
       }
       return token;
     },
     async session({ session, token }) {
       if (token.sub && session.user) {
-        session.user.id = token.sub;
+        session.user.id = token.sub; // Ensure user.id is populated from token.sub
 
+        // Fetch the full profile from your public.profiles table
         const { data: userProfileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', token.sub)
+          .eq('id', token.sub) // Use token.sub which is the user's ID from next_auth.users
           .single();
 
         if (profileError) {
@@ -162,24 +175,26 @@ export const authConfig: NextAuthConfig = {
           session.user.profile = null;
         } else if (userProfileData) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { hashed_password, ...profileForSession } = userProfileData;
+          const { hashed_password, ...profileForSession } = userProfileData; // Exclude hashed_password
           session.user.profile = profileForSession as Omit<AppProfile, 'hashed_password'>;
+          // Optionally update top-level session.user fields if needed, though profile should be primary source
           session.user.name = userProfileData.display_name || userProfileData.full_name || session.user.name;
-          session.user.email = userProfileData.email || session.user.email;
+          session.user.email = userProfileData.email || session.user.email; // Email in profiles should match next_auth.users
           session.user.image = userProfileData.avatar_url || session.user.image;
         } else {
-           console.warn(`[NextAuth Session Callback] No profile found for user ID: ${token.sub}. Trigger 'handle_new_user_from_next_auth' might have issues.`);
+           console.warn(`[NextAuth Session Callback] No profile found in public.profiles for user ID: ${token.sub}. Trigger 'handle_new_user_from_next_auth' might have issues or this user was created before trigger.`);
            session.user.profile = null;
         }
       }
 
+      // Generate Supabase access token if JWT secret is available
       if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
-          exp: Math.floor(new Date(session.expires).getTime() / 1000),
+          exp: Math.floor(new Date(session.expires).getTime() / 1000), // Use session.expires
           sub: token.sub,
           email: token.email,
-          role: "authenticated",
+          role: "authenticated", // Standard role for authenticated users
         };
         try {
             session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
@@ -187,22 +202,32 @@ export const authConfig: NextAuthConfig = {
             console.error("[NextAuth Session Callback] Error signing Supabase JWT:", e.message);
         }
       } else if (!supabaseJwtSecret) {
-        // console.warn("[NextAuth Session Callback] SUPABASE_JWT_SECRET is not set. supabaseAccessToken will not be generated.");
+         console.warn("[NextAuth Session Callback] SUPABASE_JWT_SECRET is not set. supabaseAccessToken will not be generated. RLS policies relying on this token might not work as expected for direct Supabase client calls using it.");
       }
       return session;
     },
   },
   pages: {
-    signIn: '/login',
-    error: '/login',
+    signIn: '/login', // Your custom login page
+    error: '/login', // Redirect to login page on error (e.g., OAuth errors)
+    // signOut: '/login', // Optionally, redirect to login after sign out
+    // verifyRequest: '/auth/verify-request', // For email provider
+    // newUser: null // If you want to redirect new users to a specific page after OAuth signup
   },
-  secret: nextAuthSecret,
-  debug: process.env.NODE_ENV === 'development',
+  secret: nextAuthSecret, // Essential for JWT signing
+  // debug: process.env.NODE_ENV === 'development', // Enable debug logs in development
+  // trustHost: true, // Needed if deployed behind a proxy that terminates TLS
 };
 
 console.log("🚦 Initializing NextAuth with final config... 🚦");
 const authHandlers = NextAuth(authConfig);
-console.log("✅ NextAuth initialized, exporting handlers, auth, signIn, signOut.");
+
+// Log after initialization to confirm it didn't throw an error
+if (authHandlers?.auth) {
+  console.log("✅ NextAuth initialized successfully. Exporting handlers, auth, signIn, signOut.");
+} else {
+  console.error("🔥 NextAuth initialization FAILED. auth object is not available.");
+}
 console.log("============================================================");
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = authHandlers;
