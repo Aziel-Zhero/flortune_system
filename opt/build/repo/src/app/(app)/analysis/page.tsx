@@ -96,7 +96,7 @@ export default function AnalysisPage() {
     if (!user?.id || authLoading) {
       setIsFetchingTransactions(authLoading);
       if (!authLoading && !user?.id) {
-        setAllTransactions([]); // Clear transactions if user logs out or session is lost
+        setAllTransactions([]);
       }
       return;
     }
@@ -122,13 +122,14 @@ export default function AnalysisPage() {
   }, [user?.id, authLoading]);
 
   const filteredTransactionsForPeriod = useMemo(() => {
-    if (isFetchingTransactions || !allTransactions || allTransactions.length === 0) return [];
+    if (isFetchingTransactions || !Array.isArray(allTransactions) || allTransactions.length === 0) return [];
+    
     return allTransactions.filter(tx => {
       if (timePeriod === "all") return true;
       if (!tx.date || typeof tx.date !== 'string') return false;
       try {
-        const txDate = new Date(tx.date + "T00:00:00Z"); // Treat date as UTC
-        if (isNaN(txDate.getTime())) return false; // Invalid date
+        const txDate = new Date(tx.date + "T00:00:00Z"); 
+        if (isNaN(txDate.getTime())) return false; 
 
         const now = new Date();
         if (timePeriod === "monthly") {
@@ -141,12 +142,12 @@ export default function AnalysisPage() {
         console.error("Error parsing transaction date in filteredTransactionsForPeriod:", tx.date, e);
         return false;
       }
-      return true; // Should not happen if timePeriod is one of the valid values
+      return true; 
     });
   }, [allTransactions, timePeriod, isFetchingTransactions]);
 
   const spendingByCategory = useMemo((): CategoryData[] => {
-    if (!filteredTransactionsForPeriod || filteredTransactionsForPeriod.length === 0) return [];
+    if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
     const spendingMap = new Map<string, number>();
     filteredTransactionsForPeriod
       .filter(tx => tx.type === 'expense' && tx.amount > 0)
@@ -162,7 +163,7 @@ export default function AnalysisPage() {
   }, [filteredTransactionsForPeriod]);
 
   const incomeBySource = useMemo((): CategoryData[] => {
-    if (!filteredTransactionsForPeriod || filteredTransactionsForPeriod.length === 0) return [];
+    if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
     const incomeMap = new Map<string, number>();
     filteredTransactionsForPeriod
       .filter(tx => tx.type === 'income' && tx.amount > 0)
@@ -173,17 +174,16 @@ export default function AnalysisPage() {
     return Array.from(incomeMap, ([name, value], index) => ({ 
         name, 
         value, 
-        fill: chartColors[(index + 1) % chartColors.length] // Offset color index
+        fill: chartColors[(index + 1) % chartColors.length] 
     })).sort((a,b) => b.value - a.value);
   }, [filteredTransactionsForPeriod]);
 
   const cashFlowTrend = useMemo((): MonthlyFlow[] => {
-    if (isFetchingTransactions || !allTransactions || allTransactions.length === 0) return [];
+    if (isFetchingTransactions || !Array.isArray(allTransactions) || allTransactions.length === 0) return [];
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     
-    // Initialize last 6 months
     for (let i = 5; i >= 0; i--) {
         const date = new Date(today.getUTCFullYear(), today.getUTCMonth() - i, 1);
         const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
@@ -193,11 +193,11 @@ export default function AnalysisPage() {
     allTransactions.forEach(tx => {
       if (!tx.date || typeof tx.date !== 'string') return;
       try {
-        const txDate = new Date(tx.date + "T00:00:00Z"); // Treat date as UTC
-        if (isNaN(txDate.getTime())) return; // Invalid date
+        const txDate = new Date(tx.date + "T00:00:00Z"); 
+        if (isNaN(txDate.getTime())) return; 
 
         const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey] !== undefined) { // Only process if it's within the last 6 months range
+        if (monthlyData[monthKey] !== undefined) { 
             if (tx.type === 'income' && tx.amount > 0) monthlyData[monthKey].income += tx.amount;
             else if (tx.type === 'expense' && tx.amount > 0) monthlyData[monthKey].expense += tx.amount;
         }
@@ -217,12 +217,9 @@ export default function AnalysisPage() {
   const chartConfig = useMemo(() => ({
     income: { label: "Receita", color: "hsl(var(--chart-1))" },
     expense: { label: "Despesa", color: "hsl(var(--chart-2))" },
-    // Explicitly define colors for pie chart categories if needed, though Cell fill is preferred
-    // Ex: "Alimentação": { label: "Alimentação", color: "hsl(var(--chart-1))"},
-    // "Transporte": { label: "Transporte", color: "hsl(var(--chart-2))"},
   }), []);
   
-  const isLoading = authLoading || (isFetchingTransactions && !!user); // User check ensures we wait for user-specific data
+  const isLoading = authLoading || (isFetchingTransactions && !!user); 
 
   if (isLoading) {
     return (
@@ -386,3 +383,5 @@ export default function AnalysisPage() {
     </div>
   );
 }
+
+    

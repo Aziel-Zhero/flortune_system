@@ -200,7 +200,7 @@ export default function GoalsPage() {
             </DialogTrigger>
           }
         />
-        {currentGoals.length === 0 && !isLoadingData && (
+        {currentGoals.length === 0 && !isLoadingData && !authLoading && (
           <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
               <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-xl font-semibold font-headline mb-2">Nenhuma Meta Definida Ainda</h3>
@@ -293,7 +293,7 @@ export default function GoalsPage() {
               </motion.div>
             );
           })}
-           {currentGoals.length > 0 && (
+           {currentGoals.length > 0 && !isLoadingData && !authLoading && (
               <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
                   <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
                      <DialogTrigger asChild>
@@ -332,8 +332,16 @@ export default function GoalsPage() {
             Defina um novo objetivo para suas finanças e acompanhe seu progresso.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />}
+        {isCreateModalOpen && session?.user && <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />}
+        {isCreateModalOpen && !session?.user && (
+            <div className="py-8 text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
+                <p className="text-muted-foreground">Você precisa estar logado para criar uma meta.</p>
+            </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+
+    

@@ -5,12 +5,12 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart } from "lucide-react"; // Added BarChart for new chart
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTransactions } from "@/services/transaction.service";
@@ -22,7 +22,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"; // For new pie chart
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"; 
 
 interface SummaryData {
   title: string;
@@ -49,7 +49,7 @@ const chartColors = [
 ];
 
 const PieCustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
+  if (active && payload && payload.length && payload[0] && payload[0].payload) {
     const data = payload[0].payload;
     return (
       <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
@@ -68,10 +68,9 @@ export default function DashboardPage() {
   const user = session?.user;
   const profile = user?.profile;
 
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [monthlySpendingByCategory, setMonthlySpendingByCategory] = useState<SpendingCategoryChartData[]>([]);
-
+  
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
     { title: "Saldo Atual (Simulado)", value: null, icon: DollarSign, trend: null, trendColor: "text-muted-foreground", isLoading: true },
     { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
@@ -80,25 +79,29 @@ export default function DashboardPage() {
   ]);
 
   const fetchDashboardData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+        setTransactionsLoading(false);
+        setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false, value: s.title.includes("Saldo") ? 0 : null })));
+        setAllTransactions([]);
+        return;
+    }
 
     setTransactionsLoading(true);
     setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: true })));
-    setMonthlySpendingByCategory([]);
 
     try {
       const { data: transactionsData, error: transactionsError } = await getTransactions(user.id);
       if (transactionsError) {
         toast({ title: "Erro ao buscar transações", description: transactionsError.message, variant: "destructive" });
-        setRecentTransactions([]);
+        setAllTransactions([]);
       } else {
-        setRecentTransactions(transactionsData?.slice(0, 4) || []);
+        setAllTransactions(transactionsData || []);
       }
 
       const { data: goalsData, error: goalsError } = await getFinancialGoals(user.id);
       let primaryGoalProgress: number | null = null;
       if (goalsError) {
-        // toast({ title: "Erro ao buscar metas", description: goalsError.message, variant: "destructive" }); // Optional: less noisy for dashboard
+        // Silently fail for goals on dashboard for now
       } else if (goalsData && goalsData.length > 0) {
         const inProgressGoals = goalsData.filter(g => g.status === 'in_progress');
         if (inProgressGoals.length > 0) {
@@ -111,30 +114,27 @@ export default function DashboardPage() {
       
       let totalIncome = 0;
       let totalExpenses = 0;
-      const spendingMap = new Map<string, number>();
       const currentMonth = new Date().getUTCMonth();
       const currentYear = new Date().getUTCFullYear();
 
-      transactionsData?.forEach(tx => {
-        const txDate = new Date(tx.date + 'T00:00:00Z');
-        if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
-          if (tx.type === 'income') {
-            totalIncome += tx.amount;
-          } else if (tx.type === 'expense') {
-            totalExpenses += tx.amount;
-            if (tx.category) {
-              const categoryName = tx.category.name;
-              spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
+      (transactionsData || []).forEach(tx => {
+        if (!tx.date || typeof tx.date !== 'string') return;
+        try {
+            const txDate = new Date(tx.date + 'T00:00:00Z');
+            if (isNaN(txDate.getTime())) return;
+
+            if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+            if (tx.type === 'income') {
+                totalIncome += tx.amount;
+            } else if (tx.type === 'expense') {
+                totalExpenses += tx.amount;
             }
-          }
+            }
+        } catch(e) {
+            console.error("Error processing transaction for summary: ", tx, e);
         }
       });
       
-      setMonthlySpendingByCategory(
-        Array.from(spendingMap, ([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] }))
-             .sort((a,b) => b.value - a.value)
-      );
-
       setSummaryValues([
         { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "N/A", trendColor: "text-muted-foreground", isLoading: false },
         { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
@@ -147,7 +147,7 @@ export default function DashboardPage() {
       toast({ title: "Erro de Dados", description: "Não foi possível carregar todos os dados do painel.", variant: "destructive" });
     } finally {
       setTransactionsLoading(false);
-       setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false })));
+      setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false }))); // Ensure all loading flags are false
     }
   }, [user?.id]);
 
@@ -156,12 +156,43 @@ export default function DashboardPage() {
     if (user?.id && !authIsLoading) {
       fetchDashboardData();
     } else if (!authIsLoading && !user?.id) {
-      setRecentTransactions([]);
+      setAllTransactions([]);
       setSummaryValues(prev => prev.map(s => ({ ...s, value: null, isLoading: false })));
       setTransactionsLoading(false);
-      setMonthlySpendingByCategory([]);
     }
   }, [user, authIsLoading, fetchDashboardData]);
+
+  const recentTransactions = useMemo(() => {
+    if (!Array.isArray(allTransactions)) return [];
+    return allTransactions.slice(0, 4);
+  }, [allTransactions]);
+
+  const monthlySpendingByCategory = useMemo((): SpendingCategoryChartData[] => {
+    if (transactionsLoading || !Array.isArray(allTransactions) || allTransactions.length === 0) return [];
+    const spendingMap = new Map<string, number>();
+    const currentMonth = new Date().getUTCMonth();
+    const currentYear = new Date().getUTCFullYear();
+
+    allTransactions.forEach(tx => {
+      if (!tx.date || typeof tx.date !== 'string') return;
+      try {
+        const txDate = new Date(tx.date + 'T00:00:00Z');
+        if (isNaN(txDate.getTime())) return;
+
+        if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+          if (tx.type === 'expense' && tx.amount > 0 && tx.category) {
+            const categoryName = tx.category.name;
+            spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
+          }
+        }
+      } catch (e) {
+        console.error("Error processing transaction for chart:", tx, e);
+      }
+    });
+    return Array.from(spendingMap, ([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] }))
+           .sort((a,b) => b.value - a.value);
+  }, [allTransactions, transactionsLoading]);
+
 
   const welcomeName = profile?.display_name || profile?.full_name?.split(" ")[0] || session?.user?.name?.split(" ")[0] || "Usuário";
 
@@ -230,7 +261,6 @@ export default function DashboardPage() {
   }
   
   if (!session) {
-    // This case should ideally be handled by middleware or AppLayout redirecting to /login
     return <p>Redirecionando para o login...</p>; 
   }
 
@@ -313,7 +343,7 @@ export default function DashboardPage() {
                   <li key={tx.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors">
                     <div>
                       <p className="font-medium text-sm">{tx.description}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(tx.date + 'T00:00:00').toLocaleDateString('pt-BR')} - {tx.category?.name || "Sem Categoria"}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(tx.date + 'T00:00:00Z').toLocaleDateString('pt-BR')} - {tx.category?.name || "Sem Categoria"}</p>
                     </div>
                     <PrivateValue 
                       value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
@@ -382,3 +412,4 @@ export default function DashboardPage() {
   );
 }
 
+    

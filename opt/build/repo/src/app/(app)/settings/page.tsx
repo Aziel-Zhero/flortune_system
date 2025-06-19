@@ -1,4 +1,5 @@
 
+// src/app/(app)/settings/page.tsx
 "use client";
 
 import { useState, useEffect, type FormEvent, type ReactNode } from 'react';
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckSquare, Settings2, Mountain, Sun, Moon, Bot } from "lucide-react";
+import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckSquare, Settings2, Mountain } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
@@ -30,10 +31,10 @@ interface ThemeOption {
 const availableThemes: ThemeOption[] = [
   { name: "Verde Flortune", id: "default", icon: <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] ring-1 ring-border" />, description: "O tema padrão, fresco e original do Flortune." },
   { name: "Rio da Serra", id: "theme-rio-da-serra", icon: <span style={{backgroundColor: "hsl(221,83%,53%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema calmo e profissional com tons de azul clássico." },
-  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: <span style={{backgroundColor: "hsl(45,95%,51%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema claro e vibrante com destaques dourados e amarelos." },
-  { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: <span style={{backgroundColor: "hsl(270,65%,55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema envolvente com tons profundos e mágicos de roxo e lavanda." },
-  { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(var(--amanhecer-rosa))] to-[hsl(var(--amanhecer-roxo))] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes de rosa e roxo." },
-  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: <span style={{backgroundColor: "hsl(15,70%,45%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Tons quentes e terrosos de vermelho, laranja e argila." },
+  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: <span style={{backgroundColor: "hsl(45,95%,51%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema claro e vibrante com destaques dourados." },
+  { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: <span style={{backgroundColor: "hsl(270,65%,55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema envolvente com tons profundos e mágicos de roxo." },
+  { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(var(--amanhecer-rosa))] to-[hsl(var(--amanhecer-roxo))] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes." },
+  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: <Mountain className="h-4 w-4 text-[hsl(15,70%,45%)]" />, description: "Tons quentes e terrosos de vermelho e argila." },
 ];
 
 
@@ -92,7 +93,7 @@ export default function SettingsPage() {
         cpf_cnpj: cpfCnpj,
         rg,
         updated_at: new Date().toISOString(),
-        account_type: profileFromSession?.account_type, // Mantém o tipo de conta original
+        account_type: profileFromSession?.account_type, 
       };
 
       const { data: updatedProfile, error } = await supabase
@@ -105,13 +106,12 @@ export default function SettingsPage() {
       if (error) throw error;
 
       if (updatedProfile) {
-        // Atualiza a sessão do NextAuth com os novos dados do perfil
         await updateSession({
           ...session, 
           user: { 
             ...session?.user,
-            name: updatedProfile.display_name || updatedProfile.full_name, // Atualiza nome de exibição na sessão
-            profile: updatedProfile as Profile, // Atualiza o objeto profile completo
+            name: updatedProfile.display_name || updatedProfile.full_name, 
+            profile: updatedProfile as Profile, 
           }
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
@@ -153,8 +153,8 @@ export default function SettingsPage() {
     );
   }
   
-  if (!session || !userFromSession) { // Adicionado !userFromSession para maior segurança
-    return <p>Redirecionando para o login...</p>; // Ou um componente de erro/redirecionamento mais robusto
+  if (!session || !userFromSession) { 
+    return <p>Redirecionando para o login...</p>; 
   }
 
   return (
@@ -271,7 +271,7 @@ export default function SettingsPage() {
                   key={theme.id}
                   variant={currentTheme === theme.id ? "default" : "outline"}
                   className={cn(
-                    "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between", // justify-between
+                    "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between",
                     currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
                   )}
                   onClick={() => handleThemeChange(theme.id)}
@@ -283,7 +283,7 @@ export default function SettingsPage() {
                       <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2.5rem] sm:min-h-[2.75rem]"> {/* Adjusted min-height for text-xs */}
+                  <p className="text-xs text-muted-foreground min-h-[2.5rem] sm:min-h-[2.75rem] line-clamp-2">
                     {theme.description}
                   </p>
                 </Button>
@@ -375,3 +375,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

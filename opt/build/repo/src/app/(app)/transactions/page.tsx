@@ -318,7 +318,7 @@ export default function TransactionsPage() {
                       </TableCell>
                     </motion.tr>
                   ))}
-                  {transactions.length === 0 && !isLoading && (
+                  {transactions.length === 0 && !isLoading && !authLoading && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                          <div className="flex flex-col items-center gap-2">
@@ -361,8 +361,16 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && session?.user && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && !session?.user && (
+             <div className="py-8 text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
+                <p className="text-muted-foreground">Você precisa estar logado para adicionar uma transação.</p>
+            </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
+
+    

@@ -87,7 +87,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
   const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
     if (!user?.id) {
-      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
+      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado. Por favor, faça login novamente.", variant: "destructive" });
       return;
     }
     setIsSubmitting(true);
@@ -272,3 +272,5 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     </form>
   );
 }
+
+    
