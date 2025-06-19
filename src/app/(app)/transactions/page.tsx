@@ -69,7 +69,11 @@ export default function TransactionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchPageData = useCallback(async () => {
-    if (!user?.id) return; 
+    if (!user?.id) {
+        setIsLoading(false);
+        setTransactions([]);
+        return;
+    }
     setIsLoading(true);
     try {
       const transactionsRes = await getTransactions(user.id);
@@ -86,17 +90,17 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]); // Adicionado user?.id
+  }, [user?.id]);
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user?.id && !authLoading) { 
+    if (user?.id && status === "authenticated") { 
       fetchPageData();
-    } else if (!authLoading && !user?.id) {
+    } else if (status === "unauthenticated") {
       setIsLoading(false);
       setTransactions([]);
     }
-  }, [user?.id, authLoading, fetchPageData]); // Adicionado user?.id
+  }, [user?.id, status, fetchPageData]);
 
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setDeleteDialog({ isOpen: true, item: { id: transactionId, description: transactionDescription } });
@@ -314,7 +318,7 @@ export default function TransactionsPage() {
                       </TableCell>
                     </motion.tr>
                   ))}
-                  {transactions.length === 0 && !isLoading && (
+                  {transactions.length === 0 && !isLoading && !authLoading && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                          <div className="flex flex-col items-center gap-2">
@@ -357,10 +361,20 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && session?.user && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && !session?.user && (
+             <div className="py-8 text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
+                <p className="text-muted-foreground">Você precisa estar logado para adicionar uma transação.</p>
+            </div>
+        )}
+         {isCreateModalOpen && authLoading && (
+             <div className="py-8 text-center">
+                <Skeleton className="mx-auto h-12 w-12 rounded-full mb-4"/>
+                <Skeleton className="h-4 w-3/4 mx-auto"/>
+            </div>
+         )}
       </DialogContent>
     </Dialog>
   );
 }
-
-    

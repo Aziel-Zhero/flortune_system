@@ -23,7 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton"; // Adicionado Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
 
 const goalFormSchema = z.object({
   name: z.string().min(3, "O nome da meta deve ter pelo menos 3 caracteres."),
@@ -68,6 +68,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
   const router = useRouter();
   const { data: session, status } = useSession();
   const user = session?.user;
+  const authLoading = status === "loading";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -86,7 +87,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
   const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
     if (!user?.id) {
-      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
+      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado. Por favor, faça login novamente.", variant: "destructive" });
       return;
     }
     setIsSubmitting(true);
@@ -123,7 +124,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     }
   };
   
-  if (status === "loading" && !user) { 
+  if (authLoading) { 
     return (
         <div className="space-y-4 py-4">
             <Skeleton className="h-4 w-1/4 mb-1" />
@@ -143,6 +144,11 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         </div>
     );
   }
+
+  if (!user && !authLoading) { 
+    return <p className="text-destructive text-center py-4">Você precisa estar logado para criar uma meta.</p>
+  }
+
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
@@ -215,7 +221,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
                     render={({ field }) => {
                         const SelectedIconComponent = getLucideIcon(field.value);
                         return (
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={authLoading}>
                             <SelectTrigger id="icon-goal">
                             <SelectValue placeholder={
                                 <div className="flex items-center gap-2">
@@ -258,7 +264,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
         <DialogFooter className="pt-4">
             {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
-            <Button type="submit" disabled={isSubmitting || !user}>
+            <Button type="submit" disabled={isSubmitting || authLoading || !user}>
                 <Save className="mr-2 h-4 w-4" />
                 {isSubmitting ? "Salvando..." : "Salvar Meta"}
             </Button>
@@ -266,5 +272,3 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     </form>
   );
 }
-
-    

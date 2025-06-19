@@ -1,4 +1,5 @@
 
+// src/app/(app)/settings/page.tsx
 "use client";
 
 import { useState, useEffect, type FormEvent, type ReactNode } from 'react';
@@ -33,7 +34,7 @@ const availableThemes: ThemeOption[] = [
   { name: "Aurora Dourada", id: "theme-golden-dawn", icon: <span style={{backgroundColor: "hsl(45,95%,51%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema claro e vibrante com destaques dourados." },
   { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: <span style={{backgroundColor: "hsl(270,65%,55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema envolvente com tons profundos e mágicos de roxo." },
   { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(var(--amanhecer-rosa))] to-[hsl(var(--amanhecer-roxo))] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes." },
-  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: <span style={{backgroundColor: "hsl(15,70%,45%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Tons quentes e terrosos de vermelho e argila." },
+  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: <Mountain className="h-4 w-4 text-[hsl(15,70%,45%)]" />, description: "Tons quentes e terrosos de vermelho e argila." },
 ];
 
 
@@ -92,7 +93,7 @@ export default function SettingsPage() {
         cpf_cnpj: cpfCnpj,
         rg,
         updated_at: new Date().toISOString(),
-        account_type: profileFromSession?.account_type,
+        account_type: profileFromSession?.account_type, 
       };
 
       const { data: updatedProfile, error } = await supabase
@@ -109,8 +110,8 @@ export default function SettingsPage() {
           ...session, 
           user: { 
             ...session?.user,
-            name: updatedProfile.display_name || updatedProfile.full_name,
-            profile: updatedProfile as Profile,
+            name: updatedProfile.display_name || updatedProfile.full_name, 
+            profile: updatedProfile as Profile, 
           }
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
@@ -152,8 +153,8 @@ export default function SettingsPage() {
     );
   }
   
-  if (!session) {
-    return <p>Redirecionando para o login...</p>;
+  if (!session || !userFromSession) { 
+    return <p>Redirecionando para o login...</p>; 
   }
 
   return (
@@ -258,6 +259,7 @@ export default function SettingsPage() {
               id="dark-mode" 
               checked={isDarkMode}
               onCheckedChange={toggleDarkMode} 
+              aria-label={isDarkMode ? "Desativar modo escuro" : "Ativar modo escuro"}
             />
           </div>
           <div className="space-y-2">
@@ -269,19 +271,21 @@ export default function SettingsPage() {
                   key={theme.id}
                   variant={currentTheme === theme.id ? "default" : "outline"}
                   className={cn(
-                    "h-auto p-4 flex flex-col items-start text-left space-y-2 transition-all duration-200",
+                    "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between",
                     currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
                   )}
                   onClick={() => handleThemeChange(theme.id)}
                 >
-                  <div className="flex items-center gap-3 w-full">
+                  <div className="flex items-center gap-2 sm:gap-3 w-full">
                     {theme.icon}
-                    <span className="font-semibold text-sm md:text-base">{theme.name}</span>
+                    <span className="font-semibold text-sm">{theme.name}</span>
                     {currentTheme === theme.id && (
-                      <CheckSquare className="h-5 w-5 text-primary-foreground ml-auto" />
+                      <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground min-h-[40px] sm:min-h-[50px] line-clamp-2 sm:line-clamp-3">{theme.description}</p>
+                  <p className="text-xs text-muted-foreground min-h-[2.5rem] line-clamp-2 sm:line-clamp-3">
+                    {theme.description}
+                  </p>
                 </Button>
               ))}
             </div>
@@ -371,5 +375,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
