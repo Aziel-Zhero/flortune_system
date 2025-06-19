@@ -5,8 +5,8 @@
 
 @layer base {
   :root {
-    --background: 204 20% 96%; /* Light Teal - E0F2F1 (desaturado para HSL) */
-    --foreground: 180 30% 25%; /* Darker Teal for readability */
+    --background: 204 20% 96%; 
+    --foreground: 180 30% 25%; 
 
     --muted: 180 25% 85%;
     --muted-foreground: 180 20% 50%;
@@ -20,23 +20,22 @@
     --border: 180 20% 80%;
     --input: 180 25% 88%;
 
-    --primary: 170 75% 36%; /* Deep Teal #16A381 (aproximado para HSL) - Flortune Verde */
-    --primary-foreground: 170 75% 95%; /* Very Light Teal/White */
+    --primary: 170 75% 36%; 
+    --primary-foreground: 170 75% 95%; 
 
-    --secondary: 175 50% 80%; /* Lighter, less saturated teal */
+    --secondary: 175 50% 80%; 
     --secondary-foreground: 175 50% 25%;
 
-    --accent: 45 95% 51%; /* Mustard Yellow #FACC15 (aproximado para HSL) */
-    --accent-foreground: 45 95% 15%; /* Dark Brown/Black for text on accent */
+    --accent: 45 95% 51%; 
+    --accent-foreground: 45 95% 15%; 
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --ring: 170 75% 45%; /* Slightly lighter version of primary for focus rings */
+    --ring: 170 75% 45%;
 
     --radius: 0.5rem;
 
-    /* Sidebar specific colors */
     --sidebar-background: 175 60% 88%; 
     --sidebar-foreground: 175 40% 20%;
     --sidebar-primary: 170 75% 36%;
@@ -46,21 +45,20 @@
     --sidebar-border: 175 50% 75%;
     --sidebar-ring: 170 75% 45%;
 
-    --chart-1: 170 75% 45%; /* Teal shade 1 */
-    --chart-2: 45 90% 60%;  /* Yellow shade 1 */
-    --chart-3: 175 50% 60%; /* Muted teal shade */
-    --chart-4: 170 60% 30%; /* Darker Teal shade */
-    --chart-5: 45 80% 45%;  /* Darker Yellow shade */
+    --chart-1: 170 75% 45%; 
+    --chart-2: 45 90% 60%;  
+    --chart-3: 175 50% 60%; 
+    --chart-4: 170 60% 30%; 
+    --chart-5: 45 80% 45%;  
 
-     /* Cores base para Amanhecer - serão sobrescritas pela classe */
     --amanhecer-rosa: 330 90% 70%;
     --amanhecer-roxo: 280 80% 65%;
     --amanhecer-laranja: 30 95% 60%;
   }
 
   .dark {
-    --background: 180 15% 10%; /* Dark Slate Teal */
-    --foreground: 180 15% 90%; /* Light Teal Text */
+    --background: 180 15% 10%; 
+    --foreground: 180 15% 90%; 
 
     --muted: 180 15% 20%;
     --muted-foreground: 180 15% 65%;
@@ -74,13 +72,13 @@
     --border: 180 15% 25%;
     --input: 180 15% 22%;
 
-    --primary: 170 70% 40%; /* Slightly desaturated Deep Teal for dark mode - Flortune Verde Dark */
+    --primary: 170 70% 40%; 
     --primary-foreground: 170 70% 90%;
 
     --secondary: 175 40% 30%;
     --secondary-foreground: 175 40% 90%;
 
-    --accent: 45 90% 55%; /* Slightly desaturated Mustard Yellow */
+    --accent: 45 90% 55%; 
     --accent-foreground: 45 90% 10%;
 
     --destructive: 0 70% 50%;
@@ -88,7 +86,6 @@
 
     --ring: 170 70% 50%;
 
-    /* Sidebar specific colors for dark mode */
     --sidebar-background: 180 20% 15%;
     --sidebar-foreground: 180 15% 85%;
     --sidebar-primary: 170 70% 40%;
@@ -105,19 +102,19 @@
     --chart-5: 45 75% 50%;
   }
 
-  /* Tema Oceano Pacífico (Antigo Azul Sereno) */
-  .theme-ocean-pacific {
-    --background: 210 60% 97%; /* Azul muito claro, quase branco */
-    --foreground: 220 40% 25%; /* Azul acinzentado escuro */
+  /* Tema Rio da Serra (Antigo Oceano Pacífico) */
+  .theme-rio-da-serra {
+    --background: 210 60% 97%; 
+    --foreground: 220 40% 25%; 
     --card: 210 60% 99%; 
     --card-foreground: 220 40% 22%;
     --popover: 210 60% 100%; 
     --popover-foreground: 220 40% 22%;
-    --primary: 221 83% 53%; /* Azul Principal (do exemplo) */
-    --primary-foreground: 221 83% 95%; /* Branco azulado para texto no primário */
-    --secondary: 215 50% 85%; /* Azul mais claro e suave */
+    --primary: 221 83% 53%; 
+    --primary-foreground: 221 83% 95%; 
+    --secondary: 215 50% 85%; 
     --secondary-foreground: 215 50% 30%;
-    --accent: 190 70% 50%; /* Ciano/Turquesa claro como acento */
+    --accent: 190 70% 50%; 
     --accent-foreground: 190 70% 10%;
     --muted: 210 50% 90%;
     --muted-foreground: 215 30% 55%;
@@ -139,18 +136,18 @@
     --chart-4: 221 70% 40%; 
     --chart-5: 190 55% 40%;  
   }
-  .dark.theme-ocean-pacific {
-    --background: 222 84% 5%; /* Azul muito escuro (do exemplo dark) */
-    --foreground: 210 40% 98%; /* Branco (do exemplo dark) */
+  .dark.theme-rio-da-serra {
+    --background: 222 84% 5%; 
+    --foreground: 210 40% 98%; 
     --card: 222 84% 7%;
     --card-foreground: 210 40% 95%;
     --popover: 222 84% 6%;
     --popover-foreground: 210 40% 95%;
-    --primary: 217 91% 60%; /* Azul primário mais brilhante (do exemplo dark) */
-    --primary-foreground: 222 47% 11%; /* Azul escuro para texto (do exemplo dark) */
-    --secondary: 217 33% 18%; /* Azul escuro secundário (do exemplo dark) */
+    --primary: 217 91% 60%; 
+    --primary-foreground: 222 47% 11%; 
+    --secondary: 217 33% 18%; 
     --secondary-foreground: 210 40% 95%;
-    --accent: 190 75% 50%; /* Ciano vibrante */
+    --accent: 190 75% 50%; 
     --accent-foreground: 190 75% 95%;
     --muted: 217 33% 20%;
     --muted-foreground: 215 20% 65%;
@@ -169,17 +166,17 @@
 
   /* Tema Aurora Dourada (Amarelo/Laranja Claro) */
   .theme-golden-dawn {
-    --background: 40 50% 97%; /* Creme muito claro */
-    --foreground: 35 40% 25%; /* Marrom escuro */
+    --background: 40 50% 97%; 
+    --foreground: 35 40% 25%; 
     --card: 40 50% 99%;
     --card-foreground: 35 40% 22%;
     --popover: 40 50% 100%;
     --popover-foreground: 35 40% 22%;
-    --primary: 45 95% 51%; /* Amarelo dourado vibrante (Mustard Yellow) */
-    --primary-foreground: 45 95% 10%; /* Quase preto para contraste */
-    --secondary: 38 80% 75%; /* Laranja pêssego claro */
+    --primary: 45 95% 51%; 
+    --primary-foreground: 45 95% 10%; 
+    --secondary: 38 80% 75%; 
     --secondary-foreground: 38 80% 20%;
-    --accent: 30 90% 65%; /* Laranja vibrante */
+    --accent: 30 90% 65%; 
     --accent-foreground: 30 90% 10%;
     --muted: 40 40% 90%;
     --muted-foreground: 35 30% 50%;
@@ -202,46 +199,46 @@
     --chart-5: 30 75% 50%;
   }
   .dark.theme-golden-dawn {
-    --background: 40 20% 10%; /* Um fundo escuro, mas não preto puro, talvez um sépia muito escuro */
-    --foreground: 45 80% 85%; /* Dourado claro para texto */
-    --card: 40 20% 13%;
-    --card-foreground: 45 78% 83%;
-    --popover: 40 20% 11%;
-    --popover-foreground: 45 78% 83%;
-    --primary: 45 90% 58%; /* Dourado vibrante principal */
-    --primary-foreground: 45 90% 10%; /* Preto ou marrom muito escuro para contraste */
-    --secondary: 40 70% 40%; /* Um dourado mais escuro ou âmbar */
-    --secondary-foreground: 40 70% 90%;
-    --accent: 50 100% 65%; /* Amarelo limão brilhante como acento */
-    --accent-foreground: 50 100% 10%;
-    --muted: 40 18% 25%;
-    --muted-foreground: 45 60% 65%;
-    --border: 40 18% 30%;
-    --input: 40 18% 28%;
-    --ring: 45 90% 62%;
+    --background: 35 30% 10%; /* Marrom escuro, quase preto */
+    --foreground: 45 100% 85%; /* Dourado bem claro, quase branco */
+    --card: 35 25% 12%;
+    --card-foreground: 45 95% 82%;
+    --popover: 35 20% 10%;
+    --popover-foreground: 45 95% 82%;
+    --primary: 45 100% 60%; /* Dourado vibrante, mais puxado pro amarelo */
+    --primary-foreground: 35 100% 5%; /* Marrom muito escuro */
+    --secondary: 40 80% 45%; /* Dourado mais escuro/laranja queimado */
+    --secondary-foreground: 40 80% 90%;
+    --accent: 50 100% 68%; /* Amarelo limão brilhante */
+    --accent-foreground: 50 100% 8%;
+    --muted: 35 25% 22%;
+    --muted-foreground: 45 70% 65%;
+    --border: 35 25% 28%;
+    --input: 35 25% 25%;
+    --ring: 45 100% 65%;
 
-    --sidebar-background: 40 22% 12%;
-    --sidebar-foreground: 45 75% 80%;
-    --sidebar-primary: 45 90% 58%;
-    --sidebar-primary-foreground: 45 90% 10%;
-    --sidebar-accent: 40 65% 35%;
-    --sidebar-accent-foreground: 40 65% 88%;
-    --sidebar-border: 40 18% 25%;
+    --sidebar-background: 35 28% 11%;
+    --sidebar-foreground: 45 90% 80%;
+    --sidebar-primary: 45 100% 60%;
+    --sidebar-primary-foreground: 35 100% 5%;
+    --sidebar-accent: 40 75% 40%;
+    --sidebar-accent-foreground: 40 75% 88%;
+    --sidebar-border: 35 25% 25%;
   }
 
   /* Tema Mística Nebulosa (Roxo) */
   .theme-mystic-nebula {
-    --background: 270 20% 96%; /* Lilás muito claro / Quase branco */
-    --foreground: 275 40% 25%; /* Roxo escuro acinzentado */
+    --background: 270 20% 96%; 
+    --foreground: 275 40% 25%; 
     --card: 270 20% 98%;
     --card-foreground: 275 40% 22%;
     --popover: 270 20% 100%;
     --popover-foreground: 275 40% 22%;
-    --primary: 270 65% 55%; /* Roxo vibrante principal */
-    --primary-foreground: 270 65% 95%; /* Quase branco */
-    --secondary: 280 40% 80%; /* Lavanda suave */
+    --primary: 270 65% 55%; 
+    --primary-foreground: 270 65% 95%; 
+    --secondary: 280 40% 80%; 
     --secondary-foreground: 280 40% 25%;
-    --accent: 330 80% 60%; /* Rosa magenta como acento */
+    --accent: 330 80% 60%; 
     --accent-foreground: 330 80% 10%;
     --muted: 270 25% 88%;
     --muted-foreground: 275 20% 55%;
@@ -256,19 +253,25 @@
     --sidebar-accent: 280 35% 75%;
     --sidebar-accent-foreground: 280 35% 20%;
     --sidebar-border: 275 25% 78%;
+
+    --chart-1: 270 60% 60%; 
+    --chart-2: 330 75% 65%;  
+    --chart-3: 280 35% 70%; 
+    --chart-4: 270 50% 45%; 
+    --chart-5: 330 65% 50%;
   }
   .dark.theme-mystic-nebula {
-    --background: 270 25% 8%; /* Roxo muito escuro, quase preto */
-    --foreground: 270 30% 88%; /* Lilás claro para texto */
+    --background: 270 25% 8%; 
+    --foreground: 270 30% 88%; 
     --card: 270 25% 10%;
     --card-foreground: 270 30% 85%;
     --popover: 270 25% 7%;
     --popover-foreground: 270 30% 85%;
-    --primary: 270 70% 65%; /* Roxo néon/brilhante */
-    --primary-foreground: 270 70% 10%; /* Roxo muito escuro para contraste */
-    --secondary: 280 40% 30%; /* Roxo profundo */
+    --primary: 270 70% 65%; 
+    --primary-foreground: 270 70% 10%; 
+    --secondary: 280 40% 30%; 
     --secondary-foreground: 280 40% 90%;
-    --accent: 290 80% 70%; /* Violeta brilhante como acento */
+    --accent: 290 80% 70%; 
     --accent-foreground: 290 80% 15%;
     --muted: 270 20% 20%;
     --muted-foreground: 270 25% 60%;
@@ -287,18 +290,17 @@
   
   /* Tema Amanhecer (Degradê Rosa/Roxo) */
   .theme-amanhecer {
-    /* Para os componentes, escolhemos um tom de rosa como primário */
-    --background: 320 40% 96%; /* Um fundo claro quase branco para manter legibilidade dos cards */
-    --foreground: 300 30% 25%; /* Um roxo escuro para texto */
-    --card: 0 0% 100%; /* Cards brancos para legibilidade sobre fundo potencialmente gradiente (se aplicado no body) */
+    --background: 320 40% 96%; 
+    --foreground: 300 30% 25%; 
+    --card: 0 0% 100%; 
     --card-foreground: 300 30% 20%;
     --popover: 0 0% 100%;
     --popover-foreground: 300 30% 20%;
-    --primary: 330 85% 62%; /* Rosa vibrante principal */
-    --primary-foreground: 330 85% 98%; /* Branco */
-    --secondary: 290 60% 75%; /* Roxo lavanda suave */
+    --primary: 330 85% 62%; 
+    --primary-foreground: 330 85% 98%; 
+    --secondary: 290 60% 75%; 
     --secondary-foreground: 290 60% 20%;
-    --accent: 25 90% 60%; /* Laranja suave do amanhecer */
+    --accent: 25 90% 60%; 
     --accent-foreground: 25 90% 10%;
     --muted: 310 30% 90%;
     --muted-foreground: 300 20% 50%;
@@ -313,20 +315,25 @@
     --sidebar-accent: 290 55% 70%;
     --sidebar-accent-foreground: 290 55% 15%;
     --sidebar-border: 320 40% 80%;
+
+    --chart-1: 330 80% 65%; 
+    --chart-2: 25 85% 65%;  
+    --chart-3: 290 55% 70%; 
+    --chart-4: 330 70% 50%; 
+    --chart-5: 25 75% 55%;
   }
   .dark.theme-amanhecer {
-    /* Para componentes, um roxo escuro como primário no modo dark */
-    --background: 290 30% 8%; /* Um fundo muito escuro */
-    --foreground: 300 40% 88%; /* Rosa/lilás claro para texto */
+    --background: 290 30% 8%; 
+    --foreground: 300 40% 88%; 
     --card: 290 28% 12%;
     --card-foreground: 300 40% 85%;
     --popover: 290 28% 10%;
     --popover-foreground: 300 40% 85%;
-    --primary: 285 70% 60%; /* Roxo vibrante principal */
-    --primary-foreground: 285 70% 95%; /* Lilás muito claro */
-    --secondary: 330 50% 40%; /* Rosa escuro */
+    --primary: 285 70% 60%; 
+    --primary-foreground: 285 70% 95%; 
+    --secondary: 330 50% 40%; 
     --secondary-foreground: 330 50% 90%;
-    --accent: 30 80% 55%; /* Laranja vibrante do amanhecer */
+    --accent: 30 80% 55%; 
     --accent-foreground: 30 80% 95%;
     --muted: 290 25% 20%;
     --muted-foreground: 300 30% 60%;
@@ -342,19 +349,68 @@
     --sidebar-accent-foreground: 330 45% 88%;
     --sidebar-border: 290 20% 28%;
   }
-  /* Aplica o gradiente ao body se o tema Amanhecer estiver ativo */
-  /* Nota: Aplicar gradiente diretamente ao `body` pode ser sobrescrito pelo `--background` da classe `.theme-amanhecer` no `html`.
-     Para um efeito de fundo gradiente global, pode ser melhor aplicar ao `html` ou a um wrapper de layout principal.
-     Por enquanto, as cores sólidas de `--background` definidas nos temas terão precedência. */
-  body.theme-amanhecer {
-    /* background-image: linear-gradient(135deg, hsl(var(--amanhecer-rosa)) 0%, hsl(var(--amanhecer-roxo)) 50%, hsl(var(--amanhecer-laranja)) 100%); */
-    /* background-attachment: fixed; */
-  }
-  body.dark.theme-amanhecer {
-    /* background-image: linear-gradient(135deg, hsl(330 70% 20%), hsl(280 60% 15%), hsl(30 50% 10%)); */
-    /* background-attachment: fixed; */
-  }
 
+  /* Tema Terra Vermelha */
+  .theme-terra-vermelha {
+    --background: 25 30% 95%; /* Bege claro */
+    --foreground: 15 50% 20%; /* Marrom escuro avermelhado */
+    --card: 20 40% 98%; 
+    --card-foreground: 15 45% 18%;
+    --popover: 20 40% 100%; 
+    --popover-foreground: 15 45% 18%;
+    --primary: 15 70% 45%; /* Vermelho terra principal */
+    --primary-foreground: 15 70% 95%; /* Branco / Creme muito claro */
+    --secondary: 20 60% 70%; /* Laranja argila suave */
+    --secondary-foreground: 20 60% 15%;
+    --accent: 35 80% 55%; /* Ocre / Amarelo queimado */
+    --accent-foreground: 35 80% 10%;
+    --muted: 25 35% 88%;
+    --muted-foreground: 15 30% 50%;
+    --border: 25 30% 80%;
+    --input: 25 35% 85%;
+    --ring: 15 70% 50%;
+
+    --sidebar-background: 20 45% 90%;
+    --sidebar-foreground: 15 50% 15%;
+    --sidebar-primary: 15 70% 45%;
+    --sidebar-primary-foreground: 15 70% 95%;
+    --sidebar-accent: 20 55% 65%;
+    --sidebar-accent-foreground: 20 55% 10%;
+    --sidebar-border: 20 40% 78%;
+
+    --chart-1: 15 65% 50%; 
+    --chart-2: 35 75% 60%;  
+    --chart-3: 20 55% 65%; 
+    --chart-4: 15 55% 35%; 
+    --chart-5: 35 65% 45%;
+  }
+  .dark.theme-terra-vermelha {
+    --background: 15 40% 8%; /* Marrom avermelhado muito escuro */
+    --foreground: 20 50% 88%; /* Bege claro / Areia */
+    --card: 15 35% 10%;
+    --card-foreground: 20 45% 85%;
+    --popover: 15 30% 7%;
+    --popover-foreground: 20 45% 85%;
+    --primary: 15 80% 55%; /* Vermelho tijolo vibrante */
+    --primary-foreground: 15 80% 95%; 
+    --secondary: 20 60% 35%; /* Laranja queimado escuro */
+    --secondary-foreground: 20 60% 90%;
+    --accent: 30 90% 60%; /* Laranja vibrante */
+    --accent-foreground: 30 90% 95%;
+    --muted: 15 30% 20%;
+    --muted-foreground: 20 40% 60%;
+    --border: 15 30% 25%;
+    --input: 15 30% 22%;
+    --ring: 15 80% 60%;
+
+    --sidebar-background: 15 38% 12%;
+    --sidebar-foreground: 20 48% 80%;
+    --sidebar-primary: 15 80% 55%;
+    --sidebar-primary-foreground: 15 80% 95%;
+    --sidebar-accent: 20 55% 30%;
+    --sidebar-accent-foreground: 20 55% 88%;
+    --sidebar-border: 15 30% 28%;
+  }
 }
 
 @layer base {
@@ -371,4 +427,5 @@
     font-family: 'Inter', sans-serif;
   }
 }
+
     

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckSquare, Settings2 } from "lucide-react"; // Adicionado Settings2
+import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckSquare, Settings2, Mountain } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
@@ -17,8 +17,8 @@ import { APP_NAME } from '@/lib/constants';
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { supabase } from '@/lib/supabase/client';
 import type { Profile } from '@/types/database.types';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface ThemeOption {
   name: string;
@@ -27,13 +27,13 @@ interface ThemeOption {
   description: string;
 }
 
-// Lista de temas disponíveis atualizada
 const availableThemes: ThemeOption[] = [
   { name: "Verde Flortune", id: "default", icon: <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] ring-1 ring-border" />, description: "O tema padrão, fresco e original do Flortune." },
-  { name: "Oceano Pacífico", id: "theme-ocean-pacific", icon: <span style={{backgroundColor: "hsl(221,83%,53%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema calmo e profissional com tons de azul clássico." },
-  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: <span style={{backgroundColor: "hsl(45,95%,51%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema claro e vibrante com destaques dourados e alaranjados." },
+  { name: "Rio da Serra", id: "theme-rio-da-serra", icon: <span style={{backgroundColor: "hsl(221,83%,53%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema calmo e profissional com tons de azul clássico." },
+  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: <span style={{backgroundColor: "hsl(45,95%,51%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema claro e vibrante com destaques dourados." },
   { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: <span style={{backgroundColor: "hsl(270,65%,55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema envolvente com tons profundos e mágicos de roxo." },
-  { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(var(--amanhecer-rosa))] to-[hsl(var(--amanhecer-roxo))] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes de rosa e roxo." },
+  { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(var(--amanhecer-rosa))] to-[hsl(var(--amanhecer-roxo))] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes." },
+  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: <span style={{backgroundColor: "hsl(15,70%,45%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Tons quentes e terrosos de vermelho e argila." },
 ];
 
 
@@ -92,7 +92,7 @@ export default function SettingsPage() {
         cpf_cnpj: cpfCnpj,
         rg,
         updated_at: new Date().toISOString(),
-        account_type: profileFromSession?.account_type, // Preserva o tipo de conta
+        account_type: profileFromSession?.account_type,
       };
 
       const { data: updatedProfile, error } = await supabase
@@ -105,13 +105,12 @@ export default function SettingsPage() {
       if (error) throw error;
 
       if (updatedProfile) {
-        // Atualiza a sessão do NextAuth para refletir as mudanças no perfil
         await updateSession({
           ...session, 
           user: { 
             ...session?.user,
-            name: updatedProfile.display_name || updatedProfile.full_name, // Atualiza o nome na sessão
-            profile: updatedProfile as Profile, // Atualiza o objeto profile completo
+            name: updatedProfile.display_name || updatedProfile.full_name,
+            profile: updatedProfile as Profile,
           }
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
@@ -154,7 +153,7 @@ export default function SettingsPage() {
   }
   
   if (!session) {
-    return <p>Redirecionando para o login...</p>; // Ou um skeleton de página de login
+    return <p>Redirecionando para o login...</p>;
   }
 
   return (
@@ -167,7 +166,7 @@ export default function SettingsPage() {
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><User className="mr-2 h-5 w-5 text-primary"/>Perfil do Usuário</CardTitle>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl"><User className="mr-2 h-5 w-5 text-primary"/>Perfil do Usuário</CardTitle>
           <CardDescription>Atualize suas informações pessoais e de conta.</CardDescription>
         </CardHeader>
         <form onSubmit={handleProfileSave}>
@@ -230,6 +229,7 @@ export default function SettingsPage() {
                       <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
                 </div>
+                 {/* Adicionar campo para Inscrição Estadual se necessário para empresa */}
               </div>
             )}
           </CardContent>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Palette className="mr-2 h-5 w-5 text-primary"/>Aparência</CardTitle>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl"><Palette className="mr-2 h-5 w-5 text-primary"/>Aparência</CardTitle>
           <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -276,12 +276,12 @@ export default function SettingsPage() {
                 >
                   <div className="flex items-center gap-3 w-full">
                     {theme.icon}
-                    <span className="font-semibold text-base">{theme.name}</span>
+                    <span className="font-semibold text-sm md:text-base">{theme.name}</span>
                     {currentTheme === theme.id && (
                       <CheckSquare className="h-5 w-5 text-primary-foreground ml-auto" />
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground min-h-[2.5em]">{theme.description}</p>
+                  <p className="text-xs text-muted-foreground min-h-[40px] sm:min-h-[50px] line-clamp-2 sm:line-clamp-3">{theme.description}</p>
                 </Button>
               ))}
             </div>
@@ -291,7 +291,7 @@ export default function SettingsPage() {
       
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Bell className="mr-2 h-5 w-5 text-primary"/>Notificações</CardTitle>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl"><Bell className="mr-2 h-5 w-5 text-primary"/>Notificações</CardTitle>
           <CardDescription>Gerencie como você recebe atualizações e alertas.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -318,7 +318,7 @@ export default function SettingsPage() {
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><ShieldCheck className="mr-2 h-5 w-5 text-primary"/>Segurança e Privacidade</CardTitle>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl"><ShieldCheck className="mr-2 h-5 w-5 text-primary"/>Segurança e Privacidade</CardTitle>
           <CardDescription>Gerencie as configurações de segurança e privacidade da sua conta.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -337,7 +337,7 @@ export default function SettingsPage() {
       
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Gerenciamento de Dados</CardTitle>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Gerenciamento de Dados</CardTitle>
           <CardDescription>Importe, exporte ou gerencie seus dados financeiros.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -352,7 +352,7 @@ export default function SettingsPage() {
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Share2 className="mr-2 h-5 w-5 text-primary"/>Compartilhamento (Em Breve)</CardTitle>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl"><Share2 className="mr-2 h-5 w-5 text-primary"/>Compartilhamento (Em Breve)</CardTitle>
           <CardDescription>Gerencie módulos compartilhados e acesso colaborativo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -371,4 +371,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
     

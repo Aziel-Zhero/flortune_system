@@ -10,8 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
 import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle } from "lucide-react";
-// Link não é mais necessário para a ação principal, mas pode ser para edição futura.
-// import Link from "next/link"; 
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import {
@@ -58,7 +56,7 @@ export default function GoalsPage() {
 
   const fetchGoalsData = useCallback(async () => {
     if (!user?.id) {
-        setIsLoadingData(false); // Se não há usuário, não há o que carregar
+        setIsLoadingData(false);
         setCurrentGoals([]);
         return;
     }
@@ -77,7 +75,7 @@ export default function GoalsPage() {
     } finally {
       setIsLoadingData(false);
     }
-  }, [user]);
+  }, [user?.id]); // Adicionado user?.id como dependência
 
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
@@ -87,7 +85,7 @@ export default function GoalsPage() {
       setIsLoadingData(false);
       setCurrentGoals([]);
     }
-  }, [user, status, fetchGoalsData]);
+  }, [user?.id, status, fetchGoalsData]); // Adicionado user?.id
 
   const handleDeleteClick = (goalId: string, goalName: string) => {
     setDeleteDialog({ isOpen: true, item: { id: goalId, name: goalName } });
@@ -117,7 +115,6 @@ export default function GoalsPage() {
   };
 
   const handleEditClick = (goalId: string, goalName: string) => {
-    // Placeholder: Abrir modal de edição com FinancialGoalForm e initialData
     toast({
       title: "Editar Meta",
       description: `Funcionalidade de edição para "${goalName}" em desenvolvimento.`,
@@ -142,12 +139,13 @@ export default function GoalsPage() {
     }),
   };
   
-  if (authLoading || (isLoadingData && !!user)) { // Modificado para !!user
+  if (authLoading || (isLoadingData && !!user)) {
     return (
       <div>
         <PageHeader
           title="Metas Financeiras"
           description="Defina, acompanhe e alcance suas aspirações financeiras."
+          icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={<Skeleton className="h-10 w-44 rounded-md" />}
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -192,6 +190,7 @@ export default function GoalsPage() {
         <PageHeader
           title="Metas Financeiras"
           description="Defina, acompanhe e alcance suas aspirações financeiras."
+          icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={
             <DialogTrigger asChild>
               <Button> 
@@ -242,7 +241,7 @@ export default function GoalsPage() {
                                 <GoalIcon className={cn("h-6 w-6", isAchieved ? "text-emerald-600 dark:text-emerald-400" : "text-primary")} />
                             </div>
                             <div>
-                                <CardTitle className={cn("font-headline", isAchieved && "text-emerald-700 dark:text-emerald-300")}>
+                                <CardTitle className={cn("font-headline text-lg md:text-xl", isAchieved && "text-emerald-700 dark:text-emerald-300")}>
                                 {isAchieved && <Trophy className="inline mr-1.5 h-5 w-5 text-yellow-500" />}
                                 {goal.name}
                                 </CardTitle>
@@ -294,7 +293,7 @@ export default function GoalsPage() {
               </motion.div>
             );
           })}
-           {currentGoals.length > 0 && ( // Only show "Add New Goal" card if there are existing goals
+           {currentGoals.length > 0 && (
               <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
                   <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
                      <DialogTrigger asChild>
@@ -325,7 +324,7 @@ export default function GoalsPage() {
       </div>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle className="font-headline flex items-center">
+          <DialogTitle className="font-headline flex items-center text-lg md:text-xl">
             <Trophy className="mr-2 h-5 w-5 text-primary"/>
             Nova Meta Financeira
           </DialogTitle>
@@ -333,8 +332,10 @@ export default function GoalsPage() {
             Defina um novo objetivo para suas finanças e acompanhe seu progresso.
           </DialogDescription>
         </DialogHeader>
-        <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />
+        {isCreateModalOpen && <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />}
       </DialogContent>
     </Dialog>
   );
 }
+
+    
