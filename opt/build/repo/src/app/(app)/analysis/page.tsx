@@ -65,7 +65,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const PieCustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length && payload[0].payload) {
+  if (active && payload && payload.length && payload[0] && payload[0].payload) {
     const data = payload[0].payload;
     return (
       <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
@@ -96,7 +96,7 @@ export default function AnalysisPage() {
     if (!user?.id || authLoading) {
       setIsFetchingTransactions(authLoading);
       if (!authLoading && !user?.id) {
-        setAllTransactions([]);
+        setAllTransactions([]); // Clear transactions if user logs out or session is lost
       }
       return;
     }
@@ -122,13 +122,13 @@ export default function AnalysisPage() {
   }, [user?.id, authLoading]);
 
   const filteredTransactionsForPeriod = useMemo(() => {
-    if (!allTransactions || allTransactions.length === 0) return [];
+    if (isFetchingTransactions || !allTransactions || allTransactions.length === 0) return [];
     return allTransactions.filter(tx => {
       if (timePeriod === "all") return true;
       if (!tx.date || typeof tx.date !== 'string') return false;
       try {
-        const txDate = new Date(tx.date + "T00:00:00Z");
-        if (isNaN(txDate.getTime())) return false;
+        const txDate = new Date(tx.date + "T00:00:00Z"); // Treat date as UTC
+        if (isNaN(txDate.getTime())) return false; // Invalid date
 
         const now = new Date();
         if (timePeriod === "monthly") {
@@ -141,9 +141,9 @@ export default function AnalysisPage() {
         console.error("Error parsing transaction date in filteredTransactionsForPeriod:", tx.date, e);
         return false;
       }
-      return true;
+      return true; // Should not happen if timePeriod is one of the valid values
     });
-  }, [allTransactions, timePeriod]);
+  }, [allTransactions, timePeriod, isFetchingTransactions]);
 
   const spendingByCategory = useMemo((): CategoryData[] => {
     if (!filteredTransactionsForPeriod || filteredTransactionsForPeriod.length === 0) return [];
@@ -173,16 +173,17 @@ export default function AnalysisPage() {
     return Array.from(incomeMap, ([name, value], index) => ({ 
         name, 
         value, 
-        fill: chartColors[(index + 1) % chartColors.length]
+        fill: chartColors[(index + 1) % chartColors.length] // Offset color index
     })).sort((a,b) => b.value - a.value);
   }, [filteredTransactionsForPeriod]);
 
   const cashFlowTrend = useMemo((): MonthlyFlow[] => {
-    if (!allTransactions || allTransactions.length === 0) return [];
+    if (isFetchingTransactions || !allTransactions || allTransactions.length === 0) return [];
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     
+    // Initialize last 6 months
     for (let i = 5; i >= 0; i--) {
         const date = new Date(today.getUTCFullYear(), today.getUTCMonth() - i, 1);
         const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
@@ -192,13 +193,13 @@ export default function AnalysisPage() {
     allTransactions.forEach(tx => {
       if (!tx.date || typeof tx.date !== 'string') return;
       try {
-        const txDate = new Date(tx.date + "T00:00:00Z");
-        if (isNaN(txDate.getTime())) return;
+        const txDate = new Date(tx.date + "T00:00:00Z"); // Treat date as UTC
+        if (isNaN(txDate.getTime())) return; // Invalid date
 
         const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey] !== undefined) { 
-            if (tx.type === 'income') monthlyData[monthKey].income += tx.amount;
-            else if (tx.type === 'expense') monthlyData[monthKey].expense += tx.amount;
+        if (monthlyData[monthKey] !== undefined) { // Only process if it's within the last 6 months range
+            if (tx.type === 'income' && tx.amount > 0) monthlyData[monthKey].income += tx.amount;
+            else if (tx.type === 'expense' && tx.amount > 0) monthlyData[monthKey].expense += tx.amount;
         }
       } catch(e) {
          console.error("Error processing transaction for cash flow:", tx.date, e);
@@ -211,14 +212,17 @@ export default function AnalysisPage() {
         expense: data.expense,
         balance: data.income - data.expense
     }));
-  }, [allTransactions]);
+  }, [allTransactions, isFetchingTransactions]);
 
   const chartConfig = useMemo(() => ({
     income: { label: "Receita", color: "hsl(var(--chart-1))" },
     expense: { label: "Despesa", color: "hsl(var(--chart-2))" },
+    // Explicitly define colors for pie chart categories if needed, though Cell fill is preferred
+    // Ex: "Alimentação": { label: "Alimentação", color: "hsl(var(--chart-1))"},
+    // "Transporte": { label: "Transporte", color: "hsl(var(--chart-2))"},
   }), []);
   
-  const isLoading = authLoading || (isFetchingTransactions && !!user);
+  const isLoading = authLoading || (isFetchingTransactions && !!user); // User check ensures we wait for user-specific data
 
   if (isLoading) {
     return (
@@ -233,8 +237,9 @@ export default function AnalysisPage() {
     );
   }
   
-  const noTransactionsAtAll = allTransactions.length === 0;
+  const noTransactionsAtAll = !isFetchingTransactions && allTransactions.length === 0;
   const noDataForSelectedPeriod = 
+    !isFetchingTransactions &&
     (timePeriod === "monthly" || timePeriod === "yearly") &&
     spendingByCategory.length === 0 && 
     incomeBySource.length === 0;
@@ -258,7 +263,7 @@ export default function AnalysisPage() {
           </Select>
         }
       />
-      {noTransactionsAtAll && !isFetchingTransactions ? (
+      {noTransactionsAtAll ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -270,7 +275,7 @@ export default function AnalysisPage() {
                 </CardDescription>
             </CardContent>
         </Card>
-      ) : noDataForSelectedPeriod && !isFetchingTransactions ? (
+      ) : noDataForSelectedPeriod ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />

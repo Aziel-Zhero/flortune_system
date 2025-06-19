@@ -10,8 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle } from "lucide-react";
-import Link from "next/link";
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +42,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { getTransactions, deleteTransaction } from "@/services/transaction.service";
-import type { Transaction, Category } from "@/types/database.types";
+import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionForm } from "./transaction-form"; 
 
@@ -70,7 +69,11 @@ export default function TransactionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchPageData = useCallback(async () => {
-    if (!user?.id) return; 
+    if (!user?.id) {
+        setIsLoading(false);
+        setTransactions([]);
+        return;
+    }
     setIsLoading(true);
     try {
       const transactionsRes = await getTransactions(user.id);
@@ -87,17 +90,17 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user?.id && !authLoading) { 
+    if (user?.id && status === "authenticated") { 
       fetchPageData();
-    } else if (!authLoading && !user?.id) {
+    } else if (status === "unauthenticated") {
       setIsLoading(false);
       setTransactions([]);
     }
-  }, [user, authLoading, fetchPageData]);
+  }, [user?.id, status, fetchPageData]);
 
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setDeleteDialog({ isOpen: true, item: { id: transactionId, description: transactionDescription } });
@@ -132,7 +135,6 @@ export default function TransactionsPage() {
       title: "Ação de Edição",
       description: `Funcionalidade de edição de transações em desenvolvimento.`,
     });
-    // Em um app real: router.push(`/transactions/edit/${transactionId}`);
   };
   
   const handleExportClick = () => {
@@ -162,11 +164,12 @@ export default function TransactionsPage() {
     exit: { opacity: 0, x: 20 }
   };
 
-  if (authLoading || (isLoading && user)) {
+  if (authLoading || (isLoading && !!user)) {
     return (
       <div className="w-full">
         <PageHeader
           title="Transações"
+          icon={<List className="h-6 w-6 text-primary"/>}
           description="Gerencie e revise todas as suas transações financeiras."
           actions={
             <div className="flex flex-col sm:flex-row gap-2">
@@ -216,6 +219,7 @@ export default function TransactionsPage() {
       <div className="w-full">
         <PageHeader
           title="Transações"
+          icon={<List className="h-6 w-6 text-primary"/>}
           description="Gerencie e revise todas as suas transações financeiras."
           actions={
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -238,7 +242,7 @@ export default function TransactionsPage() {
         />
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline">Todas as Transações</CardTitle>
+            <CardTitle className="font-headline text-xl md:text-2xl">Todas as Transações</CardTitle>
             <CardDescription>Uma lista detalhada de suas receitas e despesas.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -272,7 +276,7 @@ export default function TransactionsPage() {
                       className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                     >
                       <TableCell className="text-muted-foreground text-xs md:text-sm">
-                        {new Date(transaction.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="font-medium">{transaction.description}</TableCell>
                       <TableCell>
@@ -349,7 +353,7 @@ export default function TransactionsPage() {
       </div>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle className="font-headline flex items-center">
+          <DialogTitle className="font-headline flex items-center text-lg md:text-xl">
               <PlusCircle className="mr-2 h-5 w-5 text-primary"/>
               Nova Transação
           </DialogTitle>
@@ -357,7 +361,7 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />
+        {isCreateModalOpen && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
       </DialogContent>
     </Dialog>
   );

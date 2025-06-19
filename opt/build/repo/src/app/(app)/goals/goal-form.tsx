@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Ainda pode ser útil para redirecionar após sucesso se não estiver em modal
+import { useRouter } from "next/navigation";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,7 +22,8 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
-import { DialogFooter, DialogClose } from "@/components/ui/dialog"; // Para o modal
+import { DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const goalFormSchema = z.object({
   name: z.string().min(3, "O nome da meta deve ter pelo menos 3 caracteres."),
@@ -59,26 +60,29 @@ const getLucideIcon = (iconName?: string | null): React.ElementType => {
 
 interface FinancialGoalFormProps {
   onGoalCreated: () => void;
-  initialData?: Partial<GoalFormData>; // Para edição futura
-  isModal?: boolean; // Para saber se está num modal
+  initialData?: Partial<GoalFormData>; 
+  isModal?: boolean;
 }
 
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
   const user = session?.user;
+  const authLoading = status === "loading";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<GoalFormData>({
     resolver: zodResolver(goalFormSchema),
     defaultValues: initialData || {
+      name: "",
       target_amount: 0,
       deadline_date: null,
       icon: null,
       notes: "",
     },
   });
+  
   const selectedIconValue = watch("icon");
 
   const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
@@ -97,7 +101,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     };
 
     try {
-      const result = await addFinancialGoal(user.id, newGoalData); // Assumindo que 'addFinancialGoal' é a função correta
+      const result = await addFinancialGoal(user.id, newGoalData);
       if (result.error) {
         throw result.error;
       }
@@ -107,8 +111,8 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         action: <CheckCircle className="text-green-500" />,
       });
       reset();
-      onGoalCreated(); // Chama o callback para fechar modal e/ou atualizar lista
-      if (!isModal) router.push("/goals"); // Redireciona se não for modal
+      onGoalCreated(); 
+      if (!isModal) router.push("/goals");
     } catch (error: any) {
       toast({
         title: "Erro ao Criar Meta",
@@ -120,27 +124,38 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     }
   };
   
-  if (status === "loading" && !initialData) { // Apenas mostra loading se não for edição e estiver carregando sessão
+  if (authLoading) { 
     return (
         <div className="space-y-4 py-4">
+            <Skeleton className="h-4 w-1/4 mb-1" />
             <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-4 w-1/4 mb-1" />
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-20 w-full" />
-            <div className="flex justify-end gap-2 pt-4">
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="h-10 w-24" />
+            <div className="grid grid-cols-2 gap-4">
+                <div><Skeleton className="h-4 w-1/2 mb-1" /><Skeleton className="h-10 w-full" /></div>
+                <div><Skeleton className="h-4 w-1/2 mb-1" /><Skeleton className="h-10 w-full" /></div>
             </div>
+            <Skeleton className="h-4 w-1/4 mb-1" />
+            <Skeleton className="h-20 w-full" />
+            <DialogFooter className="pt-4">
+                {isModal && <Skeleton className="h-10 w-24" />}
+                <Skeleton className="h-10 w-28" />
+            </DialogFooter>
         </div>
     );
   }
 
+  if (!user && !authLoading) { // If auth has loaded and there's no user
+    return <p className="text-destructive text-center py-4">Você precisa estar logado para criar uma meta.</p>
+  }
+
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
         <div className="space-y-2">
-            <Label htmlFor="name">Nome da Meta</Label>
+            <Label htmlFor="name-goal">Nome da Meta</Label>
             <Input
-            id="name"
+            id="name-goal"
             placeholder="Ex: Viagem de Férias, Reserva de Emergência"
             {...register("name")}
             />
@@ -148,11 +163,11 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="target_amount">Valor Alvo (R$)</Label>
+            <Label htmlFor="target_amount-goal">Valor Alvo (R$)</Label>
             <div className="relative">
             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-                id="target_amount"
+                id="target_amount-goal"
                 type="number"
                 step="0.01"
                 placeholder="Ex: 5000,00"
@@ -165,7 +180,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="deadline_date">Data Limite (Opcional)</Label>
+                <Label htmlFor="deadline_date-goal">Data Limite (Opcional)</Label>
                 <Controller
                     name="deadline_date"
                     control={control}
@@ -173,6 +188,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
                         <Popover>
                         <PopoverTrigger asChild>
                             <Button
+                            id="deadline_date-goal-trigger"
                             variant={"outline"}
                             className={cn(
                                 "w-full justify-start text-left font-normal",
@@ -198,15 +214,15 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
                 {errors.deadline_date && <p className="text-sm text-destructive mt-1">{errors.deadline_date.message}</p>}
             </div>
             <div className="space-y-2">
-                <Label htmlFor="icon">Ícone (Opcional)</Label>
+                <Label htmlFor="icon-goal">Ícone (Opcional)</Label>
                 <Controller
                     name="icon"
                     control={control}
                     render={({ field }) => {
                         const SelectedIconComponent = getLucideIcon(field.value);
                         return (
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <SelectTrigger id="icon">
+                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={authLoading}>
+                            <SelectTrigger id="icon-goal">
                             <SelectValue placeholder={
                                 <div className="flex items-center gap-2">
                                     <SelectedIconComponent className="h-4 w-4 text-muted-foreground" />
@@ -236,9 +252,9 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="notes">Notas Adicionais (Opcional)</Label>
+            <Label htmlFor="notes-goal">Notas Adicionais (Opcional)</Label>
             <Textarea 
-                id="notes"
+                id="notes-goal"
                 placeholder="Detalhes sobre a meta, estratégias de economia, etc."
                 {...register("notes")}
                 rows={3}
@@ -248,7 +264,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
         <DialogFooter className="pt-4">
             {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || authLoading || !user}>
                 <Save className="mr-2 h-4 w-4" />
                 {isSubmitting ? "Salvando..." : "Salvar Meta"}
             </Button>
@@ -256,6 +272,3 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     </form>
   );
 }
-
-
-    

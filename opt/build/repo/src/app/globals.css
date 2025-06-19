@@ -1,0 +1,430 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 204 20% 96%; 
+    --foreground: 180 30% 25%; 
+
+    --muted: 180 25% 85%;
+    --muted-foreground: 180 20% 50%;
+
+    --popover: 204 20% 98%; 
+    --popover-foreground: 180 30% 25%;
+
+    --card: 204 20% 98%; 
+    --card-foreground: 180 30% 25%;
+
+    --border: 180 20% 80%;
+    --input: 180 25% 88%;
+
+    --primary: 170 75% 36%; 
+    --primary-foreground: 170 75% 95%; 
+
+    --secondary: 175 50% 80%; 
+    --secondary-foreground: 175 50% 25%;
+
+    --accent: 45 95% 51%; 
+    --accent-foreground: 45 95% 15%; 
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --ring: 170 75% 45%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 175 60% 88%; 
+    --sidebar-foreground: 175 40% 20%;
+    --sidebar-primary: 170 75% 36%;
+    --sidebar-primary-foreground: 170 75% 95%;
+    --sidebar-accent: 175 55% 80%;
+    --sidebar-accent-foreground: 175 40% 15%;
+    --sidebar-border: 175 50% 75%;
+    --sidebar-ring: 170 75% 45%;
+
+    --chart-1: 170 75% 45%; 
+    --chart-2: 45 90% 60%;  
+    --chart-3: 175 50% 60%; 
+    --chart-4: 170 60% 30%; 
+    --chart-5: 45 80% 45%;  
+
+    /* Variáveis para o tema Amanhecer */
+    --amanhecer-rosa: 330 90% 70%;
+    --amanhecer-roxo: 280 80% 65%;
+    --amanhecer-laranja: 30 95% 60%;
+  }
+
+  .dark {
+    --background: 180 15% 10%; 
+    --foreground: 180 15% 90%; 
+
+    --muted: 180 15% 20%;
+    --muted-foreground: 180 15% 65%;
+
+    --popover: 180 15% 8%;
+    --popover-foreground: 180 15% 90%;
+
+    --card: 180 15% 8%;
+    --card-foreground: 180 15% 90%;
+
+    --border: 180 15% 25%;
+    --input: 180 15% 22%;
+
+    --primary: 170 70% 40%; 
+    --primary-foreground: 170 70% 90%;
+
+    --secondary: 175 40% 30%;
+    --secondary-foreground: 175 40% 90%;
+
+    --accent: 45 90% 55%; 
+    --accent-foreground: 45 90% 10%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --ring: 170 70% 50%;
+
+    --sidebar-background: 180 20% 15%;
+    --sidebar-foreground: 180 15% 85%;
+    --sidebar-primary: 170 70% 40%;
+    --sidebar-primary-foreground: 170 70% 90%;
+    --sidebar-accent: 175 35% 25%;
+    --sidebar-accent-foreground: 175 35% 85%;
+    --sidebar-border: 180 15% 30%;
+    --sidebar-ring: 170 70% 50%;
+
+    --chart-1: 170 70% 50%;
+    --chart-2: 45 85% 65%;
+    --chart-3: 175 45% 65%;
+    --chart-4: 170 55% 35%;
+    --chart-5: 45 75% 50%;
+  }
+
+  /* Tema Rio da Serra (Antigo Oceano Pacífico) */
+  .theme-rio-da-serra {
+    --background: 210 60% 97%; 
+    --foreground: 220 40% 25%; 
+    --card: 210 60% 99%; 
+    --card-foreground: 220 40% 22%;
+    --popover: 210 60% 100%; 
+    --popover-foreground: 220 40% 22%;
+    --primary: 221 83% 53%; 
+    --primary-foreground: 221 83% 95%; 
+    --secondary: 215 50% 85%; 
+    --secondary-foreground: 215 50% 30%;
+    --accent: 190 70% 50%; 
+    --accent-foreground: 190 70% 10%;
+    --muted: 210 50% 90%;
+    --muted-foreground: 215 30% 55%;
+    --border: 210 40% 85%;
+    --input: 210 45% 88%;
+    --ring: 221 83% 60%;
+
+    --sidebar-background: 215 55% 90%;
+    --sidebar-foreground: 220 35% 20%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 221 83% 95%;
+    --sidebar-accent: 210 50% 80%;
+    --sidebar-accent-foreground: 210 50% 25%;
+    --sidebar-border: 215 45% 80%;
+    
+    --chart-1: 221 80% 55%; 
+    --chart-2: 190 65% 55%;  
+    --chart-3: 215 45% 65%; 
+    --chart-4: 221 70% 40%; 
+    --chart-5: 190 55% 40%;  
+  }
+  .dark.theme-rio-da-serra {
+    --background: 222 84% 5%; 
+    --foreground: 210 40% 98%; 
+    --card: 222 84% 7%;
+    --card-foreground: 210 40% 95%;
+    --popover: 222 84% 6%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 217 91% 60%; 
+    --primary-foreground: 222 47% 11%; 
+    --secondary: 217 33% 18%; 
+    --secondary-foreground: 210 40% 95%;
+    --accent: 190 75% 50%; 
+    --accent-foreground: 190 75% 95%;
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 65%;
+    --border: 217 33% 17%;
+    --input: 217 33% 19%;
+    --ring: 224 76% 48%;
+
+    --sidebar-background: 222 80% 8%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 30% 22%;
+    --sidebar-accent-foreground: 210 40% 90%;
+    --sidebar-border: 217 30% 25%;
+  }
+
+  /* Tema Aurora Dourada (Amarelo/Laranja Claro) */
+  .theme-golden-dawn {
+    --background: 40 50% 97%; 
+    --foreground: 35 40% 25%; 
+    --card: 40 50% 99%;
+    --card-foreground: 35 40% 22%;
+    --popover: 40 50% 100%;
+    --popover-foreground: 35 40% 22%;
+    --primary: 45 95% 51%; 
+    --primary-foreground: 45 95% 10%; 
+    --secondary: 38 80% 75%; 
+    --secondary-foreground: 38 80% 20%;
+    --accent: 30 90% 65%; 
+    --accent-foreground: 30 90% 10%;
+    --muted: 40 40% 90%;
+    --muted-foreground: 35 30% 50%;
+    --border: 40 35% 85%;
+    --input: 40 40% 88%;
+    --ring: 45 95% 55%;
+
+    --sidebar-background: 40 60% 92%;
+    --sidebar-foreground: 35 40% 20%;
+    --sidebar-primary: 45 95% 51%;
+    --sidebar-primary-foreground: 45 95% 10%;
+    --sidebar-accent: 38 75% 70%;
+    --sidebar-accent-foreground: 38 75% 18%;
+    --sidebar-border: 40 50% 80%;
+
+    --chart-1: 45 90% 55%; 
+    --chart-2: 30 85% 60%;  
+    --chart-3: 38 70% 70%; 
+    --chart-4: 45 80% 40%; 
+    --chart-5: 30 75% 50%;
+  }
+  .dark.theme-golden-dawn {
+    --background: 35 30% 10%; /* Marrom escuro, quase preto */
+    --foreground: 45 100% 85%; /* Dourado bem claro, quase branco */
+    --card: 35 25% 12%;
+    --card-foreground: 45 95% 82%;
+    --popover: 35 20% 10%;
+    --popover-foreground: 45 95% 82%;
+    --primary: 45 100% 60%; /* Dourado vibrante, mais puxado pro amarelo */
+    --primary-foreground: 35 100% 5%; /* Marrom muito escuro */
+    --secondary: 40 80% 45%; /* Dourado mais escuro/laranja queimado */
+    --secondary-foreground: 40 80% 90%;
+    --accent: 50 100% 68%; /* Amarelo limão brilhante */
+    --accent-foreground: 50 100% 8%;
+    --muted: 35 25% 22%;
+    --muted-foreground: 45 70% 65%;
+    --border: 35 25% 28%;
+    --input: 35 25% 25%;
+    --ring: 45 100% 65%;
+
+    --sidebar-background: 35 28% 11%;
+    --sidebar-foreground: 45 90% 80%;
+    --sidebar-primary: 45 100% 60%;
+    --sidebar-primary-foreground: 35 100% 5%;
+    --sidebar-accent: 40 75% 40%;
+    --sidebar-accent-foreground: 40 75% 88%;
+    --sidebar-border: 35 25% 25%;
+  }
+
+  /* Tema Mística Nebulosa (Roxo) */
+  .theme-mystic-nebula {
+    --background: 270 20% 96%; 
+    --foreground: 275 40% 25%; 
+    --card: 270 20% 98%;
+    --card-foreground: 275 40% 22%;
+    --popover: 270 20% 100%;
+    --popover-foreground: 275 40% 22%;
+    --primary: 270 65% 55%; 
+    --primary-foreground: 270 65% 95%; 
+    --secondary: 280 40% 80%; 
+    --secondary-foreground: 280 40% 25%;
+    --accent: 330 80% 60%; 
+    --accent-foreground: 330 80% 10%;
+    --muted: 270 25% 88%;
+    --muted-foreground: 275 20% 55%;
+    --border: 270 20% 80%;
+    --input: 270 25% 85%;
+    --ring: 270 65% 60%;
+
+    --sidebar-background: 275 30% 90%;
+    --sidebar-foreground: 275 40% 18%;
+    --sidebar-primary: 270 65% 55%;
+    --sidebar-primary-foreground: 270 65% 95%;
+    --sidebar-accent: 280 35% 75%;
+    --sidebar-accent-foreground: 280 35% 20%;
+    --sidebar-border: 275 25% 78%;
+
+    --chart-1: 270 60% 60%; 
+    --chart-2: 330 75% 65%;  
+    --chart-3: 280 35% 70%; 
+    --chart-4: 270 50% 45%; 
+    --chart-5: 330 65% 50%;
+  }
+  .dark.theme-mystic-nebula {
+    --background: 270 25% 8%; 
+    --foreground: 270 30% 88%; 
+    --card: 270 25% 10%;
+    --card-foreground: 270 30% 85%;
+    --popover: 270 25% 7%;
+    --popover-foreground: 270 30% 85%;
+    --primary: 270 70% 65%; 
+    --primary-foreground: 270 70% 10%; 
+    --secondary: 280 40% 30%; 
+    --secondary-foreground: 280 40% 90%;
+    --accent: 290 80% 70%; 
+    --accent-foreground: 290 80% 15%;
+    --muted: 270 20% 20%;
+    --muted-foreground: 270 25% 60%;
+    --border: 270 20% 25%;
+    --input: 270 20% 22%;
+    --ring: 270 70% 70%;
+
+    --sidebar-background: 270 22% 12%;
+    --sidebar-foreground: 270 30% 80%;
+    --sidebar-primary: 270 70% 65%;
+    --sidebar-primary-foreground: 270 70% 10%;
+    --sidebar-accent: 280 35% 25%;
+    --sidebar-accent-foreground: 280 35% 88%;
+    --sidebar-border: 270 20% 28%;
+  }
+  
+  /* Tema Amanhecer (Degradê Rosa/Roxo) */
+  .theme-amanhecer {
+    --background: 320 40% 96%; 
+    --foreground: 300 30% 25%; 
+    --card: 0 0% 100%; 
+    --card-foreground: 300 30% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 300 30% 20%;
+    --primary: 330 85% 62%; 
+    --primary-foreground: 330 85% 98%; 
+    --secondary: 290 60% 75%; 
+    --secondary-foreground: 290 60% 20%;
+    --accent: 25 90% 60%; 
+    --accent-foreground: 25 90% 10%;
+    --muted: 310 30% 90%;
+    --muted-foreground: 300 20% 50%;
+    --border: 310 25% 85%;
+    --input: 310 30% 88%;
+    --ring: 330 85% 65%;
+
+    --sidebar-background: 325 50% 92%;
+    --sidebar-foreground: 300 30% 18%;
+    --sidebar-primary: 330 85% 62%;
+    --sidebar-primary-foreground: 330 85% 98%;
+    --sidebar-accent: 290 55% 70%;
+    --sidebar-accent-foreground: 290 55% 15%;
+    --sidebar-border: 320 40% 80%;
+
+    --chart-1: 330 80% 65%; 
+    --chart-2: 25 85% 65%;  
+    --chart-3: 290 55% 70%; 
+    --chart-4: 330 70% 50%; 
+    --chart-5: 25 75% 55%;
+  }
+  .dark.theme-amanhecer {
+    --background: 290 30% 8%; 
+    --foreground: 300 40% 88%; 
+    --card: 290 28% 12%;
+    --card-foreground: 300 40% 85%;
+    --popover: 290 28% 10%;
+    --popover-foreground: 300 40% 85%;
+    --primary: 285 70% 60%; 
+    --primary-foreground: 285 70% 95%; 
+    --secondary: 330 50% 40%; 
+    --secondary-foreground: 330 50% 90%;
+    --accent: 30 80% 55%; 
+    --accent-foreground: 30 80% 95%;
+    --muted: 290 25% 20%;
+    --muted-foreground: 300 30% 60%;
+    --border: 290 25% 25%;
+    --input: 290 25% 22%;
+    --ring: 285 70% 65%;
+
+    --sidebar-background: 290 25% 15%;
+    --sidebar-foreground: 300 35% 80%;
+    --sidebar-primary: 285 70% 60%;
+    --sidebar-primary-foreground: 285 70% 95%;
+    --sidebar-accent: 330 45% 35%;
+    --sidebar-accent-foreground: 330 45% 88%;
+    --sidebar-border: 290 20% 28%;
+  }
+
+  /* Tema Terra Vermelha */
+  .theme-terra-vermelha {
+    --background: 25 30% 95%; /* Bege claro */
+    --foreground: 15 50% 20%; /* Marrom escuro avermelhado */
+    --card: 20 40% 98%; 
+    --card-foreground: 15 45% 18%;
+    --popover: 20 40% 100%; 
+    --popover-foreground: 15 45% 18%;
+    --primary: 15 70% 45%; /* Vermelho terra principal */
+    --primary-foreground: 15 70% 95%; /* Branco / Creme muito claro */
+    --secondary: 20 60% 70%; /* Laranja argila suave */
+    --secondary-foreground: 20 60% 15%;
+    --accent: 35 80% 55%; /* Ocre / Amarelo queimado */
+    --accent-foreground: 35 80% 10%;
+    --muted: 25 35% 88%;
+    --muted-foreground: 15 30% 50%;
+    --border: 25 30% 80%;
+    --input: 25 35% 85%;
+    --ring: 15 70% 50%;
+
+    --sidebar-background: 20 45% 90%;
+    --sidebar-foreground: 15 50% 15%;
+    --sidebar-primary: 15 70% 45%;
+    --sidebar-primary-foreground: 15 70% 95%;
+    --sidebar-accent: 20 55% 65%;
+    --sidebar-accent-foreground: 20 55% 10%;
+    --sidebar-border: 20 40% 78%;
+
+    --chart-1: 15 65% 50%; 
+    --chart-2: 35 75% 60%;  
+    --chart-3: 20 55% 65%; 
+    --chart-4: 15 55% 35%; 
+    --chart-5: 35 65% 45%;
+  }
+  .dark.theme-terra-vermelha {
+    --background: 15 40% 8%; /* Marrom avermelhado muito escuro */
+    --foreground: 20 50% 88%; /* Bege claro / Areia */
+    --card: 15 35% 10%;
+    --card-foreground: 20 45% 85%;
+    --popover: 15 30% 7%;
+    --popover-foreground: 20 45% 85%;
+    --primary: 15 80% 55%; /* Vermelho tijolo vibrante */
+    --primary-foreground: 15 80% 95%; 
+    --secondary: 20 60% 35%; /* Laranja queimado escuro */
+    --secondary-foreground: 20 60% 90%;
+    --accent: 30 90% 60%; /* Laranja vibrante */
+    --accent-foreground: 30 90% 95%;
+    --muted: 15 30% 20%;
+    --muted-foreground: 20 40% 60%;
+    --border: 15 30% 25%;
+    --input: 15 30% 22%;
+    --ring: 15 80% 60%;
+
+    --sidebar-background: 15 38% 12%;
+    --sidebar-foreground: 20 48% 80%;
+    --sidebar-primary: 15 80% 55%;
+    --sidebar-primary-foreground: 15 80% 95%;
+    --sidebar-accent: 20 55% 30%;
+    --sidebar-accent-foreground: 20 55% 88%;
+    --sidebar-border: 15 30% 28%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  .font-headline {
+    font-family: 'Poppins', sans-serif;
+  }
+  .font-body {
+    font-family: 'Inter', sans-serif;
+  }
+}
