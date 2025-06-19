@@ -65,7 +65,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const PieCustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
+  if (active && payload && payload.length && payload[0].payload) {
     const data = payload[0].payload;
     return (
       <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
@@ -90,6 +90,9 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
+  }, []);
+
+  useEffect(() => {
     if (!user?.id || authLoading) {
       setIsFetchingTransactions(authLoading);
       if (!authLoading && !user?.id) {
@@ -119,7 +122,7 @@ export default function AnalysisPage() {
   }, [user?.id, authLoading]);
 
   const filteredTransactionsForPeriod = useMemo(() => {
-    if (isFetchingTransactions || authLoading) return [];
+    if (!allTransactions || allTransactions.length === 0) return [];
     return allTransactions.filter(tx => {
       if (timePeriod === "all") return true;
       if (!tx.date || typeof tx.date !== 'string') return false;
@@ -140,13 +143,13 @@ export default function AnalysisPage() {
       }
       return true;
     });
-  }, [allTransactions, timePeriod, isFetchingTransactions, authLoading]);
+  }, [allTransactions, timePeriod]);
 
-  const spendingByCategory = useMemo(() => {
-    if (isFetchingTransactions || authLoading) return [];
+  const spendingByCategory = useMemo((): CategoryData[] => {
+    if (!filteredTransactionsForPeriod || filteredTransactionsForPeriod.length === 0) return [];
     const spendingMap = new Map<string, number>();
     filteredTransactionsForPeriod
-      .filter(tx => tx.type === 'expense' && tx.category)
+      .filter(tx => tx.type === 'expense' && tx.amount > 0)
       .forEach(tx => {
         const categoryName = tx.category?.name || 'Outros';
         spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
@@ -156,13 +159,13 @@ export default function AnalysisPage() {
         value, 
         fill: chartColors[index % chartColors.length] 
     })).sort((a,b) => b.value - a.value);
-  }, [filteredTransactionsForPeriod, isFetchingTransactions, authLoading]);
+  }, [filteredTransactionsForPeriod]);
 
-  const incomeBySource = useMemo(() => {
-    if (isFetchingTransactions || authLoading) return [];
+  const incomeBySource = useMemo((): CategoryData[] => {
+    if (!filteredTransactionsForPeriod || filteredTransactionsForPeriod.length === 0) return [];
     const incomeMap = new Map<string, number>();
     filteredTransactionsForPeriod
-      .filter(tx => tx.type === 'income' && tx.category)
+      .filter(tx => tx.type === 'income' && tx.amount > 0)
       .forEach(tx => {
         const categoryName = tx.category?.name || 'Outras Receitas';
         incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
@@ -172,10 +175,10 @@ export default function AnalysisPage() {
         value, 
         fill: chartColors[(index + 1) % chartColors.length]
     })).sort((a,b) => b.value - a.value);
-  }, [filteredTransactionsForPeriod, isFetchingTransactions, authLoading]);
+  }, [filteredTransactionsForPeriod]);
 
-  const cashFlowTrend = useMemo(() => {
-    if (isFetchingTransactions || authLoading) return [];
+  const cashFlowTrend = useMemo((): MonthlyFlow[] => {
+    if (!allTransactions || allTransactions.length === 0) return [];
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -208,15 +211,14 @@ export default function AnalysisPage() {
         expense: data.expense,
         balance: data.income - data.expense
     }));
-  }, [allTransactions, isFetchingTransactions, authLoading]);
+  }, [allTransactions]);
 
   const chartConfig = useMemo(() => ({
-    amount: { label: "Valor (R$)" },
     income: { label: "Receita", color: "hsl(var(--chart-1))" },
     expense: { label: "Despesa", color: "hsl(var(--chart-2))" },
   }), []);
   
-  const isLoading = authLoading || (isFetchingTransactions && !!user); // Ensure user object is considered for loading state
+  const isLoading = authLoading || (isFetchingTransactions && !!user);
 
   if (isLoading) {
     return (
@@ -256,7 +258,7 @@ export default function AnalysisPage() {
           </Select>
         }
       />
-      {noTransactionsAtAll && !isLoading ? ( // !isLoading check ensures this only shows after loading finishes
+      {noTransactionsAtAll && !isFetchingTransactions ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -268,7 +270,7 @@ export default function AnalysisPage() {
                 </CardDescription>
             </CardContent>
         </Card>
-      ) : noDataForSelectedPeriod && !isLoading ? (
+      ) : noDataForSelectedPeriod && !isFetchingTransactions ? (
         <Card className="shadow-sm text-center py-12">
             <CardHeader>
                 <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -284,7 +286,7 @@ export default function AnalysisPage() {
         <div className="grid gap-6 md:grid-cols-2">
             <Card className="shadow-sm">
             <CardHeader>
-                <CardTitle className="font-headline flex items-center">
+                <CardTitle className="font-headline flex items-center text-lg md:text-xl">
                 <BarChart className="mr-2 h-5 w-5 text-primary" />
                 Gastos por Categoria
                 </CardTitle>
@@ -315,7 +317,7 @@ export default function AnalysisPage() {
 
             <Card className="shadow-sm">
             <CardHeader>
-                <CardTitle className="font-headline flex items-center">
+                <CardTitle className="font-headline flex items-center text-lg md:text-xl">
                 <PieIcon className="mr-2 h-5 w-5 text-primary" />
                 Fontes de Renda
                 </CardTitle>
@@ -346,7 +348,7 @@ export default function AnalysisPage() {
 
             <Card className="md:col-span-2 shadow-sm">
             <CardHeader>
-                <CardTitle className="font-headline flex items-center">
+                <CardTitle className="font-headline flex items-center text-lg md:text-xl">
                 <TrendingUp className="mr-2 h-5 w-5 text-primary" />
                 Tendência do Fluxo de Caixa (Últimos 6 Meses)
                 </CardTitle>
@@ -378,5 +380,4 @@ export default function AnalysisPage() {
       )}
     </div>
   );
-
-    
+}
