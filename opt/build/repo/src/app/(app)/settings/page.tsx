@@ -273,7 +273,7 @@ export default function SettingsPage() {
                     key={theme.id}
                     variant={currentTheme === theme.id ? "default" : "outline"}
                     className={cn(
-                      "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between min-h-[110px] sm:min-h-[130px]",
+                      "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between min-h-[120px] sm:min-h-[140px]",
                       currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
                     )}
                     onClick={() => handleThemeChange(theme.id)}
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                         <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3 min-h-[30px] sm:min-h-[45px]">
+                    <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3">
                       {theme.description}
                     </p>
                   </Button>
@@ -378,4 +378,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-    

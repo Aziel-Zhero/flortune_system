@@ -411,10 +411,10 @@ export default function AnalysisPage() {
                                 <LineChart 
                                     data={monthlyEvolution} 
                                     margin={{ 
-                                        top: 10,    // Increased top margin
+                                        top: 10,    
                                         right: 30, 
-                                        left: 30,   // Increased left margin 
-                                        bottom: 60  // Significantly increased bottom margin
+                                        left: 30,   
+                                        bottom: 70  // Aumentada significativamente para acomodar labels rotacionados
                                     }}
                                 > 
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -422,15 +422,15 @@ export default function AnalysisPage() {
                                         dataKey="month" 
                                         tick={{ fontSize: 10 }} 
                                         interval={0} 
-                                        angle={-30} 
+                                        angle={-45}  // Ajustado ângulo para melhor visualização
                                         textAnchor="end" 
-                                        height={70} // Increased height for X-axis labels
-                                        dy={5}    // Adjust vertical position of labels
+                                        height={80} // Aumentada altura para acomodar labels rotacionados e margem
+                                        dy={10}    // Ajuste vertical
                                     />
                                     <YAxis 
                                         tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} 
                                         tick={{ fontSize: 10 }} 
-                                        dx={-5}   // Adjust horizontal position of labels
+                                        dx={-5}   
                                     />
                                     <RechartsTooltip content={<RealDataCustomTooltip />} />
                                     <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
@@ -711,4 +711,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-

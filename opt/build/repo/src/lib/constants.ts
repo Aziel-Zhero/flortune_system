@@ -11,6 +11,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/budgets", label: "Orçamentos", icon: "Target" as const, type: "link" as const },
   { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
   { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
+  { href: "/notes", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "FOR DEVs" },
   { href: "/dev/systems", label: "Sistemas", icon: "Component" as const, type: "link" as const },
@@ -85,4 +86,3 @@ export const PRICING_TIERS = [
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
-    
