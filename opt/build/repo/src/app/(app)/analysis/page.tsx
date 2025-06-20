@@ -40,30 +40,30 @@ import {
 } from "@/components/ui/chart";
 
 import {
-  AreaChart, 
+  AreaChart, // Componente Recharts
   Area,      
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  PieChart, 
+  PieChart, // Componente Recharts
   Pie,
   Cell,
   Tooltip as RechartsTooltip,
   Legend,
-  BarChart, 
+  BarChart, // Componente Recharts
   Bar,
   LabelList,
-  RadarChart, 
+  RadarChart, // Componente Recharts
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar, 
-  RadialBarChart, 
+  Radar, // Elemento Recharts
+  RadialBarChart, // Componente Recharts
   RadialBar,
   Brush,
-  LineChart as RechartsLineChart // Importação do LineChart do Recharts com alias se necessário
+  LineChart as RechartsLineChart // Alias para LineChart do Recharts, usado na galeria
 } from "recharts";
 import { toast } from "@/hooks/use-toast";
 
@@ -409,10 +409,10 @@ export default function AnalysisPage() {
                                     accessibilityLayer
                                     data={monthlyEvolution}
                                     margin={{
-                                        top: 20, // Espaço para a legenda
-                                        right: 30, // Espaço para labels da direita
-                                        left: 30,  // Espaço para labels da esquerda do YAxis
-                                        bottom: 70, // Espaço para labels rotacionados do XAxis
+                                        top: 20, 
+                                        right: 30, 
+                                        left: 30,  
+                                        bottom: 70, 
                                     }}
                                 >
                                     <defs>
@@ -430,12 +430,12 @@ export default function AnalysisPage() {
                                         dataKey="month"
                                         tickLine={false}
                                         axisLine={false}
-                                        tickMargin={10} // Aumentado para mais espaço
+                                        tickMargin={10} 
                                         interval={0}
                                         angle={-45}
                                         textAnchor="end"
-                                        height={80} // Altura para comportar os labels rotacionados
-                                        dy={10}    // Deslocamento vertical do texto
+                                        height={80} 
+                                        dy={10}    
                                         tick={{ fontSize: 10 }}
                                     />
                                     <YAxis
@@ -443,9 +443,9 @@ export default function AnalysisPage() {
                                         tick={{ fontSize: 10 }}
                                         tickLine={false}
                                         axisLine={false}
-                                        tickMargin={5} // Espaço entre tick e label
-                                        dx={-5}    // Deslocamento horizontal do texto
-                                        width={70} // Largura reservada para o eixo Y
+                                        tickMargin={5} 
+                                        dx={-5}    
+                                        width={70} 
                                     />
                                     <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
                                     <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
@@ -696,5 +696,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-
-    
