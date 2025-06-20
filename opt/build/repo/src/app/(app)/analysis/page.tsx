@@ -310,7 +310,7 @@ export default function AnalysisPage() {
           {[1,2,3].map(i => ( <Card key={`sk-card-pie-${i}`} className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card> ))}
           <Card className="md:col-span-2 lg:col-span-3"><CardHeader><Skeleton className="h-6 w-1/2 mb-1"/><Skeleton className="h-4 w-3/4"/></CardHeader><CardContent><Skeleton className="h-96 w-full"/></CardContent></Card>
         </div>
-         <PageHeader title="Galeria de Exemplos de Gráficos" description="Carregando demonstrações..." icon={<BarIconLucide />} />
+         <PageHeader title="Galeria de Exemplos de Gráficos" description="Carregando demonstrações..." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
            {[...Array(6)].map((_, i) => ( <Card key={`sk-gallery-${i}`}><CardHeader><Skeleton className="h-5 w-1/2" /><Skeleton className="h-3 w-3/4 mt-1" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>))}
         </div>
@@ -408,9 +408,9 @@ export default function AnalysisPage() {
                     {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
                         <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={monthlyEvolution} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
+                                <LineChart data={monthlyEvolution} margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={40}/>
+                                    <XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={50}/>
                                     <YAxis tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
                                     <RechartsTooltip content={<RealDataCustomTooltip />} />
                                     <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
@@ -427,7 +427,7 @@ export default function AnalysisPage() {
 
       {/* Galeria de Exemplos de Gráficos */}
       <PageHeader title="Galeria de Exemplos de Gráficos" description="Demonstração de diferentes tipos de gráficos." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Area Chart - Interactive */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Interactive</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
@@ -691,4 +691,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-    
