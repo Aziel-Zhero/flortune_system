@@ -293,11 +293,11 @@ export default function AnalysisPage() {
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIcon className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
                         <CardContent className="h-80">
                             {spendingByCategory.length > 0 ? (
-                                <ChartContainer config={{}} className="min-h-[200px] w-full">
+                                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <RechartsTooltip content={<PieCustomTooltip />} />
-                                            <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}>
+                                            <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
                                                 {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
                                             </Pie>
                                             <ChartLegend content={<ChartLegendContent nameKey="name" />} />
@@ -312,11 +312,11 @@ export default function AnalysisPage() {
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIcon className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
                         <CardContent className="h-80">
                             {incomeBySource.length > 0 ? (
-                                <ChartContainer config={{}} className="min-h-[200px] w-full">
+                                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <RechartsTooltip content={<PieCustomTooltip />} />
-                                            <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}>
+                                            <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
                                                 {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
                                             </Pie>
                                             <ChartLegend content={<ChartLegendContent nameKey="name" />} />
@@ -366,4 +366,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-

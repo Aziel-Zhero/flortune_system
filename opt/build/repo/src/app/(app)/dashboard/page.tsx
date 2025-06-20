@@ -5,7 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -95,7 +95,7 @@ export default function DashboardPage() {
         toast({ title: "Erro ao buscar transações", description: transactionsError.message, variant: "destructive" });
         setAllTransactions([]);
       } else {
-        setAllTransactions(transactionsData || []);
+        setAllTransactions(Array.isArray(transactionsData) ? transactionsData : []);
       }
 
       const { data: goalsData, error: goalsError } = await getFinancialGoals(user.id);
@@ -105,7 +105,7 @@ export default function DashboardPage() {
       } else if (goalsData && goalsData.length > 0) {
         const inProgressGoals = goalsData.filter(g => g.status === 'in_progress');
         if (inProgressGoals.length > 0) {
-            const primaryGoal = inProgressGoals[0];
+            const primaryGoal = inProgressGoals.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]; 
             if (primaryGoal.target_amount > 0) {
                  primaryGoalProgress = Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100);
             }
@@ -117,16 +117,16 @@ export default function DashboardPage() {
       const currentMonth = new Date().getUTCMonth();
       const currentYear = new Date().getUTCFullYear();
 
-      (transactionsData || []).forEach(tx => {
+      (Array.isArray(transactionsData) ? transactionsData : []).forEach(tx => {
         if (!tx.date || typeof tx.date !== 'string') return;
         try {
             const txDate = new Date(tx.date + 'T00:00:00Z');
             if (isNaN(txDate.getTime())) return;
 
             if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
-            if (tx.type === 'income') {
+            if (tx.type === 'income' && typeof tx.amount === 'number') {
                 totalIncome += tx.amount;
-            } else if (tx.type === 'expense') {
+            } else if (tx.type === 'expense' && typeof tx.amount === 'number') {
                 totalExpenses += tx.amount;
             }
             }
@@ -147,7 +147,7 @@ export default function DashboardPage() {
       toast({ title: "Erro de Dados", description: "Não foi possível carregar todos os dados do painel.", variant: "destructive" });
     } finally {
       setTransactionsLoading(false);
-      setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false }))); // Ensure all loading flags are false
+      setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false }))); 
     }
   }, [user?.id]);
 
@@ -180,7 +180,7 @@ export default function DashboardPage() {
         if (isNaN(txDate.getTime())) return;
 
         if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
-          if (tx.type === 'expense' && tx.amount > 0 && tx.category) {
+          if (tx.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0 && tx.category) {
             const categoryName = tx.category.name;
             spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
           }
@@ -274,6 +274,7 @@ export default function DashboardPage() {
             href="/transactions/new" 
             className={cn(buttonVariants({ variant: "default", size: "default" }))}
           >
+            <PlusCircle className="mr-2 h-4 w-4"/>
             Adicionar Transação
           </Link>
         }
@@ -375,9 +376,9 @@ export default function DashboardPage() {
                 <ChartContainer config={{}} className="min-h-[200px] w-full h-64">
                   <PieChart>
                     <RechartsTooltip content={<PieCustomTooltip />} />
-                    <Pie data={monthlySpendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                      {monthlySpendingByCategory.map((entry) => (
-                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                    <Pie data={monthlySpendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} labelLine={false} label={({ name, percent }) => (name && percent ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                      {monthlySpendingByCategory.map((entry, index) => (
+                        <Cell key={`cell-${entry.name}-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
                     <ChartLegend content={<ChartLegendContent nameKey="name" />} />
@@ -411,5 +412,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

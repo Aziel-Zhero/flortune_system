@@ -9,7 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle } from "lucide-react";
+import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import {
@@ -45,8 +45,8 @@ const getLucideIcon = (iconName?: string | null): React.ElementType => {
 };
 
 export default function GoalsPage() {
-  const { data: session, status } = useSession();
-  const authLoading = status === "loading";
+  const { data: session, status: authStatus } = useSession();
+  const authLoading = authStatus === "loading";
   const user = session?.user;
 
   const [currentGoals, setCurrentGoals] = useState<FinancialGoal[]>([]);
@@ -67,7 +67,7 @@ export default function GoalsPage() {
         toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
         setCurrentGoals([]);
       } else {
-        setCurrentGoals(data || []);
+        setCurrentGoals(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar as metas.", variant: "destructive" });
@@ -79,13 +79,13 @@ export default function GoalsPage() {
 
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
-    if (user?.id && status === "authenticated") {
+    if (user?.id && authStatus === "authenticated") {
       fetchGoalsData();
-    } else if (status === "unauthenticated") {
+    } else if (authStatus === "unauthenticated") {
       setIsLoadingData(false);
       setCurrentGoals([]);
     }
-  }, [user?.id, status, fetchGoalsData]);
+  }, [user?.id, authStatus, fetchGoalsData]);
 
   const handleDeleteClick = (goalId: string, goalName: string) => {
     setDeleteDialog({ isOpen: true, item: { id: goalId, name: goalName } });
@@ -117,7 +117,7 @@ export default function GoalsPage() {
   const handleEditClick = (goalId: string, goalName: string) => {
     toast({
       title: "Editar Meta",
-      description: `Funcionalidade de edição para "${goalName}" em desenvolvimento.`,
+      description: `Funcionalidade de edição para "${goalName}" (placeholder).`,
     });
   };
 
@@ -193,7 +193,7 @@ export default function GoalsPage() {
           icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={
             <DialogTrigger asChild>
-              <Button> 
+              <Button disabled={authLoading || !user}> 
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Definir Nova Meta
               </Button>
@@ -208,7 +208,7 @@ export default function GoalsPage() {
                 Metas financeiras são o mapa para seus sonhos. Comece definindo sua primeira meta e veja seu progresso florescer!
               </p>
               <DialogTrigger asChild>
-                  <Button size="lg">
+                  <Button size="lg" disabled={authLoading || !user}>
                     <PlusCircle className="mr-2 h-5 w-5" />
                     Definir Minha Primeira Meta
                   </Button>
@@ -297,7 +297,7 @@ export default function GoalsPage() {
               <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
                   <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
                      <DialogTrigger asChild>
-                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none"> 
+                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none" disabled={authLoading || !user}> 
                           <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
                           <p className="font-semibold">Definir Nova Meta Financeira</p>
                        </button>
@@ -332,16 +332,16 @@ export default function GoalsPage() {
             Defina um novo objetivo para suas finanças e acompanhe seu progresso.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />}
-        {isCreateModalOpen && !session?.user && (
+        {isCreateModalOpen && session?.user && authStatus === "authenticated" && (
+          <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />
+        )}
+        {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
             <div className="py-8 text-center">
-                <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
-                <p className="text-muted-foreground">Você precisa estar logado para criar uma meta.</p>
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
+                <p className="text-muted-foreground">Carregando formulário...</p>
             </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
-
-    

@@ -230,7 +230,6 @@ export default function SettingsPage() {
                       <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
                 </div>
-                 {/* Adicionar campo para Inscrição Estadual se necessário para empresa */}
               </div>
             )}
           </CardContent>
@@ -271,19 +270,19 @@ export default function SettingsPage() {
                   key={theme.id}
                   variant={currentTheme === theme.id ? "default" : "outline"}
                   className={cn(
-                    "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between",
+                    "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between min-h-[100px] sm:min-h-[120px]",
                     currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
                   )}
                   onClick={() => handleThemeChange(theme.id)}
                 >
                   <div className="flex items-center gap-2 sm:gap-3 w-full">
                     {theme.icon}
-                    <span className="font-semibold text-sm">{theme.name}</span>
+                    <span className="font-semibold text-sm md:text-base">{theme.name}</span>
                     {currentTheme === theme.id && (
                       <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground min-h-[2.5rem] sm:min-h-[2.75rem] line-clamp-2">
+                  <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3">
                     {theme.description}
                   </p>
                 </Button>
@@ -375,5 +374,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

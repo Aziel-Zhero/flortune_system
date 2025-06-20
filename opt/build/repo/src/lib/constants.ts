@@ -3,20 +3,32 @@ export const APP_NAME = "Flortune";
 
 // Navigation links with Portuguese labels
 export const NAV_LINKS_CONFIG = [
-  { href: "/dashboard", label: "Painel", icon: "LayoutDashboard" },
-  { href: "/calendar", label: "Calendário", icon: "CalendarDays" },
-  { href: "/transactions", label: "Transações", icon: "ArrowRightLeft" },
-  { href: "/analysis", label: "Análise", icon: "BarChart3" },
-  { href: "/budgets", label: "Orçamentos", icon: "Target"},
-  { href: "/goals", label: "Metas", icon: "Trophy" },
-  { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" },
-  { href: "/plans", label: "Nossos Planos", icon: "Gem" },
-  { href: "/settings", label: "Configurações", icon: "Settings" },
+  { href: "/dashboard", label: "Painel", icon: "LayoutDashboard" as const, type: "link" as const },
+  { href: "/calendar", label: "Calendário", icon: "CalendarDays" as const, type: "link" as const },
+  { href: "/transactions", label: "Transações", icon: "ArrowRightLeft" as const, type: "link" as const },
+  { href: "/analysis", label: "Análise", icon: "BarChart3" as const, type: "link" as const },
+  { href: "/budgets", label: "Orçamentos", icon: "Target" as const, type: "link" as const },
+  { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
+  { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
+  { type: "separator" as const },
+  { type: "title" as const, label: "FOR DEVs" },
+  { href: "/dev/systems", label: "Sistemas", icon: "Component" as const, type: "link" as const },
+  { href: "/dev/devops", label: "DevOps", icon: "GitMerge" as const, type: "link" as const },
+  { href: "/dev/clients", label: "Clientes", icon: "Users2" as const, type: "link" as const },
+  { href: "/dev/agile", label: "Metodologias Ágeis", icon: "IterationCw" as const, type: "link" as const },
+  { type: "separator" as const },
+  { href: "/plans", label: "Nossos Planos", icon: "Gem" as const, type: "link" as const },
+  { href: "/settings", label: "Configurações", icon: "Settings" as const, type: "link" as const },
 ] as const;
 
-export type NavLinkIconName = typeof NAV_LINKS_CONFIG[number]["icon"];
+// Union type for NavLinkConfig items
+export type NavLinkItem = (typeof NAV_LINKS_CONFIG)[number];
 
-// Pricing Tiers - Adicionado para a página de planos
+// Correctly extracting icon names for NavLinkItem that are links
+export type NavLinkIconName = Extract<NavLinkItem, { type: "link"; icon: any }>["icon"];
+
+
+// Pricing Tiers
 export const PRICING_TIERS = [
   {
     name: 'Cultivador Consciente',
@@ -38,7 +50,7 @@ export const PRICING_TIERS = [
     name: 'Mestre Jardineiro',
     id: 'tier-mestre',
     href: '/signup?plan=mestre',
-    priceMonthly: 'R$14,90', // Preço Atualizado
+    priceMonthly: 'R$14,90',
     description: 'Desbloqueie todo o potencial do Flortune com análises avançadas e IA.',
     features: [
       'Todas as funcionalidades do plano Cultivador',
@@ -54,9 +66,9 @@ export const PRICING_TIERS = [
   {
     name: 'Flortune Corporativo',
     id: 'tier-corporativo',
-    href: '/signup?plan=corporativo', 
-    priceMonthly: 'R$350,90*', // Preço Atualizado
-    priceAnnotation: 'para 5 usuários. Usuários adicionais cobrados à parte.', // Descrição Atualizada
+    href: '/signup?plan=corporativo',
+    priceMonthly: 'R$350,90*',
+    priceAnnotation: 'para 5 usuários. Usuários adicionais cobrados à parte.',
     description: 'Soluções financeiras robustas e personalizadas para grandes equipes e empresas em crescimento.',
     features: [
       'Todas as funcionalidades do Mestre Jardineiro',

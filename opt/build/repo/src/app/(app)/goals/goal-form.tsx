@@ -67,12 +67,12 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: null, notes: "" },
   });
 
-  const selectedIconValue = watch("icon"); // To update icon in SelectTrigger
+  const selectedIconValue = watch("icon"); 
 
   const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
     if (!user?.id) {
       toast({ title: "Erro de Autenticação", description: "Usuário não encontrado. Por favor, faça login novamente.", variant: "destructive" });
-      setIsSubmitting(false); // Ensure submitting state is reset
+      setIsSubmitting(false); 
       return;
     }
     setIsSubmitting(true);
@@ -83,8 +83,8 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       const result = await addFinancialGoal(user.id, newGoalData);
       if (result.error) throw result.error;
       toast({ title: "Meta Criada!", description: `Sua meta "${data.name}" foi criada com sucesso.`, action: <CheckCircle className="text-green-500" />, });
-      reset(); // Reset form fields
-      onGoalCreated(); // Callback to close modal and refresh list
+      reset(); 
+      onGoalCreated(); 
       if (!isModal) router.push("/goals");
     } catch (error: any) {
       toast({ title: "Erro ao Criar Meta", description: error.message || "Não foi possível salvar a nova meta.", variant: "destructive", });
@@ -93,8 +93,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     }
   };
 
-  // Enhanced loading and error states for the form itself
-  if (isAuthLoading && !user) { // Still loading session, no user data yet
+  if (isAuthLoading && !user) { 
     return (
       <div className="space-y-4 py-4 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -103,16 +102,19 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     );
   }
 
-  if (!user && !isAuthLoading) { // Auth finished, but no user (not logged in)
+  if (!user && !isAuthLoading) { 
     return (
       <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
         <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
         <p className="text-muted-foreground font-semibold">Você precisa estar logado para criar uma meta.</p>
         <p className="text-sm text-muted-foreground">Por favor, faça login e tente novamente.</p>
+         <DialogFooter className="pt-4">
+            {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
+          </DialogFooter>
       </div>
     );
   }
-  // Only render form if user is authenticated and session loaded
+  
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
       <div className="space-y-2">
@@ -149,11 +151,11 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         <div className="space-y-2">
           <Label htmlFor="goal-form-icon">Ícone (Opcional)</Label>
           <Controller name="icon" control={control} render={({ field }) => {
-            const SelectedIconComponent = getLucideIcon(field.value); // Use watched value 'selectedIconValue' if needed for reactive updates in placeholder
+            const CurrentSelectedIconComponent = getLucideIcon(field.value); 
             return (
               <Select onValueChange={field.onChange} value={field.value || ""} disabled={isSubmitting}>
                 <SelectTrigger id="goal-form-icon">
-                  <SelectValue placeholder={<div className="flex items-center gap-2"><SelectedIconComponent className="h-4 w-4 text-muted-foreground" /><span>{availableIcons.find(opt => opt.value === field.value)?.name || "Selecione um ícone"}</span></div>} />
+                  <SelectValue placeholder={<div className="flex items-center gap-2"><CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" /><span>{availableIcons.find(opt => opt.value === field.value)?.name || "Selecione um ícone"}</span></div>} />
                 </SelectTrigger>
                 <SelectContent>{availableIcons.map((iconOpt) => { const IconComp = iconOpt.icon; return (<SelectItem key={iconOpt.value || 'none-icon'} value={iconOpt.value || ''}><div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div></SelectItem>); })}</SelectContent>
               </Select>
@@ -179,4 +181,3 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     </form>
   );
 }
-

@@ -7,12 +7,11 @@ import * as LucideIcons from "lucide-react";
 import { useSession } from "next-auth/react"; 
 
 import { cn } from "@/lib/utils";
-import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkIconName } from "@/lib/constants";
+import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkItem, type NavLinkIconName } from "@/lib/constants";
 import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  // SidebarFooter, // Removido pois info do usuário está no header
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -24,8 +23,10 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const getIcon = (iconName: NavLinkIconName): React.ElementType => {
-  return LucideIcons[iconName as keyof typeof LucideIcons] || LucideIcons.HelpCircle;
+const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
+  if (!iconName) return LucideIcons.HelpCircle;
+  const IconComponent = (LucideIcons as any)[iconName as keyof typeof LucideIcons];
+  return IconComponent || LucideIcons.HelpCircle; // Fallback
 };
 
 export function AppSidebar() {
@@ -34,7 +35,7 @@ export function AppSidebar() {
   const { isMobile, setOpenMobile, open: sidebarOpen } = useSidebar();
 
   const isLoading = status === "loading"; 
-  const skeletonItems = Array(NAV_LINKS_CONFIG.length).fill(0);
+  const skeletonItems = Array(NAV_LINKS_CONFIG.filter(link => link.type === 'link').length).fill(0);
 
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -56,27 +57,24 @@ export function AppSidebar() {
       side="left"
     >
         <SidebarHeader className="p-4 flex items-center justify-between group-data-[collapsible=icon]:justify-center">
-            {/* Logo e Nome do App - Visível quando expandido */}
             <Link 
               href="/dashboard" 
               className={cn(
                 "flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
-                {"group-data-[collapsible=icon]:hidden": !isMobile || (isMobile && sidebarOpen)}, // Esconder se colapsado no desktop OU se mobile e sidebar aberto
-                {"hidden": isMobile && !sidebarOpen} // Esconder se mobile e sidebar colapsado (AppHeader já mostra o logo)
+                {"group-data-[collapsible=icon]:hidden": !isMobile || (isMobile && sidebarOpen)}, 
+                {"hidden": isMobile && !sidebarOpen} 
               )} 
               onClick={closeMobileSidebar}
             >
                 <LucideIcons.Leaf className="h-7 w-7" />
                 <span className="font-bold text-xl font-headline">{APP_NAME}</span>
             </Link>
-            
-            {/* Logo - Visível quando colapsado (desktop) */}
             <Link 
                 href="/dashboard" 
                 className={cn(
                     "items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
                     {"hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full": !isMobile},
-                    {"hidden": isMobile} // Sempre escondido no mobile aqui, AppHeader cuida disso
+                    {"hidden": isMobile} 
                 )}
                 onClick={closeMobileSidebar}
             >
@@ -84,7 +82,6 @@ export function AppSidebar() {
             </Link>
         </SidebarHeader>
 
-        {/* Informações do Usuário */}
         {!isLoading && user && (
           <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <Link href="/settings" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
@@ -118,21 +115,35 @@ export function AppSidebar() {
               ? skeletonItems.map((_, index) => (
                   <SidebarMenuSkeleton key={index} showIcon />
                 ))
-              : NAV_LINKS_CONFIG.map((link) => {
-                  const IconComponent = getIcon(link.icon as NavLinkIconName);
-                  const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
+              : NAV_LINKS_CONFIG.map((item, index) => {
+                  if (item.type === "separator") {
+                    return <Separator key={`sep-${index}`} className="my-2 mx-2 group-data-[collapsible=icon]:hidden" />;
+                  }
+                  if (item.type === "title") {
+                    return (
+                      <div 
+                        key={`title-${index}`} 
+                        className="px-3 py-2 text-xs font-semibold uppercase text-muted-foreground tracking-wider group-data-[collapsible=icon]:hidden"
+                      >
+                        {item.label}
+                      </div>
+                    );
+                  }
+                  // Item is a link
+                  const IconComponent = getIcon(item.icon);
+                  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
                   return (
-                    <SidebarMenuItem key={link.href}>
+                    <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        tooltip={isMobile ? undefined : { children: link.label }} 
+                        tooltip={isMobile ? undefined : { children: item.label }} 
                         className="justify-start"
                         onClick={closeMobileSidebar}
                       >
-                        <Link href={link.href}>
+                        <Link href={item.href}>
                           <IconComponent />
-                          <span>{link.label}</span>
+                          <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
