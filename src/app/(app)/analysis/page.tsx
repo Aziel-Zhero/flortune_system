@@ -6,9 +6,8 @@ import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { BarChart, PieChart as PieIcon, TrendingUp, AlertTriangle, Wallet, LineChart as LineIcon, TrendingDown } from "lucide-react";
+import { PieChart as PieIcon, AlertTriangle, Wallet, LineChart as LineIconLucide, TrendingDown } from "lucide-react"; // Renomeado LineChart para LineIconLucide
 import {
   Select,
   SelectContent,
@@ -26,21 +25,25 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend } from "recharts";
+import {
+  LineChart, // Importado de recharts
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  PieChart, // Importado de recharts
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  Legend
+} from "recharts";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 interface CategoryData {
   name: string;
   value: number;
   fill: string;
-}
-
-interface MonthlyFlow {
-  month: string;
-  income: number;
-  expense: number;
-  balance: number;
 }
 
 interface MonthlyEvolutionData {
@@ -74,7 +77,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="label text-sm font-medium text-foreground">{`${label}`}</p>
         {payload.map((entry: any, index: number) => (
           <p key={`item-${index}`} style={{ color: entry.color }} className="text-xs">
-            {`${entry.name}: ${entry.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+            {`${entry.name || 'Data'}: ${typeof entry.value === 'number' ? entry.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'N/A'}`}
           </p>
         ))}
       </div>
@@ -86,11 +89,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const PieCustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length && payload[0] && payload[0].payload) {
     const data = payload[0].payload;
+    const value = data.value;
+    const percent = payload[0].percent;
     return (
       <div className="p-2 bg-background/90 border border-border rounded-md shadow-lg backdrop-blur-sm">
-        <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name}`}</p>
-        <p className="text-xs text-foreground">{`Valor: ${data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
-        <p className="text-xs text-muted-foreground">{`(${(payload[0].percent * 100).toFixed(2)}%)`}</p>
+        <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name || 'Categoria'}`}</p>
+        {typeof value === 'number' && (
+           <p className="text-xs text-foreground">{`Valor: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
+        )}
+        {typeof percent === 'number' && (
+          <p className="text-xs text-muted-foreground">{`(${(percent * 100).toFixed(2)}%)`}</p>
+        )}
       </div>
     );
   }
@@ -105,7 +114,7 @@ export default function AnalysisPage() {
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [isFetchingTransactions, setIsFetchingTransactions] = useState(true);
-  const [timePeriod, setTimePeriod] = useState("monthly"); // "monthly", "yearly", "all"
+  const [timePeriod, setTimePeriod] = useState("monthly");
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
@@ -115,7 +124,7 @@ export default function AnalysisPage() {
     if (!user?.id || authLoading) {
       setIsFetchingTransactions(authLoading);
       if (!authLoading && !user?.id) {
-        setAllTransactions([]); // Clear transactions if user logs out
+        setAllTransactions([]);
       }
       return;
     }
@@ -128,7 +137,7 @@ export default function AnalysisPage() {
           toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
           setAllTransactions([]);
         } else {
-          setAllTransactions(data || []);
+          setAllTransactions(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
@@ -142,14 +151,12 @@ export default function AnalysisPage() {
 
   const filteredTransactionsForPeriod = useMemo(() => {
     if (!Array.isArray(allTransactions) || allTransactions.length === 0) return [];
-    
     return allTransactions.filter(tx => {
       if (timePeriod === "all") return true;
-      if (!tx.date || typeof tx.date !== 'string') return false;
+      if (!tx || !tx.date || typeof tx.date !== 'string') return false;
       try {
-        const txDate = new Date(tx.date + "T00:00:00Z"); 
-        if (isNaN(txDate.getTime())) return false; 
-
+        const txDate = new Date(tx.date + "T00:00:00Z");
+        if (isNaN(txDate.getTime())) return false;
         const now = new Date();
         if (timePeriod === "monthly") {
           return txDate.getUTCMonth() === now.getUTCMonth() && txDate.getUTCFullYear() === now.getUTCFullYear();
@@ -158,10 +165,10 @@ export default function AnalysisPage() {
           return txDate.getUTCFullYear() === now.getUTCFullYear();
         }
       } catch(e) {
-        console.error("Error parsing transaction date in filteredTransactionsForPeriod:", tx.date, e);
+        console.error("Error parsing transaction date:", tx.date, e);
         return false;
       }
-      return true; 
+      return true;
     });
   }, [allTransactions, timePeriod]);
 
@@ -169,15 +176,15 @@ export default function AnalysisPage() {
     if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
     const spendingMap = new Map<string, number>();
     filteredTransactionsForPeriod
-      .filter(tx => tx.type === 'expense' && tx.amount > 0)
+      .filter(tx => tx && tx.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0)
       .forEach(tx => {
         const categoryName = tx.category?.name || 'Outros';
         spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
       });
-    return Array.from(spendingMap, ([name, value], index) => ({ 
-        name, 
-        value, 
-        fill: chartColors[index % chartColors.length] 
+    return Array.from(spendingMap, ([name, value], index) => ({
+        name,
+        value,
+        fill: chartColors[index % chartColors.length]
     })).sort((a,b) => b.value - a.value);
   }, [filteredTransactionsForPeriod]);
 
@@ -185,15 +192,15 @@ export default function AnalysisPage() {
     if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
     const incomeMap = new Map<string, number>();
     filteredTransactionsForPeriod
-      .filter(tx => tx.type === 'income' && tx.amount > 0)
+      .filter(tx => tx && tx.type === 'income' && typeof tx.amount === 'number' && tx.amount > 0)
       .forEach(tx => {
         const categoryName = tx.category?.name || 'Outras Receitas';
         incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
       });
-    return Array.from(incomeMap, ([name, value], index) => ({ 
-        name, 
-        value, 
-        fill: chartColors[(index + 1) % chartColors.length] // Offset colors for income
+    return Array.from(incomeMap, ([name, value], index) => ({
+        name,
+        value,
+        fill: chartColors[(index + 1) % chartColors.length]
     })).sort((a,b) => b.value - a.value);
   }, [filteredTransactionsForPeriod]);
 
@@ -202,19 +209,16 @@ export default function AnalysisPage() {
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-    for (let i = 11; i >= 0; i--) { // Last 12 months
+    for (let i = 11; i >= 0; i--) {
         const date = new Date(today.getUTCFullYear(), today.getUTCMonth() - i, 1);
         const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
         monthlyData[monthKey] = { income: 0, expense: 0 };
     }
-
     allTransactions.forEach(tx => {
-      if (!tx.date || typeof tx.date !== 'string') return;
+      if (!tx || !tx.date || typeof tx.date !== 'string' || typeof tx.amount !== 'number') return;
       try {
         const txDate = new Date(tx.date + "T00:00:00Z");
         if (isNaN(txDate.getTime())) return;
-
         const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
         if (monthlyData[monthKey] !== undefined) {
             if (tx.type === 'income' && tx.amount > 0) monthlyData[monthKey].income += tx.amount;
@@ -228,14 +232,14 @@ export default function AnalysisPage() {
   const topExpenses = useMemo((): TopExpense[] => {
     if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
     return filteredTransactionsForPeriod
-        .filter(tx => tx.type === 'expense' && tx.amount > 0)
+        .filter(tx => tx && tx.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0)
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 5)
         .map(tx => ({
             id: tx.id,
-            description: tx.description,
+            description: tx.description || "N/A",
             amount: tx.amount,
-            date: new Date(tx.date + "T00:00:00Z").toLocaleDateString('pt-BR'),
+            date: tx.date ? new Date(tx.date + "T00:00:00Z").toLocaleDateString('pt-BR') : "N/A",
             categoryName: tx.category?.name || "Sem Categoria"
         }));
   }, [filteredTransactionsForPeriod]);
@@ -244,29 +248,25 @@ export default function AnalysisPage() {
     Receitas: { label: "Receitas", color: "hsl(var(--chart-1))" },
     Despesas: { label: "Despesas", color: "hsl(var(--chart-2))" },
   }), []);
-  
-  const isLoadingPage = authLoading || (isFetchingTransactions && !!user); 
+
+  const isLoadingPage = authLoading || (isFetchingTransactions && status === 'authenticated' && !!user);
 
   if (isLoadingPage) {
     return (
       <div>
         <PageHeader title="Análise Financeira" description="Carregando seus insights financeiros..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
-          <Card className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
-          <Card className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
+          {[1,2,3].map(i => (
+            <Card key={`sk-card-pie-${i}`} className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card>
+          ))}
           <Card className="md:col-span-2 lg:col-span-3"><CardHeader><Skeleton className="h-6 w-1/2 mb-1"/><Skeleton className="h-4 w-3/4"/></CardHeader><CardContent><Skeleton className="h-96 w-full"/></CardContent></Card>
         </div>
       </div>
     );
   }
-  
+
   const noTransactionsAtAll = !isFetchingTransactions && allTransactions.length === 0;
-  const noDataForSelectedPeriod = 
-    !isFetchingTransactions &&
-    (timePeriod === "monthly" || timePeriod === "yearly") &&
-    spendingByCategory.length === 0 && 
-    incomeBySource.length === 0;
+  const noDataForSelectedPeriod = !isFetchingTransactions && (timePeriod === "monthly" || timePeriod === "yearly") && spendingByCategory.length === 0 && incomeBySource.length === 0 && topExpenses.length === 0;
 
   return (
     <div className="space-y-6">
@@ -275,7 +275,7 @@ export default function AnalysisPage() {
         description="Explore seus padrões de gastos, receitas e tendências ao longo do tempo."
         icon={<Wallet className="h-6 w-6 text-primary"/>}
         actions={
-          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isFetchingTransactions}>
+          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isFetchingTransactions || noTransactionsAtAll}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
@@ -305,10 +305,18 @@ export default function AnalysisPage() {
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIcon className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
                         <CardContent className="h-80">
                             {spendingByCategory.length > 0 ? (
-                                <ChartContainer config={{}} className="min-h-[200px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%"><PieChart><RechartsTooltip content={<PieCustomTooltip />} /><Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}</Pie><ChartLegend content={<ChartLegendContent nameKey="name" />} /></PieChart></ResponsiveContainer>
+                                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <RechartsTooltip content={<PieCustomTooltip />} />
+                                            <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                                {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
+                                            </Pie>
+                                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
                                 </ChartContainer>
-                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de despesas.</p></div>}
+                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de despesas para este período.</p></div>}
                         </CardContent>
                     </Card>
 
@@ -316,31 +324,51 @@ export default function AnalysisPage() {
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIcon className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
                         <CardContent className="h-80">
                             {incomeBySource.length > 0 ? (
-                                <ChartContainer config={{}} className="min-h-[200px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%"><PieChart><RechartsTooltip content={<PieCustomTooltip />} /><Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>{incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}</Pie><ChartLegend content={<ChartLegendContent nameKey="name" />} /></PieChart></ResponsiveContainer>
+                                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <RechartsTooltip content={<PieCustomTooltip />} />
+                                            <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                                {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
+                                            </Pie>
+                                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
                                 </ChartContainer>
-                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de receitas.</p></div>}
+                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de receitas para este período.</p></div>}
                         </CardContent>
                     </Card>
-                    
+
                     <Card className="shadow-sm">
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período selecionado.</CardDescription></CardHeader>
                         <CardContent className="h-80 overflow-y-auto">
                             {topExpenses.length > 0 ? (
-                                <Table size="sm"><TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
-                                <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody></Table>
-                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem despesas para listar.</p></div>}
+                                <Table size="sm">
+                                    <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                                    <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
+                                </Table>
+                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem despesas para listar neste período.</p></div>}
                         </CardContent>
                     </Card>
                 </>
             )}
-            
+
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><LineIcon className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><LineIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-96">
-                    {monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
+                    {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
                         <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%"><LineChart data={monthlyEvolution} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={40}/><YAxis tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} /><RechartsTooltip content={<CustomTooltip />} /><Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/><Line type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" strokeWidth={2} dot={{ r:3, fill: "var(--color-Receitas)"}} activeDot={{ r: 5 }} /><Line type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" strokeWidth={2} dot={{r:3, fill: "var(--color-Despesas)"}} activeDot={{ r: 5 }} /></LineChart></ResponsiveContainer>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={monthlyEvolution} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={40}/>
+                                    <YAxis tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                                    <RechartsTooltip content={<CustomTooltip />} />
+                                    <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
+                                    <Line type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" strokeWidth={2} dot={{ r:3, fill: "var(--color-Receitas)"}} activeDot={{ r: 5 }} name="Receitas" />
+                                    <Line type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" strokeWidth={2} dot={{r:3, fill: "var(--color-Despesas)"}} activeDot={{ r: 5 }} name="Despesas" />
+                                </LineChart>
+                            </ResponsiveContainer>
                         </ChartContainer>
                     ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados suficientes para exibir a evolução mensal.</p></div>}
                 </CardContent>
@@ -350,3 +378,5 @@ export default function AnalysisPage() {
     </div>
   );
 }
+
+    

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List } from "lucide-react";
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,8 +59,8 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
 };
 
 export default function TransactionsPage() {
-  const { data: session, status } = useSession(); 
-  const authLoading = status === "loading";
+  const { data: session, status: authStatus } = useSession(); 
+  const authLoading = authStatus === "loading";
   const user = session?.user; 
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -82,7 +82,7 @@ export default function TransactionsPage() {
         toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
         setTransactions([]);
       } else {
-        setTransactions(transactionsRes.data || []);
+        setTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
       }
     } catch (error) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados da página.", variant: "destructive" });
@@ -94,13 +94,13 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user?.id && status === "authenticated") { 
+    if (user?.id && authStatus === "authenticated") { 
       fetchPageData();
-    } else if (status === "unauthenticated") {
+    } else if (authStatus === "unauthenticated") {
       setIsLoading(false);
       setTransactions([]);
     }
-  }, [user?.id, status, fetchPageData]);
+  }, [user?.id, authStatus, fetchPageData]);
 
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setDeleteDialog({ isOpen: true, item: { id: transactionId, description: transactionDescription } });
@@ -301,13 +301,13 @@ export default function TransactionsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditClick(transaction.id, transaction.description)}>
+                            <DropdownMenuItem onClick={() => handleEditClick(transaction.id, transaction.description || "Transação")}>
                               <Edit3 className="mr-2 h-4 w-4"/>Editar
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                onClick={() => handleDeleteClick(transaction.id, transaction.description)}
+                                onClick={() => handleDeleteClick(transaction.id, transaction.description || "Transação")}
                             >
                               <Trash2 className="mr-2 h-4 w-4"/>Deletar
                             </DropdownMenuItem>
@@ -359,15 +359,16 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && status === "authenticated" && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
-        {isCreateModalOpen && (authLoading || !session?.user) && (
-             <div className="py-8 text-center">
-                <Skeleton className="mx-auto h-12 w-12 rounded-full mb-4"/>
-                <Skeleton className="h-4 w-3/4 mx-auto mb-2" />
-                 <Skeleton className="h-4 w-1/2 mx-auto" />
+        {isCreateModalOpen && session?.user && authStatus === "authenticated" && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
+             <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
+                <p className="text-muted-foreground">Carregando formulário...</p>
             </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
+
+    

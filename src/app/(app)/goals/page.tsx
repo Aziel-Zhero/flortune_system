@@ -9,9 +9,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle } from "lucide-react";
+import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, NO_ICON_VALUE } from "@/lib/constants"; // Import NO_ICON_VALUE
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +39,7 @@ import * as LucideIcons from "lucide-react";
 import { FinancialGoalForm } from "./goal-form"; 
 
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
-  if (!iconName) return Trophy; 
+  if (!iconName || iconName === NO_ICON_VALUE) return Trophy; 
   const IconComponent = (LucideIcons as any)[iconName];
   return IconComponent || Trophy;
 };
@@ -67,7 +67,7 @@ export default function GoalsPage() {
         toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
         setCurrentGoals([]);
       } else {
-        setCurrentGoals(data || []);
+        setCurrentGoals(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar as metas.", variant: "destructive" });
@@ -117,7 +117,7 @@ export default function GoalsPage() {
   const handleEditClick = (goalId: string, goalName: string) => {
     toast({
       title: "Editar Meta",
-      description: `Funcionalidade de edição para "${goalName}" em desenvolvimento.`,
+      description: `Funcionalidade de edição para "${goalName}" (placeholder).`,
     });
   };
 
@@ -332,15 +332,18 @@ export default function GoalsPage() {
             Defina um novo objetivo para suas finanças e acompanhe seu progresso.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && authStatus === "authenticated" && <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />}
-        {isCreateModalOpen && (authLoading || !session?.user) && (
-            <div className="py-8 text-center">
-                <Skeleton className="mx-auto h-12 w-12 rounded-full mb-4"/>
-                <Skeleton className="h-4 w-3/4 mx-auto mb-2"/>
-                <Skeleton className="h-4 w-1/2 mx-auto" />
+        {isCreateModalOpen && session?.user && authStatus === "authenticated" && (
+          <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />
+        )}
+         {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
+            <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
+                <p className="text-muted-foreground">Carregando formulário...</p>
             </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
+
+    

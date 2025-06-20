@@ -1,5 +1,6 @@
 
 export const APP_NAME = "Flortune";
+export const NO_ICON_VALUE = "__NO_ICON__"; // Adicionado para SelectItem
 
 // Navigation links with Portuguese labels
 export const NAV_LINKS_CONFIG = [
@@ -24,7 +25,8 @@ export const NAV_LINKS_CONFIG = [
 // Union type for NavLinkConfig items
 export type NavLinkItem = (typeof NAV_LINKS_CONFIG)[number];
 
-export type NavLinkIconName = Extract<NavLinkItem & { type: "link" }, { icon: any }>["icon"];
+// Correctly extracting icon names for NavLinkItem that are links
+export type NavLinkIconName = Extract<NavLinkItem, { type: "link"; icon: any }>["icon"];
 
 
 // Pricing Tiers
@@ -83,4 +85,5 @@ export const PRICING_TIERS = [
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
+
     
