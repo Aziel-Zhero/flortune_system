@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Repeat, DollarSign } from "lucide-react";
+import { Coins, Repeat, DollarSign, Loader2, AlertCircle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -16,11 +16,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PrivateValue } from "@/components/shared/private-value";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { convertCurrency } from "@/app/actions/conversion.actions";
 
 const currencySchema = z.object({
   fromCurrency: z.string().min(3, "Selecione a moeda de origem.").max(3),
   toCurrency: z.string().min(3, "Selecione a moeda de destino.").max(3),
-  amount: z.preprocess(val => Number(String(val).replace(/[^0-9,.-]+/g, "").replace(",", ".")), z.number().positive("O valor deve ser positivo.")),
+  amount: z.coerce.number({invalid_type_error: "Deve ser um número"}).positive("O valor deve ser positivo."),
 }).refine(data => data.fromCurrency !== data.toCurrency, {
   message: "As moedas de origem e destino devem ser diferentes.",
   path: ["toCurrency"],
@@ -28,20 +30,27 @@ const currencySchema = z.object({
 
 type CurrencyFormData = z.infer<typeof currencySchema>;
 
-// Lista simplificada de moedas
 const commonCurrencies = [
   { code: "BRL", name: "Real Brasileiro" },
   { code: "USD", name: "Dólar Americano" },
   { code: "EUR", name: "Euro" },
   { code: "GBP", name: "Libra Esterlina" },
   { code: "JPY", name: "Iene Japonês" },
+  { code: "ARS", name: "Peso Argentino"},
+  { code: "CAD", name: "Dólar Canadense"},
+  { code: "AUD", name: "Dólar Australiano"},
+  { code: "CHF", name: "Franco Suíço"},
+  { code: "CNY", name: "Yuan Chinês"},
 ];
 
 export default function CurrencyConverterPage() {
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
   const [conversionRate, setConversionRate] = useState<string | null>(null);
+  const [conversionDate, setConversionDate] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const { control, handleSubmit, register, formState: { errors }, watch } = useForm<CurrencyFormData>({
+  const { control, handleSubmit, register, formState: { errors }, watch, setValue, getValues } = useForm<CurrencyFormData>({
     resolver: zodResolver(currencySchema),
     defaultValues: {
       fromCurrency: "BRL",
@@ -57,27 +66,39 @@ export default function CurrencyConverterPage() {
     document.title = `Conversor de Moeda - ${APP_NAME}`;
   }, []);
 
-  // Simulação de busca de taxa de câmbio e conversão
   const onSubmit: SubmitHandler<CurrencyFormData> = async (data) => {
-    toast({ title: "Simulando Conversão...", description: "Esta é uma simulação. Nenhuma API real está sendo chamada." });
-    // Simulação de uma taxa de câmbio
-    let rate: number;
-    if (data.fromCurrency === "BRL" && data.toCurrency === "USD") rate = 0.19; // Ex: 1 BRL = 0.19 USD
-    else if (data.fromCurrency === "USD" && data.toCurrency === "BRL") rate = 5.25; // Ex: 1 USD = 5.25 BRL
-    else if (data.fromCurrency === "EUR" && data.toCurrency === "USD") rate = 1.08;
-    else if (data.fromCurrency === "USD" && data.toCurrency === "EUR") rate = 0.92;
-    else rate = Math.random() * 10; // Taxa aleatória para outras conversões
+    setIsConverting(true);
+    setApiError(null);
+    setConvertedAmount(null);
+    setConversionRate(null);
+    setConversionDate(null);
 
-    const result = data.amount * rate;
-    setConvertedAmount(result);
-    setConversionRate(`1 ${data.fromCurrency} ≈ ${rate.toFixed(4)} ${data.toCurrency}`);
+    const result = await convertCurrency(data.amount, data.fromCurrency, data.toCurrency);
+
+    if (result.error) {
+      setApiError(result.error);
+      toast({ title: "Erro na Conversão", description: result.error, variant: "destructive" });
+    } else if (result.data) {
+      setConvertedAmount(result.data.convertedAmount);
+      setConversionRate(`1 ${data.fromCurrency} ≈ ${result.data.rate.toFixed(4)} ${data.toCurrency}`);
+      setConversionDate(new Date(result.data.date).toLocaleDateString('pt-BR', {year: 'numeric', month: 'long', day: 'numeric'}));
+      toast({ title: "Conversão Realizada!", description: `Cotação de ${new Date(result.data.date).toLocaleDateString('pt-BR')}.` });
+    }
+    setIsConverting(false);
+  };
+
+  const handleInvertCurrencies = () => {
+    const currentFrom = getValues("fromCurrency");
+    const currentTo = getValues("toCurrency");
+    setValue("fromCurrency", currentTo);
+    setValue("toCurrency", currentFrom);
   };
 
   return (
     <div>
       <PageHeader
         title="Conversor de Moeda"
-        description="Converta valores entre diferentes moedas com cotações simuladas."
+        description="Converta valores entre diferentes moedas com cotações atualizadas."
         icon={<Coins className="h-6 w-6 text-primary" />}
       />
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -85,18 +106,18 @@ export default function CurrencyConverterPage() {
           <CardHeader>
             <CardTitle className="font-headline">Detalhes da Conversão</CardTitle>
             <CardDescription>
-              Selecione as moedas e insira o valor para conversão. (API não integrada, taxas simuladas)
+              Selecione as moedas e insira o valor. Cotações fornecidas por <a href="https://exchangerate.host" target="_blank" rel="noopener noreferrer" className="underline text-primary">ExchangeRate.host</a>.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div className="space-y-2 md:col-span-1">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-x-4 gap-y-6 items-end">
+              <div className="space-y-2">
                 <Label htmlFor="fromCurrency">De:</Label>
                 <Controller
                   name="fromCurrency"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger id="fromCurrency"><SelectValue placeholder="Moeda Origem" /></SelectTrigger>
                       <SelectContent>{commonCurrencies.map(c => <SelectItem key={c.code} value={c.code}>{c.code} - {c.name}</SelectItem>)}</SelectContent>
                     </Select>
@@ -105,19 +126,19 @@ export default function CurrencyConverterPage() {
                  {errors.fromCurrency && <p className="text-sm text-destructive mt-1">{errors.fromCurrency.message}</p>}
               </div>
               
-              <div className="flex justify-center md:col-span-1">
-                <Button type="button" variant="ghost" size="icon" aria-label="Inverter moedas" onClick={() => alert("Inverter moedas (placeholder)")}>
+              <div className="flex justify-center">
+                <Button type="button" variant="ghost" size="icon" aria-label="Inverter moedas" onClick={handleInvertCurrencies} className="h-10 w-10">
                     <Repeat className="h-5 w-5 text-muted-foreground"/>
                 </Button>
               </div>
 
-              <div className="space-y-2 md:col-span-1">
+              <div className="space-y-2">
                 <Label htmlFor="toCurrency">Para:</Label>
                 <Controller
                   name="toCurrency"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger id="toCurrency"><SelectValue placeholder="Moeda Destino" /></SelectTrigger>
                       <SelectContent>{commonCurrencies.map(c => <SelectItem key={c.code} value={c.code}>{c.code} - {c.name}</SelectItem>)}</SelectContent>
                     </Select>
@@ -139,25 +160,37 @@ export default function CurrencyConverterPage() {
 
           </CardContent>
           <CardFooter className="flex flex-col items-start space-y-4">
-            <Button type="submit" className="w-full md:w-auto">Converter Moeda</Button>
-            {convertedAmount !== null && watchedFromCurrency && watchedToCurrency && (
-              <Card className="w-full bg-primary/10 border-primary/30">
-                <CardHeader>
-                  <CardTitle className="text-primary font-headline text-lg">Resultado da Conversão:</CardTitle>
+            <Button type="submit" className="w-full md:w-auto" disabled={isConverting}>
+                {isConverting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isConverting ? "Convertendo..." : "Converter Moeda"}
+            </Button>
+            {apiError && (
+                 <Alert variant="destructive" className="w-full">
+                    <AlertCircle size={18} className="h-4 w-4" />
+                    <AlertTitle>Erro na API</AlertTitle>
+                    <AlertDescription>{apiError}</AlertDescription>
+                </Alert>
+            )}
+            {convertedAmount !== null && watchedFromCurrency && watchedToCurrency && !apiError && (
+              <Card className="w-full bg-primary/5 border-primary/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary font-headline text-md">Resultado da Conversão:</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-primary">
+                  <p className="text-2xl font-bold text-primary">
                      <PrivateValue value={convertedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
-                     <span className="text-xl ml-1">{watchedToCurrency}</span>
+                     <span className="text-lg ml-1">{watchedToCurrency}</span>
                   </p>
                   {conversionRate && (
                     <p className="text-xs text-muted-foreground mt-1">
-                        Taxa de conversão simulada: {conversionRate}
+                        Taxa de conversão: {conversionRate}
                     </p>
                   )}
-                   <p className="text-xs text-muted-foreground mt-1">
-                    Atenção: Esta é uma simulação. As taxas de câmbio reais podem variar.
-                  </p>
+                   {conversionDate && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        Cotação de: {conversionDate}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
