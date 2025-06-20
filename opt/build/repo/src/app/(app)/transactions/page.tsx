@@ -361,7 +361,7 @@ export default function TransactionsPage() {
         </DialogHeader>
         {isCreateModalOpen && session?.user && authStatus === "authenticated" && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
         {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
-             <div className="py-8 text-center">
+             <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
                 <p className="text-muted-foreground">Carregando formulário...</p>
             </div>
@@ -370,3 +370,4 @@ export default function TransactionsPage() {
     </Dialog>
   );
 }
+    

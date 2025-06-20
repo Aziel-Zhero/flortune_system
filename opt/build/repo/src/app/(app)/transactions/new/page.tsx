@@ -10,8 +10,7 @@ import { useEffect } from "react";
 import { TransactionForm } from "./transaction-form";
 import { useRouter } from "next/navigation";
 
-// Esta página agora serve como um wrapper para o formulário se acessada diretamente.
-export default function NewTransactionPageWrapper() {
+export default function NewTransactionPage() {
   const router = useRouter();
   useEffect(() => {
     document.title = `Nova Transação - ${APP_NAME}`;
@@ -42,5 +41,4 @@ export default function NewTransactionPageWrapper() {
     </div>
   );
 }
-
     

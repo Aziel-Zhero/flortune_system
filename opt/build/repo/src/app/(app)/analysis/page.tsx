@@ -11,12 +11,12 @@ import {
   PieChart as PieIconLucide, 
   AlertTriangle, 
   Wallet, 
-  LineChart as LineIconLucide, 
+  LineChart as LineIconLucide, // Alias para o ícone
   TrendingDown,
-  AreaChart as AreaIconLucide,
-  BarChart3 as BarIconLucide,
-  Radar as RadarIconLucide,
-  Target as RadialIconLucide
+  AreaChart as AreaIconLucide, // Alias para o ícone
+  BarChart3 as BarIconLucide, // Alias para o ícone
+  Radar as RadarIconLucide, // Alias para o ícone
+  Target as RadialIconLucide // Alias para o ícone
 } from "lucide-react";
 import {
   Select,
@@ -38,29 +38,31 @@ import {
   ChartTooltipContent,
   type ChartConfig
 } from "@/components/ui/chart";
+
+// Importações explícitas de Recharts com nomes originais
 import {
-  LineChart,
+  LineChart, // Componente de gráfico
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  PieChart,
+  PieChart, // Componente de gráfico
   Pie,
   Cell,
-  Tooltip as RechartsTooltip, // Usado para tooltip padrão do Recharts se necessário
+  Tooltip as RechartsTooltip,
   Legend,
-  AreaChart,
+  AreaChart, // Componente de gráfico
   Area,
-  BarChart,
+  BarChart, // Componente de gráfico
   Bar,
   LabelList,
-  RadarChart,
+  RadarChart, // Componente de gráfico
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar,
-  RadialBarChart,
+  Radar, // Componente de gráfico (para dados)
+  RadialBarChart, // Componente de gráfico
   RadialBar,
   Brush
 } from "recharts";
@@ -689,5 +691,4 @@ export default function AnalysisPage() {
     </div>
   );
 }
-
-
+    
