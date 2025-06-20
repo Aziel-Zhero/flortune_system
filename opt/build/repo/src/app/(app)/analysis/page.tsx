@@ -11,7 +11,7 @@ import {
   PieChart as PieIconLucide, 
   AlertTriangle, 
   Wallet, 
-  LineChart as LineIconLucide, 
+  LineChart as LineIconLucideReal, // Alias específico para o ícone do LineChart dos dados reais
   TrendingDown,
   AreaChart as AreaIconLucide, 
   BarChart3 as BarIconLucide, 
@@ -39,7 +39,6 @@ import {
   type ChartConfig
 } from "@/components/ui/chart";
 
-// Importações explícitas de Recharts com nomes originais
 import {
   LineChart, 
   Line,
@@ -50,7 +49,7 @@ import {
   PieChart, 
   Pie,
   Cell,
-  Tooltip as RechartsTooltip,
+  Tooltip as RechartsTooltip, // Alias para o tooltip do Recharts
   Legend,
   AreaChart, 
   Area,
@@ -403,39 +402,46 @@ export default function AnalysisPage() {
                 </>
             )}
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><LineIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-96">
                     {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
                         <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart 
+                                    accessibilityLayer
                                     data={monthlyEvolution} 
                                     margin={{ 
-                                        top: 10,    
-                                        right: 30, 
-                                        left: 30,   
-                                        bottom: 70  // Aumentada significativamente para acomodar labels rotacionados
+                                        left: 12,
+                                        right: 12,
+                                        top: 5,
+                                        bottom: 50 // Aumentada para labels rotacionados
                                     }}
                                 > 
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <CartesianGrid vertical={false} />
                                     <XAxis 
                                         dataKey="month" 
-                                        tick={{ fontSize: 10 }} 
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
                                         interval={0} 
-                                        angle={-45}  // Ajustado ângulo para melhor visualização
+                                        angle={-45}
                                         textAnchor="end" 
-                                        height={80} // Aumentada altura para acomodar labels rotacionados e margem
-                                        dy={10}    // Ajuste vertical
+                                        height={60} 
+                                        dy={10}    
+                                        tick={{ fontSize: 10 }}
                                     />
                                     <YAxis 
                                         tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} 
                                         tick={{ fontSize: 10 }} 
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
                                         dx={-5}   
                                     />
-                                    <RechartsTooltip content={<RealDataCustomTooltip />} />
+                                    <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
                                     <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
-                                    <Line type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" strokeWidth={2} dot={{ r:3, fill: "var(--color-Receitas)"}} activeDot={{ r: 5 }} name="Receitas" />
-                                    <Line type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" strokeWidth={2} dot={{r:3, fill: "var(--color-Despesas)"}} activeDot={{ r: 5 }} name="Despesas" />
+                                    <Line type="natural" dataKey="Receitas" stroke="var(--color-Receitas)" strokeWidth={2} dot={{fill: "var(--color-Receitas)", r:3}} activeDot={{ r: 5 }} name="Receitas" />
+                                    <Line type="natural" dataKey="Despesas" stroke="var(--color-Despesas)" strokeWidth={2} dot={{fill: "var(--color-Despesas)", r:3}} activeDot={{ r: 5 }} name="Despesas" />
                                 </LineChart>
                             </ResponsiveContainer>
                         </ChartContainer>
@@ -522,7 +528,7 @@ export default function AnalysisPage() {
         
         {/* Line Chart - Label */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucide className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <LineChart accessibilityLayer data={mockLineData} margin={{top: 20, left: 12, right: 12}}>
@@ -539,7 +545,7 @@ export default function AnalysisPage() {
 
         {/* Line Chart - Interactive (com Brush) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucide className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive</CardTitle><CardDescription>Linhas com tooltip e seletor de range (brush).</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive</CardTitle><CardDescription>Linhas com tooltip e seletor de range (brush).</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <LineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>
