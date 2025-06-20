@@ -11,12 +11,12 @@ import {
   PieChart as PieIconLucide, 
   AlertTriangle, 
   Wallet, 
-  LineChart as LineIconLucide, // Alias para o ícone
+  LineChart as LineIconLucide, 
   TrendingDown,
-  AreaChart as AreaIconLucide, // Alias para o ícone
-  BarChart3 as BarIconLucide, // Alias para o ícone
-  Radar as RadarIconLucide, // Alias para o ícone
-  Target as RadialIconLucide // Alias para o ícone
+  AreaChart as AreaIconLucide, 
+  BarChart3 as BarIconLucide, 
+  Radar as RadarIconLucide, 
+  Target as RadialIconLucide 
 } from "lucide-react";
 import {
   Select,
@@ -41,28 +41,28 @@ import {
 
 // Importações explícitas de Recharts com nomes originais
 import {
-  LineChart, // Componente de gráfico
+  LineChart, 
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  PieChart, // Componente de gráfico
+  PieChart, 
   Pie,
   Cell,
   Tooltip as RechartsTooltip,
   Legend,
-  AreaChart, // Componente de gráfico
+  AreaChart, 
   Area,
-  BarChart, // Componente de gráfico
+  BarChart, 
   Bar,
   LabelList,
-  RadarChart, // Componente de gráfico
+  RadarChart, 
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar, // Componente de gráfico (para dados)
-  RadialBarChart, // Componente de gráfico
+  Radar, 
+  RadialBarChart, 
   RadialBar,
   Brush
 } from "recharts";
@@ -408,10 +408,30 @@ export default function AnalysisPage() {
                     {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
                         <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={monthlyEvolution} margin={{ top: 5, right: 30, left: 20, bottom: 40 }}> {/* Aumentada margem inferior */}
+                                <LineChart 
+                                    data={monthlyEvolution} 
+                                    margin={{ 
+                                        top: 10,    // Increased top margin
+                                        right: 30, 
+                                        left: 30,   // Increased left margin 
+                                        bottom: 60  // Significantly increased bottom margin
+                                    }}
+                                > 
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-30} textAnchor="end" height={60}/> {/* Aumentada altura do XAxis */}
-                                    <YAxis tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} tick={{ fontSize: 10 }} />
+                                    <XAxis 
+                                        dataKey="month" 
+                                        tick={{ fontSize: 10 }} 
+                                        interval={0} 
+                                        angle={-30} 
+                                        textAnchor="end" 
+                                        height={70} // Increased height for X-axis labels
+                                        dy={5}    // Adjust vertical position of labels
+                                    />
+                                    <YAxis 
+                                        tickFormatter={(value) => `R$${Number(value/1000).toFixed(0)}k`} 
+                                        tick={{ fontSize: 10 }} 
+                                        dx={-5}   // Adjust horizontal position of labels
+                                    />
                                     <RechartsTooltip content={<RealDataCustomTooltip />} />
                                     <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '10px', fontSize: '12px'}}/>
                                     <Line type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" strokeWidth={2} dot={{ r:3, fill: "var(--color-Receitas)"}} activeDot={{ r: 5 }} name="Receitas" />
