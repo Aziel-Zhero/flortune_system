@@ -11,12 +11,12 @@ import {
   PieChart as PieIconLucide, 
   AlertTriangle, 
   Wallet, 
-  LineChart as LineIconLucideReal, // Alias específico para o ícone do LineChart dos dados reais
   TrendingDown,
   AreaChart as AreaIconLucide, 
   BarChart3 as BarIconLucide, 
   Radar as RadarIconLucide, 
-  Target as RadialIconLucide 
+  Target as RadialIconLucide,
+  LineChart as LineIconLucideReal 
 } from "lucide-react";
 import {
   Select,
@@ -40,7 +40,8 @@ import {
 } from "@/components/ui/chart";
 
 import {
-  LineChart, 
+  AreaChart, // Changed from LineChart for Evolucao Mensal
+  Area,      // Added for AreaChart
   Line,
   XAxis,
   YAxis,
@@ -49,10 +50,8 @@ import {
   PieChart, 
   Pie,
   Cell,
-  Tooltip as RechartsTooltip, // Alias para o tooltip do Recharts
+  Tooltip as RechartsTooltip,
   Legend,
-  AreaChart, 
-  Area,
   BarChart, 
   Bar,
   LabelList,
@@ -133,7 +132,6 @@ const RealDataPieCustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-// --- Mock Data and Configs for Examples ---
 const mockMonths = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"];
 const mockAreaData = mockMonths.map(month => ({ month, desktop: Math.floor(Math.random() * 200) + 100, mobile: Math.floor(Math.random() * 150) + 50 }));
 const mockBarData = mockMonths.map(month => ({ month, desktop: Math.floor(Math.random() * 200) + 100, mobile: Math.floor(Math.random() * 150) + 50 }));
@@ -337,7 +335,6 @@ export default function AnalysisPage() {
           </Select>
         }
       />
-      {/* Seção de Dados Reais */}
       {noTransactionsAtAll ? (
         <Card className="shadow-sm text-center py-12 col-span-full">
             <CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" /><CardTitle className="mt-4">Nenhuma Transação Registrada</CardTitle></CardHeader>
@@ -402,32 +399,42 @@ export default function AnalysisPage() {
                 </>
             )}
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
-                <CardContent className="h-96"> {/* Garantir que o CardContent tenha altura */}
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
+                <CardContent className="h-80 sm:h-96 overflow-hidden"> {/* Adjusted height and overflow */}
                     {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
-                        <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full"> {/* Adicionado h-full */}
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart
+                        <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
+                            <ResponsiveContainer width="99%" height="100%">
+                                <AreaChart
                                     accessibilityLayer
                                     data={monthlyEvolution}
                                     margin={{
-                                        top: 20, // Aumentado para a legenda
-                                        right: 30, 
-                                        left: 20, 
-                                        bottom: 70, // Aumentado para labels X rotacionados
+                                        top: 20,
+                                        right: 30,
+                                        left: 30, 
+                                        bottom: 70,
                                     }}
                                 >
+                                    <defs>
+                                        <linearGradient id="fillReceitas" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="var(--color-Receitas)" stopOpacity={0.8}/>
+                                            <stop offset="95%" stopColor="var(--color-Receitas)" stopOpacity={0.1}/>
+                                        </linearGradient>
+                                        <linearGradient id="fillDespesas" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="var(--color-Despesas)" stopOpacity={0.7}/>
+                                            <stop offset="95%" stopColor="var(--color-Despesas)" stopOpacity={0.1}/>
+                                        </linearGradient>
+                                    </defs>
                                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="month"
                                         tickLine={false}
                                         axisLine={false}
-                                        tickMargin={10} // Espaço entre tick e label
+                                        tickMargin={10}
                                         interval={0}
                                         angle={-45}
                                         textAnchor="end"
-                                        height={80} // Altura para labels rotacionados
-                                        dy={10}    // Deslocamento vertical do label
+                                        height={80} 
+                                        dy={10}    
                                         tick={{ fontSize: 10 }}
                                     />
                                     <YAxis
@@ -435,15 +442,15 @@ export default function AnalysisPage() {
                                         tick={{ fontSize: 10 }}
                                         tickLine={false}
                                         axisLine={false}
-                                        tickMargin={5} // Espaço entre tick e label
-                                        dx={-5}    // Deslocamento horizontal do label
-                                        width={70} // Largura explícita para o eixo Y
+                                        tickMargin={5}
+                                        dx={-5}   
+                                        width={70}
                                     />
                                     <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
-                                    <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '15px', fontSize: '12px', paddingTop: '5px' }} />
-                                    <Line type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" strokeWidth={2} dot={{ fill: "var(--color-Receitas)", r: 3 }} activeDot={{ r: 5 }} name="Receitas" />
-                                    <Line type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" strokeWidth={2} dot={{ fill: "var(--color-Despesas)", r: 3 }} activeDot={{ r: 5 }} name="Despesas" />
-                                </LineChart>
+                                    <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
+                                    <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitas)" stackId="1" name="Receitas" />
+                                    <Area type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" fillOpacity={1} fill="url(#fillDespesas)" stackId="2" name="Despesas" />
+                                </AreaChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados suficientes para exibir a evolução.</p></div>}
@@ -455,9 +462,9 @@ export default function AnalysisPage() {
       {/* Galeria de Exemplos de Gráficos */}
       <PageHeader title="Galeria de Exemplos de Gráficos" description="Demonstração de diferentes tipos de gráficos." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Area Chart - Interactive */}
+        {/* Area Chart - Interactive (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Interactive</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <AreaChart accessibilityLayer data={mockAreaData} margin={{left: 12, right: 12}}>
@@ -471,9 +478,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Area Chart - Gradient */}
+        {/* Area Chart - Gradient (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Gradient</CardTitle><CardDescription>Com preenchimento gradiente.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Gradient (Mock)</CardTitle><CardDescription>Com preenchimento gradiente.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <AreaChart accessibilityLayer data={mockAreaData} margin={{left: 12, right: 12}}>
@@ -492,9 +499,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Bar Chart - Custom Label */}
+        {/* Bar Chart - Custom Label (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Custom Label</CardTitle><CardDescription>Barras com rótulos personalizados.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Custom Label (Mock)</CardTitle><CardDescription>Barras com rótulos personalizados.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <BarChart accessibilityLayer data={mockBarData} layout="vertical" margin={{right: 30}}>
@@ -510,9 +517,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Bar Chart - Stacked + Legend */}
+        {/* Bar Chart - Stacked + Legend (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Stacked + Legend</CardTitle><CardDescription>Barras empilhadas com legenda.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Stacked (Mock)</CardTitle><CardDescription>Barras empilhadas com legenda.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <BarChart accessibilityLayer data={mockBarData}>
@@ -527,9 +534,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         
-        {/* Line Chart - Label */}
+        {/* Line Chart - Label (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label (Mock)</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <LineChart accessibilityLayer data={mockLineData} margin={{top: 20, left: 12, right: 12}}>
@@ -544,9 +551,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Line Chart - Interactive (com Brush) */}
+        {/* Line Chart - Interactive (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive</CardTitle><CardDescription>Linhas com tooltip e seletor de range (brush).</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <LineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>
@@ -562,9 +569,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Pie Chart - Interactive */}
+        {/* Pie Chart - Interactive (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Interactive</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
             <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
               <PieChart>
@@ -575,9 +582,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Pie Chart - Label */}
+        {/* Pie Chart - Label (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Label</CardTitle><CardDescription>Gráfico de Pizza com rótulos.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Label (Mock)</CardTitle><CardDescription>Gráfico de Pizza com rótulos.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
             <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
               <PieChart>
@@ -588,9 +595,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Radar Chart - Grid Circle Filled */}
+        {/* Radar Chart - Grid Circle Filled (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Circle Grid</CardTitle><CardDescription>Grid circular com área preenchida.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Circle (Mock)</CardTitle><CardDescription>Grid circular com área preenchida.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <RadarChart data={mockRadarData}>
@@ -605,9 +612,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         
-        {/* Radar Chart - Grid Polygon Filled */}
+        {/* Radar Chart - Grid Polygon Filled (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Polygon Grid</CardTitle><CardDescription>Grid poligonal com múltiplas séries.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Polygon (Mock)</CardTitle><CardDescription>Grid poligonal com múltiplas séries.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <RadarChart data={mockRadarData}>
@@ -623,9 +630,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Radial Bar Chart - Label */}
+        {/* Radial Bar Chart - Label (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar Chart - Label</CardTitle><CardDescription>Com rótulos nas barras.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Label (Mock)</CardTitle><CardDescription>Com rótulos nas barras.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
             <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
               <RadialBarChart data={mockRadialData} innerRadius="20%" outerRadius="80%" startAngle={90} endAngle={450}>
@@ -639,17 +646,16 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Radial Bar Chart - Text (Center Label) */}
+        {/* Radial Bar Chart - Text (Center Label) (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar Chart - Center Text</CardTitle><CardDescription>Com texto no centro.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Center (Mock)</CardTitle><CardDescription>Com texto no centro.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
             <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
-              <RadialBarChart data={[mockRadialData[0]]} // Apenas um item para label central
+              <RadialBarChart data={[mockRadialData[0]]} 
                 cx="50%" cy="50%" innerRadius="60%" outerRadius="80%" barSize={10} startAngle={90} endAngle={450}>
                 <PolarAngleAxis type="number" domain={[0, 100]} dataKey="uv" tick={false} />
                 <RadialBar dataKey="uv" background cornerRadius={5} />
                 <RechartsTooltip content={<ChartTooltipContent nameKey="name" hideIndicator />} />
-                {/* Texto central manual */}
                 <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-sm font-semibold">
                   {`${mockRadialData[0].uv.toFixed(0)}%`}
                 </text>
@@ -658,9 +664,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Radial Bar Chart - Multiple (simulando Stacked) */}
+        {/* Radial Bar Chart - Multiple (mock) */}
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar Chart - Multiple</CardTitle><CardDescription>Múltiplas barras radiais.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Multiple (Mock)</CardTitle><CardDescription>Múltiplas barras radiais.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
              <ChartContainer config={genericChartConfig} className="w-full max-w-[300px] aspect-square">
                <RadialBarChart data={mockRadialData} 
@@ -679,9 +685,9 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        {/* Bar Chart - Advanced Tooltip & Interactive (Brush) */}
+        {/* Bar Chart - Advanced Tooltip & Interactive (Brush) (mock) */}
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Interactive & Advanced Tooltip</CardTitle><CardDescription>Com seleção de range (brush) e tooltip customizado.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Interactive (Mock)</CardTitle><CardDescription>Com brush e tooltip customizado.</CardDescription></CardHeader>
           <CardContent className="h-80">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <BarChart accessibilityLayer data={mockBarData}>
@@ -719,4 +725,3 @@ export default function AnalysisPage() {
   );
 }
 
-    
