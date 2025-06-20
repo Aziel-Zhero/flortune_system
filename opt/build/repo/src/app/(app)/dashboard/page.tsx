@@ -271,7 +271,7 @@ export default function DashboardPage() {
         description="Aqui está seu resumo financeiro."
         actions={
           <Link 
-            href="/transactions/new" 
+            href="/transactions/new" // Corrigido para a página de criação de transação
             className={cn(buttonVariants({ variant: "default", size: "default" }))}
           >
             <PlusCircle className="mr-2 h-4 w-4"/>

@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PieChart as PieIcon, AlertTriangle, Wallet, LineChart as LineIcon, TrendingDown } from "lucide-react";
+import { PieChart as PieIconLucide, AlertTriangle, Wallet, LineChart as LineIconLucide, TrendingDown } from "lucide-react"; // Aliased Lucide icons
 import {
   Select,
   SelectContent,
@@ -25,7 +25,19 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend } from "recharts";
+import {
+  LineChart, // Recharts component
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  PieChart, // Recharts component
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  Legend
+} from "recharts";
 import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
@@ -169,6 +181,7 @@ export default function AnalysisPage() {
         const categoryName = tx.category?.name || 'Outros';
         spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
       });
+    if (spendingMap.size === 0) return [];
     return Array.from(spendingMap, ([name, value], index) => ({
         name,
         value,
@@ -185,6 +198,7 @@ export default function AnalysisPage() {
         const categoryName = tx.category?.name || 'Outras Receitas';
         incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
       });
+    if (incomeMap.size === 0) return [];
     return Array.from(incomeMap, ([name, value], index) => ({
         name,
         value,
@@ -290,7 +304,7 @@ export default function AnalysisPage() {
             ) : (
                 <>
                     <Card className="shadow-sm">
-                        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIcon className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
+                        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
                         <CardContent className="h-80">
                             {spendingByCategory.length > 0 ? (
                                 <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
@@ -309,7 +323,7 @@ export default function AnalysisPage() {
                     </Card>
 
                     <Card className="shadow-sm">
-                        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIcon className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
+                        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
                         <CardContent className="h-80">
                             {incomeBySource.length > 0 ? (
                                 <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
@@ -342,9 +356,9 @@ export default function AnalysisPage() {
             )}
 
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><LineIcon className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><LineIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-96">
-                    {monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
+                    {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
                         <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={monthlyEvolution} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>

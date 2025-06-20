@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckSquare, Settings2, Mountain } from "lucide-react";
+import { User, Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, Smartphone, FileText, Fingerprint, Save, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
@@ -24,17 +24,18 @@ import { cn } from "@/lib/utils";
 interface ThemeOption {
   name: string;
   id: string;
-  icon: ReactNode;
+  icon: React.ElementType; // Lucide Icon
   description: string;
+  iconClassName?: string; // Opcional: para cores específicas de ícones
 }
 
 const availableThemes: ThemeOption[] = [
-  { name: "Verde Flortune", id: "default", icon: <span className="h-4 w-4 rounded-full bg-[hsl(var(--primary))] ring-1 ring-border" />, description: "O tema padrão, fresco e original do Flortune." },
-  { name: "Rio da Serra", id: "theme-rio-da-serra", icon: <span style={{backgroundColor: "hsl(221,83%,53%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema calmo e profissional com tons de azul clássico." },
-  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: <span style={{backgroundColor: "hsl(45,95%,51%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema claro e vibrante com destaques dourados." },
-  { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: <span style={{backgroundColor: "hsl(270,65%,55%)"}} className="h-4 w-4 rounded-full ring-1 ring-border" />, description: "Um tema envolvente com tons profundos e mágicos de roxo." },
-  { name: "Amanhecer", id: "theme-amanhecer", icon: <span className="h-4 w-4 rounded-full bg-gradient-to-br from-[hsl(var(--amanhecer-rosa))] to-[hsl(var(--amanhecer-roxo))] ring-1 ring-border" />, description: "Cores suaves de um amanhecer, com gradientes." },
-  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: <Mountain className="h-4 w-4 text-[hsl(15,70%,45%)]" />, description: "Tons quentes e terrosos de vermelho e argila." },
+  { name: "Verde Flortune", id: "default", icon: Sparkles, description: "O tema padrão, fresco e original do Flortune.", iconClassName: "text-primary" },
+  { name: "Rio da Serra", id: "theme-rio-da-serra", icon: Droplets, description: "Um tema calmo e profissional com tons de azul clássico.", iconClassName: "text-blue-500 dark:text-blue-400" },
+  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: Sun, description: "Um tema claro e vibrante com destaques dourados.", iconClassName: "text-yellow-500 dark:text-yellow-400" },
+  { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: Zap, description: "Um tema envolvente com tons profundos e mágicos de roxo.", iconClassName: "text-purple-500 dark:text-purple-400" },
+  { name: "Amanhecer", id: "theme-amanhecer", icon: Wind, description: "Cores suaves de um amanhecer, com gradientes.", iconClassName: "text-pink-500 dark:text-pink-400" },
+  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: Mountain, description: "Tons quentes e terrosos de vermelho e argila.", iconClassName: "text-red-600 dark:text-red-500" },
 ];
 
 
@@ -265,28 +266,31 @@ export default function SettingsPage() {
             <Label className="text-base">Temas de Cores</Label>
             <p className="text-sm text-muted-foreground">Escolha um esquema de cores que mais lhe agrada para o Flortune.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-              {availableThemes.map((theme) => (
-                <Button
-                  key={theme.id}
-                  variant={currentTheme === theme.id ? "default" : "outline"}
-                  className={cn(
-                    "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between min-h-[100px] sm:min-h-[120px]",
-                    currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
-                  )}
-                  onClick={() => handleThemeChange(theme.id)}
-                >
-                  <div className="flex items-center gap-2 sm:gap-3 w-full">
-                    {theme.icon}
-                    <span className="font-semibold text-sm md:text-base">{theme.name}</span>
-                    {currentTheme === theme.id && (
-                      <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
+              {availableThemes.map((theme) => {
+                const IconComponent = theme.icon;
+                return (
+                  <Button
+                    key={theme.id}
+                    variant={currentTheme === theme.id ? "default" : "outline"}
+                    className={cn(
+                      "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between min-h-[110px] sm:min-h-[130px]",
+                      currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
                     )}
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3">
-                    {theme.description}
-                  </p>
-                </Button>
-              ))}
+                    onClick={() => handleThemeChange(theme.id)}
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3 w-full">
+                       <IconComponent className={cn("h-5 w-5", theme.iconClassName || 'text-muted-foreground')} />
+                      <span className="font-semibold text-sm md:text-base">{theme.name}</span>
+                      {currentTheme === theme.id && (
+                        <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3 min-h-[30px] sm:min-h-[45px]">
+                      {theme.description}
+                    </p>
+                  </Button>
+                );
+              })}
             </div>
           </div>
         </CardContent>
@@ -314,7 +318,7 @@ export default function SettingsPage() {
                 Receba resumos financeiros semanais ou mensais por email. (Em breve)
               </span>
             </Label>
-            <Switch id="email-summary" onCheckedChange={(checked) => handleFeatureClick(`Resumos por Email ${checked ? "ativados" : "desativados"}`)} disabled/>
+            <Switch id="email-summary" onCheckedChange={(checked) => handleFeatureClick(`Resumos por Email ${checked ? "ativados" : "desativadas"}`)} disabled/>
           </div>
         </CardContent>
       </Card>

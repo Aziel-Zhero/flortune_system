@@ -24,6 +24,7 @@ import { useSession } from "next-auth/react";
 import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NO_ICON_VALUE } from "@/lib/constants";
 
 const goalFormSchema = z.object({
   name: z.string().min(3, "O nome da meta deve ter pelo menos 3 caracteres."),
@@ -39,11 +40,21 @@ const goalFormSchema = z.object({
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
 const availableIcons = [
-  { name: "Nenhum", value: null, icon: Tag }, { name: "Viagem", value: "Plane", icon: Plane }, { name: "Casa", value: "Home", icon: Home }, { name: "Carro", value: "Car", icon: Car }, { name: "Educação", value: "BookOpen", icon: BookOpen }, { name: "Eletrônicos", value: "Laptop", icon: Laptop }, { name: "Compras", value: "ShoppingBag", icon: ShoppingBag }, { name: "Presente", value: "Gift", icon: Gift }, { name: "Saúde", value: "Heart", icon: Heart }, { name: "Negócios", value: "Briefcase", icon: Briefcase }, { name: "Troféu", value: "Trophy", icon: Trophy },
+  { name: "Nenhum", value: NO_ICON_VALUE, icon: Tag },
+  { name: "Viagem", value: "Plane", icon: Plane },
+  { name: "Casa", value: "Home", icon: Home },
+  { name: "Carro", value: "Car", icon: Car },
+  { name: "Educação", value: "BookOpen", icon: BookOpen },
+  { name: "Eletrônicos", value: "Laptop", icon: Laptop },
+  { name: "Compras", value: "ShoppingBag", icon: ShoppingBag },
+  { name: "Presente", value: "Gift", icon: Gift },
+  { name: "Saúde", value: "Heart", icon: Heart },
+  { name: "Negócios", value: "Briefcase", icon: Briefcase },
+  { name: "Troféu", value: "Trophy", icon: Trophy },
 ];
 
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
-  if (!iconName) return Tag;
+  if (!iconName || iconName === NO_ICON_VALUE) return Tag;
   const IconComponent = (LucideIcons as any)[iconName];
   return IconComponent || Tag;
 };
@@ -64,7 +75,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
   const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<GoalFormData>({
     resolver: zodResolver(goalFormSchema),
-    defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: null, notes: "" },
+    defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" },
   });
 
   const selectedIconValue = watch("icon"); 
@@ -77,13 +88,13 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     }
     setIsSubmitting(true);
     const newGoalData: NewFinancialGoalData = {
-      name: data.name, target_amount: data.target_amount, deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, icon: data.icon, notes: data.notes,
+      name: data.name, target_amount: data.target_amount, deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, icon: data.icon === NO_ICON_VALUE ? null : data.icon, notes: data.notes,
     };
     try {
       const result = await addFinancialGoal(user.id, newGoalData);
       if (result.error) throw result.error;
       toast({ title: "Meta Criada!", description: `Sua meta "${data.name}" foi criada com sucesso.`, action: <CheckCircle className="text-green-500" />, });
-      reset(); 
+      reset({ name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" }); 
       onGoalCreated(); 
       if (!isModal) router.push("/goals");
     } catch (error: any) {
@@ -109,7 +120,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         <p className="text-muted-foreground font-semibold">Você precisa estar logado para criar uma meta.</p>
         <p className="text-sm text-muted-foreground">Por favor, faça login e tente novamente.</p>
          <DialogFooter className="pt-4">
-            {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
+            {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting || isAuthLoading || !user}>Cancelar</Button></DialogClose>}
           </DialogFooter>
       </div>
     );
@@ -153,11 +164,24 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
           <Controller name="icon" control={control} render={({ field }) => {
             const CurrentSelectedIconComponent = getLucideIcon(field.value); 
             return (
-              <Select onValueChange={field.onChange} value={field.value || ""} disabled={isSubmitting}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value ?? NO_ICON_VALUE} // Garante que o valor nunca seja nulo/undefined
+                disabled={isSubmitting}
+              >
                 <SelectTrigger id="goal-form-icon">
-                  <SelectValue placeholder={<div className="flex items-center gap-2"><CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" /><span>{availableIcons.find(opt => opt.value === field.value)?.name || "Selecione um ícone"}</span></div>} />
+                  <SelectValue placeholder={<div className="flex items-center gap-2"><CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" /><span>{availableIcons.find(opt => opt.value === (field.value ?? NO_ICON_VALUE))?.name || "Selecione um ícone"}</span></div>} />
                 </SelectTrigger>
-                <SelectContent>{availableIcons.map((iconOpt) => { const IconComp = iconOpt.icon; return (<SelectItem key={iconOpt.value || 'none-icon'} value={iconOpt.value || ''}><div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div></SelectItem>); })}</SelectContent>
+                <SelectContent>
+                  {availableIcons.map((iconOpt) => {
+                    const IconComp = iconOpt.icon;
+                    return (
+                      <SelectItem key={iconOpt.value} value={iconOpt.value}> {/* value aqui nunca será string vazia */}
+                        <div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
               </Select>
             );
           }} />
@@ -172,7 +196,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       </div>
 
       <DialogFooter className="pt-4">
-        {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>}
+        {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting || isAuthLoading || !user}>Cancelar</Button></DialogClose>}
         <Button type="submit" disabled={isSubmitting || isAuthLoading || !user}>
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isSubmitting ? "Salvando..." : "Salvar Meta"}
