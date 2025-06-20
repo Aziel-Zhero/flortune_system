@@ -5,7 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -105,7 +105,7 @@ export default function DashboardPage() {
       } else if (goalsData && goalsData.length > 0) {
         const inProgressGoals = goalsData.filter(g => g.status === 'in_progress');
         if (inProgressGoals.length > 0) {
-            const primaryGoal = inProgressGoals[0];
+            const primaryGoal = inProgressGoals.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]; // Get oldest in_progress goal
             if (primaryGoal.target_amount > 0) {
                  primaryGoalProgress = Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100);
             }
@@ -274,6 +274,7 @@ export default function DashboardPage() {
             href="/transactions/new" 
             className={cn(buttonVariants({ variant: "default", size: "default" }))}
           >
+            <PlusCircle className="mr-2 h-4 w-4"/>
             Adicionar Transação
           </Link>
         }

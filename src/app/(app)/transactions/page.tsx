@@ -130,15 +130,13 @@ export default function TransactionsPage() {
   };
 
   const handleEditClick = (transactionId: string, transactionDescription: string) => {
-    console.log(`Editando transação: ${transactionDescription} (ID: ${transactionId})`);
     toast({
-      title: "Ação de Edição",
-      description: `Funcionalidade de edição de transações em desenvolvimento.`,
+      title: "Editar Transação",
+      description: `Funcionalidade de edição para "${transactionDescription}" (placeholder).`,
     });
   };
   
   const handleExportClick = () => {
-    console.log("Exportar transações clicado.");
     toast({
       title: "Exportar Dados",
       description: "Funcionalidade de exportação de transações (placeholder)."
@@ -232,7 +230,7 @@ export default function TransactionsPage() {
                 Exportar
               </Button>
               <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto"> 
+                  <Button className="w-full sm:w-auto" disabled={authLoading || !user}> 
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Adicionar Transação
                   </Button>
@@ -325,7 +323,7 @@ export default function TransactionsPage() {
                           <AlertTriangle className="h-10 w-10 text-muted-foreground/50" />
                           <span>Nenhuma transação encontrada.</span>
                           <DialogTrigger asChild>
-                              <Button size="sm" className="mt-2">Adicionar Primeira Transação</Button>
+                              <Button size="sm" className="mt-2" disabled={authLoading || !user}>Adicionar Primeira Transação</Button>
                           </DialogTrigger>
                         </div>
                       </TableCell>
@@ -361,19 +359,14 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
-        {isCreateModalOpen && !session?.user && (
-             <div className="py-8 text-center">
-                <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
-                <p className="text-muted-foreground">Você precisa estar logado para adicionar uma transação.</p>
-            </div>
-        )}
-         {isCreateModalOpen && authLoading && (
+        {isCreateModalOpen && session?.user && status === "authenticated" && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && (authLoading || !session?.user) && (
              <div className="py-8 text-center">
                 <Skeleton className="mx-auto h-12 w-12 rounded-full mb-4"/>
-                <Skeleton className="h-4 w-3/4 mx-auto"/>
+                <Skeleton className="h-4 w-3/4 mx-auto mb-2" />
+                 <Skeleton className="h-4 w-1/2 mx-auto" />
             </div>
-         )}
+        )}
       </DialogContent>
     </Dialog>
   );

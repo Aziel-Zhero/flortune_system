@@ -230,7 +230,6 @@ export default function SettingsPage() {
                       <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
                 </div>
-                 {/* Adicionar campo para Inscrição Estadual se necessário para empresa */}
               </div>
             )}
           </CardContent>
@@ -278,7 +277,7 @@ export default function SettingsPage() {
                 >
                   <div className="flex items-center gap-2 sm:gap-3 w-full">
                     {theme.icon}
-                    <span className="font-semibold text-sm">{theme.name}</span>
+                    <span className="font-semibold text-sm md:text-base">{theme.name}</span>
                     {currentTheme === theme.id && (
                       <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
                     )}

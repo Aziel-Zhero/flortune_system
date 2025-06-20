@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
-import { getBudgets, deleteBudget } from "@/services/budget.service"; // Importar serviços reais
+import { getBudgets, deleteBudget } from "@/services/budget.service";
 import type { Budget } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -40,7 +40,11 @@ export default function BudgetsPage() {
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const fetchBudgetsData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setIsLoadingData(false);
+      setCurrentBudgets([]);
+      return;
+    }
     setIsLoadingData(true);
     try {
       const { data, error } = await getBudgets(user.id);
@@ -56,14 +60,14 @@ export default function BudgetsPage() {
     } finally {
       setIsLoadingData(false);
     }
-  }, [user]);
+  }, [user?.id]); // Adicionada dependência user?.id
 
   useEffect(() => {
     document.title = `Orçamentos - ${APP_NAME}`;
     if (user?.id && !authLoading) {
       fetchBudgetsData();
     } else if (!authLoading && !user?.id) {
-      setIsLoadingData(false); // Não está carregando se não há usuário
+      setIsLoadingData(false); 
       setCurrentBudgets([]);
     }
   }, [user, authLoading, fetchBudgetsData]);
@@ -98,12 +102,10 @@ export default function BudgetsPage() {
   };
 
   const handleEditClick = (budgetId: string, budgetCategoryName: string) => {
-    console.log(`Editando orçamento: ${budgetCategoryName} (ID: ${budgetId})`);
     toast({
-      title: "Ação de Edição",
-      description: `Redirecionando para editar o orçamento "${budgetCategoryName}" (placeholder).`,
+      title: "Editar Orçamento",
+      description: `Funcionalidade de edição para "${budgetCategoryName}" (placeholder).`,
     });
-    // Em um app real: router.push(`/budgets/edit/${budgetId}`);
   };
   
   const cardVariants = {
@@ -119,7 +121,7 @@ export default function BudgetsPage() {
     }),
   };
   
-  if (authLoading || (isLoadingData && user)) {
+  if (authLoading || (isLoadingData && !!user)) {
     return (
       <div>
         <PageHeader
@@ -163,9 +165,10 @@ export default function BudgetsPage() {
     <div>
       <PageHeader
         title="Orçamentos"
+        icon={<Target className="mr-2 h-6 w-6 text-primary"/>}
         description="Defina e acompanhe seus limites de gastos para diferentes categorias."
         actions={
-          <Button asChild>
+          <Button asChild disabled={authLoading || !user}>
             <Link href="/budgets/new"> 
               <PlusCircle className="mr-2 h-4 w-4" />
               Criar Orçamento
@@ -180,7 +183,7 @@ export default function BudgetsPage() {
             <p className="text-muted-foreground mb-4 max-w-md">
               Orçamentos ajudam você a controlar seus gastos e alcançar suas metas financeiras. Que tal criar seu primeiro orçamento?
             </p>
-            <Button asChild size="lg">
+            <Button asChild size="lg" disabled={authLoading || !user}>
               <Link href="/budgets/new">
                 <PlusCircle className="mr-2 h-5 w-5" />
                 Criar Meu Primeiro Orçamento
@@ -253,7 +256,7 @@ export default function BudgetsPage() {
             </motion.div>
           );
         })}
-         {currentBudgets.length > 0 && (
+         {currentBudgets.length > 0 && !isLoadingData && (
           <motion.div custom={currentBudgets.length} variants={cardVariants} initial="hidden" animate="visible" layout>
               <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
                   <Link href="/budgets/new" className="text-center p-6 block w-full h-full flex flex-col items-center justify-center"> 
@@ -288,7 +291,7 @@ export default function BudgetsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setDialogOpen(false); setItemToDelete(null); }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({ variant: "destructive" })}>Deletar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

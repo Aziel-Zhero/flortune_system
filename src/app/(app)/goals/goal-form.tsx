@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, BookOpen, Laptop, Heart, Save } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, BookOpen, Laptop, Heart, Save, AlertTriangle } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -124,9 +124,13 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     }
   };
   
-  if (authLoading) { 
+  if (authLoading && !session?.user) { 
     return (
         <div className="space-y-4 py-4">
+            <div className="flex items-center justify-center py-6">
+                <Skeleton className="h-8 w-8 rounded-full mr-2" />
+                <Skeleton className="h-6 w-32" />
+            </div>
             <Skeleton className="h-4 w-1/4 mb-1" />
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-4 w-1/4 mb-1" />
@@ -146,7 +150,13 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
   }
 
   if (!user && !authLoading) { 
-    return <p className="text-destructive text-center py-4">Você precisa estar logado para criar uma meta.</p>
+    return (
+        <div className="py-8 text-center">
+            <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
+            <p className="text-muted-foreground font-semibold">Você precisa estar logado para criar uma meta.</p>
+            <p className="text-sm text-muted-foreground">Por favor, faça login e tente novamente.</p>
+        </div>
+    )
   }
 
 
@@ -221,7 +231,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
                     render={({ field }) => {
                         const SelectedIconComponent = getLucideIcon(field.value);
                         return (
-                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={authLoading}>
+                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={authLoading && !session?.user}>
                             <SelectTrigger id="icon-goal">
                             <SelectValue placeholder={
                                 <div className="flex items-center gap-2">
@@ -264,7 +274,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
         <DialogFooter className="pt-4">
             {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
-            <Button type="submit" disabled={isSubmitting || authLoading || !user}>
+            <Button type="submit" disabled={isSubmitting || (authLoading && !session?.user) || !user}>
                 <Save className="mr-2 h-4 w-4" />
                 {isSubmitting ? "Salvando..." : "Salvar Meta"}
             </Button>
