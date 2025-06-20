@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PieChart as PieIcon, AlertTriangle, Wallet, LineChart as LineIconLucide, TrendingDown } from "lucide-react"; // Renomeado LineChart para LineIconLucide
+import { PieChart as PieIcon, AlertTriangle, Wallet, LineChart as LineIconLucide, TrendingDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -26,18 +26,18 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import {
-  LineChart, // Importado de recharts
+  LineChart, // Explicit import
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  PieChart, // Importado de recharts
+  PieChart, // Explicit import
   Pie,
   Cell,
   Tooltip as RechartsTooltip,
   Legend
-} from "recharts";
+} from "recharts"; // Ensure all components are imported
 import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
@@ -124,7 +124,7 @@ export default function AnalysisPage() {
     if (!user?.id || authLoading) {
       setIsFetchingTransactions(authLoading);
       if (!authLoading && !user?.id) {
-        setAllTransactions([]);
+        setAllTransactions([]); // Clear transactions if user logs out or session is invalid
       }
       return;
     }
@@ -155,7 +155,7 @@ export default function AnalysisPage() {
       if (timePeriod === "all") return true;
       if (!tx || !tx.date || typeof tx.date !== 'string') return false;
       try {
-        const txDate = new Date(tx.date + "T00:00:00Z");
+        const txDate = new Date(tx.date + "T00:00:00Z"); // Treat date as UTC
         if (isNaN(txDate.getTime())) return false;
         const now = new Date();
         if (timePeriod === "monthly") {
@@ -168,7 +168,7 @@ export default function AnalysisPage() {
         console.error("Error parsing transaction date:", tx.date, e);
         return false;
       }
-      return true;
+      return true; // Should not be reached if timePeriod is one of the handled values
     });
   }, [allTransactions, timePeriod]);
 
@@ -181,6 +181,7 @@ export default function AnalysisPage() {
         const categoryName = tx.category?.name || 'Outros';
         spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
       });
+    if (spendingMap.size === 0) return [];
     return Array.from(spendingMap, ([name, value], index) => ({
         name,
         value,
@@ -197,10 +198,11 @@ export default function AnalysisPage() {
         const categoryName = tx.category?.name || 'Outras Receitas';
         incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
       });
+    if (incomeMap.size === 0) return [];
     return Array.from(incomeMap, ([name, value], index) => ({
         name,
         value,
-        fill: chartColors[(index + 1) % chartColors.length]
+        fill: chartColors[(index + 1) % chartColors.length] // Offset color for income
     })).sort((a,b) => b.value - a.value);
   }, [filteredTransactionsForPeriod]);
 
@@ -209,6 +211,7 @@ export default function AnalysisPage() {
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
     const today = new Date();
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    // Initialize last 12 months
     for (let i = 11; i >= 0; i--) {
         const date = new Date(today.getUTCFullYear(), today.getUTCMonth() - i, 1);
         const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
@@ -217,10 +220,10 @@ export default function AnalysisPage() {
     allTransactions.forEach(tx => {
       if (!tx || !tx.date || typeof tx.date !== 'string' || typeof tx.amount !== 'number') return;
       try {
-        const txDate = new Date(tx.date + "T00:00:00Z");
+        const txDate = new Date(tx.date + "T00:00:00Z"); // Treat date as UTC
         if (isNaN(txDate.getTime())) return;
         const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey] !== undefined) {
+        if (monthlyData[monthKey] !== undefined) { // Ensure monthKey exists (it should due to pre-initialization)
             if (tx.type === 'income' && tx.amount > 0) monthlyData[monthKey].income += tx.amount;
             else if (tx.type === 'expense' && tx.amount > 0) monthlyData[monthKey].expense += tx.amount;
         }
@@ -378,5 +381,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-
-    

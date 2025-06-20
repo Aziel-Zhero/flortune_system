@@ -24,6 +24,7 @@ import { useSession } from "next-auth/react";
 import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NO_ICON_VALUE } from "@/lib/constants"; // Importar NO_ICON_VALUE
 
 const goalFormSchema = z.object({
   name: z.string().min(3, "O nome da meta deve ter pelo menos 3 caracteres."),
@@ -38,10 +39,8 @@ const goalFormSchema = z.object({
 
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
-const NO_ICON_VALUE = "__NO_ICON__"; // Constante para valor de ícone nulo
-
 const availableIcons = [
-  { name: "Nenhum", value: NO_ICON_VALUE, icon: Tag },
+  { name: "Nenhum", value: NO_ICON_VALUE, icon: Tag }, // Usar NO_ICON_VALUE
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
@@ -121,7 +120,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         <p className="text-muted-foreground font-semibold">Você precisa estar logado para criar uma meta.</p>
         <p className="text-sm text-muted-foreground">Por favor, faça login e tente novamente.</p>
          <DialogFooter className="pt-4">
-            {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
+            {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting || isAuthLoading || !user}>Cancelar</Button></DialogClose>}
           </DialogFooter>
       </div>
     );
@@ -167,7 +166,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
             return (
               <Select onValueChange={field.onChange} value={field.value || NO_ICON_VALUE} disabled={isSubmitting}>
                 <SelectTrigger id="goal-form-icon">
-                  <SelectValue placeholder={<div className="flex items-center gap-2"><CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" /><span>{availableIcons.find(opt => opt.value === field.value)?.name || "Selecione um ícone"}</span></div>} />
+                  <SelectValue placeholder={<div className="flex items-center gap-2"><CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" /><span>{availableIcons.find(opt => opt.value === (field.value || NO_ICON_VALUE))?.name || "Selecione um ícone"}</span></div>} />
                 </SelectTrigger>
                 <SelectContent>{availableIcons.map((iconOpt) => { const IconComp = iconOpt.icon; return (<SelectItem key={iconOpt.value} value={iconOpt.value}><div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div></SelectItem>); })}</SelectContent>
               </Select>
@@ -184,7 +183,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       </div>
 
       <DialogFooter className="pt-4">
-        {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>}
+        {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting || isAuthLoading || !user}>Cancelar</Button></DialogClose>}
         <Button type="submit" disabled={isSubmitting || isAuthLoading || !user}>
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isSubmitting ? "Salvando..." : "Salvar Meta"}
@@ -193,5 +192,3 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     </form>
   );
 }
-
-    

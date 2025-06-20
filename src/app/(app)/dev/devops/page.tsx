@@ -4,7 +4,7 @@
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GitMerge } from "lucide-react"; // Ícone para DevOps
+import { GitMerge } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
 
@@ -34,5 +34,3 @@ export default function DevDevOpsPage() {
     </div>
   );
 }
-
-    

@@ -4,7 +4,7 @@
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users2 } from "lucide-react"; // Ícone para Clientes
+import { Users2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
 
@@ -34,5 +34,3 @@ export default function DevClientsPage() {
     </div>
   );
 }
-
-    

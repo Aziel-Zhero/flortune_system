@@ -4,7 +4,7 @@
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Component } from "lucide-react"; // Ícone para Sistemas
+import { Component } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
 
@@ -28,12 +28,9 @@ export default function DevSystemsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p>Funcionalidades relacionadas a sistemas serão implementadas aqui.</p>
-          {/* Adicione mais conteúdo de desenvolvimento aqui conforme necessário */}
+          <p>Funcionalidades e informações relacionadas a sistemas serão implementadas aqui.</p>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
