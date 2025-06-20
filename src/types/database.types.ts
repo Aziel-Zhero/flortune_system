@@ -35,6 +35,7 @@ export interface Transaction {
   date: string; // DATE (YYYY-MM-DD)
   type: 'income' | 'expense';
   notes?: string | null;
+  is_recurring?: boolean; // Adicionado para transações recorrentes
   created_at: string;
   updated_at: string;
   category?: Category | null; // Para joins
@@ -175,4 +176,5 @@ export interface ServiceListResponse<T> {
   error: Error | null;
   count?: number | null;
 }
+
     

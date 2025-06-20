@@ -8,9 +8,11 @@ import type { Transaction, ServiceListResponse, ServiceResponse, Category } from
 
 export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'> & {
   category_id: string;
+  is_recurring?: boolean; // Adicionado
 };
 export type UpdateTransactionData = Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>> & {
   category_id?: string;
+  is_recurring?: boolean; // Adicionado
 };
 
 async function getSupabaseClientForUser() {
@@ -36,6 +38,7 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
         date,
         type,
         notes,
+        is_recurring, 
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -68,7 +71,11 @@ export async function addTransaction(userId: string, transactionData: NewTransac
   try {
     const { data, error } = await supabaseClient
       .from('transactions')
-      .insert([{ ...transactionData, user_id: userId }])
+      .insert([{ 
+        ...transactionData, 
+        user_id: userId,
+        is_recurring: transactionData.is_recurring ?? false // Garantir valor padrão se undefined
+      }])
       .select(`
         id,
         user_id,
@@ -78,6 +85,7 @@ export async function addTransaction(userId: string, transactionData: NewTransac
         date,
         type,
         notes,
+        is_recurring,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -105,9 +113,12 @@ export async function updateTransaction(transactionId: string, userId: string, t
     return { data: null, error };
   }
   try {
+    // Garantir que updated_at seja sempre atualizado
+    const dataToUpdate = { ...transactionData, updated_at: new Date().toISOString() };
+
     const { data, error } = await supabaseClient
       .from('transactions')
-      .update(transactionData)
+      .update(dataToUpdate)
       .eq('id', transactionId)
       .eq('user_id', userId) 
       .select(`
@@ -119,6 +130,7 @@ export async function updateTransaction(transactionId: string, userId: string, t
         date,
         type,
         notes,
+        is_recurring,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -159,3 +171,5 @@ export async function deleteTransaction(transactionId: string, userId: string): 
     return { data: null, error };
   }
 }
+
+    

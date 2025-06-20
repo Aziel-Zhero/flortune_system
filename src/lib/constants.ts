@@ -1,6 +1,6 @@
 
 export const APP_NAME = "Flortune";
-export const NO_ICON_VALUE = "__NO_ICON__"; // Adicionado para SelectItem
+export const NO_ICON_VALUE = "__NO_ICON__";
 
 // Navigation links with Portuguese labels
 export const NAV_LINKS_CONFIG = [
@@ -11,9 +11,15 @@ export const NAV_LINKS_CONFIG = [
   { href: "/budgets", label: "Orçamentos", icon: "Target" as const, type: "link" as const },
   { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
   { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
+  { href: "/notes", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
   { type: "separator" as const },
-  { type: "title" as const, label: "FOR DEVs" },
-  { href: "/dev/systems", label: "Sistemas", icon: "Component" as const, type: "link" as const },
+  { type: "title" as const, label: "PARA DEVs" },
+  { type: "title" as const, label: "Sistemas" },
+  { href: "/dev/systems/project-pricing", label: "Precificação de Projetos", icon: "Calculator" as const, type: "link" as const },
+  { href: "/dev/systems/currency-converter", label: "Conversor de Moeda", icon: "Coins" as const, type: "link" as const },
+  { href: "/dev/systems/time-converter", label: "Conversor de Tempo", icon: "Clock" as const, type: "link" as const },
+  { href: "/dev/systems/interest-calculator", label: "Calculadora de Juros", icon: "Landmark" as const, type: "link" as const },
+  { href: "/dev/systems/uptime-calculator", label: "Calculadora de Uptime", icon: "Gauge" as const, type: "link" as const },
   { href: "/dev/devops", label: "DevOps", icon: "GitMerge" as const, type: "link" as const },
   { href: "/dev/clients", label: "Clientes", icon: "Users2" as const, type: "link" as const },
   { href: "/dev/agile", label: "Metodologias Ágeis", icon: "IterationCw" as const, type: "link" as const },
@@ -85,5 +91,3 @@ export const PRICING_TIERS = [
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
-
-    
