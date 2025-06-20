@@ -1,7 +1,7 @@
 
 "use client"; 
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +27,11 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, isToday as fnsIsToday } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface CalendarEvent {
-  id: number;
+  id: string; // Alterado para string para UUIDs futuros
   title: string;
   startTime: string; // "HH:MM"
   endTime: string; // "HH:MM"
@@ -42,32 +44,25 @@ interface CalendarEvent {
   isAllDay?: boolean;
 }
 
-// Sample financial events
-const sampleEvents: CalendarEvent[] = [
-  { id: 1, title: "Pagamento Aluguel", startTime: "09:00", endTime: "09:30", color: "bg-destructive/80", date: "2024-08-19", description: "Vencimento do aluguel mensal", location: "Online"},
-  { id: 2, title: "Salário", startTime: "00:00", endTime: "23:59", color: "bg-primary", date: "2024-08-19", description: "Recebimento do salário", location: "Conta Bancária", isAllDay: true },
-  { id: 3, title: "Supermercado", startTime: "16:00", endTime: "17:00", color: "bg-accent", date: "2024-08-20", description: "Compras da semana", location: "Mercado Local"},
-  { id: 4, title: "Conta de Luz", startTime: "10:00", endTime: "10:15", color: "bg-amber-500", date: "2024-08-21", description: "Vencimento da conta de energia elétrica", location: "App do Banco"},
-  { id: 5, title: "Rendimento Investimento", startTime: "00:00", endTime: "23:59", color: "bg-emerald-500", date: "2024-08-22", description: "Crédito do rendimento mensal", location: "Corretora", isAllDay: true},
-  { id: 6, title: "Assinatura Streaming", startTime: "11:00", endTime: "11:05", color: "bg-sky-500", date: "2024-08-23", description: "Débito da assinatura mensal", location: "Cartão de Crédito"},
+// Eventos de exemplo enriquecidos
+const sampleBaseEvents: Omit<CalendarEvent, 'id' | 'date'>[] = [
+  { title: "Pagamento Aluguel", startTime: "00:00", endTime: "23:59", color: "bg-destructive/80 text-destructive-foreground", description: "Vencimento do aluguel mensal", location: "Online", isAllDay: true},
+  { title: "Salário", startTime: "00:00", endTime: "23:59", color: "bg-primary text-primary-foreground", description: "Recebimento do salário", location: "Conta Bancária", isAllDay: true },
+  { title: "Supermercado", startTime: "16:00", endTime: "17:30", color: "bg-accent text-accent-foreground", description: "Compras da semana", location: "Mercado Local"},
+  { title: "Conta de Luz", startTime: "10:00", endTime: "10:15", color: "bg-amber-500 text-white", description: "Vencimento da conta de energia elétrica", location: "App do Banco"},
+  { title: "Rendimento Investimento", startTime: "09:00", endTime: "09:05", color: "bg-emerald-500 text-white", description: "Crédito do rendimento mensal", location: "Corretora"},
+  { title: "Assinatura Streaming", startTime: "11:00", endTime: "11:05", color: "bg-sky-500 text-white", description: "Débito da assinatura mensal", location: "Cartão de Crédito"},
+  { title: "Reunião de Equipe", startTime: "14:00", endTime: "15:00", color: "bg-indigo-500 text-white", description: "Alinhamento semanal", location: "Escritório"},
+  { title: "Consulta Médica", startTime: "08:30", endTime: "09:30", color: "bg-purple-500 text-white", description: "Check-up anual", location: "Clínica Saúde"},
 ];
 
-const weekDays = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+const weekDayLabels = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 const timeSlots = Array.from({ length: 17 }, (_, i) => i + 7); // 7 AM to 11 PM (23:00)
+const slotHeight = 60; // pixels, para h-[60px]
 
 const getWeekDates = (refDate: Date): Date[] => {
-  const dates: Date[] = [];
-  const currentDay = refDate.getDay(); 
-  const firstDayOfWeek = new Date(refDate);
-  firstDayOfWeek.setDate(refDate.getDate() - currentDay);
-  firstDayOfWeek.setHours(0, 0, 0, 0); 
-
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(firstDayOfWeek);
-    day.setDate(firstDayOfWeek.getDate() + i);
-    dates.push(day);
-  }
-  return dates;
+  const start = startOfWeek(refDate, { weekStartsOn: 0 }); // Domingo como início da semana
+  return eachDayOfInterval({ start, end: endOfWeek(refDate, { weekStartsOn: 0 }) });
 };
 
 export default function CalendarPage() {
@@ -80,72 +75,76 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
-  const assignEventsToCurrentWeek = useCallback((baseEvents: CalendarEvent[], currentWeekDates: Date[]) => {
-    return baseEvents.map((event, index) => {
-      const dayOfWeekIndex = (new Date(event.date).getDay() + index) % 7; // Distribute sample events for demo
-      const targetDate = new Date(currentWeekDates[dayOfWeekIndex]);
+  // Função para distribuir eventos de exemplo pela semana atual
+  const assignEventsToCurrentWeek = useCallback((baseEvts: Omit<CalendarEvent, 'id'|'date'>[], currentWeek: Date[]): CalendarEvent[] => {
+    return baseEvts.map((eventBase, index) => {
+      // Distribui os eventos pelos dias da semana, ciclicamente
+      const dayIndex = index % currentWeek.length;
+      const targetDate = currentWeek[dayIndex];
       return {
-        ...event,
+        ...eventBase,
+        id: `evt_sample_${targetDate.toISOString().split('T')[0]}_${index}`,
         date: targetDate.toISOString().split('T')[0],
       };
     });
   }, []);
 
   useEffect(() => {
-    document.title = `Calendário Financeiro - ${APP_NAME}`;
+    document.title = `Calendário Semanal - ${APP_NAME}`;
     setIsLoadingEvents(true);
-    setTimeout(() => {
-      setEvents(assignEventsToCurrentWeek(sampleEvents, weekDates));
-      setIsLoadingEvents(false);
-    }, 500);
+    // Simula o carregamento e atribuição de eventos à semana atual
+    const simulatedFetchedEvents = assignEventsToCurrentWeek(sampleBaseEvents, weekDates);
+    setEvents(simulatedFetchedEvents);
+    setIsLoadingEvents(false); 
   }, [weekDates, assignEventsToCurrentWeek]);
 
+  const handleEventClick = (event: CalendarEvent) => setSelectedEvent(event);
+  const handleNextWeek = () => setCurrentRefDate(prev => addDays(prev, 7));
+  const handlePrevWeek = () => setCurrentRefDate(prev => addDays(prev, -7));
+  const handleToday = () => setCurrentRefDate(new Date());
 
-  const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-  };
-
-  const handleNextWeek = () => {
-    const nextWeekDate = new Date(currentRefDate);
-    nextWeekDate.setDate(currentRefDate.getDate() + 7);
-    setCurrentRefDate(nextWeekDate);
-    setWeekDates(getWeekDates(nextWeekDate));
-  };
-
-  const handlePrevWeek = () => {
-    const prevWeekDate = new Date(currentRefDate);
-    prevWeekDate.setDate(currentRefDate.getDate() - 7);
-    setCurrentRefDate(prevWeekDate);
-    setWeekDates(getWeekDates(prevWeekDate));
-  };
-
-  const handleToday = () => {
-    const today = new Date();
-    setCurrentRefDate(today);
-    setWeekDates(getWeekDates(today));
-  };
+  useEffect(() => {
+    setWeekDates(getWeekDates(currentRefDate));
+  }, [currentRefDate]);
 
   const calculateEventStyle = (startTime: string, endTime: string, isAllDay?: boolean) => {
+    const timelineStartHour = timeSlots[0]; // Ex: 7
+
     if (isAllDay) {
-      return { top: `0px`, height: `28px`, zIndex: 10 }; 
+      return { top: `0px`, height: `24px`, zIndex: 10, isFullWidth: true }; 
     }
-    const startHour = parseInt(startTime.split(":")[0]);
-    const startMinute = parseInt(startTime.split(":")[1]);
-    const endHour = parseInt(endTime.split(":")[0]);
-    const endMinute = parseInt(endTime.split(":")[1]);
+    
+    const [startH, startM] = startTime.split(":").map(Number);
+    const [endH, endM] = endTime.split(":").map(Number);
 
-    const topOffset = ((startHour - 7 + startMinute / 60) * 60); 
-    const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-    const height = (durationMinutes); 
+    const topPosition = ((startH - timelineStartHour) + (startM / 60)) * slotHeight;
+    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    let eventHeight = (durationMinutes / 60) * slotHeight;
+    
+    if (eventHeight < 20) eventHeight = 20; // Minimum height for visibility
 
-    return { top: `${topOffset}px`, height: `${Math.max(height, 20)}px`, zIndex: 10 }; 
+    return { top: `${topPosition}px`, height: `${eventHeight}px`, zIndex: 10, isFullWidth: false };
   };
 
-  const currentMonthYear = weekDates[0] 
-    ? weekDates[0].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-    : new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const currentMonthYearLabel = useMemo(() => {
+    // Mostra o mês da maioria dos dias da semana ou o mês do primeiro dia
+    const monthCounts: Record<string, number> = {};
+    weekDates.forEach(d => {
+      const monthName = format(d, "MMMM yyyy", { locale: ptBR });
+      monthCounts[monthName] = (monthCounts[monthName] || 0) + 1;
+    });
+    let majorityMonth = format(weekDates[0], "MMMM yyyy", { locale: ptBR });
+    let maxCount = 0;
+    for (const month in monthCounts) {
+      if (monthCounts[month] > maxCount) {
+        maxCount = monthCounts[month];
+        majorityMonth = month;
+      }
+    }
+    return majorityMonth.charAt(0).toUpperCase() + majorityMonth.slice(1);
+  }, [weekDates]);
   
-  const formatTime = (timeStr: string) => {
+  const formatTimeForDisplay = (timeStr: string) => {
     if (!timeStr || timeStr.split(':').length !== 2) return '';
     const [hour, minute] = timeStr.split(':');
     const date = new Date();
@@ -153,14 +152,11 @@ export default function CalendarPage() {
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
 
-
-  if (isLoadingAuth || isLoadingEvents) {
+  if (isLoadingAuth || (isLoadingEvents && !!session)) {
     return (
       <div className="flex flex-col h-full">
-        <PageHeader title="Calendário Financeiro" description="Carregando eventos..." />
-        <div className="flex-1 p-4">
-          <Skeleton className="w-full h-full rounded-lg" />
-        </div>
+        <PageHeader title="Calendário Semanal" description="Carregando eventos..." icon={<CalendarIconLucide className="h-6 w-6 text-primary"/>}/>
+        <Skeleton className="w-full h-[calc(100vh-200px)] rounded-lg" />
       </div>
     );
   }
@@ -169,14 +165,15 @@ export default function CalendarPage() {
     <div className="flex flex-col h-full overflow-hidden">
       <PageHeader
         title="Calendário Financeiro"
-        description={currentMonthYear.charAt(0).toUpperCase() + currentMonthYear.slice(1)}
+        description={currentMonthYearLabel}
+        icon={<CalendarIconLucide className="h-6 w-6 text-primary"/>}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleToday}>Hoje</Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevWeek}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevWeek} aria-label="Semana anterior">
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextWeek}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextWeek} aria-label="Próxima semana">
               <ChevronRight className="h-5 w-5" />
             </Button>
             <Button size="sm" onClick={() => alert("Funcionalidade Adicionar Evento (placeholder)")}>
@@ -186,144 +183,120 @@ export default function CalendarPage() {
         }
       />
       
-      <div className="flex-1 overflow-hidden border bg-card rounded-lg shadow-sm flex flex-col">
-        {/* Cabeçalho da Semana */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b sticky top-0 bg-card z-20">
-          <div className="p-2 text-center text-xs text-muted-foreground border-r"></div> 
-          {weekDates.map((date, i) => (
-            <div key={i} className={cn("p-2 text-center border-r", i === 6 && "border-r-0")}>
-              <div className="text-xs text-muted-foreground font-medium">{weekDays[date.getDay()]}</div>
-              <div
+      <div className="flex-1 grid grid-cols-[60px_repeat(7,1fr)] border bg-card rounded-lg shadow-sm overflow-hidden">
+        {/* Cabeçalho Estático dos Dias da Semana */}
+        <div className="col-span-1 row-span-1 border-r border-b p-2 text-xs text-muted-foreground sticky top-0 bg-card z-10"></div> {/* Canto superior esquerdo */}
+        {weekDates.map((date, i) => (
+          <div key={`header-${i}`} className={cn("row-span-1 p-2 text-center border-b sticky top-0 bg-card z-10", i < 6 && "border-r")}>
+            <div className="text-xs text-muted-foreground font-medium">{weekDayLabels[getDay(date)]}</div>
+            <div className={cn("text-xl font-semibold mt-1", fnsIsToday(date) ? "text-primary" : "text-foreground")}>
+              {format(date, "d")}
+            </div>
+          </div>
+        ))}
+
+        {/* Gutter de Horários (coluna 1, a partir da linha 2) e Células de Evento */}
+        {timeSlots.map((hour, hourIndex) => (
+          <React.Fragment key={`timeslot-row-${hour}`}>
+            {/* Célula do Gutter de Horário */}
+            <div className={cn("col-start-1 row-start-${hourIndex + 2} h-[60px] border-r text-right pr-2 text-xs pt-1 text-muted-foreground sticky left-0 bg-card z-10", hourIndex < timeSlots.length -1 && "border-b" )}>
+              <span>{hour > 12 ? `${hour - 12} PM` : `${hour} AM`}</span>
+            </div>
+            {/* Células dos Dias para este Horário */}
+            {weekDates.map((date, dayIndex) => (
+              <div 
+                key={`cell-${dayIndex}-${hourIndex}`} 
                 className={cn(
-                  "text-xl font-semibold mt-1",
-                  date.toDateString() === new Date().toDateString() ? "text-primary" : "text-foreground"
+                  `col-start-${dayIndex + 2} row-start-${hourIndex + 2} relative h-[60px]`,
+                  dayIndex < 6 && "border-r", 
+                  hourIndex < timeSlots.length -1 && "border-b"
                 )}
               >
-                {date.getDate()}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Grid de Horários e Eventos */}
-        <div className="flex-1 overflow-y-auto relative">
-          <div className="grid grid-cols-[60px_repeat(7,1fr)]">
-            {/* Labels de Horário */}
-            <div className="text-muted-foreground">
-              {timeSlots.map((time, i) => (
-                <div key={i} className="h-[60px] border-b border-r pr-2 text-right text-xs pt-1 flex items-start justify-end">
-                  <span>{time > 12 ? `${time - 12} PM` : `${time} AM`}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Colunas dos Dias */}
-            {weekDates.map((date, dayIndex) => (
-              <div key={dayIndex} className={cn("relative border-r", dayIndex === 6 && "border-r-0")}>
-                {/* Linhas de Horário */}
-                {timeSlots.map((_, timeIndex) => (
-                  <div key={timeIndex} className="h-[60px] border-b"></div>
-                ))}
-
-                {/* Eventos All-Day */}
-                 <div className="absolute top-0 left-0 right-0 z-10 p-1 space-y-0.5">
-                  {events
-                    .filter(event => new Date(event.date + "T00:00:00").toDateString() === date.toDateString() && event.isAllDay)
-                    .map((event) => {
-                      const eventStyle = calculateEventStyle(event.startTime, event.endTime, event.isAllDay);
-                      return (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "rounded p-1 text-white text-xs shadow-md cursor-pointer overflow-hidden mr-1 flex items-center",
-                            event.color
-                          )}
-                          style={{ height: eventStyle.height, zIndex: eventStyle.zIndex }}
-                          onClick={() => handleEventClick(event)}
-                        >
-                          <div className="font-medium truncate">{event.title}</div>
-                        </div>
-                      );
+                {/* Renderizar eventos aqui */}
+                 {events
+                  .filter(event => isSameDay(parseISO(event.date), date) && !event.isAllDay)
+                  .map(event => {
+                    const style = calculateEventStyle(event.startTime, event.endTime, event.isAllDay);
+                    const startH = parseInt(event.startTime.split(":")[0]);
+                    const endH = parseInt(event.endTime.split(":")[0]);
+                    if (startH < timeSlots[0] || endH > timeSlots[timeSlots.length -1] +1) return null; // Fora do range visível
+                    
+                    // Verifique se o evento começa neste slot de hora
+                     if (startH === hour) {
+                        return (
+                            <div
+                            key={event.id}
+                            className={cn(
+                                "absolute rounded p-1.5 text-xs shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg overflow-hidden",
+                                event.color
+                            )}
+                            style={{ ...style, left: "2px", right: "2px"}}
+                            onClick={() => handleEventClick(event)}
+                            >
+                            <div className="font-medium truncate">{event.title}</div>
+                            <div className="opacity-80 text-[10px] truncate">{`${formatTimeForDisplay(event.startTime)} - ${formatTimeForDisplay(event.endTime)}`}</div>
+                            </div>
+                        );
+                     }
+                     return null;
                   })}
-                </div>
-                
-                {/* Eventos com Horário Específico */}
-                <div className="absolute top-0 left-0 right-0 bottom-0 mt-[30px]"> 
-                  {events
-                    .filter(event => new Date(event.date + "T00:00:00").toDateString() === date.toDateString() && !event.isAllDay)
-                    .map((event) => {
-                      const eventStyle = calculateEventStyle(event.startTime, event.endTime, event.isAllDay);
-                      return (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "absolute rounded p-1.5 text-white text-xs shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg overflow-hidden",
-                            event.color
-                          )}
-                          style={{ ...eventStyle, left: "4px", right: "4px"}}
-                          onClick={() => handleEventClick(event)}
-                        >
-                          <div className="font-medium truncate">{event.title}</div>
-                          <div className="opacity-80 text-[10px] truncate">{`${formatTime(event.startTime)} - ${formatTime(event.endTime)}`}</div>
-                        </div>
-                      );
-                  })}
-                </div>
               </div>
             ))}
-          </div>
+          </React.Fragment>
+        ))}
+        {/* Container para eventos All-Day (renderizados por cima da primeira linha de horários) */}
+        {/* Esta é uma simplificação; uma solução mais robusta teria uma área dedicada acima dos horários */}
+        <div className="col-start-2 col-span-7 row-start-2 grid grid-cols-7 relative h-[30px] pointer-events-none">
+            {weekDates.map((date, dayIndex) => (
+                <div key={`allday-col-${dayIndex}`} className={cn("relative", dayIndex < 6 && "border-r")}>
+                    <div className="absolute top-0 left-0 right-0 p-0.5 space-y-0.5 pointer-events-auto">
+                        {events
+                        .filter(event => isSameDay(parseISO(event.date), date) && event.isAllDay)
+                        .slice(0,1) // Limitar a 1 evento all-day para simplificar
+                        .map((event) => {
+                           const { height, zIndex } = calculateEventStyle(event.startTime, event.endTime, event.isAllDay);
+                            return (
+                            <div
+                                key={event.id}
+                                className={cn(
+                                "rounded p-1 text-white text-[10px] shadow-sm cursor-pointer overflow-hidden mr-1 flex items-center",
+                                event.color
+                                )}
+                                style={{ height, zIndex }}
+                                onClick={() => handleEventClick(event)}
+                            >
+                                <div className="font-medium truncate">{event.title}</div>
+                            </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
         </div>
       </div>
 
-      {/* Modal de Detalhes do Evento */}
       {selectedEvent && (
         <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
-          <DialogContent className={cn("sm:max-w-md", selectedEvent.color.replace('bg-', 'border-') + "/50 border-2")}>
+          <DialogContent className={cn("sm:max-w-md", selectedEvent.color?.replace('bg-', 'border-t-4 border-') || "border-t-4 border-primary")}>
             <DialogHeader>
-              <DialogTitle className={cn("font-headline text-xl", selectedEvent.color.replace('bg-', 'text-'))}>
+              <DialogTitle className={cn("font-headline text-xl", selectedEvent.color?.includes('text-') ? selectedEvent.color.split(' ').find(c => c.startsWith('text-')) : 'text-primary')}>
                 {selectedEvent.title}
               </DialogTitle>
-              {selectedEvent.description && (
-                <DialogDescription>{selectedEvent.description}</DialogDescription>
-              )}
+              {selectedEvent.description && (<DialogDescription>{selectedEvent.description}</DialogDescription>)}
             </DialogHeader>
             <div className="space-y-3 py-4 text-sm">
               <p className="flex items-center">
                 <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                {selectedEvent.isAllDay ? "Dia todo" : `${formatTime(selectedEvent.startTime)} - ${formatTime(selectedEvent.endTime)}`}
-                <span className="ml-2 text-muted-foreground">({new Date(selectedEvent.date + "T00:00:00").toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })})</span>
+                {selectedEvent.isAllDay ? "Dia todo" : `${formatTimeForDisplay(selectedEvent.startTime)} - ${formatTimeForDisplay(selectedEvent.endTime)}`}
+                <span className="ml-2 text-muted-foreground">({format(parseISO(selectedEvent.date), "PPP", { locale: ptBR })})</span>
               </p>
-              {selectedEvent.location && (
-                <p className="flex items-center">
-                  <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                  {selectedEvent.location}
-                </p>
-              )}
-              {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (
-                <p className="flex items-start">
-                  <Users className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
-                  <span>
-                    <strong className="text-foreground/80">Participantes:</strong>
-                    <br />
-                    {selectedEvent.attendees.join(", ")}
-                  </span>
-                </p>
-              )}
-              {selectedEvent.organizer && (
-                <p>
-                  <strong className="text-foreground/80">Organizador:</strong> {selectedEvent.organizer}
-                </p>
-              )}
+              {selectedEvent.location && (<p className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" />{selectedEvent.location}</p>)}
+              {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (<p className="flex items-start"><Users className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" /><span><strong className="text-foreground/80">Participantes:</strong><br />{selectedEvent.attendees.join(", ")}</span></p>)}
+              {selectedEvent.organizer && (<p><strong className="text-foreground/80">Organizador:</strong> {selectedEvent.organizer}</p>)}
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Fechar
-                </Button>
-              </DialogClose>
-               <Button type="button" variant="default" onClick={() => alert("Funcionalidade Editar Evento (placeholder)")}>
-                  Editar
-                </Button>
+              <DialogClose asChild><Button type="button" variant="outline">Fechar</Button></DialogClose>
+              <Button type="button" variant="default" onClick={() => alert("Funcionalidade Editar Evento (placeholder)")}>Editar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -331,3 +304,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+    
