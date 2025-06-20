@@ -1,3 +1,4 @@
+
 # Flortune 🌿💰
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -25,14 +26,18 @@
     *   Categorias (Leitura de categorias padrão e do usuário, adição de novas).
     *   Orçamentos (CRUD completo, acompanhamento de gastos).
     *   Metas Financeiras (CRUD completo, acompanhamento de progresso).
+    *   Lista de Tarefas (CRUD completo).
 *   📊 **Análise e Visualização:**
     *   Dashboard principal com resumos e destaques.
     *   Página de Análise com gráficos de gastos, receitas e fluxo de caixa.
     *   Calendário financeiro para visualização de eventos e transações.
 *   🎨 **Interface do Usuário:**
     *   Modo Privado para ocultar valores sensíveis.
-    *   Modo Escuro.
+    *   Múltiplos temas de cores e Modo Escuro.
     *   Design responsivo e moderno com ShadCN UI e Tailwind CSS.
+    *   Menu lateral colapsável.
+*   📝 **Anotações:**
+    *   Espaço para anotações e ideias (em desenvolvimento).
 *   🤖 **Funcionalidades de IA (com Genkit - em desenvolvimento):**
     *   Sugestões financeiras inteligentes.
     *   Auto-categorização de transações.
@@ -43,7 +48,7 @@
 
 *   **Framework:** [Next.js](https://nextjs.org/) (App Router)
 *   **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
-*   **UI:** [React](https://reactjs.org/), [ShadCN UI](https://ui.shadcn.com/), [Tailwind CSS](https://tailwindcss.com/)
+*   **UI:** [React](https://reactjs.org/), [ShadCN UI](https://ui.shadcn.com/), [Tailwind CSS](https://tailwindcss.com/), [Recharts](https://recharts.org/)
 *   **Autenticação:** [NextAuth.js (Auth.js)](https://next-auth.js.org/) com [@auth/supabase-adapter](https://www.npmjs.com/package/@auth/supabase-adapter)
 *   **Banco de Dados:** [Supabase](https://supabase.com/) (PostgreSQL)
 *   **AI:** [Genkit (Google AI)](https://firebase.google.com/docs/genkit)
@@ -221,10 +226,64 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 *   **Solução:**
     *   Nas páginas de login (`src/app/login/page.tsx`) e cadastro (`src/app/signup/page.tsx`), os formulários foram envolvidos com `<Suspense>` e um componente de esqueleto como fallback.
 
+### 8. Erro `Uncaught ReferenceError: [NomeDoComponenteDeGrafico] is not defined` (Página de Análise)
+*   **Causa:** Conflito de nomes entre os ícones importados de `lucide-react` (ex: `LineChart`, `PieChart`) e os componentes de gráfico da biblioteca `recharts` com os mesmos nomes, ou importação incorreta dos componentes `recharts`.
+*   **Solução:**
+    *   Utilizar aliases ao importar os ícones de `lucide-react` para diferenciá-los dos componentes `recharts`. Ex: `import { LineChart as LineIconLucide, PieChart as PieIconLucide } from "lucide-react";`.
+    *   Garantir que todos os componentes `recharts` necessários (ex: `LineChart`, `PieChart`, `XAxis`, `YAxis`, `CartesianGrid`, `ResponsiveContainer`, `Tooltip as RechartsTooltip`, `Legend`, `Cell`, `Bar`, `Area`, `Radar`, `PolarGrid`, `PolarAngleAxis`, `PolarRadiusAxis`, `RadialBar`, `LabelList`, `Brush`) sejam explicitamente importados de `"recharts"` no arquivo da página de Análise.
+    *   Exemplo de importações corrigidas:
+        ```tsx
+        // No início do arquivo src/app/(app)/analysis/page.tsx
+        import { 
+          PieChart as PieIconLucide, // Alias para o ícone
+          LineChart as LineIconLucide, // Alias para o ícone
+          // Outros ícones Lucide...
+        } from "lucide-react";
+        import {
+          LineChart, // Componente Recharts
+          Line,
+          XAxis,
+          YAxis,
+          CartesianGrid,
+          ResponsiveContainer,
+          PieChart, // Componente Recharts
+          Pie,
+          Cell,
+          Tooltip as RechartsTooltip, // Alias para o tooltip do Recharts
+          Legend,
+          // Outros componentes Recharts...
+        } from "recharts";
+        ```
+
+### 9. Erro `Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string.`
+*   **Causa:** O componente `<SelectItem>` (usado em `Select` do ShadCN/Radix) não aceita `value=""`, `null`, ou `undefined`. Uma string vazia é reservada para limpar a seleção.
+*   **Solução:**
+    *   Para opções que representam "nenhum" ou "selecione", use uma constante string não vazia como valor. Exemplo em `src/lib/constants.ts`: `export const NO_ICON_VALUE = "__NO_ICON__";`.
+    *   No formulário (ex: `src/app/(app)/goals/goal-form.tsx`), ao definir o `value` do `Select` no `Controller` do `react-hook-form`, use um fallback para essa constante se o valor do campo for `null` ou `undefined`. Ex: `value={field.value ?? NO_ICON_VALUE}`.
+    *   O `<SelectItem>` correspondente deve ter `value={NO_ICON_VALUE}`.
+    *   Ao submeter os dados do formulário, converta o valor da constante de volta para `null` se for apropriado para o backend. Ex: `icon: data.icon === NO_ICON_VALUE ? null : data.icon`.
+
+### 10. Labels de Eixos de Gráficos "Saindo" do Card (Ex: Gráfico de Evolução Mensal)
+*   **Causa:** Espaço insuficiente calculado pelo Recharts para os eixos devido a margens inadequadas no componente de gráfico (`LineChart`, `BarChart`, etc.) ou altura do `XAxis` inadequada para labels rotacionados.
+*   **Solução:**
+    *   Ajustar as propriedades `margin` do componente de gráfico. Ex: `<LineChart data={...} margin={{ top: 10, right: 30, left: 30, bottom: 70 }}>`. Aumentar `bottom` é crucial para labels X rotacionados, e `left` para labels Y.
+    *   Para eixos X com labels rotacionados, aumentar a propriedade `height` do `XAxis` e usar `dy` para ajustar a posição vertical do texto. Ex: `<XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={80} dy={10} />`.
+    *   Para eixos Y, usar `dx` para ajustar a posição horizontal. Ex: `<YAxis tickFormatter={...} tick={{ fontSize: 10 }} dx={-5} />`.
+
+### 11. Erro 404 (Não Encontrado) para Novas Rotas (Ex: `/dev/systems`, `/transactions/new`)
+*   **Causa:** Ausência dos arquivos `page.tsx` (ou `page.js`) correspondentes para as rotas definidas no sistema de arquivos do Next.js App Router.
+*   **Solução:** Criar o arquivo `page.tsx` necessário dentro da pasta da respectiva rota. Por exemplo, para `/dev/systems`, criar `src/app/(app)/dev/systems/page.tsx`. Para `/transactions/new`, criar `src/app/(app)/transactions/new/page.tsx`.
+
+### 12. Scroll Horizontal Indesejado na Tela (Layout Geral)
+*   **Causa:** Um ou mais elementos no layout principal podem estar excedendo a largura da viewport, ou o gerenciamento de `overflow` não está correto.
+*   **Solução:** Aplicar a classe `overflow-hidden` ao contêiner raiz do layout principal da aplicação (ex: o `div` em `src/app/(app)/layout.tsx` que envolve `AppHeader` e o conteúdo `<main>`). Isso previne que o contêiner raiz seja rolável, delegando o scroll vertical para o elemento `<main>` interno (que geralmente tem `overflow-y-auto`).
+
 ## 🗺️ Roadmap
 *   [ ] Implementação completa de gestão de Assinaturas (Stripe).
 *   [ ] Testes unitários e de integração.
 *   [ ] Funcionalidade de compartilhamento de módulos.
+*   [ ] Implementação de edição para Transações, Orçamentos e Categorias.
+*   [ ] Implementação de exclusão para Categorias.
 
 ## 🤝 Contribuir
 Contribuições são bem-vindas! Fork, branch, commit, push, PR.
