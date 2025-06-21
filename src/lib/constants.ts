@@ -15,7 +15,6 @@ export const NAV_LINKS_CONFIG = [
   { type: "separator" as const },
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/systems", label: "Sistemas e Ferramentas", icon: "HardDrive" as const, type: "link" as const },
-  { href: "/dev/devops", label: "DevOps", icon: "GitMerge" as const, type: "link" as const },
   { href: "/dev/clients", label: "Clientes", icon: "Users2" as const, type: "link" as const },
   { type: "title" as const, label: "Metodologias Ágeis" },
   { href: "/dev/scrum", label: "Scrum Planner", icon: "ListChecks" as const, type: "link" as const },

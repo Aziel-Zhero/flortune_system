@@ -86,7 +86,7 @@ export function UserNav() {
              <DropdownMenuItem onClick={() => alert("Funcionalidade de Suporte (placeholder)")}>
                 <LifeBuoy className="mr-2 h-4 w-4" />
                 <span>Suporte</span>
-             DropdownMenuItem>
+             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
