@@ -1,231 +1,252 @@
 
 "use client"; 
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Clock,
+  MapPin,
+  Users,
   Calendar as CalendarIconLucide, 
-  Filter,
-  Search
+  ListChecks,
+  ExternalLink
 } from "lucide-react";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, getDate, getDay, parseISO } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, isToday as fnsIsToday, getDay, set } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
 
 interface CalendarEvent {
-  id: string; // Changed to string for potential UUIDs later
+  id: string;
   title: string;
   date: string; // YYYY-MM-DD
-  color?: string; // e.g., "bg-blue-500 text-white"
-  startTime?: string; // HH:MM for non-all-day events
-  endTime?: string;   // HH:MM for non-all-day events
+  startTime: string; // "HH:MM"
+  endTime: string; // "HH:MM"
+  color: string; // Tailwind bg color class
+  description?: string;
+  location?: string;
   isAllDay?: boolean;
-  type?: "help-needed" | "needs-met" | "occasion"; // For filtering
 }
 
-// Sample financial events - enriched
-const sampleEvents: CalendarEvent[] = [
-  { id: "evt1", title: "Pagar Aluguel", date: "2024-07-05", color: "bg-red-500 text-white", type: "needs-met", isAllDay: true },
-  { id: "evt2", title: "Salário", date: "2024-07-01", color: "bg-green-500 text-white", type: "needs-met", isAllDay: true },
-  { id: "evt3", title: "Supermercado", date: "2024-07-10", startTime: "16:00", endTime: "17:00", color: "bg-yellow-500 text-yellow-900", type: "help-needed" },
-  { id: "evt4", title: "Aniversário da Mãe", date: "2024-07-15", color: "bg-pink-500 text-white", type: "occasion", isAllDay: true},
-  { id: "evt5", title: "Conta de Luz", date: "2024-07-20", color: "bg-orange-500 text-white", type: "needs-met", isAllDay: true },
-  { id: "evt6", title: "Reunião Flortune", date: "2024-07-22", startTime: "10:00", endTime: "11:30", color: "bg-blue-500 text-white", type: "help-needed" },
+const sampleBaseEvents: Omit<CalendarEvent, 'id' | 'date'>[] = [
+  { title: "Pagamento Aluguel", startTime: "00:00", endTime: "23:59", color: "bg-red-500 text-white", description: "Vencimento do aluguel mensal", location: "Online", isAllDay: true},
+  { title: "Salário", startTime: "00:00", endTime: "23:59", color: "bg-green-500 text-white", description: "Recebimento do salário", location: "Conta Bancária", isAllDay: true },
+  { title: "Supermercado", startTime: "16:00", endTime: "17:30", color: "bg-yellow-500 text-yellow-900", description: "Compras da semana", location: "Mercado Local"},
+  { title: "Conta de Luz", startTime: "10:00", endTime: "10:15", color: "bg-orange-500 text-white", description: "Vencimento da conta de energia elétrica", location: "App do Banco"},
 ];
 
+const weekDayLabels = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+const timeSlots = Array.from({ length: 17 }, (_, i) => i + 7); // 7 AM to 11 PM (23:00)
+const slotHeight = 60; 
+
+const getWeekDates = (refDate: Date): Date[] => {
+  const start = startOfWeek(refDate, { weekStartsOn: 0 });
+  return eachDayOfInterval({ start, end: endOfWeek(refDate, { weekStartsOn: 0 }) });
+};
 
 export default function CalendarPage() {
   const { data: session, status } = useSession();
   const isLoadingAuth = status === "loading";
 
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true); // Placeholder for actual event fetching
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [weekDates, setWeekDates] = useState<Date[]>(() => getWeekDates(new Date()));
+  const [events, setEvents] = useState<CalendarEvent[]>([]); 
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
-  // Filter states (UI only for now)
-  const [filterHelpNeeded, setFilterHelpNeeded] = useState(true);
-  const [filterNeedsMet, setFilterNeedsMet] = useState(true);
-  const [filterOccasions, setFilterOccasions] = useState(true);
-  const [eventSearch, setEventSearch] = useState("");
-  const [dateRangeStart, setDateRangeStart] = useState<Date | undefined>(undefined);
-  const [dateRangeEnd, setDateRangeEnd] = useState<Date | undefined>(undefined);
-
+  const assignEventsToCurrentWeek = useCallback((baseEvts: Omit<CalendarEvent, 'id'|'date'>[], currentWeek: Date[]): CalendarEvent[] => {
+    return baseEvts.map((eventBase, index) => {
+      const dayIndex = (index + getDay(currentWeek[0]) + 3) % 7; 
+      const targetDate = currentWeek[dayIndex];
+      return {
+        ...eventBase,
+        id: `evt_sample_${targetDate.toISOString().split('T')[0]}_${index}`,
+        date: targetDate.toISOString().split('T')[0],
+      };
+    });
+  }, []);
 
   useEffect(() => {
-    document.title = `Calendário - ${APP_NAME}`;
-    // Simulate fetching events for the current month
+    document.title = `Calendário Semanal - ${APP_NAME}`;
     setIsLoadingEvents(true);
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    // In a real app, you'd fetch events for this range
-    const currentMonthEvents = sampleEvents.filter(event => {
-        const eventDate = parseISO(event.date);
-        return eventDate >= monthStart && eventDate <= monthEnd;
-    });
-    setEvents(currentMonthEvents);
-    setTimeout(() => setIsLoadingEvents(false), 300); // Simulate delay
-  }, [currentMonth]);
+    const simulatedFetchedEvents = assignEventsToCurrentWeek(sampleBaseEvents, weekDates);
+    setEvents(simulatedFetchedEvents);
+    setIsLoadingEvents(false); 
+  }, [weekDates, assignEventsToCurrentWeek]);
 
-  const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-  const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const handleToday = () => {
-    setCurrentMonth(new Date());
-    setSelectedDate(new Date());
+  const handleEventClick = (event: CalendarEvent) => setSelectedEvent(event);
+  const handleNextWeek = () => setCurrentDate(prev => addDays(prev, 7));
+  const handlePrevWeek = () => setCurrentDate(prev => subDays(prev, 7));
+  const handleToday = () => setCurrentDate(new Date());
+
+  useEffect(() => {
+    setWeekDates(getWeekDates(currentDate));
+  }, [currentDate]);
+
+  const calculateEventStyle = (startTime: string, endTime: string) => {
+    const timelineStartHour = timeSlots[0];
+    const [startH, startM] = startTime.split(":").map(Number);
+    const [endH, endM] = endTime.split(":").map(Number);
+    const topPosition = ((startH - timelineStartHour) + (startM / 60)) * slotHeight;
+    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    let eventHeight = (durationMinutes / 60) * slotHeight;
+    if (eventHeight < 20) eventHeight = 20;
+    return { top: `${topPosition}px`, height: `${eventHeight}px`, zIndex: 10 };
+  };
+
+  const currentMonthYearLabel = useMemo(() => {
+    const start = weekDates[0];
+    const end = weekDates[weekDates.length - 1];
+    const startMonth = format(start, "MMMM", { locale: ptBR });
+    const endMonth = format(end, "MMMM", { locale: ptBR });
+    const startYear = format(start, "yyyy");
+    const endYear = format(end, "yyyy");
+    
+    let label = startMonth;
+    if (startMonth !== endMonth) label += ` / ${endMonth}`;
+    label += ` ${startYear}`;
+    if (startYear !== endYear) label += ` / ${endYear}`;
+    
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }, [weekDates]);
+
+  const formatTimeForDisplay = (timeStr: string) => timeStr;
+
+  const eventsForSelectedDay = useMemo(() => {
+    return events
+      .filter(event => isSameDay(parseISO(event.date), selectedDay))
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [events, selectedDay]);
+
+  if (isLoadingAuth) {
+    return <div className="flex flex-col h-full"><PageHeader title="Calendário Semanal" description="Carregando..." /><Skeleton className="w-full h-[calc(100vh-200px)]" /></div>;
   }
 
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 0 }); // Sunday
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
-  const daysInMonthGrid = eachDayOfInterval({ start: startDate, end: endDate });
-
-  const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-  if (isLoadingAuth || (isLoadingEvents && !!session)) {
-    return (
-      <div className="flex flex-col h-full">
-        <PageHeader title="Calendário" description="Carregando eventos..." icon={<CalendarIconLucide/>}/>
-        <Skeleton className="w-full h-[600px] rounded-lg" />
-      </div>
-    );
-  }
-  
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <PageHeader
-        title="Calendário"
-        description={format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+        title="Calendário Semanal"
+        description={currentMonthYearLabel}
         icon={<CalendarIconLucide className="h-6 w-6 text-primary"/>}
         actions={
-          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => alert("Visualização Dia (Placeholder)")}>Dia</Button>
-            <Button variant="outline" size="sm" onClick={() => alert("Visualização Semana (Placeholder)")}>Semana</Button>
-            <Button variant="default" size="sm">Mês</Button>
-            <Button variant="outline" size="sm" onClick={() => alert("Visualização Ano (Placeholder)")}>Ano</Button>
-            <Button variant="outline" size="sm" onClick={handleToday} className="ml-2">Hoje</Button>
-            <Button size="sm" onClick={() => alert("Criar Evento (Placeholder)")} className="ml-auto sm:ml-2">
-              <Plus className="mr-1.5 h-4 w-4" /> Criar Evento
-            </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleToday}>Hoje</Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevWeek}><ChevronLeft className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextWeek}><ChevronRight className="h-5 w-5" /></Button>
+            <Button size="sm" onClick={() => toast({title: "Placeholder", description: "A criação de eventos será implementada futuramente."})}><Plus className="mr-2 h-4 w-4" /> Criar Evento</Button>
           </div>
         }
       />
       
-      <div className="flex flex-1 gap-4 overflow-hidden mt-2">
-        {/* Main Calendar Grid */}
-        <div className="flex-1 flex flex-col bg-card border rounded-lg shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between p-3 border-b">
-            <Button variant="ghost" size="icon" onClick={handlePrevMonth} aria-label="Mês anterior">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <h2 className="text-lg font-semibold font-headline">
-              {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
-            </h2>
-            <Button variant="ghost" size="icon" onClick={handleNextMonth} aria-label="Próximo mês">
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-7 border-b">
-            {weekDays.map(day => (
-              <div key={day} className="py-2 px-1 text-center text-xs font-medium text-muted-foreground border-r last:border-r-0">
-                {day}
+      <div className="flex flex-1 gap-6 overflow-hidden">
+        <div className="flex-1 flex flex-col border bg-card rounded-lg shadow-sm">
+          {/* Weekday Header */}
+          <div className="grid grid-cols-[60px_repeat(7,1fr)] sticky top-0 bg-card z-20 border-b">
+            <div className="border-r"></div>
+            {weekDates.map((date) => (
+              <div key={date.toString()} className={cn("p-2 text-center border-r last:border-r-0", isSameDay(date, selectedDay) && "bg-primary/10")} onClick={() => setSelectedDay(date)}>
+                <div className="text-xs text-muted-foreground font-medium">{weekDayLabels[getDay(date)]}</div>
+                <div className={cn("text-xl font-semibold mt-1", fnsIsToday(date) ? "text-primary" : "text-foreground")}>{format(date, "d")}</div>
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 grid-rows-6 flex-1 overflow-y-auto">
-            {daysInMonthGrid.map((day, index) => {
-              const eventsForDay = events.filter(event => isSameDay(parseISO(event.date), day));
-              return (
-                <div
-                  key={day.toString()}
-                  className={cn(
-                    "p-1.5 border-r border-b text-xs min-h-[80px] sm:min-h-[100px] flex flex-col",
-                    !isSameMonth(day, currentMonth) && "bg-muted/30 text-muted-foreground/60",
-                    isSameDay(day, new Date()) && "bg-primary/10",
-                    index % 7 === 6 && "border-r-0" // No right border for last column
-                  )}
-                  onClick={() => setSelectedDate(day)}
-                >
-                  <span className={cn("font-medium", isSameDay(day, selectedDate) && "text-primary font-bold")}>
-                    {getDate(day)}
-                  </span>
-                  <div className="mt-1 space-y-0.5 flex-grow overflow-y-auto text-[10px] sm:text-xs">
-                    {eventsForDay.slice(0, 2).map(event => ( // Show max 2 events initially
-                      <div key={event.id} className={cn("p-0.5 rounded-sm truncate", event.color || "bg-blue-100 text-blue-800")}>
-                        {event.title}
-                      </div>
-                    ))}
-                    {eventsForDay.length > 2 && (
-                      <div className="text-muted-foreground text-[9px] sm:text-[10px] cursor-pointer hover:underline">
-                        + {eventsForDay.length - 2} mais
-                      </div>
-                    )}
+          {/* Timeslot Gutter and Event Grid */}
+          <div className="flex-1 overflow-y-auto relative">
+            <div className="grid grid-cols-[60px_repeat(7,1fr)]">
+              {/* Time Gutter */}
+              <div className="col-start-1 col-span-1 row-start-1">
+                {timeSlots.map(hour => (
+                  <div key={`gutter-${hour}`} className="h-[60px] border-r border-b text-right pr-2 pt-1 text-xs text-muted-foreground relative -top-[8px]">{`${hour}:00`}</div>
+                ))}
+              </div>
+              {/* Event Columns */}
+              {weekDates.map((date, dayIndex) => (
+                <div key={`day-col-${dayIndex}`} className="col-start-${dayIndex + 2} col-span-1 row-start-1 relative border-r last:border-r-0">
+                  {/* Background lines */}
+                  {timeSlots.map(hour => <div key={`line-${dayIndex}-${hour}`} className="h-[60px] border-b"></div>)}
+                  
+                  {/* All-day events */}
+                  <div className="absolute top-0 left-0 right-0 p-0.5 space-y-0.5 pointer-events-auto z-10 border-b-2 border-dashed">
+                     {events.filter(event => isSameDay(parseISO(event.date), date) && event.isAllDay).slice(0, 2).map(event => (
+                        <div key={event.id} onClick={() => handleEventClick(event)} className={cn("p-1 text-[10px] rounded-sm cursor-pointer truncate", event.color)}>Dia todo: {event.title}</div>
+                     ))}
                   </div>
+
+                  {/* Timed events */}
+                  {events.filter(event => isSameDay(parseISO(event.date), date) && !event.isAllDay).map(event => {
+                    const style = calculateEventStyle(event.startTime, event.endTime);
+                    return (
+                      <div key={event.id} onClick={() => handleEventClick(event)} className={cn("absolute p-1.5 text-xs shadow-md cursor-pointer transition-all overflow-hidden rounded", event.color)} style={{ ...style, left: "4px", right: "4px"}}>
+                        <div className="font-medium truncate">{event.title}</div>
+                        <div className="opacity-80 text-[10px] truncate">{formatTimeForDisplay(event.startTime)} - {formatTimeForDisplay(event.endTime)}</div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Right Sidebar Panel */}
-        <Card className="hidden md:flex md:flex-col w-full max-w-xs lg:max-w-sm shadow-sm overflow-y-auto">
-          <CardHeader className="p-4 border-b">
-            <div className="h-24 bg-primary/10 rounded-md flex flex-col items-center justify-center text-center p-2">
-              <p className="text-sm text-primary/80">{format(selectedDate, "eeee", { locale: ptBR })}</p>
-              <p className="text-3xl font-bold text-primary">{format(selectedDate, "dd", { locale: ptBR })}</p>
-              <p className="text-sm text-primary/80">{format(selectedDate, "MMMM, yyyy", { locale: ptBR })}</p>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Intervalo de Datas</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input type="date" className="text-xs p-1.5 h-8" value={dateRangeStart ? format(dateRangeStart, 'yyyy-MM-dd') : ''} onChange={e => setDateRangeStart(e.target.value ? parseISO(e.target.value) : undefined)} />
-                <span className="text-muted-foreground">-</span>
-                <Input type="date" className="text-xs p-1.5 h-8" value={dateRangeEnd ? format(dateRangeEnd, 'yyyy-MM-dd') : ''} onChange={e => setDateRangeEnd(e.target.value ? parseISO(e.target.value) : undefined)} />
-                <Button size="sm" variant="outline" className="h-8 px-2.5" onClick={() => alert("Filtrar por Data (Placeholder)")}>Ir</Button>
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm font-medium flex items-center"><Filter className="h-3.5 w-3.5 mr-1.5"/>Filtros</Label>
-              <div className="space-y-1.5 mt-2 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="filterHelp" checked={filterHelpNeeded} onCheckedChange={(checked) => setFilterHelpNeeded(Boolean(checked))} />
-                  <Label htmlFor="filterHelp" className="font-normal text-muted-foreground">Ajuda Necessária</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="filterMet" checked={filterNeedsMet} onCheckedChange={(checked) => setFilterNeedsMet(Boolean(checked))} />
-                  <Label htmlFor="filterMet" className="font-normal text-muted-foreground">Necessidades Atendidas</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="filterOccasions" checked={filterOccasions} onCheckedChange={(checked) => setFilterOccasions(Boolean(checked))} />
-                  <Label htmlFor="filterOccasions" className="font-normal text-muted-foreground">Ocasiões</Label>
-                </div>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="eventSearch" className="text-sm font-medium flex items-center"><Search className="h-3.5 w-3.5 mr-1.5"/>Buscar Evento</Label>
-              <Input id="eventSearch" placeholder="Buscar por nome..." className="mt-1 h-9" value={eventSearch} onChange={e => setEventSearch(e.target.value)}/>
-            </div>
-            <CardDescription className="text-xs text-center text-muted-foreground pt-2">
-              A lógica de filtragem e busca será implementada futuramente.
-            </CardDescription>
-          </CardContent>
+        {/* Sidebar for Events of Selected Day */}
+        <Card className="hidden lg:flex lg:flex-col w-full max-w-xs shadow-sm">
+           <CardHeader>
+             <CardTitle>Eventos de {format(selectedDay, "dd/MM")}</CardTitle>
+             <CardDescription>{format(selectedDay, "eeee", {locale: ptBR})}</CardDescription>
+           </CardHeader>
+           <CardContent className="flex-1 overflow-y-auto">
+             {isLoadingEvents ? <Skeleton className="h-20 w-full" /> : 
+              eventsForSelectedDay.length > 0 ? (
+                <ul className="space-y-3">
+                  {eventsForSelectedDay.map(event => (
+                     <li key={event.id} className="text-sm p-2 rounded-md border-l-4" style={{borderColor: event.color.startsWith('bg-') ? `hsl(var(--${event.color.substring(3, event.color.indexOf('-'))}))` : event.color }}>
+                        <p className="font-semibold">{event.title}</p>
+                        <p className="text-muted-foreground text-xs">{event.isAllDay ? "Dia todo" : `${event.startTime} - ${event.endTime}`}</p>
+                        {event.location && <p className="text-muted-foreground text-xs flex items-center gap-1"><MapPin size={10}/>{event.location}</p>}
+                     </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center pt-8">Nenhum evento agendado para este dia.</p>
+              )}
+           </CardContent>
         </Card>
       </div>
+
+      {selectedEvent && (
+        <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
+          <DialogContent className={cn("sm:max-w-md border-t-4", selectedEvent.color?.replace('bg-', 'border-') || "border-primary")}>
+            <DialogHeader><DialogTitle className="font-headline text-xl">{selectedEvent.title}</DialogTitle><DialogDescription>{selectedEvent.description}</DialogDescription></DialogHeader>
+            <div className="space-y-3 py-4 text-sm">
+              <p className="flex items-center"><Clock className="mr-2 h-4 w-4 text-muted-foreground" />{selectedEvent.isAllDay ? "Dia todo" : `${formatTimeForDisplay(selectedEvent.startTime)} - ${formatTimeForDisplay(selectedEvent.endTime)}`} <span className="ml-2 text-muted-foreground">({format(parseISO(selectedEvent.date), "PPP", { locale: ptBR })})</span></p>
+              {selectedEvent.location && (<p className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" />{selectedEvent.location}</p>)}
+            </div>
+            <DialogFooter>
+               <Button type="button" variant="outline" onClick={() => toast({title:"Placeholder", description:"Integração com Google Agenda será implementada."})}><ExternalLink className="mr-2 h-4 w-4"/>Adicionar ao Google</Button>
+              <DialogClose asChild><Button type="button">Fechar</Button></DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
