@@ -4,6 +4,14 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
+// Tipos para os dados do clima
+interface WeatherData {
+  city: string;
+  temperature: number;
+  description: string;
+  icon: string; // O código do ícone da API (ex: "01d")
+}
+
 // Definindo o tipo para o valor do contexto de AppSettings
 export interface AppSettingsProviderValue {
   isPrivateMode: boolean;
@@ -15,6 +23,12 @@ export interface AppSettingsProviderValue {
   currentTheme: string;
   setCurrentTheme: Dispatch<SetStateAction<string>>;
   applyTheme: (themeId: string) => void;
+  weatherCity: string | null;
+  setWeatherCity: (city: string | null) => void;
+  weatherData: WeatherData | null;
+  weatherError: string | null;
+  fetchWeather: (city: string) => Promise<void>;
+  isLoadingWeather: boolean;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -23,50 +37,53 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
+  
+  // Estado para o clima
+  const [weatherCity, setWeatherCityState] = useState<string | null>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
+  // Carregar configurações iniciais do localStorage
+  useEffect(() => {
+    try {
+        const storedPrivateMode = localStorage.getItem('flortune-private-mode');
+        if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
+
+        const storedTheme = localStorage.getItem('flortune-theme') || 'default';
+        applyTheme(storedTheme);
+
+        const storedDarkMode = localStorage.getItem('flortune-dark-mode');
+        let darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setIsDarkMode(darkModeEnabled);
+
+        const storedCity = localStorage.getItem('flortune-weather-city');
+        if (storedCity) {
+          setWeatherCityState(storedCity);
+          fetchWeather(storedCity);
+        }
+    } catch (error) {
+        console.error("Failed to access localStorage or parse settings:", error);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Funções e Efeitos para o Tema ---
   const applyTheme = useCallback((themeId: string) => {
-    document.documentElement.className = ''; // Limpa todas as classes de tema
+    document.documentElement.className = '';
     if (themeId !== 'default') {
       document.documentElement.classList.add(themeId);
     }
-    if (isDarkMode) { // Reaplicar a classe .dark se o modo escuro estiver ativo
+    const isDark = JSON.parse(localStorage.getItem('flortune-dark-mode') || 'false');
+    if (isDark) {
       document.documentElement.classList.add('dark');
     }
     localStorage.setItem('flortune-theme', themeId);
     setCurrentTheme(themeId);
-  }, [isDarkMode]);
+  }, []);
 
-  useEffect(() => {
-    const storedPrivateMode = localStorage.getItem('flortune-private-mode');
-    if (storedPrivateMode) {
-      setIsPrivateMode(JSON.parse(storedPrivateMode));
-    }
-
-    const storedTheme = localStorage.getItem('flortune-theme') || 'default';
-    applyTheme(storedTheme); // Aplica o tema ao carregar
-
-    // Dark mode inicialização
-    const storedDarkMode = localStorage.getItem('flortune-dark-mode');
-    let darkModeEnabled = false;
-    if (storedDarkMode !== null) {
-      darkModeEnabled = JSON.parse(storedDarkMode);
-    } else {
-      // Se não houver preferência salva, verifica a preferência do sistema
-      darkModeEnabled = typeof window !== "undefined" && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    setIsDarkMode(darkModeEnabled);
-    // A aplicação inicial da classe .dark é feita no applyTheme se isDarkMode for true
-    // ou no useEffect abaixo que observa isDarkMode
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Executa apenas uma vez na montagem
-
-  useEffect(() => {
-    localStorage.setItem('flortune-private-mode', JSON.stringify(isPrivateMode));
-  }, [isPrivateMode]);
-
-  const togglePrivateMode = useCallback(() => {
-    setIsPrivateMode(prev => !prev);
+  const toggleDarkMode = useCallback(() => {
+    setIsDarkMode(prev => !prev);
   }, []);
 
   useEffect(() => {
@@ -76,20 +93,68 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('flortune-dark-mode', JSON.stringify(isDarkMode));
-    // Reaplicar o tema atual para garantir que a classe .dark seja considerada
     applyTheme(currentTheme); 
   }, [isDarkMode, currentTheme, applyTheme]);
 
-  const toggleDarkMode = useCallback(() => {
-    setIsDarkMode(prev => !prev);
+
+  // --- Funções e Efeitos para Modo Privado ---
+  const togglePrivateMode = useCallback(() => {
+    setIsPrivateMode(prev => !prev);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('flortune-private-mode', JSON.stringify(isPrivateMode));
+  }, [isPrivateMode]);
+
+
+  // --- Funções e Efeitos para Clima ---
+  const fetchWeather = useCallback(async (city: string) => {
+    if (!city) return;
+    setIsLoadingWeather(true);
+    setWeatherError(null);
+    try {
+        const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Falha ao buscar dados do clima.');
+        }
+        
+        setWeatherData({
+            city: data.name,
+            temperature: Math.round(data.main.temp),
+            description: data.weather[0].description,
+            icon: data.weather[0].icon,
+        });
+
+    } catch (err: any) {
+        setWeatherError(err.message);
+        setWeatherData(null);
+    } finally {
+        setIsLoadingWeather(false);
+    }
+  }, []);
+
+  const setWeatherCity = (city: string | null) => {
+      if(city) {
+          localStorage.setItem('flortune-weather-city', city);
+          setWeatherCityState(city);
+          fetchWeather(city);
+      } else {
+          localStorage.removeItem('flortune-weather-city');
+          setWeatherCityState(null);
+          setWeatherData(null);
+          setWeatherError(null);
+      }
+  };
 
 
   return (
     <AppSettingsContext.Provider value={{ 
       isPrivateMode, setIsPrivateMode, togglePrivateMode,
       isDarkMode, setIsDarkMode, toggleDarkMode,
-      currentTheme, setCurrentTheme, applyTheme
+      currentTheme, setCurrentTheme, applyTheme,
+      weatherCity, setWeatherCity, weatherData, weatherError, fetchWeather, isLoadingWeather
     }}>
       {children}
     </AppSettingsContext.Provider>
