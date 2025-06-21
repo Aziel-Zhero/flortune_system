@@ -45,17 +45,8 @@ export default function AutomationPricingPage() {
       
       let payback = null;
       if (data.annualClientGain > 0) {
-        const totalFirstYearCostForClient = calculatedSetupFee + (calculatedMonthlyFee * 12);
-        // Payback em meses: (Custo Total para o Cliente no 1º Ano / Ganho Anual do Cliente) * 12
-        // Se o ganho anual for menor que o custo do primeiro ano, o payback é > 12 meses
-        // Se o ganho mensal (annualClientGain / 12) for menor ou igual a 0, o payback é infinito ou não aplicável
         const monthlyClientGain = data.annualClientGain / 12;
         if (monthlyClientGain > 0) {
-            // Custo Total = Setup + N * Mensalidade
-            // Ganho Total = N * GanhoMensal
-            // Queremos Custo Total = Ganho Total  => Setup + N * Mensalidade = N * GanhoMensal
-            // Setup = N * (GanhoMensal - Mensalidade)
-            // N = Setup / (GanhoMensal - Mensalidade)
             const netMonthlyGainForClientAfterPayingFee = monthlyClientGain - calculatedMonthlyFee;
             if (netMonthlyGainForClientAfterPayingFee > 0) {
                  payback = calculatedSetupFee / netMonthlyGainForClientAfterPayingFee;
