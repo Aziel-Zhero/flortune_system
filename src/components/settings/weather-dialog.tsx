@@ -30,10 +30,12 @@ export function WeatherSettingsDialog({ isOpen, onOpenChange }: WeatherSettingsD
   const handleSave = () => {
     if (cityInput.trim()) {
       setWeatherCity(cityInput.trim());
-      toast({ title: "Cidade Salva!", description: `Clima para ${cityInput.trim()} será exibido.` });
+      toast({ title: "Cidade Salva!", description: `Buscando clima para ${cityInput.trim()}.` });
       onOpenChange(false);
     } else {
-      toast({ title: "Cidade Inválida", description: "Por favor, insira um nome de cidade.", variant: "destructive" });
+      setWeatherCity(null); // Limpa a cidade se o input estiver vazio
+      toast({ title: "Cidade Removida", description: `A exibição do clima foi desativada.` });
+      onOpenChange(false);
     }
   };
 
@@ -46,7 +48,7 @@ export function WeatherSettingsDialog({ isOpen, onOpenChange }: WeatherSettingsD
             Configurar Clima
           </DialogTitle>
           <DialogDescription>
-            Insira o nome da sua cidade para ver o clima na barra lateral.
+            Insira o nome da sua cidade para ver o clima na barra lateral. Deixe em branco para desativar.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

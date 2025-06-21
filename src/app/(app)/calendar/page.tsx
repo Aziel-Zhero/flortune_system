@@ -102,8 +102,12 @@ export default function CalendarPage() {
     setWeekDates(getWeekDates(currentRefDate));
   }, [currentRefDate]);
 
-  const calculateEventStyle = (startTime: string, endTime: string) => {
-    const timelineStartHour = timeSlots[0];
+  const calculateEventStyle = (startTime: string, endTime: string, isAllDay?: boolean) => {
+    const timelineStartHour = timeSlots[0]; // Ex: 7
+
+    if (isAllDay) {
+      return { top: `0px`, height: `24px`, zIndex: 10, isFullWidth: true }; 
+    }
     
     const [startH, startM] = startTime.split(":").map(Number);
     const [endH, endM] = endTime.split(":").map(Number);
@@ -112,12 +116,13 @@ export default function CalendarPage() {
     const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
     let eventHeight = (durationMinutes / 60) * slotHeight;
     
-    if (eventHeight < 20) eventHeight = 20;
+    if (eventHeight < 20) eventHeight = 20; // Minimum height for visibility
 
-    return { top: `${topPosition}px`, height: `${eventHeight}px`, zIndex: 10 };
+    return { top: `${topPosition}px`, height: `${eventHeight}px`, zIndex: 10, isFullWidth: false };
   };
 
   const currentMonthYearLabel = useMemo(() => {
+    // Mostra o mês da maioria dos dias da semana ou o mês do primeiro dia
     const monthCounts: Record<string, number> = {};
     weekDates.forEach(d => {
       const monthName = format(d, "MMMM yyyy", { locale: ptBR });
@@ -152,7 +157,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full overflow-hidden">
       <PageHeader
         title="Calendário Financeiro"
         description={currentMonthYearLabel}
@@ -173,49 +178,49 @@ export default function CalendarPage() {
         }
       />
       
-      <div className="flex-1 grid grid-cols-1 grid-rows-[auto_1fr] border bg-card rounded-lg shadow-sm overflow-hidden">
+      <div className="flex-1 grid grid-cols-[60px_repeat(7,1fr)] border bg-card rounded-lg shadow-sm overflow-hidden">
         {/* Cabeçalho Estático dos Dias da Semana */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] sticky top-0 z-20 bg-card">
-          <div className="border-r border-b p-2"></div> {/* Canto superior esquerdo */}
-          {weekDates.map((date, i) => (
-            <div key={`header-${i}`} className={cn("row-span-1 p-2 text-center border-b", i < 6 && "border-r")}>
-              <div className="text-xs text-muted-foreground font-medium">{weekDayLabels[getDay(date)]}</div>
-              <div className={cn("text-xl font-semibold mt-1", fnsIsToday(date) ? "text-primary" : "text-foreground")}>
-                {format(date, "d")}
-              </div>
+        <div className="col-span-1 row-span-1 border-r border-b p-2 text-xs text-muted-foreground sticky top-0 bg-card z-10"></div> {/* Canto superior esquerdo */}
+        {weekDates.map((date, i) => (
+          <div key={`header-${i}`} className={cn("row-span-1 p-2 text-center border-b sticky top-0 bg-card z-10", i < 6 && "border-r")}>
+            <div className="text-xs text-muted-foreground font-medium">{weekDayLabels[getDay(date)]}</div>
+            <div className={cn("text-xl font-semibold mt-1", fnsIsToday(date) ? "text-primary" : "text-foreground")}>
+              {format(date, "d")}
             </div>
-          ))}
-        </div>
-        {/* Corpo Rolável */}
-        <div className="overflow-y-auto">
-          <div className="grid grid-cols-[60px_repeat(7,1fr)]">
-            {/* Gutter de Horários e Células de Evento */}
-            {timeSlots.map((hour) => (
-              <React.Fragment key={`timeslot-row-${hour}`}>
-                {/* Célula do Gutter de Horário */}
-                <div className="border-r text-right pr-2 text-xs pt-1 text-muted-foreground relative -top-2">
-                  <span>{hour > 12 ? `${hour - 12} PM` : `${hour} AM`}</span>
-                </div>
-                {/* Células dos Dias para este Horário */}
-                {weekDates.map((date, dayIndex) => (
-                  <div
-                    key={`cell-${dayIndex}-${hour}`}
-                    className={cn( "h-[60px] border-b", dayIndex < 6 && "border-r")}
-                  />
-                ))}
-              </React.Fragment>
-            ))}
+          </div>
+        ))}
 
-            {/* Container Absoluto para Eventos */}
-            <div className="col-start-2 col-span-7 row-start-1 row-span-full grid grid-cols-7 relative">
+        {/* Gutter de Horários (coluna 1, a partir da linha 2) e Células de Evento */}
+        <div className="col-start-1 row-start-2 col-span-full row-span-full relative overflow-y-auto">
+          <div className="grid grid-cols-[60px_repeat(7,1fr)]">
+          {timeSlots.map((hour, hourIndex) => (
+            <React.Fragment key={`timeslot-row-${hour}`}>
+              {/* Célula do Gutter de Horário */}
+              <div className={cn("col-start-1 h-[60px] border-r text-right pr-2 text-xs -translate-y-2 text-muted-foreground sticky left-0 bg-card z-10", hourIndex < timeSlots.length -1 && "border-b" )}>
+                <span>{hour > 12 ? `${hour - 12} PM` : `${hour} AM`}</span>
+              </div>
+              {/* Células dos Dias para este Horário */}
               {weekDates.map((date, dayIndex) => (
-                <div key={`event-col-${dayIndex}`} className={cn("relative", dayIndex < 6 && "border-r")}>
-                   {/* All-day Events */}
-                   <div className="sticky top-0 bg-card z-10 p-0.5 space-y-0.5">
+                <div 
+                  key={`cell-${dayIndex}-${hourIndex}`} 
+                  className={cn(
+                    `relative h-[60px]`,
+                    dayIndex < 6 && "border-r", 
+                    hourIndex < timeSlots.length -1 && "border-b"
+                  )}
+                />
+              ))}
+            </React.Fragment>
+          ))}
+            {/* Camada de Eventos */}
+            {weekDates.map((date, dayIndex) => (
+                <div key={`event-col-${dayIndex}`} className={`col-start-${dayIndex + 2} row-start-1 row-span-full relative`}>
+                     {/* All-day Events */}
+                   <div className="sticky top-0 bg-card/80 backdrop-blur-sm z-[5] p-0.5 space-y-0.5 border-b">
                      {events
                         .filter(event => isSameDay(parseISO(event.date), date) && event.isAllDay)
-                        .slice(0, 2) // Limitar para não poluir
-                        .map((event, index) => (
+                        .slice(0, 2)
+                        .map((event) => (
                             <div
                                 key={event.id}
                                 className={cn("rounded p-1 text-[10px] shadow-sm cursor-pointer overflow-hidden mr-1 flex items-center", event.color)}
@@ -227,38 +232,46 @@ export default function CalendarPage() {
                      }
                    </div>
                    {/* Timed Events */}
-                   {events
-                    .filter(event => isSameDay(parseISO(event.date), date) && !event.isAllDay)
-                    .map(event => {
-                      const style = calculateEventStyle(event.startTime, event.endTime);
-                      return (
-                        <div
-                          key={event.id}
-                          className={cn("absolute rounded p-1.5 text-xs shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg overflow-hidden", event.color)}
-                          style={{ ...style, left: "2px", right: "2px"}}
-                          onClick={() => handleEventClick(event)}
-                        >
-                          <div className="font-medium truncate">{event.title}</div>
-                          <div className="opacity-80 text-[10px] truncate">{`${formatTimeForDisplay(event.startTime)} - ${formatTimeForDisplay(event.endTime)}`}</div>
-                        </div>
-                      );
-                    })}
+                    {events
+                        .filter(event => isSameDay(parseISO(event.date), date) && !event.isAllDay)
+                        .map(event => {
+                            const style = calculateEventStyle(event.startTime, event.endTime, event.isAllDay);
+                            return (
+                                <div
+                                key={event.id}
+                                className={cn(
+                                    "absolute rounded p-1.5 text-xs shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg overflow-hidden",
+                                    event.color
+                                )}
+                                style={{ ...style, left: "2px", right: "2px"}}
+                                onClick={() => handleEventClick(event)}
+                                >
+                                <div className="font-medium truncate">{event.title}</div>
+                                <div className="opacity-80 text-[10px] truncate">{`${formatTimeForDisplay(event.startTime)} - ${formatTimeForDisplay(event.endTime)}`}</div>
+                                </div>
+                            );
+                        })}
                 </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
       {selectedEvent && (
         <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
-          <DialogContent className={cn("sm:max-w-md border-t-4", selectedEvent.color?.replace('bg-', 'border-') || "border-primary")}>
+          <DialogContent className={cn("sm:max-w-md", selectedEvent.color?.replace('bg-', 'border-t-4 border-') || "border-t-4 border-primary")}>
             <DialogHeader>
-              <DialogTitle className="font-headline text-xl">{selectedEvent.title}</DialogTitle>
+              <DialogTitle className={cn("font-headline text-xl", selectedEvent.color?.includes('text-') ? selectedEvent.color.split(' ').find(c => c.startsWith('text-')) : 'text-primary')}>
+                {selectedEvent.title}
+              </DialogTitle>
               {selectedEvent.description && (<DialogDescription>{selectedEvent.description}</DialogDescription>)}
             </DialogHeader>
             <div className="space-y-3 py-4 text-sm">
-              <p className="flex items-center"><Clock className="mr-2 h-4 w-4 text-muted-foreground" />{selectedEvent.isAllDay ? "Dia todo" : `${formatTimeForDisplay(selectedEvent.startTime)} - ${formatTimeForDisplay(selectedEvent.endTime)}`} <span className="ml-2 text-muted-foreground">({format(parseISO(selectedEvent.date), "PPP", { locale: ptBR })})</span></p>
+              <p className="flex items-center">
+                <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                {selectedEvent.isAllDay ? "Dia todo" : `${formatTimeForDisplay(selectedEvent.startTime)} - ${formatTimeForDisplay(selectedEvent.endTime)}`}
+                <span className="ml-2 text-muted-foreground">({format(parseISO(selectedEvent.date), "PPP", { locale: ptBR })})</span>
+              </p>
               {selectedEvent.location && (<p className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" />{selectedEvent.location}</p>)}
               {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (<p className="flex items-start"><Users className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" /><span><strong className="text-foreground/80">Participantes:</strong><br />{selectedEvent.attendees.join(", ")}</span></p>)}
               {selectedEvent.organizer && (<p><strong className="text-foreground/80">Organizador:</strong> {selectedEvent.organizer}</p>)}
