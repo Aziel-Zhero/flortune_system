@@ -1,191 +1,176 @@
-
 // src/app/(app)/calendar/page.tsx
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Clock } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  PlusCircle,
-  Clock,
-  MapPin,
-  Users,
-  Calendar as CalendarIconLucide,
-  AlertTriangle
-} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
-import { useSession } from "next-auth/react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { format, isSameDay, startOfDay } from "date-fns";
+import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface CalendarEvent {
   id: string;
   title: string;
-  startTime: string; // "HH:MM"
-  endTime: string; // "HH:MM"
-  color: string;
-  description?: string;
-  location?: string;
-  attendees?: string[];
-  organizer?: string;
-  date: Date;
-  isAllDay?: boolean;
+  day: number; // 0 for Sun, 1 for Mon, etc.
+  startTime: string; // "HH:mm"
+  endTime: string; // "HH:mm"
+  color: string; // Tailwind bg color class e.g., "bg-green-200/50"
+  borderColor: string; // Tailwind border color class e.g., "border-green-500"
 }
 
-const sampleBaseEvents: Omit<CalendarEvent, 'id' | 'date'>[] = [
-  { title: "Pagamento Aluguel", startTime: "00:00", endTime: "23:59", color: "bg-destructive/80 text-destructive-foreground", description: "Vencimento do aluguel mensal", location: "Online", isAllDay: true },
-  { title: "Salário", startTime: "09:00", endTime: "09:30", color: "bg-primary text-primary-foreground", description: "Recebimento do salário", location: "Conta Bancária" },
-  { title: "Supermercado", startTime: "16:00", endTime: "17:30", color: "bg-accent text-accent-foreground", description: "Compras da semana", location: "Mercado Local" },
-  { title: "Conta de Luz", startTime: "10:00", endTime: "10:15", color: "bg-amber-500 text-white", description: "Vencimento da conta de energia elétrica", location: "App do Banco" },
-  { title: "Reunião de Equipe", startTime: "14:00", endTime: "15:00", color: "bg-indigo-500 text-white", description: "Alinhamento semanal", location: "Escritório" },
+// Sample events based on the provided image
+const sampleEvents: CalendarEvent[] = [
+    { id: "1", title: "Product Design Course", day: 2, startTime: "09:30", endTime: "12:00", color: "bg-emerald-200/50 dark:bg-emerald-800/30", borderColor: "border-emerald-500"},
+    { id: "2", title: "Usability testing", day: 4, startTime: "09:00", endTime: "11:00", color: "bg-purple-200/50 dark:bg-purple-800/30", borderColor: "border-purple-500"},
+    { id: "3", title: "Frontend developement", day: 5, startTime: "10:00", endTime: "13:00", color: "bg-sky-200/50 dark:bg-sky-800/30", borderColor: "border-sky-500"},
+    { id: "4", title: "Conversational Interview", day: 2, startTime: "12:30", endTime: "14:00", color: "bg-purple-200/50 dark:bg-purple-800/30", borderColor: "border-purple-500"},
+    { id: "5", title: "App Design", day: 4, startTime: "13:00", endTime: "15:30", color: "bg-emerald-200/50 dark:bg-emerald-800/30", borderColor: "border-emerald-500"},
 ];
 
-const generateEventsForMonth = (refDate: Date): CalendarEvent[] => {
-    const year = refDate.getFullYear();
-    const month = refDate.getMonth();
-    const events: CalendarEvent[] = [];
-    sampleBaseEvents.forEach((baseEvent, index) => {
-        // Distribui os eventos em dias diferentes do mês para demonstração
-        const eventDate = new Date(year, month, (index * 5 + 3) % 28 + 1); 
-        events.push({
-            ...baseEvent,
-            id: `evt_${year}_${month}_${index}`,
-            date: eventDate,
-        });
-    });
-    return events;
-};
+const timeSlots = Array.from({ length: 8 }, (_, i) => `${String(i + 9).padStart(2, '0')}:00`); // 09:00 to 16:00
 
+export default function PlanCalendarPage() {
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-export default function CalendarPage() {
-  const { data: session, status } = useSession();
-  const isLoadingAuth = status === "loading";
+  const weekDates = useMemo(() => {
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
+    return eachDayOfInterval({ start, end: endOfWeek(currentDate, { weekStartsOn: 1 }) });
+  }, [currentDate]);
 
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const handlePrevWeek = () => setCurrentDate(prev => addDays(prev, -7));
+  const handleNextWeek = () => setCurrentDate(prev => addDays(prev, 7));
 
-  useEffect(() => {
-    document.title = `Calendário - ${APP_NAME}`;
-    setIsLoadingEvents(true);
-    const simulatedFetchedEvents = generateEventsForMonth(currentMonth);
-    setEvents(simulatedFetchedEvents);
-    setIsLoadingEvents(false);
-  }, [currentMonth]);
+  const calculateEventStyle = (startTime: string, endTime: string): React.CSSProperties => {
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    const timelineStartHour = 9; // Grid starts at 09:00
 
-  const selectedDayEvents = useMemo(() => {
-    if (!selectedDate) return [];
-    return events
-        .filter(event => isSameDay(event.date, selectedDate))
-        .sort((a,b) => parseInt(a.startTime.replace(":", "")) - parseInt(b.startTime.replace(":", "")));
-  }, [events, selectedDate]);
+    const top = ((startH - timelineStartHour) + (startM / 60)) * 4; // 4rem per hour (h-16)
+    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    const height = (durationMinutes / 60) * 4; // 4rem per hour
 
-  const handleMonthChange = (month: Date) => {
-    setCurrentMonth(month);
-    // Seleciona o primeiro dia do novo mês se a data selecionada anteriormente não estiver nele.
-    if (!selectedDate || selectedDate.getMonth() !== month.getMonth()) {
-        setSelectedDate(month);
-    }
-  }
-
-  const formatTimeForDisplay = (timeStr: string) => {
-    if (!timeStr || timeStr.split(':').length !== 2) return '';
-    const [hour, minute] = timeStr.split(':');
-    const date = new Date();
-    date.setHours(parseInt(hour), parseInt(minute));
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  if (isLoadingAuth || (isLoadingEvents && !!session)) {
-    return (
-      <div className="flex flex-col h-full">
-        <PageHeader title="Calendário" description="Carregando eventos..." icon={<CalendarIconLucide className="h-6 w-6 text-primary"/>}/>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Skeleton className="md:col-span-2 h-[400px] rounded-lg" />
-            <Skeleton className="md:col-span-1 h-[400px] rounded-lg" />
-        </div>
-      </div>
-    );
-  }
+    return {
+      top: `${top}rem`,
+      height: `${height}rem`,
+    };
+  };
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader
-        title="Calendário de Eventos"
-        description="Visualize e gerencie seus compromissos e eventos financeiros."
-        icon={<CalendarIconLucide className="h-6 w-6 text-primary"/>}
-        actions={
-          <Button onClick={() => alert("Funcionalidade Adicionar Evento (placeholder)")}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Evento
-          </Button>
-        }
-      />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2">
-            <Card className="shadow-lg">
-                <CardContent className="p-2 md:p-4">
-                    <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        onMonthChange={handleMonthChange}
-                        month={currentMonth}
-                        className="w-full"
-                        locale={ptBR}
-                        components={{
-                          DayContent: ({ date, ...props }) => {
-                            const hasEvent = events.some(e => isSameDay(e.date, date));
-                            return (
-                                <div className="relative h-full w-full flex items-center justify-center">
-                                    <span {...props.children?.props}>{date.getDate()}</span>
-                                    {hasEvent && <div className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-primary" />}
-                                </div>
-                            );
-                          }
-                        }}
-                    />
-                </CardContent>
-            </Card>
-        </div>
+      <PageHeader title="Calendário" icon={<CalendarIcon />} />
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start flex-1">
+        {/* Left Sidebar */}
+        <aside className="space-y-6 lg:sticky lg:top-20">
+          <Card>
+            <CardContent className="p-2">
+              <Calendar
+                mode="single"
+                selected={currentDate}
+                onSelect={(day) => day && setCurrentDate(day)}
+                className="w-full"
+                locale={ptBR}
+                modifiers={{
+                    selectedWeek: date => 
+                        isSameDay(startOfWeek(currentDate, { weekStartsOn: 1 }), startOfWeek(date, { weekStartsOn: 1 }))
+                }}
+                modifiersClassNames={{
+                    selectedWeek: "bg-primary/10 rounded-none",
+                }}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-lg font-headline">Categories</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><Checkbox id="cat-pd" defaultChecked /><Label htmlFor="cat-pd">Product Design</Label></div><span className="text-muted-foreground">5h00</span></div>
+                <div className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><Checkbox id="cat-se" defaultChecked /><Label htmlFor="cat-se">Software Engineering</Label></div><span className="text-muted-foreground">3h00</span></div>
+                <div className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><Checkbox id="cat-ur" /><Label htmlFor="cat-ur">User Research</Label></div><span className="text-muted-foreground">1h00</span></div>
+                <div className="flex items-center justify-between text-sm"><div className="flex items-center gap-2"><Checkbox id="cat-mkt" defaultChecked /><Label htmlFor="cat-mkt">Marketing</Label></div><span className="text-muted-foreground">0h00</span></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-lg font-headline">Prioritize</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+                <Button variant="ghost" className="w-full justify-between"><span>Einsenhower Matrix</span><ChevronRight className="h-4 w-4"/></Button>
+                <Button variant="ghost" className="w-full justify-between"><span>Eat The Frog First</span><ChevronRight className="h-4 w-4"/></Button>
+            </CardContent>
+          </Card>
+        </aside>
 
-        <div className="lg:col-span-1">
-             <Card className="shadow-lg sticky top-20">
-                <CardHeader>
-                    <CardTitle className="font-headline">
-                        Eventos em {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : 'Nenhum dia selecionado'}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="max-h-[60vh] overflow-y-auto space-y-4">
-                   {selectedDayEvents.length > 0 ? (
-                       selectedDayEvents.map(event => (
-                           <div key={event.id} className="flex items-start gap-3 p-3 rounded-md border-l-4" style={{borderColor: event.color.split(' ')[0].replace('bg-','--color-').replace('/',"").replace('text-','')}}>
-                               <div className="flex-shrink-0 w-20 text-sm text-muted-foreground">
-                                    {event.isAllDay ? "Dia Todo" : `${formatTimeForDisplay(event.startTime)}`}
-                               </div>
-                               <div className="flex-grow">
-                                   <p className="font-semibold text-foreground">{event.title}</p>
-                                   {event.location && <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3"/>{event.location}</p>}
-                               </div>
-                           </div>
-                       ))
-                   ) : (
-                       <div className="text-center text-muted-foreground py-8">
-                           <AlertTriangle className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
-                           <p>Nenhum evento para este dia.</p>
-                       </div>
-                   )}
-                </CardContent>
-             </Card>
-        </div>
+        {/* Main Calendar View */}
+        <main>
+          <Card className="min-h-[800px]">
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={handlePrevWeek}><ChevronLeft className="h-5 w-5" /></Button>
+                    <h2 className="text-lg md:text-xl font-semibold whitespace-nowrap">
+                        {format(startOfWeek(currentDate, { weekStartsOn: 1 }), "d")} - {format(endOfWeek(currentDate, { weekStartsOn: 1 }), "d 'de' MMMM, yyyy", { locale: ptBR })}
+                    </h2>
+                    <Button variant="ghost" size="icon" onClick={handleNextWeek}><ChevronRight className="h-5 w-5" /></Button>
+                </div>
+                 <Button><Plus className="mr-2 h-4 w-4"/> Create</Button>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <div className="grid grid-cols-[auto_repeat(7,1fr)] min-w-[800px]">
+                {/* Time Gutter */}
+                <div className="col-start-1 row-start-1"></div>
+                
+                {/* Day Headers */}
+                {weekDates.map((day, i) => (
+                  <div key={day.toString()} className="col-start- auto text-center py-2 border-b">
+                    <p className="text-xs text-muted-foreground">{format(day, 'EEE', { locale: ptBR }).toUpperCase()}</p>
+                    <p className={cn("text-2xl font-medium", isSameDay(day, new Date()) && "text-primary")}>{format(day, 'd')}</p>
+                  </div>
+                ))}
+                
+                {/* Grid Lines and Time Labels */}
+                <div className="col-start-1 row-start-2 pr-2 text-right">
+                    {timeSlots.map(time => (
+                        <div key={time} className="h-16 relative -top-3">
+                            <span className="text-xs text-muted-foreground">{time}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Event Columns */}
+                {weekDates.map((day, i) => (
+                    <div key={`col-${i}`} className="col-start-auto row-start-2 border-l relative">
+                        {timeSlots.map(time => (
+                            <div key={`${time}-line`} className="h-16 border-t"></div>
+                        ))}
+                        {/* Render events for this day */}
+                        {sampleEvents
+                         .filter(event => event.day === day.getDay())
+                         .map(event => (
+                            <div
+                                key={event.id}
+                                className={cn(
+                                    "absolute p-2 rounded-lg border-l-4 text-xs z-10 mx-1",
+                                    event.color,
+                                    event.borderColor,
+                                )}
+                                style={calculateEventStyle(event.startTime, event.endTime)}
+                            >
+                                <p className="font-semibold text-foreground/90">{event.title}</p>
+                                <p className="text-muted-foreground">{event.startTime} - {event.endTime}</p>
+                            </div>
+                         ))
+                        }
+                    </div>
+                ))}
+
+              </div>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     </div>
   );
 }
-
-    
