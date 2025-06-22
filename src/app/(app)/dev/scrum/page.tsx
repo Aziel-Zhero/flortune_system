@@ -1,10 +1,9 @@
-
 // src/app/(app)/dev/scrum/page.tsx
 "use client";
 
 import { useEffect, useRef } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListChecks, GanttChartSquare, BarChart, History, Construction } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import anime from 'animejs';

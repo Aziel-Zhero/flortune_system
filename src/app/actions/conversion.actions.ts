@@ -1,4 +1,3 @@
-
 // src/app/actions/conversion.actions.ts
 "use server";
 
@@ -24,6 +23,11 @@ interface ConversionApiResponse {
   historical: boolean;
   date: string; // YYYY-MM-DD
   result: number;
+  error?: {
+    code: number;
+    type: string;
+    info: string;
+  }
 }
 
 interface ConversionResult {
@@ -47,11 +51,9 @@ export async function convertCurrency(
   const { amount: validAmount, fromCurrency: validFrom, toCurrency: validTo } = validation.data;
 
   const apiUrl = `https://api.exchangerate.host/convert?from=${validFrom}&to=${validTo}&amount=${validAmount}&source=ecb`;
-  // Adicionado source=ecb para tentar melhorar a confiabilidade, mas pode não ser sempre necessário ou o melhor.
 
   try {
-    // console.log(`Fetching conversion: ${apiUrl}`);
-    const response = await fetch(apiUrl, { cache: 'no-store' }); // No-store para obter a cotação mais recente
+    const response = await fetch(apiUrl, { cache: 'no-store' }); 
     
     if (!response.ok) {
       const errorBody = await response.text();
@@ -60,18 +62,16 @@ export async function convertCurrency(
     }
 
     const data: ConversionApiResponse = await response.json();
-    // console.log("API Response Data:", data);
 
     if (data.success && data.result !== undefined && data.info?.rate !== undefined && data.date) {
       return { data: { convertedAmount: data.result, rate: data.info.rate, date: data.date }, error: null };
     } else {
+      const errorMessage = data.error?.info || "Resposta da API inválida ou incompleta.";
       console.error("API response missing expected fields or not successful:", data);
-      return { data: null, error: data.success === false && (data as any).error?.info ? (data as any).error.info : "Resposta da API inválida ou incompleta." };
+      return { data: null, error: errorMessage };
     }
   } catch (error: any) {
     console.error("Network or other error in convertCurrency action:", error);
     return { data: null, error: error.message || "Erro de rede ou ao processar a solicitação." };
   }
 }
-
-    

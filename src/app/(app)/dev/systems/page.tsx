@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/page.tsx
 "use client";
 
@@ -7,7 +6,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HardDrive, Calculator, Coins, ClockIcon, PercentSquare, ServerCog, Briefcase } from "lucide-react"; // Adicionado Briefcase
+import { HardDrive, Calculator, Coins, ClockIcon, PercentSquare, ServerCog, Briefcase } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -30,44 +29,44 @@ const tools: ToolCardProps[] = [
   {
     title: "Precificação de Automação (ROI)",
     description: "Justifique valor com base no ganho anual estimado para o cliente.",
-    icon: Briefcase, // Alterado ícone
+    icon: Briefcase,
     href: "/dev/systems/automation-pricing",
     status: "Pronto",
   },
   {
     title: "Pacotes e Assinaturas",
     description: "Estruture preços para serviços recorrentes e pacotes escaláveis.",
-    icon: PercentSquare, // Alterado ícone
+    icon: PercentSquare,
     href: "/dev/systems/package-pricing",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Conversor de Moeda",
-    description: "Converta valores entre diferentes moedas (API futura).",
+    description: "Converta valores entre diferentes moedas usando uma API externa.",
     icon: Coins,
     href: "/dev/systems/currency-converter",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Conversor de Tempo",
     description: "Converta unidades de tempo (minutos, horas, dias).",
     icon: ClockIcon,
     href: "/dev/systems/time-converter",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Juros Compostos / Simples",
     description: "Simule o crescimento de capital com diferentes taxas e períodos.",
     icon: PercentSquare,
     href: "/dev/systems/interest-calculator",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Calculadora de Uptime (SLA)",
     description: "Entenda o tempo de inatividade para um SLA específico.",
     icon: ServerCog,
     href: "/dev/systems/uptime-calculator",
-    status: "Em Breve",
+    status: "Pronto",
   },
 ];
 

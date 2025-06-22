@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/uptime-calculator/page.tsx
 "use client";
 
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ServerCog, AlertCircle, BarChartHorizontalBig, Construction } from "lucide-react";
+import { ServerCog, AlertCircle, BarChartHorizontalBig } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
@@ -46,23 +45,24 @@ export default function UptimeCalculatorPage() {
   }, []);
 
   const formatDowntime = (totalSeconds: number): string => {
-    if (totalSeconds < 60) return `${totalSeconds.toFixed(1)} segundos`;
+    if (totalSeconds <= 0) return "0 segundos";
+    if (totalSeconds < 60) return `${totalSeconds.toFixed(2)} segundos`;
     const minutes = totalSeconds / 60;
-    if (minutes < 60) return `${minutes.toFixed(1)} minutos`;
+    if (minutes < 60) return `${minutes.toFixed(2)} minutos`;
     const hours = minutes / 60;
-    if (hours < 24) return `${hours.toFixed(1)} horas`;
+    if (hours < 24) return `${hours.toFixed(2)} horas`;
     const days = hours / 24;
-    return `${days.toFixed(1)} dias`;
+    return `${days.toFixed(2)} dias`;
   };
 
   const onSubmit: SubmitHandler<UptimeFormData> = (data) => {
     try {
       const downtimePercentage = 100 - data.slaPercentage;
-      const secondsInYear = 365.25 * 24 * 60 * 60; // Considera ano bissexto em média
+      const secondsInYear = 365.25 * 24 * 60 * 60;
       
       const yearlyDowntimeSeconds = secondsInYear * (downtimePercentage / 100);
       const monthlyDowntimeSeconds = yearlyDowntimeSeconds / 12;
-      const weeklyDowntimeSeconds = yearlyDowntimeSeconds / 52.1775; // Média de semanas no ano
+      const weeklyDowntimeSeconds = yearlyDowntimeSeconds / 52.1775;
       const dailyDowntimeSeconds = yearlyDowntimeSeconds / 365.25;
 
       setDowntime({
@@ -90,14 +90,6 @@ export default function UptimeCalculatorPage() {
         description="Calcule o tempo de inatividade permitido com base em uma porcentagem de SLA."
         icon={<ServerCog className="h-6 w-6 text-primary" />}
       />
-      <Card className="mb-6">
-        <CardHeader className="bg-amber-500/10 border-b border-amber-500/30">
-          <CardTitle className="font-headline text-amber-700 dark:text-amber-400 flex items-center"><Construction className="mr-2 h-5 w-5"/>Em Desenvolvimento</CardTitle>
-          <CardDescription className="text-amber-600 dark:text-amber-500">
-            Cálculos para períodos menores (mensal, semanal, diário) são aproximações baseadas no downtime anual.
-          </CardDescription>
-        </CardHeader>
-      </Card>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="shadow-lg">
           <CardHeader>

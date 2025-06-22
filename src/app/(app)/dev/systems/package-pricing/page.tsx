@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/package-pricing/page.tsx
 "use client";
 
@@ -7,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PercentSquare, DollarSign, Clock, Briefcase, AlertCircle, BarChartHorizontalBig, Construction } from "lucide-react";
+import { Percent, DollarSign, Clock, Briefcase, AlertCircle, BarChartHorizontalBig } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
-import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PrivateValue } from "@/components/shared/private-value";
@@ -19,31 +18,27 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const packagePricingSchema = z.object({
   planName: z.string().min(2, "Nome do plano é obrigatório.").optional().default("Meu Pacote"),
-  includedHours: z.coerce.number().min(0, "Horas não podem ser negativas.").optional().default(0),
-  hourlyRateForPackage: z.coerce.number().min(0, "Valor/hora não pode ser negativo.").optional().default(0),
-  taskFrequency: z.string().optional(),
-  toolInfrastructureCost: z.coerce.number().min(0, "Custo não pode ser negativo.").optional().default(0),
-  profitMargin: z.coerce.number().min(0, "Margem não pode ser negativa.").max(100, "Máximo 100%").optional().default(30),
-  extraHourRate: z.coerce.number().min(0, "Valor não pode ser negativo.").optional().default(0),
+  includedHours: z.coerce.number().min(0, "Horas não podem ser negativas."),
+  hourlyRateForPackage: z.coerce.number().min(0, "Valor/hora não pode ser negativo."),
+  toolInfrastructureCost: z.coerce.number().min(0, "Custo não pode ser negativo."),
+  profitMargin: z.coerce.number().min(0, "Margem não pode ser negativa.").max(100, "Máximo 100%"),
+  extraHourRate: z.coerce.number().min(0, "Valor não pode ser negativo."),
 });
 
 type PackagePricingFormData = z.infer<typeof packagePricingSchema>;
 
 export default function PackagePricingPage() {
   const [planPrice, setPlanPrice] = useState<number | null>(null);
-  const [clientSaving, setClientSaving] = useState<string | null>("Não calculado (necessita valor/hora avulso)");
 
-
-  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<PackagePricingFormData>({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<PackagePricingFormData>({
     resolver: zodResolver(packagePricingSchema),
     defaultValues: {
-        planName: "Meu Pacote",
+        planName: "Pacote de Manutenção",
         includedHours: 10,
         hourlyRateForPackage: 50,
-        toolInfrastructureCost: 0,
+        toolInfrastructureCost: 25,
         profitMargin: 30,
         extraHourRate: 75,
-        taskFrequency: "N/A"
     }
   });
 
@@ -59,29 +54,17 @@ export default function PackagePricingPage() {
       const calculatedPlanPrice = totalBaseCost + profit;
       
       setPlanPrice(calculatedPlanPrice);
-      // Cálculo de "economia" é complexo sem uma taxa horária avulsa de referência. Deixando como placeholder.
-      setClientSaving("Cálculo de economia requer taxa horária avulsa de referência.");
 
       toast({ title: "Cálculo Realizado", description: "Preço do pacote/assinatura calculado."});
     } catch (error) {
       toast({ title: "Erro no Cálculo", description: "Não foi possível calcular o preço do pacote.", variant: "destructive"});
       setPlanPrice(null);
-      setClientSaving(null);
     }
   };
 
   const handleReset = () => {
-    reset({
-        planName: "Meu Pacote",
-        includedHours: 10,
-        hourlyRateForPackage: 50,
-        toolInfrastructureCost: 0,
-        profitMargin: 30,
-        extraHourRate: 75,
-        taskFrequency: "N/A"
-    });
+    reset();
     setPlanPrice(null);
-    setClientSaving(null);
   }
 
   return (
@@ -89,16 +72,8 @@ export default function PackagePricingPage() {
       <PageHeader
         title="Calculadora de Precificação de Pacotes e Assinaturas"
         description="Estruture preços para serviços recorrentes, pacotes de horas ou entregas mensais."
-        icon={<PercentSquare className="h-6 w-6 text-primary" />}
+        icon={<Briefcase className="h-6 w-6 text-primary" />}
       />
-      <Card className="mb-6">
-        <CardHeader className="bg-amber-500/10 border-b border-amber-500/30">
-          <CardTitle className="font-headline text-amber-700 dark:text-amber-400 flex items-center"><Construction className="mr-2 h-5 w-5"/>Funcionalidade em Desenvolvimento</CardTitle>
-          <CardDescription className="text-amber-600 dark:text-amber-500">
-            Esta calculadora está em fase inicial. A lógica de "economia do cliente" e outros refinamentos serão adicionados.
-          </CardDescription>
-        </CardHeader>
-      </Card>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="shadow-lg">
           <CardHeader>
@@ -111,7 +86,7 @@ export default function PackagePricingPage() {
               {errors.planName && <p className="text-sm text-destructive mt-1">{errors.planName.message}</p>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="includedHours">Nº de Horas Inclusas</Label>
                 <div className="relative">
@@ -127,10 +102,6 @@ export default function PackagePricingPage() {
                    <Input id="hourlyRateForPackage" type="number" step="0.01" placeholder="Ex: 50" {...register("hourlyRateForPackage")} className="pl-10" />
                 </div>
                 {errors.hourlyRateForPackage && <p className="text-sm text-destructive mt-1">{errors.hourlyRateForPackage.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="taskFrequency">Frequência de Tarefas (Opcional)</Label>
-                <Input id="taskFrequency" {...register("taskFrequency")} placeholder="Ex: 2 ajustes/mês" />
               </div>
             </div>
 
@@ -178,18 +149,6 @@ export default function PackagePricingPage() {
                       <p className="text-sm font-medium text-muted-foreground">Preço Sugerido do Plano/Pacote:</p>
                       <p className="text-xl font-bold text-primary">
                         R$ <PrivateValue value={planPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /> / mês
-                      </p>
-                    </div>
-                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Economia Estimada para o Cliente:</p>
-                      <p className="text-lg font-semibold">
-                        {clientSaving}
-                      </p>
-                    </div>
-                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Valor Adicional por Hora Extra:</p>
-                      <p className="text-lg font-semibold">
-                        R$ <PrivateValue value={watch("extraHourRate")?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'} />
                       </p>
                     </div>
                 </CardContent>

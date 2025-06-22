@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/automation-pricing/page.tsx
 "use client";
 
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Briefcase, DollarSign, Percent, Zap, Repeat, AlertCircle, BarChartHorizontalBig } from "lucide-react";
+import { Briefcase, DollarSign, Repeat, AlertCircle, BarChartHorizontalBig } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
@@ -51,12 +50,12 @@ export default function AutomationPricingPage() {
             if (netMonthlyGainForClientAfterPayingFee > 0) {
                  payback = calculatedSetupFee / netMonthlyGainForClientAfterPayingFee;
             } else if (calculatedSetupFee === 0 && netMonthlyGainForClientAfterPayingFee === 0 && monthlyClientGain > 0) {
-                 payback = 0; // Payback imediato se não há custo de setup e mensalidade = ganho
+                 payback = 0;
             } else {
-                payback = Infinity; // Indica que o cliente nunca recupera o investimento ou perde dinheiro
+                payback = Infinity;
             }
         } else {
-            payback = Infinity; // Ganho mensal zero ou negativo
+            payback = Infinity;
         }
       }
 
@@ -143,7 +142,7 @@ export default function AutomationPricingPage() {
                 <CardContent className="space-y-3">
                   {setupFee !== null && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground flex items-center"><Zap className="mr-1.5 h-4 w-4 text-yellow-500"/>Taxa de Setup Sugerida (25% do ganho anual):</p>
+                      <p className="text-sm font-medium text-muted-foreground">Taxa de Setup Sugerida (25% do ganho anual):</p>
                       <p className="text-xl font-bold text-primary">
                         R$ <PrivateValue value={setupFee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
                       </p>
@@ -151,7 +150,7 @@ export default function AutomationPricingPage() {
                   )}
                   {monthlyFee !== null && (
                      <div>
-                      <p className="text-sm font-medium text-muted-foreground flex items-center"><Repeat className="mr-1.5 h-4 w-4 text-blue-500"/>Mensalidade Sugerida (Dobro dos custos + suporte):</p>
+                      <p className="text-sm font-medium text-muted-foreground">Mensalidade Sugerida (Dobro dos custos + suporte):</p>
                       <p className="text-xl font-bold text-primary">
                         R$ <PrivateValue value={monthlyFee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /> / mês
                       </p>

@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/project-pricing/page.tsx
 "use client";
 
@@ -48,7 +47,7 @@ export default function ProjectPricingFreelancerPage() {
       const baseCost = data.estimatedHours * data.hourlyRate;
       const costWithTools = baseCost + (data.toolCost || 0);
       
-      const minPrice = costWithTools; // Preço sem margem de lucro
+      const minPrice = costWithTools;
       
       const profit = costWithTools * (data.profitMargin / 100);
       const suggPrice = costWithTools + profit;

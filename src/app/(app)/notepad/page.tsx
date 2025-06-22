@@ -1,4 +1,3 @@
-
 // src/app/(app)/notepad/page.tsx
 "use client";
 

@@ -33,7 +33,7 @@ import {
   isSameDay,
   parseISO,
   isToday as fnsIsToday,
-  getDay,
+  getDay // ← Isso precisa estar exatamente assim, sem comentários na linha
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Transaction } from "@/types/database.types";

@@ -9,7 +9,7 @@ interface WeatherData {
   city: string;
   temperature: number;
   description: string;
-  icon: string; // O código do ícone da API (ex: "01d")
+  icon: string;
 }
 
 // Definindo o tipo para o valor do contexto de AppSettings
@@ -38,7 +38,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
   
-  // Estado para o clima
   const [weatherCity, setWeatherCityState] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
@@ -85,27 +84,18 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       }
   };
 
-  // Carregar configurações iniciais do localStorage
   useEffect(() => {
     try {
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
 
-      // Carregar Dark Mode
       const storedDarkMode = localStorage.getItem('flortune-dark-mode');
-      let darkModeEnabled = storedDarkMode !== null ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(darkModeEnabled);
-      if (darkModeEnabled) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
       
-      // Carregar Tema
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
-      applyTheme(storedTheme);
+      setCurrentTheme(storedTheme);
 
-      // Carregar Cidade do Clima
       const storedCity = localStorage.getItem('flortune-weather-city');
       if (storedCity) {
         setWeatherCityState(storedCity);
@@ -114,13 +104,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchWeather]);
 
-  // --- Funções e Efeitos para o Tema ---
   const applyTheme = useCallback((themeId: string) => {
     const root = document.documentElement;
-    // Remove qualquer classe de tema existente
     root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
     
     if (themeId !== 'default') {
@@ -133,14 +120,20 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode(prev => {
       const newIsDark = !prev;
-      document.documentElement.classList.toggle('dark', newIsDark);
       localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
       return newIsDark;
     });
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
 
-  // --- Funções e Efeitos para Modo Privado ---
+  useEffect(() => {
+    applyTheme(currentTheme);
+  }, [currentTheme, applyTheme]);
+
+
   const togglePrivateMode = useCallback(() => {
     setIsPrivateMode(prev => {
         const newMode = !prev;

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -33,7 +32,7 @@ export function WeatherSettingsDialog({ isOpen, onOpenChange }: WeatherSettingsD
       toast({ title: "Cidade Salva!", description: `Buscando clima para ${cityInput.trim()}.` });
       onOpenChange(false);
     } else {
-      setWeatherCity(null); // Limpa a cidade se o input estiver vazio
+      setWeatherCity(null);
       toast({ title: "Cidade Removida", description: `A exibição do clima foi desativada.` });
       onOpenChange(false);
     }

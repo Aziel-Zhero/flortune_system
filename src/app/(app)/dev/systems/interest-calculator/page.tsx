@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/interest-calculator/page.tsx
 "use client";
 
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PercentSquare, DollarSign, ClockIcon, AlertCircle, BarChartHorizontalBig, Construction } from "lucide-react";
+import { PercentSquare, DollarSign, ClockIcon, AlertCircle, BarChartHorizontalBig } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -53,19 +52,19 @@ export default function InterestCalculatorPage() {
 
   const onSubmit: SubmitHandler<InterestFormData> = (data) => {
     try {
-        let i = data.rate / 100; // Taxa em decimal
+        let i = data.rate / 100;
         let t = data.time;
 
-        // Converter taxa e tempo para a mesma unidade (meses)
-        if (data.ratePeriod === "anual") i = i / 12; // Taxa mensal
-        if (data.timePeriod === "anos") t = t * 12; // Tempo em meses
+        if (data.ratePeriod === "anual" && data.timePeriod === "meses") {
+            i = i / 12;
+        } else if (data.ratePeriod === "mensal" && data.timePeriod === "anos") {
+            t = t * 12;
+        }
 
         let finalAmount: number;
         if (data.type === "simples") {
-            // J = C * i * t  => M = C + J = C * (1 + i * t)
             finalAmount = data.initialCapital * (1 + i * t);
-        } else { // composto
-            // M = C * (1 + i)^t
+        } else {
             finalAmount = data.initialCapital * Math.pow((1 + i), t);
         }
         
@@ -93,14 +92,6 @@ export default function InterestCalculatorPage() {
         description="Simule o crescimento de capital com juros simples ou compostos."
         icon={<PercentSquare className="h-6 w-6 text-primary" />}
       />
-       <Card className="mb-6">
-        <CardHeader className="bg-amber-500/10 border-b border-amber-500/30">
-          <CardTitle className="font-headline text-amber-700 dark:text-amber-400 flex items-center"><Construction className="mr-2 h-5 w-5"/>Funcionalidade em Desenvolvimento</CardTitle>
-          <CardDescription className="text-amber-600 dark:text-amber-500">
-            Valores são calculados com base na conversão de taxas e períodos para meses.
-          </CardDescription>
-        </CardHeader>
-      </Card>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="shadow-lg">
           <CardHeader>
@@ -135,7 +126,7 @@ export default function InterestCalculatorPage() {
               <div className="space-y-2">
                 <Label htmlFor="rate">Taxa de Juros (%)</Label>
                 <div className="relative">
-                   <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                   <span className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground">%</span>
                    <Input id="rate" type="number" step="0.01" placeholder="Ex: 1.5" {...register("rate")} className="pl-10" />
                 </div>
                  {errors.rate && <p className="text-sm text-destructive mt-1">{errors.rate.message}</p>}

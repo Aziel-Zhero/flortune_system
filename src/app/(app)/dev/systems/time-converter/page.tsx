@@ -1,14 +1,13 @@
-
 // src/app/(app)/dev/systems/time-converter/page.tsx
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClockIcon, AlertCircle, Construction } from "lucide-react";
+import { ClockIcon, AlertCircle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -32,9 +31,9 @@ const factorsToSeconds: Record<TimeUnit, number> = {
   segundos: 1,
   minutos: 60,
   horas: 3600,
-  dias: 86400, // 24 * 3600
-  semanas: 604800, // 7 * 86400
-  meses: 2629800, // Aproximadamente 30.4375 dias * 86400 (média)
+  dias: 86400,
+  semanas: 604800,
+  meses: 2629800, // Aproximadamente 30.4375 dias
 };
 
 export default function TimeConverterPage() {
@@ -77,14 +76,6 @@ export default function TimeConverterPage() {
         description="Converta facilmente entre diferentes unidades de tempo."
         icon={<ClockIcon className="h-6 w-6 text-primary" />}
       />
-       <Card className="mb-6">
-        <CardHeader className="bg-amber-500/10 border-b border-amber-500/30">
-          <CardTitle className="font-headline text-amber-700 dark:text-amber-400 flex items-center"><Construction className="mr-2 h-5 w-5"/>Funcionalidade em Desenvolvimento</CardTitle>
-          <CardDescription className="text-amber-600 dark:text-amber-500">
-            Conversões para meses são aproximadas (média de 30.4375 dias/mês).
-          </CardDescription>
-        </CardHeader>
-      </Card>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="shadow-lg">
           <CardHeader>
