@@ -5,18 +5,12 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Check, Gem, Leaf, BrainCircuit, Briefcase } from "lucide-react";
+import { Check, Gem, Leaf, BrainCircuit, Briefcase, Code } from "lucide-react";
 import Link from "next/link";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import * as LucideIcons from "lucide-react";
-import type { Metadata } from 'next';
-
-// Metadata não pode ser exportada de arquivos "use client"
-// export const metadata: Metadata = {
-//   title: `Nossos Planos - ${APP_NAME}`,
-// };
 
 const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
   if (!iconName) return Gem;
@@ -63,13 +57,13 @@ export default function PlansPage() {
                   <span className={cn("text-4xl font-bold tracking-tight", tier.featured ? "text-primary" : "text-foreground")}>
                     {tier.priceMonthly}
                   </span>
-                  {tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (
+                  {tier.priceMonthly !== 'Grátis' && tier.priceAnnotation && (
+                    <span className="text-sm text-muted-foreground">{tier.priceAnnotation}</span>
+                  )}
+                   {tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (
                     <span className="text-sm text-muted-foreground">/mês</span>
                   )}
                 </div>
-                {tier.priceAnnotation && (
-                  <p className="text-xs text-muted-foreground -mt-1">{tier.priceAnnotation}</p>
-                )}
                 <CardDescription className="pt-2 text-sm min-h-[60px]">{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -111,7 +105,7 @@ export default function PlansPage() {
         <CardContent className="space-y-4 text-center text-muted-foreground">
           <p><strong>Posso cancelar quando quiser?</strong> Sim, você pode cancelar sua assinatura a qualquer momento.</p>
           <p><strong>Como funciona o suporte?</strong> O plano Mestre Jardineiro e Corporativo oferecem suporte prioritário e dedicado, respectivamente.</p>
-          <p><strong>Preciso de ajuda para escolher um plano?</strong> <Link href="/contact" className="text-primary hover:underline">Entre em contato conosco!</Link></p>
+          <p><strong>Preciso de ajuda para escolher um plano?</strong> <Link href="#" className="text-primary hover:underline" onClick={(e) => {e.preventDefault(); alert("Página de contato em desenvolvimento.")}}>Entre em contato conosco!</Link></p>
         </CardContent>
       </Card>
     </div>
