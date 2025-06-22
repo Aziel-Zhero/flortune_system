@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/systems/page.tsx
 "use client";
 
@@ -6,7 +7,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HardDrive, Calculator, Coins, ClockIcon, PercentSquare, ServerCog, Briefcase } from "lucide-react";
+import { HardDrive, Calculator, Coins, ClockIcon, PercentSquare, ServerCog, Briefcase, Repeat } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +58,7 @@ const tools: ToolCardProps[] = [
   {
     title: "Juros Compostos / Simples",
     description: "Simule o crescimento de capital com diferentes taxas e períodos.",
-    icon: PercentSquare,
+    icon: Repeat,
     href: "/dev/systems/interest-calculator",
     status: "Pronto",
   },

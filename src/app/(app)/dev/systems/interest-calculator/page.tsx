@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/systems/interest-calculator/page.tsx
 "use client";
 
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PercentSquare, DollarSign, ClockIcon, AlertCircle, BarChartHorizontalBig } from "lucide-react";
+import { Repeat, DollarSign, ClockIcon, AlertCircle, BarChartHorizontalBig } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -90,7 +91,7 @@ export default function InterestCalculatorPage() {
       <PageHeader
         title="Calculadora de Juros (Simples e Compostos)"
         description="Simule o crescimento de capital com juros simples ou compostos."
-        icon={<PercentSquare className="h-6 w-6 text-primary" />}
+        icon={<Repeat className="h-6 w-6 text-primary" />}
       />
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="shadow-lg">

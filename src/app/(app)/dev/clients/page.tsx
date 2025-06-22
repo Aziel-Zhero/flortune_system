@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/clients/page.tsx
 "use client";
 
@@ -81,7 +82,6 @@ export default function DevClientsPage() {
                 )}
               />
             </div>
-            {/* Outros campos como datas podem ser adicionados aqui com DatePicker */}
           </CardContent>
           <CardFooter>
             <Button type="submit"><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Cliente/Projeto</Button>
