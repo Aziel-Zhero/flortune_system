@@ -30,7 +30,7 @@ export default function PlansPage() {
         description={`Escolha o plano ${APP_NAME} que melhor se adapta às suas necessidades e comece a cultivar um futuro financeiro mais próspero.`}
         icon={<Gem className="mr-2 h-6 w-6 text-primary" />}
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 items-stretch">
         {PRICING_TIERS.map((tier) => {
           const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
           return (
@@ -49,19 +49,19 @@ export default function PlansPage() {
                   )}>
                       <TierIcon className="h-6 w-6" />
                   </div>
-                  <CardTitle className={cn("font-headline text-2xl", tier.featured ? "text-primary" : "text-foreground")}>
+                  <CardTitle className={cn("font-headline text-xl", tier.featured ? "text-primary" : "text-foreground")}>
                     {tier.name}
                   </CardTitle>
                 </div>
-                <div className="flex items-baseline gap-x-2">
+                <div className="flex items-baseline gap-x-1">
                   <span className={cn("text-4xl font-bold tracking-tight", tier.featured ? "text-primary" : "text-foreground")}>
                     {tier.priceMonthly}
                   </span>
                   {tier.priceMonthly !== 'Grátis' && tier.priceAnnotation && (
-                    <span className="text-sm text-muted-foreground">{tier.priceAnnotation}</span>
+                    <span className="text-sm font-normal text-muted-foreground">{tier.priceAnnotation}</span>
                   )}
                    {tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (
-                    <span className="text-sm text-muted-foreground">/mês</span>
+                    <span className="text-sm font-normal text-muted-foreground">/mês</span>
                   )}
                 </div>
                 <CardDescription className="pt-2 text-sm min-h-[60px]">{tier.description}</CardDescription>
@@ -89,7 +89,7 @@ export default function PlansPage() {
                   )}
                 >
                   <Link href={tier.href}>
-                    {tier.priceMonthly === 'Grátis' ? 'Começar Agora' : tier.id === 'tier-corporativo' ? 'Contatar Vendas' : 'Assinar Plano'}
+                    {tier.priceMonthly === 'Grátis' ? 'Começar Agora' : tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}
                   </Link>
                 </Button>
               </CardFooter>
