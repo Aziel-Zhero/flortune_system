@@ -73,7 +73,7 @@ export default function DevScrumPage() {
         <CardContent>
           <p className="text-sm text-foreground/80">
             Esta seção está sendo construída para trazer as melhores ferramentas para gestão de projetos Scrum. 
-            As funcionalidades abaixo estão planejadas para desenvolvimento futuro. Animações com Anime.js foram adicionadas para uma experiência de entrada mais fluida!
+            As funcionalidades abaixo estão planejadas para desenvolvimento futuro.
           </p>
         </CardContent>
       </Card>
