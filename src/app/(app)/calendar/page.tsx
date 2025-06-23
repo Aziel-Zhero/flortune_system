@@ -2,257 +2,162 @@
 // src/app/(app)/calendar/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Clock,
-  Calendar as CalendarIconLucide,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
-import { useSession } from "next-auth/react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  format,
-  addDays,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  isSameDay,
-  parseISO,
-  isToday as fnsIsToday,
-  getDay,
-} from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useSession } from "next-auth/react";
 import type { Transaction } from "@/types/database.types";
 import { getTransactions } from "@/services/transaction.service";
 import { toast } from "@/hooks/use-toast";
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  color: string;
-  description?: string;
-  date: string;
-  isAllDay?: boolean;
-}
-
-const weekDayLabels = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
-const timeSlots = Array.from({ length: 17 }, (_, i) => i + 7);
-const slotHeight = 60;
-
-const getWeekDates = (refDate: Date): Date[] => {
-  const start = startOfWeek(refDate, { weekStartsOn: 0 });
-  return eachDayOfInterval({ start, end: endOfWeek(refDate, { weekStartsOn: 0 }) });
-};
+import { format, isSameDay, startOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarDays, AlertTriangle, ArrowRightLeft } from "lucide-react";
+import { APP_NAME } from "@/lib/constants";
+import { PrivateValue } from "@/components/shared/private-value";
+import { cn } from "@/lib/utils";
 
 export default function CalendarPage() {
   const { data: session, status } = useSession();
-  const isLoadingAuth = status === "loading";
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [currentRefDate, setCurrentRefDate] = useState(new Date());
-  const [weekDates, setWeekDates] = useState<Date[]>(() => getWeekDates(new Date()));
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-
-  const fetchAndMapTransactions = useCallback(async () => {
-    if (!session?.user?.id) {
-      setIsLoadingEvents(false);
-      return;
-    }
-    setIsLoadingEvents(true);
+  const fetchTransactions = useCallback(async () => {
+    if (!session?.user?.id) return;
+    setIsLoading(true);
     try {
       const { data, error } = await getTransactions(session.user.id);
       if (error) {
-        toast({ title: "Erro ao buscar eventos", description: error.message, variant: "destructive" });
-        setEvents([]);
-        return;
+        toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
+        setTransactions([]);
+      } else {
+        setTransactions(data || []);
       }
-
-      const mappedEvents: CalendarEvent[] = (data || []).map(tx => ({
-        id: tx.id,
-        title: tx.description,
-        startTime: "00:00",
-        endTime: "23:59",
-        color: tx.type === 'income' ? "bg-primary/80 text-primary-foreground" : "bg-destructive/80 text-destructive-foreground",
-        description: tx.notes || `Valor: ${tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
-        date: tx.date,
-        isAllDay: true,
-      }));
-      setEvents(mappedEvents);
-    } catch {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar as transações para o calendário.", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erro inesperado", description: err.message, variant: "destructive" });
     } finally {
-      setIsLoadingEvents(false);
+      setIsLoading(false);
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
-    document.title = `Calendário Semanal - ${APP_NAME}`;
+    document.title = `Calendário - ${APP_NAME}`;
     if (status === 'authenticated') {
-      fetchAndMapTransactions();
+      fetchTransactions();
     } else if (status === 'unauthenticated') {
-      setIsLoadingEvents(false);
+      setIsLoading(false);
     }
-  }, [status, fetchAndMapTransactions]);
+  }, [status, fetchTransactions]);
 
-  const handleEventClick = (event: CalendarEvent) => setSelectedEvent(event);
-  const handleNextWeek = () => setCurrentRefDate(prev => addDays(prev, 7));
-  const handlePrevWeek = () => setCurrentRefDate(prev => addDays(prev, -7));
-  const handleToday = () => setCurrentRefDate(new Date());
+  const transactionsOnSelectedDay = useMemo(() => {
+    if (!date) return [];
+    return transactions.filter(tx => isSameDay(new Date(tx.date + "T00:00:00Z"), date));
+  }, [date, transactions]);
 
-  useEffect(() => {
-    setWeekDates(getWeekDates(currentRefDate));
-  }, [currentRefDate]);
+  const daysWithTransactions = useMemo(() => {
+    return transactions.map(tx => new Date(tx.date + "T00:00:00Z"));
+  }, [transactions]);
+  
+  const dayHasTransactionModifier = { hasTransaction: daysWithTransactions };
 
-  const currentMonthYearLabel = useMemo(() => {
-    const monthCounts: Record<string, number> = {};
-    weekDates.forEach(d => {
-      const monthName = format(d, "MMMM yyyy", { locale: ptBR });
-      monthCounts[monthName] = (monthCounts[monthName] || 0) + 1;
-    });
-    let majorityMonth = format(weekDates[0], "MMMM yyyy", { locale: ptBR });
-    let maxCount = 0;
-    for (const month in monthCounts) {
-      if (monthCounts[month] > maxCount) {
-        maxCount = monthCounts[month];
-        majorityMonth = month;
-      }
-    }
-    return majorityMonth.charAt(0).toUpperCase() + majorityMonth.slice(1);
-  }, [weekDates]);
-
-  if (isLoadingAuth || isLoadingEvents) {
+  if (status === 'loading' || isLoading) {
     return (
-      <div className="flex flex-col h-full">
-        <PageHeader title="Calendário Semanal" description="Carregando eventos..." icon={<CalendarIconLucide className="h-6 w-6 text-primary" />} />
-        <Skeleton className="w-full h-[calc(100vh-200px)] rounded-lg" />
+      <div className="space-y-6">
+        <PageHeader title="Calendário" description="Carregando transações..." icon={<CalendarDays className="h-6 w-6 text-primary"/>}/>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 shadow-sm"><CardContent className="p-4"><Skeleton className="h-[350px] w-full" /></CardContent></Card>
+          <Card className="lg:col-span-1 shadow-sm"><CardHeader><Skeleton className="h-6 w-3/4 mb-1" /><Skeleton className="h-4 w-1/2" /></CardHeader><CardContent className="space-y-4">{Array(3).fill(0).map((_, i) => (<Skeleton key={i} className="h-10 w-full" />))}</CardContent></Card>
+        </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="space-y-6">
       <PageHeader
         title="Calendário Financeiro"
-        description={currentMonthYearLabel}
-        icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleToday}>Hoje</Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevWeek}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextWeek}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-            <Button size="sm" onClick={() => alert("Funcionalidade Adicionar Evento (placeholder)")}>
-              <Plus className="mr-2 h-4 w-4" /> Adicionar Evento
-            </Button>
-          </div>
-        }
+        description="Selecione uma data para ver as transações do dia. Dias com um ponto têm atividade."
+        icon={<CalendarDays className="h-6 w-6 text-primary" />}
       />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <Card className="lg:col-span-2 shadow-lg">
+          <CardContent className="p-2 md:p-4 flex justify-center">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              month={currentMonth}
+              onMonthChange={setCurrentMonth}
+              className="rounded-md"
+              locale={ptBR}
+              modifiers={dayHasTransactionModifier}
+              modifiersClassNames={{
+                hasTransaction: 'day-with-transaction',
+              }}
+              components={{
+                DayContent: ({ date, ...props }) => {
+                  const hasTx = daysWithTransactions.some(txDate => isSameDay(txDate, date));
+                  return (
+                    <div className="relative h-full w-full flex items-center justify-center">
+                      <span>{date.getDate()}</span>
+                      {hasTx && <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-primary" />}
+                    </div>
+                  );
+                },
+              }}
+            />
+          </CardContent>
+        </Card>
 
-      <div className="flex-1 grid grid-cols-[60px_repeat(7,1fr)] border bg-card rounded-lg shadow-sm overflow-hidden">
-        <div className="col-span-1 row-span-1 border-r border-b p-2 sticky top-0 bg-card z-20"></div>
-        {weekDates.map((date, i) => (
-          <div key={`header-${i}`} className={cn("row-span-1 p-2 text-center border-b sticky top-0 bg-card z-20", i < 6 && "border-r")}>
-            <div className="text-xs text-muted-foreground font-medium">{weekDayLabels[getDay(date)]}</div>
-            <div className={cn("text-xl font-semibold mt-1", fnsIsToday(date) ? "text-primary" : "text-foreground")}>
-              {format(date, "d")}
-            </div>
-          </div>
-        ))}
-
-        <div className="col-start-1 col-span-8 row-start-2 overflow-y-auto" style={{ height: 'calc(100vh - 250px)' }}>
-          <div className="grid grid-cols-[60px_repeat(7,1fr)] relative">
-            <div className="col-start-1 row-start-1">
-              {timeSlots.map(hour => (
-                <div key={`timeslot-label-${hour}`} className="h-[60px] border-r text-right pr-2 text-xs pt-1 text-muted-foreground relative -top-[10px]">
-                  <span>{hour > 12 ? `${hour - 12} PM` : `${hour} AM`}</span>
-                </div>
-              ))}
-            </div>
-
-            {weekDates.map((date, dayIndex) => (
-              <div key={`day-col-${dayIndex}`} className={cn(`col-start-[${dayIndex + 2}] row-start-1 relative`, dayIndex < 6 && "border-r")}>
-                {timeSlots.map(hour => (
-                  <div key={`timeslot-line-${dayIndex}-${hour}`} className="h-[60px] border-b"></div>
-                ))}
-
-                <div className="absolute top-0 left-0 right-0 p-0.5 space-y-0.5 z-10">
-                  {events
-                    .filter(event => event.date && isSameDay(parseISO(event.date), date) && event.isAllDay)
-                    .slice(0, 3)
-                    .map((event, index) => (
-                      <div
-                        key={event.id}
-                        style={{ top: `${index * 26}px` }}
-                        className={cn("absolute left-1 right-1 rounded p-1 text-[10px] shadow-sm cursor-pointer overflow-hidden flex items-center", event.color)}
-                        onClick={() => handleEventClick(event)}
-                      >
-                        <div className="font-medium truncate">{event.title}</div>
+        <Card className="lg:col-span-1 shadow-lg sticky top-20">
+          <CardHeader>
+            <CardTitle className="font-headline text-lg md:text-xl">
+              {date ? format(date, "'Transações de' PPP", { locale: ptBR }) : "Selecione um Dia"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[60vh] overflow-y-auto">
+            {date ? (
+              transactionsOnSelectedDay.length > 0 ? (
+                <ul className="space-y-3">
+                  {transactionsOnSelectedDay.map(tx => (
+                    <li key={tx.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                      <div className="flex-grow">
+                        <p className="font-medium text-sm truncate">{tx.description}</p>
+                        <p className="text-xs text-muted-foreground">{tx.category?.name || "Sem categoria"}</p>
                       </div>
-                    ))}
+                      <PrivateValue
+                        value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        className={cn(
+                          "font-medium text-sm ml-4",
+                          tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'
+                        )}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center text-sm text-muted-foreground py-8">
+                  <AlertTriangle className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                  <p>Nenhuma transação encontrada para este dia.</p>
                 </div>
+              )
+            ) : (
+              <div className="text-center text-sm text-muted-foreground py-8">
+                 <ArrowRightLeft className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                 <p>Selecione um dia no calendário para ver os detalhes.</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {selectedEvent && (
-        <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
-          <DialogContent
-            className={cn(
-              "sm:max-w-md",
-              selectedEvent.color?.includes("destructive")
-                ? "border-t-4 border-destructive"
-                : "border-t-4 border-primary"
             )}
-          >
-            <DialogHeader>
-              <DialogTitle className="font-headline text-xl text-foreground">
-                {selectedEvent.title}
-              </DialogTitle>
-              {selectedEvent.description && <DialogDescription>{selectedEvent.description}</DialogDescription>}
-            </DialogHeader>
-            <div className="space-y-3 py-4 text-sm">
-              <p className="flex items-center">
-                <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                {selectedEvent.isAllDay ? "Dia todo" : "Horário específico"}
-                <span className="ml-2 text-muted-foreground">
-                  ({format(parseISO(selectedEvent.date), "PPP", { locale: ptBR })})
-                </span>
-              </p>
-            </div>
-            <DialogFooter className="sm:justify-between gap-2">
-              <Button type="button" variant="outline" onClick={() => alert("Funcionalidade Adicionar ao Google Agenda (placeholder)")}>
-                Adicionar ao Google Agenda
-              </Button>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">Fechar</Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+          </CardContent>
+        </Card>
+      </div>
+      <style>{`
+        .day-with-transaction {
+          /* font-weight: bold; */
+        }
+      `}</style>
     </div>
   );
 }
