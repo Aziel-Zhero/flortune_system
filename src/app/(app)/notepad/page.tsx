@@ -96,7 +96,7 @@ export default function NotepadPage() {
   }, [notes]);
 
   return (
-    <div>
+    <div className="bg-[radial-gradient(hsl(var(--muted))_1px,transparent_1px)] [background-size:16px_16px] -m-8 p-8 min-h-[calc(100vh_-_4rem)]">
       <PageHeader
         title="Notepad"
         description="Seu espaço para ideias, lembretes e o que mais precisar anotar."
@@ -209,3 +209,4 @@ export default function NotepadPage() {
     </div>
   );
 }
+

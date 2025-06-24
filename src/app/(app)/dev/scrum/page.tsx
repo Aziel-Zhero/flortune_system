@@ -4,30 +4,31 @@
 
 import { useEffect, useRef } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ListChecks, GanttChartSquare, BarChart, History, Construction } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ListChecks, GanttChartSquare, BarChart, History, Users, PlusCircle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import anime from 'animejs';
 
 interface ScrumFeatureCardProps {
   title: string;
   description: string;
   icon: React.ElementType;
-  status: "Planejado" | "Em Breve";
 }
 
-const ScrumFeatureCard: React.FC<ScrumFeatureCardProps> = ({ title, description, icon: Icon, status }) => {
+const ScrumFeatureCard: React.FC<ScrumFeatureCardProps> = ({ title, description, icon: Icon }) => {
   return (
     <Card className="scrum-card opacity-0 shadow-lg hover:shadow-primary/20 transition-shadow">
-      <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
-        <div className="p-2 bg-primary/10 rounded-md">
+      <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+        <div className="p-3 bg-primary/10 rounded-full">
            <Icon className="h-6 w-6 text-primary" />
         </div>
         <CardTitle className="font-headline text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">{description}</p>
-        <p className="text-xs text-primary/80 mt-2 font-medium">{status}</p>
       </CardContent>
     </Card>
   );
@@ -40,22 +41,22 @@ export default function DevScrumPage() {
     document.title = `Scrum Planner (DEV) - ${APP_NAME}`;
     if (pageContainerRef.current) {
       anime({
-        targets: '.scrum-card',
-        translateY: [30, 0],
+        targets: '.scrum-card, .sprint-card',
+        translateY: [20, 0],
         opacity: [0, 1],
         scale: [0.98, 1],
         duration: 800,
-        delay: anime.stagger(150, { start: 300 }),
+        delay: anime.stagger(100, { start: 200 }),
         easing: 'easeOutExpo'
       });
     }
   }, []);
 
   const scrumFeatures: ScrumFeatureCardProps[] = [
-    { title: "Gerenciador de Sprints", description: "Crie e gerencie sprints, atribua tarefas, defina story points e acompanhe o progresso.", icon: GanttChartSquare, status: "Planejado" },
-    { title: "Burndown Chart", description: "Visualize o progresso da sprint em tempo real com um gráfico de burndown automático.", icon: BarChart, status: "Planejado" },
-    { title: "Histórico de Sprints", description: "Acesse e revise sprints finalizadas para análise e planejamento futuro.", icon: History, status: "Em Breve" },
-    { title: "Retrospectivas", description: "Um espaço dedicado para registrar aprendizados, melhorias e ações para as próximas sprints.", icon: ListChecks, status: "Em Breve" },
+    { title: "Gerenciar Sprints", description: "Crie, planeje e execute sprints com seu time.", icon: GanttChartSquare },
+    { title: "Burndown Chart", description: "Visualize o progresso da sprint em tempo real com gráficos.", icon: BarChart },
+    { title: "Gestão de Backlog", description: "Priorize e gerencie as histórias de usuário e tarefas.", icon: ListChecks },
+    { title: "Histórico e Retrospectivas", description: "Acesse sprints passadas e registre aprendizados.", icon: History },
   ];
 
   return (
@@ -64,21 +65,37 @@ export default function DevScrumPage() {
         title="Scrum Planner (DEV)"
         description="Ferramentas para planejar e executar projetos usando a metodologia Scrum."
         icon={<ListChecks className="h-6 w-6 text-primary" />}
+        actions={<Button><PlusCircle className="mr-2"/>Nova Sprint</Button>}
       />
       
-      <Card className="mb-8 shadow-md bg-primary/5 border-primary/20">
+       <Card className="mb-8 shadow-md sprint-card opacity-0">
         <CardHeader>
-          <CardTitle className="font-headline text-primary flex items-center"><Construction className="mr-2"/>Área em Desenvolvimento</CardTitle>
+          <CardTitle className="font-headline text-xl">Sprint Atual: "Lançamento V1"</CardTitle>
+          <CardDescription>2 de Julho, 2024 - 16 de Julho, 2024 (10 dias restantes)</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-foreground/80">
-            Esta seção está sendo construída para trazer as melhores ferramentas para gestão de projetos Scrum. 
-            As funcionalidades abaixo estão planejadas para desenvolvimento futuro.
-          </p>
+            <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm mb-1">
+                    <span className="font-medium text-muted-foreground">Progresso da Sprint (Story Points)</span>
+                    <span className="font-semibold">65%</span>
+                </div>
+                <Progress value={65} className="h-3" />
+            </div>
+            <div className="mt-4 flex justify-between items-center">
+                 <div className="flex -space-x-2">
+                    <Avatar className="h-8 w-8 border-2 border-card"><AvatarImage src="https://placehold.co/40x40.png?text=A" data-ai-hint="user avatar" /><AvatarFallback>A</AvatarFallback></Avatar>
+                    <Avatar className="h-8 w-8 border-2 border-card"><AvatarImage src="https://placehold.co/40x40.png?text=B" data-ai-hint="user avatar" /><AvatarFallback>B</AvatarFallback></Avatar>
+                    <Avatar className="h-8 w-8 border-2 border-card"><AvatarImage src="https://placehold.co/40x40.png?text=C" data-ai-hint="user avatar" /><AvatarFallback>C</AvatarFallback></Avatar>
+                </div>
+                <div>
+                  <span className="text-sm"><strong>8</strong> Tarefas Concluídas</span>
+                  <span className="text-sm text-muted-foreground"> / 12</span>
+                </div>
+            </div>
         </CardContent>
-      </Card>
+       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {scrumFeatures.map(feature => (
           <ScrumFeatureCard key={feature.title} {...feature} />
         ))}
@@ -86,3 +103,4 @@ export default function DevScrumPage() {
     </div>
   );
 }
+
