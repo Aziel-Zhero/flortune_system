@@ -14,7 +14,6 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EventClickArg } from '@fullcalendar/core';
-import { PrivateValue } from '@/components/shared/private-value';
 
 // Define the structure for FullCalendar events
 interface MappedEvent {
@@ -52,8 +51,8 @@ export default function CalendarPage() {
               title: tx.description,
               start: tx.date,
               allDay: true,
-              color: tx.type === 'income' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
-              borderColor: tx.type === 'income' ? 'hsl(var(--primary) / 0.5)' : 'hsl(var(--destructive) / 0.5)',
+              color: tx.type === 'income' ? 'hsl(var(--chart-1))' : 'hsl(var(--destructive))',
+              borderColor: tx.type === 'income' ? 'hsl(var(--chart-1) / 0.5)' : 'hsl(var(--destructive) / 0.5)',
               extendedProps: tx
             }));
             setEvents(mappedEvents);

@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
@@ -232,4 +231,3 @@ export default function DevKanbanPage() {
     </div>
   );
 }
-

@@ -1,4 +1,3 @@
-
 // src/app/(app)/notepad/page.tsx
 "use client";
 
@@ -209,4 +208,3 @@ export default function NotepadPage() {
     </div>
   );
 }
-

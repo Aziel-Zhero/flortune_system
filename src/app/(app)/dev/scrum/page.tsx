@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/scrum/page.tsx
 "use client";
 
@@ -103,4 +102,3 @@ export default function DevScrumPage() {
     </div>
   );
 }
-
