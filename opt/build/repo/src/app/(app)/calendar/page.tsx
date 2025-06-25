@@ -27,7 +27,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, isToday as fnsIsToday } from "date-fns";
+import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, isToday as fnsIsToday, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface CalendarEvent {
@@ -287,7 +287,7 @@ export default function CalendarPage() {
             <div className="space-y-3 py-4 text-sm">
               <p className="flex items-center">
                 <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                {selectedEvent.isAllDay ? "Dia todo" : `${formatTimeForDisplay(selectedEvent.startTime)} - ${formatTimeForDisplay(selectedEvent.endTime)}`}
+                {selectedEvent.isAllDay ? "Dia todo" : `${formatTimeForDisplay(selectedEvent.startTime)} - ${formatTimeForDisplay(event.endTime)}`}
                 <span className="ml-2 text-muted-foreground">({format(parseISO(selectedEvent.date), "PPP", { locale: ptBR })})</span>
               </p>
               {selectedEvent.location && (<p className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground" />{selectedEvent.location}</p>)}
@@ -304,5 +304,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-    

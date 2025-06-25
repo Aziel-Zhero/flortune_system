@@ -1,6 +1,6 @@
 
 export const APP_NAME = "Flortune";
-export const NO_ICON_VALUE = "__NO_ICON__"; // Para SelectItem no formulário de metas
+export const NO_ICON_VALUE = "__NO_ICON__";
 
 // Navigation links with Portuguese labels
 export const NAV_LINKS_CONFIG = [
@@ -11,13 +11,16 @@ export const NAV_LINKS_CONFIG = [
   { href: "/budgets", label: "Orçamentos", icon: "Target" as const, type: "link" as const },
   { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
   { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
-  { href: "/notes", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
+  { href: "/notepad", label: "Notepad", icon: "NotebookPen" as const, type: "link" as const },
   { type: "separator" as const },
-  { type: "title" as const, label: "FOR DEVs" },
-  { href: "/dev/systems", label: "Sistemas", icon: "Component" as const, type: "link" as const },
-  { href: "/dev/devops", label: "DevOps", icon: "GitMerge" as const, type: "link" as const },
+  { type: "title" as const, label: "PARA DEVs" },
+  { href: "/dev/systems", label: "Sistemas e Ferramentas", icon: "HardDrive" as const, type: "link" as const },
   { href: "/dev/clients", label: "Clientes", icon: "Users2" as const, type: "link" as const },
-  { href: "/dev/agile", label: "Metodologias Ágeis", icon: "IterationCw" as const, type: "link" as const },
+  { href: "/dev/devops", label: "DevOps", icon: "GitMerge" as const, type: "link" as const },
+  { type: "separator" as const },
+  { type: "title" as const, label: "Metodologias Ágeis" },
+  { href: "/dev/scrum", label: "Scrum Planner", icon: "ListChecks" as const, type: "link" as const },
+  { href: "/dev/kanban", label: "Quadro Kanban", icon: "KanbanSquare" as const, type: "link" as const },
   { type: "separator" as const },
   { href: "/plans", label: "Nossos Planos", icon: "Gem" as const, type: "link" as const },
   { href: "/settings", label: "Configurações", icon: "Settings" as const, type: "link" as const },
@@ -65,6 +68,24 @@ export const PRICING_TIERS = [
     featured: true,
     icon: "BrainCircuit",
   },
+    {
+    name: 'Flortune para DEVs',
+    id: 'tier-dev',
+    href: '/signup?plan=dev',
+    priceMonthly: 'R$150',
+    priceAnnotation: 'por usuário/mês (base)',
+    description: 'Ferramentas de gestão de projetos e clientes para freelancers e pequenas equipes de desenvolvimento.',
+    features: [
+      'Todas as funcionalidades do Mestre Jardineiro',
+      'Gerenciamento de Clientes e Projetos',
+      'Calculadoras e Ferramentas de DEV',
+      'Módulo Scrum Planner (+R$50/mês)',
+      'Módulo Quadro Kanban (+R$50/mês)',
+      'API de acesso para integrações (em breve)',
+    ],
+    featured: false,
+    icon: "Code",
+  },
   {
     name: 'Flortune Corporativo',
     id: 'tier-corporativo',
@@ -73,7 +94,7 @@ export const PRICING_TIERS = [
     priceAnnotation: 'para 5 usuários. Usuários adicionais cobrados à parte.',
     description: 'Soluções financeiras robustas e personalizadas para grandes equipes e empresas em crescimento.',
     features: [
-      'Todas as funcionalidades do Mestre Jardineiro',
+      'Todas as funcionalidades do plano para DEVs',
       'Gerenciamento de múltiplos usuários/equipes',
       'Permissões de acesso personalizadas',
       'Painel de controle administrativo',
