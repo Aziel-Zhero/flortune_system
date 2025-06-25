@@ -1,233 +1,213 @@
+
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState } from 'react';
+import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { KanbanSquare, PlusCircle } from "lucide-react";
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { KanbanSquare, PlusCircle, MessageSquare, Paperclip, CalendarIcon, MoreHorizontal } from "lucide-react";
-import { APP_NAME } from "@/lib/constants";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// --- Types ---
+interface Assignee {
+  name: string;
+  avatarUrl?: string | null;
+}
 
 interface Task {
   id: string;
   title: string;
-  assignees: { id: string; name: string; avatarUrl?: string }[];
-  comments: number;
-  attachments: number;
-  dueDate?: Date;
+  points?: number;
+  assignedTo?: Assignee;
+  dueDate?: string;
+  tag?: { name: string; color: string; };
 }
 
 interface Column {
-  id: string;
-  title: string;
+  name: string;
   tasks: Task[];
 }
 
-const initialData: Column[] = [
-  {
-    id: "col-1",
-    title: "Backlog",
+interface ColumnsState {
+  [key: string]: Column;
+}
+
+// --- Initial Data ---
+const initialColumns: ColumnsState = {
+  backlog: {
+    name: 'Backlog',
     tasks: [
-      { id: "task-1", title: "Configurar autenticação OAuth com Google", assignees: [{id: 'u1', name: 'User 1'}], comments: 3, attachments: 1, dueDate: new Date() },
-      { id: "task-2", title: "Desenvolver componente de calendário financeiro", assignees: [], comments: 0, attachments: 0 },
+      { id: '1', title: 'Configurar autenticação OAuth com Google', points: 3, dueDate: '2025-07-25', assignedTo: { name: 'João Silva' }, tag: { name: 'Backend', color: 'bg-blue-100 text-blue-800' } },
+      { id: '2', title: 'Desenvolver componente de calendário financeiro', points: 5, dueDate: '2025-07-28', assignedTo: { name: 'Maria Pereira' }, tag: { name: 'Frontend', color: 'bg-green-100 text-green-800' } },
     ],
   },
-  {
-    id: "col-2",
-    title: "Em Andamento",
+  doing: {
+    name: 'Em Andamento',
     tasks: [
-      { id: "task-3", title: "Criar página de dashboard com gráficos", assignees: [{id: 'u2', name: 'User 2'}], comments: 5, attachments: 2 },
+      { id: '3', title: 'Criar página de dashboard com gráficos', points: 8, dueDate: '2025-08-02', assignedTo: { name: 'Lucas Costa' }, tag: { name: 'Frontend', color: 'bg-green-100 text-green-800' } },
     ],
   },
-  {
-    id: "col-3",
-    title: "Concluído",
+  done: {
+    name: 'Concluído',
     tasks: [
-      { id: "task-4", title: "Estruturar projeto Next.js com ShadCN", assignees: [{id: 'u1', name: 'User 1'}], comments: 1, attachments: 0 },
+      { id: '4', title: 'Estruturar projeto Next.js com ShadCN', points: 2, dueDate: '2025-07-20', assignedTo: { name: 'Ana Souza' }, tag: { name: 'Infra', color: 'bg-purple-100 text-purple-800' } },
     ],
   },
-];
+};
 
-const newColumnSchema = z.object({
-  title: z.string().min(1, "O título da coluna é obrigatório."),
-});
-type NewColumnFormData = z.infer<typeof newColumnSchema>;
+// --- Sub-components ---
+const KanbanCard: React.FC<{ task: Task }> = ({ task }) => {
+  const { title, points, assignedTo, dueDate, tag } = task;
 
-const newTaskSchema = z.object({
-  title: z.string().min(1, "O título da tarefa é obrigatório."),
-});
-type NewTaskFormData = z.infer<typeof newTaskSchema>;
+  return (
+    <div className="bg-card rounded-md shadow-sm border p-3 mb-2 hover:shadow-md transition-shadow duration-200">
+      <h3 className="text-sm font-semibold text-card-foreground">{title}</h3>
+      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={assignedTo?.avatarUrl || undefined} alt={assignedTo?.name}/>
+                  <AvatarFallback className="text-[10px]">{assignedTo?.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent><p>{assignedTo?.name || "Não atribuído"}</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {points !== undefined && (
+            <span className="bg-muted px-2 py-0.5 rounded text-muted-foreground font-medium">{points} pts</span>
+          )}
+        </div>
+        <div className="text-right flex items-center gap-2">
+          {dueDate && (
+            <div className="text-xs text-muted-foreground/80 flex items-center gap-1">
+              <span>🗓️</span>
+              <span>{format(new Date(dueDate + 'T00:00:00'), 'dd/MM')}</span>
+            </div>
+          )}
+          {tag && (
+            <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", tag.color)}>{tag.name}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
+const KanbanColumn: React.FC<{ title: string; tasks: Task[]; droppableId: string }> = ({ title, tasks, droppableId }) => {
+  const totalPoints = tasks.reduce((sum, task) => sum + (task.points || 0), 0);
+  
+  return (
+    <div className="w-80 bg-muted/50 rounded-lg p-3 flex flex-col flex-shrink-0 max-h-[calc(100vh-16rem)]">
+       <div className="flex justify-between items-center mb-3 px-1">
+        <h2 className="text-lg font-bold font-headline text-foreground">{title}</h2>
+        <span className="text-sm font-medium text-muted-foreground bg-background px-2 py-1 rounded-md">{tasks.length} / {totalPoints} pts</span>
+      </div>
+      <Droppable droppableId={droppableId}>
+        {(provided, snapshot) => (
+          <div
+            className={cn(
+              "flex-1 space-y-2 transition-colors duration-200 p-1 rounded-md overflow-y-auto",
+              snapshot.isDraggingOver ? 'bg-primary/10' : 'bg-transparent'
+            )}
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+          >
+            {tasks.map((task, index) => (
+              <Draggable key={task.id} draggableId={task.id} index={index}>
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                  >
+                    <KanbanCard task={task} />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+       <button className="mt-3 text-sm text-muted-foreground hover:text-primary flex items-center justify-center p-2 rounded-md hover:bg-primary/10 transition-colors">
+        <PlusCircle className="h-4 w-4 mr-2" /> Adicionar Tarefa
+      </button>
+    </div>
+  );
+};
+
+
+// --- Main Page Component ---
 export default function DevKanbanPage() {
-  const [columns, setColumns] = useState<Column[]>(initialData);
-  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
-  
-  const { register: registerColumn, handleSubmit: handleColumnSubmit, reset: resetColumnForm } = useForm<NewColumnFormData>({
-    resolver: zodResolver(newColumnSchema),
-  });
+  const [columns, setColumns] = useState<ColumnsState>(initialColumns);
 
-  const onAddColumn = (data: NewColumnFormData) => {
-    const newColumn: Column = {
-      id: `col-${Date.now()}`,
-      title: data.title,
-      tasks: [],
-    };
-    setColumns(prev => [...prev, newColumn]);
-    resetColumnForm();
-    setIsColumnModalOpen(false);
-    toast({ title: "Coluna Adicionada!", description: `A coluna "${data.title}" foi criada.` });
+  const onDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
+
+    if (!destination) return;
+
+    if (source.droppableId === destination.droppableId) {
+      // Reordenar na mesma coluna
+      const column = columns[source.droppableId];
+      const newTasks = Array.from(column.tasks);
+      const [reorderedItem] = newTasks.splice(source.index, 1);
+      newTasks.splice(destination.index, 0, reorderedItem);
+
+      setColumns({
+        ...columns,
+        [source.droppableId]: {
+          ...column,
+          tasks: newTasks,
+        },
+      });
+    } else {
+      // Mover para uma coluna diferente
+      const sourceColumn = columns[source.droppableId];
+      const destColumn = columns[destination.droppableId];
+      const sourceTasks = Array.from(sourceColumn.tasks);
+      const destTasks = Array.from(destColumn.tasks);
+      const [movedTask] = sourceTasks.splice(source.index, 1);
+      destTasks.splice(destination.index, 0, movedTask);
+
+      setColumns({
+        ...columns,
+        [source.droppableId]: {
+          ...sourceColumn,
+          tasks: sourceTasks,
+        },
+        [destination.droppableId]: {
+          ...destColumn,
+          tasks: destTasks,
+        },
+      });
+    }
   };
-  
-  const AddTaskForm = ({ columnId }: { columnId: string }) => {
-    const { register, handleSubmit, reset } = useForm<NewTaskFormData>({ resolver: zodResolver(newTaskSchema) });
-    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-
-    const onAddTask = (data: NewTaskFormData) => {
-      const newTask: Task = {
-        id: `task-${Date.now()}`,
-        title: data.title,
-        assignees: [],
-        comments: 0,
-        attachments: 0,
-      };
-      setColumns(prev => prev.map(col => col.id === columnId ? { ...col, tasks: [...col.tasks, newTask] } : col));
-      reset();
-      setIsTaskModalOpen(false);
-      toast({ title: "Tarefa Adicionada!", description: `A tarefa "${data.title}" foi adicionada.`});
-    };
-    
-    return (
-       <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
-        <DialogTrigger asChild>
-           <Button variant="ghost" size="sm" className="w-full mt-2">
-            <PlusCircle className="mr-2 h-4 w-4"/> Adicionar Tarefa
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle>Nova Tarefa</DialogTitle>
-                <DialogDescription>Adicione uma nova tarefa a esta coluna.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onAddTask)} className="space-y-4">
-                <Textarea {...register("title")} placeholder="Descreva a tarefa..."/>
-                <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                    <Button type="submit">Adicionar Tarefa</Button>
-                </DialogFooter>
-            </form>
-        </DialogContent>
-       </Dialog>
-    );
-  };
-
 
   return (
     <div className="flex flex-col h-full">
       <PageHeader
         title="Quadro Kanban (DEV)"
-        description="Visualize e gerencie o fluxo de trabalho de seus projetos de forma ágil e transparente."
+        description="Visualize e gerencie o fluxo de trabalho de forma ágil. Arraste e solte as tarefas entre as colunas."
         icon={<KanbanSquare className="h-6 w-6 text-primary" />}
-        actions={
-          <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Coluna
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Nova Coluna</DialogTitle>
-                <DialogDescription>Crie uma nova coluna para o seu quadro Kanban.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleColumnSubmit(onAddColumn)} className="space-y-4">
-                <Input {...registerColumn("title")} placeholder="Título da Coluna (Ex: Testes)" />
-                <DialogFooter>
-                   <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                   <Button type="submit">Criar Coluna</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        }
       />
-      
-      <div className="flex-1 flex gap-4 overflow-x-auto p-1 pb-4">
-        <AnimatePresence>
-            {columns.map(column => (
-            <motion.div 
-                key={column.id} 
-                layout 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="w-72 flex-shrink-0"
-            >
-                <Card className="bg-muted/40 h-full flex flex-col">
-                <CardHeader className="flex flex-row items-center justify-between p-3">
-                    <CardTitle className="font-headline text-base">{column.title}</CardTitle>
-                    <span className="text-sm font-medium text-muted-foreground bg-background px-2 py-0.5 rounded-full">{column.tasks.length}</span>
-                </CardHeader>
-                <CardContent className="p-3 space-y-3 overflow-y-auto flex-grow">
-                    <AnimatePresence>
-                    {column.tasks.map(task => (
-                        <motion.div 
-                            key={task.id}
-                            layout
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                        >
-                        <Card className="bg-card shadow-sm hover:shadow-md transition-shadow">
-                            <CardContent className="p-3 space-y-2">
-                            <p className="text-sm font-medium">{task.title}</p>
-                            <div className="flex justify-between items-center text-muted-foreground">
-                                <div className="flex items-center gap-2 text-xs">
-                                {task.comments > 0 && <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3"/>{task.comments}</span>}
-                                {task.attachments > 0 && <span className="flex items-center gap-1"><Paperclip className="h-3 w-3"/>{task.attachments}</span>}
-                                {task.dueDate && <span className="flex items-center gap-1"><CalendarIcon className="h-3 w-3"/>{task.dueDate.toLocaleDateString('pt-BR')}</span>}
-                                </div>
-                                <div className="flex -space-x-2">
-                                {task.assignees.map(user => (
-                                    <Avatar key={user.id} className="h-6 w-6 border-2 border-card">
-                                    <AvatarImage src={user.avatarUrl} />
-                                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                ))}
-                                </div>
-                            </div>
-                            </CardContent>
-                        </Card>
-                        </motion.div>
-                    ))}
-                    </AnimatePresence>
-                </CardContent>
-                <CardFooter className="p-2">
-                   <AddTaskForm columnId={column.id} />
-                </CardFooter>
-                </Card>
-            </motion.div>
-            ))}
-        </AnimatePresence>
-      </div>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
+          {Object.entries(columns).map(([id, col]) => (
+            <KanbanColumn key={id} title={col.name} tasks={col.tasks} droppableId={id} />
+          ))}
+           <div className="w-72 flex-shrink-0">
+             <button className="w-full h-12 bg-muted/30 hover:bg-muted/60 transition-colors rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground">
+                <PlusCircle className="h-5 w-5 mr-2"/>
+                Adicionar nova coluna
+            </button>
+           </div>
+        </div>
+      </DragDropContext>
     </div>
   );
 }
