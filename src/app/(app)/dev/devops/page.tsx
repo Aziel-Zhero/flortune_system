@@ -1,10 +1,9 @@
-
 // src/app/(app)/dev/devops/page.tsx
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GitMerge } from "lucide-react";
+import { GitMerge, Construction } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
 
@@ -22,13 +21,15 @@ export default function DevDevOpsPage() {
       />
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline">Conteúdo de DevOps</CardTitle>
+          <CardTitle className="font-headline flex items-center"><Construction className="mr-2 text-amber-500" />Conteúdo de DevOps</CardTitle>
           <CardDescription>
             Esta é uma página placeholder para a seção de DevOps em desenvolvimento.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p>Funcionalidades e informações sobre DevOps serão implementadas aqui.</p>
+          <p>
+            Funcionalidades e informações sobre CI/CD, monitoramento, e automação de infraestrutura serão implementadas aqui.
+          </p>
         </CardContent>
       </Card>
     </div>

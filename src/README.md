@@ -1,4 +1,3 @@
-
 # Flortune 🌿💰
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -33,6 +32,8 @@
     *   Calendário financeiro para visualização de eventos e transações.
 *   🛠️ **Ferramentas (Menu "Sistemas" para DEV):**
     *   Calculadora de Precificação de Projetos (Freelancer).
+    *   Calculadora de Precificação por ROI (Automação).
+    *   Calculadora de Precificação de Pacotes/Assinaturas.
     *   Conversor de Moeda (com API externa).
     *   Conversor de Tempo (em desenvolvimento).
     *   Calculadora de Juros Simples/Compostos (em desenvolvimento).
@@ -293,12 +294,10 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 
 ## 🗺️ Roadmap
 *   [ ] Implementação completa de gestão de Assinaturas (Stripe).
-*   [ ] Implementação de funcionalidades de edição/exclusão para Transações, Orçamentos, Categorias.
-*   [ ] Implementação de alertas de renovação de assinaturas.
-*   [ ] Finalização das Calculadoras e Ferramentas no menu "Sistemas".
-*   [ ] Desenvolvimento da funcionalidade de "Anotações".
 *   [ ] Testes unitários e de integração.
 *   [ ] Funcionalidade de compartilhamento de módulos.
+*   [ ] Implementação de edição para Transações, Orçamentos e Categorias.
+*   [ ] Implementação de exclusão para Categorias.
 
 ## 🤝 Contribuir
 Contribuições são bem-vindas! Fork, branch, commit, push, PR.
@@ -307,5 +306,3 @@ Contribuições são bem-vindas! Fork, branch, commit, push, PR.
 MIT.
 ---
 Cultive suas finanças com Flortune! 🌿💰
-
-    

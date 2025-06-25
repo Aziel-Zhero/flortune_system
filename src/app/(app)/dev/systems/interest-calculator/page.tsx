@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/interest-calculator/page.tsx
 "use client";
 

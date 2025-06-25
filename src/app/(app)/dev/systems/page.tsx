@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/systems/page.tsx
 "use client";
 
