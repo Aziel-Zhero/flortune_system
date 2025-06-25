@@ -1,5 +1,5 @@
 
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
@@ -16,14 +16,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 
-// IMPORTANT: FullCalendar CSS must be imported for it to work
-import '@fullcalendar/core/main.css';
-import '@fullcalendar/daygrid/main.css';
-import '@fullcalendar/timegrid/main.css';
-
 interface CalendarEvent {
   title: string;
-  start: string; // YYYY-MM-DD
+  start: string;
   allDay: boolean;
   backgroundColor: string;
   borderColor: string;
@@ -51,11 +46,11 @@ export default function CalendarPage() {
           }
           if (data) {
             const formattedEvents = data.map((tx: Transaction) => ({
-              title: tx.description,
-              start: tx.date, // Assumes tx.date is 'YYYY-MM-DD'
+              title: `${tx.type === 'income' ? '+' : '-'} ${tx.amount.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})} - ${tx.description}`,
+              start: tx.date,
               allDay: true,
-              backgroundColor: tx.type === 'income' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
-              borderColor: tx.type === 'income' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
+              backgroundColor: tx.type === 'income' ? 'hsl(var(--chart-1))' : 'hsl(var(--destructive))',
+              borderColor: tx.type === 'income' ? 'hsl(var(--chart-1))' : 'hsl(var(--destructive))',
               extendedProps: {
                 amount: tx.amount,
                 type: tx.type,
@@ -75,7 +70,7 @@ export default function CalendarPage() {
   if (isLoading) {
       return (
           <div>
-            <PageHeader title="Calendário Financeiro" description="Visualize seus eventos e transações." icon={<CalendarIcon/>}/>
+            <PageHeader title="Calendário Financeiro" description="Visualize seus eventos e transações." icon={<CalendarIcon className="h-6 w-6 text-primary"/>}/>
             <Skeleton className="w-full h-[600px] rounded-lg" />
           </div>
       )
@@ -83,44 +78,40 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col h-full">
-        <PageHeader title="Calendário Financeiro" description="Visualize seus eventos e transações." icon={<CalendarIcon/>}/>
+        <PageHeader title="Calendário Financeiro" description="Visualize seus eventos e transações mensais." icon={<CalendarIcon className="h-6 w-6 text-primary"/>}/>
       <Card>
-        <CardContent className="p-2 sm:p-4">
+        <CardContent className="p-1 sm:p-2 md:p-4">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
             locale={ptBrLocale}
             events={events}
-            height="auto" // Adjusts height automatically
+            height="auto" 
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
               right: 'dayGridMonth,timeGridWeek,timeGridDay',
             }}
             eventDidMount={(info) => {
-                // You can add tooltips here if needed in the future
+                info.el.style.fontSize = '0.75rem';
+                info.el.style.padding = '2px 4px';
                 return info.el;
             }}
-            // You can add more interactive callbacks here
-            // dateClick={(info) => alert('Clicked on: ' + info.dateStr)}
-            // eventClick={(info) => alert('Event: ' + info.event.title)}
           />
         </CardContent>
       </Card>
-       <style jsx global>{`
-        /* Custom styles to better integrate with shadcn/ui */
+      <style jsx global>{`
         :root {
             --fc-border-color: hsl(var(--border));
-            --fc-today-bg-color: hsl(var(--accent));
+            --fc-today-bg-color: hsl(var(--accent) / 0.1);
             --fc-list-event-dot-width: 8px;
         }
         .fc {
-            font-size: 0.875rem; /* text-sm */
+            font-size: 0.875rem; 
         }
         .fc .fc-toolbar-title {
-            font-size: 1.25rem; /* text-xl */
+            font-size: 1.25rem; 
             font-weight: 600;
-            font-family: var(--font-headline), sans-serif;
         }
         .fc .fc-button {
             background-color: hsl(var(--secondary));
@@ -128,6 +119,8 @@ export default function CalendarPage() {
             border: 1px solid hsl(var(--border));
             box-shadow: none;
             text-transform: capitalize;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
         }
         .fc .fc-button:hover {
             background-color: hsl(var(--secondary) / 0.9);
@@ -140,17 +133,12 @@ export default function CalendarPage() {
         .fc .fc-button-primary:hover {
             background-color: hsl(var(--primary) / 0.9);
         }
-        .fc .fc-button-primary:disabled {
-             background-color: hsl(var(--primary));
-             opacity: 0.5;
-        }
         .fc-daygrid-day.fc-day-today {
-            background-color: hsl(var(--accent) / 0.2);
+            background-color: hsl(var(--accent) / 0.15);
         }
         .fc-event {
             border-radius: 4px;
-            padding: 2px 4px;
-            font-size: 0.75rem;
+            cursor: pointer;
         }
       `}</style>
     </div>

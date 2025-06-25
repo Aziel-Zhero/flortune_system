@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
 
   try {
     const response = await fetch(apiUrl, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 } // Cache por 1 hora
     });
     
     const data = await response.json();

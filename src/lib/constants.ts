@@ -1,3 +1,4 @@
+
 export const APP_NAME = "Flortune";
 export const NO_ICON_VALUE = "__NO_ICON__";
 
@@ -10,7 +11,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/budgets", label: "Orçamentos", icon: "Target" as const, type: "link" as const },
   { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
   { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
-  { href: "/notepad", label: "Notepad", icon: "NotebookPen" as const, type: "link" as const },
+  { href: "/notepad", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/systems", label: "Sistemas e Ferramentas", icon: "HardDrive" as const, type: "link" as const },

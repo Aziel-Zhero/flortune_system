@@ -1,3 +1,4 @@
+
 // src/app/(app)/notepad/page.tsx
 "use client";
 
@@ -15,7 +16,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 
 interface Note {
   id: string;
@@ -45,10 +46,10 @@ type NoteFormData = z.infer<typeof noteSchema>;
 export default function NotepadPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const dragControls = useDragControls();
 
   useEffect(() => {
-    document.title = `Notepad - ${APP_NAME}`;
-    // Aqui você poderia carregar as notas do localStorage ou de uma API no futuro
+    document.title = `Anotações - ${APP_NAME}`;
   }, []);
 
   const { control, register, handleSubmit, reset, setValue, formState: { errors } } = useForm<NoteFormData>({
@@ -97,7 +98,7 @@ export default function NotepadPage() {
   return (
     <div className="bg-[radial-gradient(hsl(var(--muted))_1px,transparent_1px)] [background-size:16px_16px] -m-8 p-8 min-h-[calc(100vh_-_4rem)]">
       <PageHeader
-        title="Notepad"
+        title="Anotações"
         description="Seu espaço para ideias, lembretes e o que mais precisar anotar."
         icon={<NotebookPen className="h-6 w-6 text-primary" />}
       />
@@ -168,14 +169,18 @@ export default function NotepadPage() {
             <motion.div
                 key={note.id}
                 layout
+                drag
+                dragControls={dragControls}
+                dragConstraints={{ top: -20, left: -20, right: 20, bottom: 20 }}
                 initial={{ opacity: 0, scale: 0.8, y: 50 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+                className="cursor-grab active:cursor-grabbing"
             >
                 <Card className={cn("shadow-md hover:shadow-lg transition-shadow border-2 h-full flex flex-col", note.color, note.isPinned && "ring-2 ring-primary/80")}>
-                    <CardHeader className="pb-3 flex-row items-start justify-between">
+                    <CardHeader onPointerDown={(e) => dragControls.start(e)} className="pb-3 flex-row items-start justify-between cursor-grab active:cursor-grabbing">
                         <CardTitle className="font-headline text-lg break-words">{note.title}</CardTitle>
-                        <button onClick={() => togglePinNote(note.id)} className="text-muted-foreground hover:text-yellow-500 transition-colors">
+                        <button onClick={() => togglePinNote(note.id)} className="text-muted-foreground hover:text-yellow-500 transition-colors z-10">
                             {note.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                         </button>
                     </CardHeader>

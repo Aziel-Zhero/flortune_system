@@ -26,15 +26,16 @@ interface ThemeOption {
   id: string;
   icon: React.ElementType; // Lucide Icon
   description: string;
+  iconClassName?: string;
 }
 
 const availableThemes: ThemeOption[] = [
-  { name: "Verde Flortune", id: "default", icon: Sparkles, description: "O tema padrão, fresco e original do Flortune." },
-  { name: "Rio da Serra", id: "theme-rio-da-serra", icon: Droplets, description: "Um tema calmo e profissional com tons de azul clássico." },
-  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: Sun, description: "Um tema claro e vibrante com destaques dourados." },
-  { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: Zap, description: "Um tema envolvente com tons profundos e mágicos de roxo." },
-  { name: "Amanhecer", id: "theme-amanhecer", icon: Wind, description: "Cores suaves de um amanhecer, com gradientes." },
-  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: Mountain, description: "Tons quentes e terrosos de vermelho e argila." },
+  { name: "Verde Flortune", id: "default", icon: Sparkles, description: "O tema padrão, fresco e original do Flortune.", iconClassName: "text-primary" },
+  { name: "Rio da Serra", id: "theme-rio-da-serra", icon: Droplets, description: "Um tema calmo e profissional com tons de azul clássico.", iconClassName: "text-blue-500 dark:text-blue-400" },
+  { name: "Aurora Dourada", id: "theme-golden-dawn", icon: Sun, description: "Um tema claro e vibrante com destaques dourados.", iconClassName: "text-yellow-500 dark:text-yellow-400" },
+  { name: "Mística Nebulosa", id: "theme-mystic-nebula", icon: Zap, description: "Um tema envolvente com tons profundos e mágicos de roxo.", iconClassName: "text-purple-500 dark:text-purple-400" },
+  { name: "Amanhecer", id: "theme-amanhecer", icon: Wind, description: "Cores suaves de um amanhecer, com gradientes.", iconClassName: "text-pink-500 dark:text-pink-400" },
+  { name: "Terra Vermelha", id: "theme-terra-vermelha", icon: Mountain, description: "Tons quentes e terrosos de vermelho e argila.", iconClassName: "text-red-600 dark:text-red-500" },
 ];
 
 
@@ -272,13 +273,13 @@ export default function SettingsPage() {
                     key={theme.id}
                     variant={currentTheme === theme.id ? "default" : "outline"}
                     className={cn(
-                      "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between min-h-[110px] sm:min-h-[130px]",
+                      "h-auto p-3 sm:p-4 flex flex-col items-start text-left space-y-1.5 sm:space-y-2 transition-all duration-200 justify-between min-h-[120px] sm:min-h-[140px]",
                       currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2"
                     )}
                     onClick={() => handleThemeChange(theme.id)}
                   >
                     <div className="flex items-center gap-2 sm:gap-3 w-full">
-                       <IconComponent className={cn("h-5 w-5", theme.id === 'default' ? 'text-primary' : theme.id === 'theme-rio-da-serra' ? 'text-blue-500' : theme.id === 'theme-golden-dawn' ? 'text-yellow-500' : theme.id === 'theme-mystic-nebula' ? 'text-purple-500' : theme.id === 'theme-amanhecer' ? 'text-pink-500' : 'text-red-600')} />
+                       <IconComponent className={cn("h-5 w-5", theme.iconClassName || 'text-muted-foreground')} />
                       <span className="font-semibold text-sm md:text-base">{theme.name}</span>
                       {currentTheme === theme.id && (
                         <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground ml-auto" />
@@ -317,7 +318,7 @@ export default function SettingsPage() {
                 Receba resumos financeiros semanais ou mensais por email. (Em breve)
               </span>
             </Label>
-            <Switch id="email-summary" onCheckedChange={(checked) => handleFeatureClick(`Resumos por Email ${checked ? "ativados" : "desativados"}`)} disabled/>
+            <Switch id="email-summary" onCheckedChange={(checked) => handleFeatureClick(`Resumos por Email ${checked ? "ativados" : "desativadas"}`)} disabled/>
           </div>
         </CardContent>
       </Card>
