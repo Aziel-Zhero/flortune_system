@@ -2,7 +2,7 @@
 // src/app/(app)/dev/scrum-analytics/page.tsx
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, LineChart, PieChart, Flag, Clock, CheckCircle } from "lucide-react";
