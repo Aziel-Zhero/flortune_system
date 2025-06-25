@@ -1,103 +1,274 @@
 // src/app/(app)/dev/scrum/page.tsx
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListChecks, GanttChartSquare, BarChart, History, Users, PlusCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ListChecks, GanttChartSquare, BarChart, History, Users, PlusCircle, UserPlus, Crown, Shield, Code, ArrowRight, ClipboardList, CheckCircle, Flag } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import anime from 'animejs';
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 
-interface ScrumFeatureCardProps {
-  title: string;
-  description: string;
-  icon: React.ElementType;
+type ScrumRole = "Product Owner" | "Scrum Master" | "Developer";
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: ScrumRole;
+  avatarUrl?: string;
 }
 
-const ScrumFeatureCard: React.FC<ScrumFeatureCardProps> = ({ title, description, icon: Icon }) => {
-  return (
-    <Card className="scrum-card opacity-0 shadow-lg hover:shadow-primary/20 transition-shadow">
-      <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-        <div className="p-3 bg-primary/10 rounded-full">
-           <Icon className="h-6 w-6 text-primary" />
-        </div>
-        <CardTitle className="font-headline text-lg">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  );
-};
+const initialTeam: TeamMember[] = [
+    { id: 'u1', name: 'Alice', role: 'Product Owner', avatarUrl: 'https://placehold.co/40x40.png?text=A' },
+    { id: 'u2', name: 'Bruno', role: 'Scrum Master', avatarUrl: 'https://placehold.co/40x40.png?text=B' },
+    { id: 'u3', name: 'Carla', role: 'Developer', avatarUrl: 'https://placehold.co/40x40.png?text=C' },
+];
+
+const newMemberSchema = z.object({
+    name: z.string().min(2, "Nome é obrigatório."),
+    role: z.enum(["Product Owner", "Scrum Master", "Developer"], { required_error: "Selecione um papel."}),
+    avatarUrl: z.string().url("URL do avatar inválida.").optional().or(z.literal('')),
+});
+type NewMemberFormData = z.infer<typeof newMemberSchema>;
+
+const roleIcons: Record<ScrumRole, React.ElementType> = {
+    "Product Owner": Crown,
+    "Scrum Master": Shield,
+    "Developer": Code
+}
 
 export default function DevScrumPage() {
-  const pageContainerRef = useRef<HTMLDivElement>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeam);
+  const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+
+  const { control, register, handleSubmit, reset, formState: { errors } } = useForm<NewMemberFormData>({
+    resolver: zodResolver(newMemberSchema),
+  });
 
   useEffect(() => {
     document.title = `Scrum Planner (DEV) - ${APP_NAME}`;
-    if (pageContainerRef.current) {
-      anime({
-        targets: '.scrum-card, .sprint-card',
-        translateY: [20, 0],
-        opacity: [0, 1],
-        scale: [0.98, 1],
-        duration: 800,
-        delay: anime.stagger(100, { start: 200 }),
-        easing: 'easeOutExpo'
-      });
-    }
   }, []);
 
-  const scrumFeatures: ScrumFeatureCardProps[] = [
-    { title: "Gerenciar Sprints", description: "Crie, planeje e execute sprints com seu time.", icon: GanttChartSquare },
-    { title: "Burndown Chart", description: "Visualize o progresso da sprint em tempo real com gráficos.", icon: BarChart },
-    { title: "Gestão de Backlog", description: "Priorize e gerencie as histórias de usuário e tarefas.", icon: ListChecks },
-    { title: "Histórico e Retrospectivas", description: "Acesse sprints passadas e registre aprendizados.", icon: History },
-  ];
+  const onAddMember = (data: NewMemberFormData) => {
+    const newMember: TeamMember = {
+      id: `user_${Date.now()}`,
+      name: data.name,
+      role: data.role,
+      avatarUrl: data.avatarUrl || `https://placehold.co/40x40.png?text=${data.name.charAt(0).toUpperCase()}`,
+    };
+    setTeamMembers(prev => [...prev, newMember]);
+    reset({ name: "", role: undefined, avatarUrl: ""});
+    setIsMemberModalOpen(false);
+    toast({ title: "Membro Adicionado!", description: `${data.name} foi adicionado(a) ao time como ${data.role}.` });
+  };
+  
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: { delay: i * 0.1, type: "spring", stiffness: 100 },
+    }),
+  };
 
   return (
-    <div ref={pageContainerRef}>
+    <div className="space-y-8">
       <PageHeader
-        title="Scrum Planner (DEV)"
-        description="Ferramentas para planejar e executar projetos usando a metodologia Scrum."
-        icon={<ListChecks className="h-6 w-6 text-primary" />}
+        title="Painel Visual Scrum (DEV)"
+        description="Visualize e gerencie seu projeto Scrum em um fluxo de trabalho claro e conectado."
+        icon={<GanttChartSquare className="h-6 w-6 text-primary" />}
         actions={<Button><PlusCircle className="mr-2"/>Nova Sprint</Button>}
       />
       
-       <Card className="mb-8 shadow-md sprint-card opacity-0">
-        <CardHeader>
-          <CardTitle className="font-headline text-xl">Sprint Atual: "Lançamento V1"</CardTitle>
-          <CardDescription>2 de Julho, 2024 - 16 de Julho, 2024 (10 dias restantes)</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm mb-1">
-                    <span className="font-medium text-muted-foreground">Progresso da Sprint (Story Points)</span>
-                    <span className="font-semibold">65%</span>
-                </div>
-                <Progress value={65} className="h-3" />
-            </div>
-            <div className="mt-4 flex justify-between items-center">
-                 <div className="flex -space-x-2">
-                    <Avatar className="h-8 w-8 border-2 border-card"><AvatarImage src="https://placehold.co/40x40.png?text=A" data-ai-hint="user avatar" /><AvatarFallback>A</AvatarFallback></Avatar>
-                    <Avatar className="h-8 w-8 border-2 border-card"><AvatarImage src="https://placehold.co/40x40.png?text=B" data-ai-hint="user avatar" /><AvatarFallback>B</AvatarFallback></Avatar>
-                    <Avatar className="h-8 w-8 border-2 border-card"><AvatarImage src="https://placehold.co/40x40.png?text=C" data-ai-hint="user avatar" /><AvatarFallback>C</AvatarFallback></Avatar>
-                </div>
-                <div>
-                  <span className="text-sm"><strong>8</strong> Tarefas Concluídas</span>
-                  <span className="text-sm text-muted-foreground"> / 12</span>
-                </div>
-            </div>
-        </CardContent>
-       </Card>
+      {/* Fluxo de Trabalho Visual */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+        {/* Card: Backlog */}
+        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="w-full lg:w-1/4">
+            <Card className="shadow-md h-full">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><ClipboardList/> Product Backlog</CardTitle>
+                    <CardDescription>Priorize e refine as histórias de usuário aqui.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                   <p className="p-2 bg-muted/50 rounded-md">1. Como usuário, quero fazer login...</p>
+                   <p className="p-2 bg-muted/50 rounded-md">2. Como usuário, quero ver um dashboard...</p>
+                   <Button variant="outline" size="sm" className="w-full mt-2">Ver Backlog Completo</Button>
+                </CardContent>
+            </Card>
+        </motion.div>
+        
+        <ArrowRight className="h-8 w-8 text-muted-foreground self-center shrink-0 hidden lg:block" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {scrumFeatures.map(feature => (
-          <ScrumFeatureCard key={feature.title} {...feature} />
-        ))}
+        {/* Card: Sprint Atual */}
+        <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible" className="w-full lg:flex-1">
+            <Card className="shadow-lg border-2 border-primary">
+                <CardHeader>
+                    <CardTitle className="font-headline text-xl text-primary flex items-center gap-2"><GanttChartSquare/> Sprint Atual: "Lançamento V1"</CardTitle>
+                    <CardDescription>2 de Julho, 2024 - 16 de Julho, 2024 (10 dias restantes)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <Label>Objetivo da Sprint:</Label>
+                        <p className="text-sm">Entregar as funcionalidades básicas do dashboard para o primeiro release.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Velocity (Média): <span className="font-bold">25 SP</span></Label>
+                             <div className="text-xs text-muted-foreground">Planejado: 30 SP / Realizado: 18 SP</div>
+                        </div>
+                        <div>
+                            <Label>Definição de Pronto (DoD):</Label>
+                            <ul className="list-disc list-inside text-xs text-muted-foreground">
+                                <li>Código Revisado</li>
+                                <li>Testes Unitários OK</li>
+                                <li>Deploy em Staging</li>
+                            </ul>
+                        </div>
+                    </div>
+                     <div>
+                        <Label>Progresso (Story Points)</Label>
+                        <Progress value={65} className="h-3 mt-1" />
+                    </div>
+                     <div>
+                        <Label>Impedimentos:</Label>
+                         <p className="text-sm flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded-md"><Flag className="h-4 w-4"/> API de pagamentos externa está indisponível.</p>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button variant="secondary">Ver Quadro da Sprint</Button>
+                </CardFooter>
+            </Card>
+        </motion.div>
+        
+         <ArrowRight className="h-8 w-8 text-muted-foreground self-center shrink-0 hidden lg:block" />
+
+        {/* Card: Time Scrum */}
+        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible" className="w-full lg:w-1/4">
+             <Card className="shadow-md h-full">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Users/> Time Scrum</CardTitle>
+                    <CardDescription>Membros da Sprint.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {teamMembers.map(member => {
+                        const RoleIcon = roleIcons[member.role];
+                        return (
+                            <div key={member.id} className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9">
+                                    <AvatarImage src={member.avatarUrl} data-ai-hint="user avatar" />
+                                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-semibold text-sm">{member.name}</p>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1.5"><RoleIcon className="h-3 w-3"/>{member.role}</p>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </CardContent>
+                <CardFooter>
+                     <Dialog open={isMemberModalOpen} onOpenChange={setIsMemberModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full">
+                                <UserPlus className="mr-2 h-4 w-4"/>Gerenciar Time
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="font-headline">Adicionar Membro ao Time</DialogTitle>
+                                <DialogDescription>
+                                    Insira os detalhes do novo membro para esta sprint.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleSubmit(onAddMember)} className="space-y-4 py-2">
+                                <div>
+                                    <Label htmlFor="memberName">Nome</Label>
+                                    <Input id="memberName" {...register("name")} />
+                                    {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                                </div>
+                                <div>
+                                    <Label htmlFor="memberRole">Papel</Label>
+                                    <Controller
+                                        name="role"
+                                        control={control}
+                                        render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger id="memberRole"><SelectValue placeholder="Selecione o papel" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Product Owner">Product Owner</SelectItem>
+                                                <SelectItem value="Scrum Master">Scrum Master</SelectItem>
+                                                <SelectItem value="Developer">Developer</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        )}
+                                    />
+                                    {errors.role && <p className="text-sm text-destructive mt-1">{errors.role.message}</p>}
+                                </div>
+                                 <div>
+                                    <Label htmlFor="memberAvatar">URL do Avatar (Opcional)</Label>
+                                    <Input id="memberAvatar" {...register("avatarUrl")} placeholder="https://..." />
+                                     {errors.avatarUrl && <p className="text-sm text-destructive mt-1">{errors.avatarUrl.message}</p>}
+                                </div>
+                                <DialogFooter className="pt-2">
+                                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                                    <Button type="submit">Adicionar ao Time</Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
+             </Card>
+        </motion.div>
+      </div>
+
+       {/* Outros Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+           <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2"><CheckCircle/> Sprint Review</CardTitle>
+                        <CardDescription>Revisão das entregas ao final da sprint.</CardDescription>
+                    </CardHeader>
+                    <CardContent><p className="text-sm text-muted-foreground">Apresentar resultados ao PO e stakeholders.</p></CardContent>
+                </Card>
+            </motion.div>
+             <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2"><History/> Retrospectiva</CardTitle>
+                        <CardDescription>O que foi bem, o que pode melhorar.</CardDescription>
+                    </CardHeader>
+                    <CardContent><p className="text-sm text-muted-foreground">Registrar aprendizados para a próxima sprint.</p></CardContent>
+                </Card>
+            </motion.div>
+             <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2"><BarChart/> Relatórios</CardTitle>
+                        <CardDescription>Métricas e performance do time.</CardDescription>
+                    </CardHeader>
+                    <CardContent><p className="text-sm text-muted-foreground">Velocity, Burndown, tempo por tarefa, etc.</p></CardContent>
+                </Card>
+            </motion.div>
       </div>
     </div>
   );
