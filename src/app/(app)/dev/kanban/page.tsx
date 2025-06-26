@@ -1,11 +1,10 @@
-
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
 import { PageHeader } from "@/components/shared/page-header";
-import { KanbanSquare, PlusCircle } from "lucide-react";
+import { KanbanSquare, PlusCircle, Calendar } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -85,7 +84,7 @@ const KanbanCard: React.FC<{ task: Task }> = ({ task }) => {
         <div className="text-right flex items-center gap-2">
           {dueDate && (
             <div className="text-xs text-muted-foreground/80 flex items-center gap-1">
-              <span>🗓️</span>
+              <Calendar className="h-3 w-3" />
               <span>{format(new Date(dueDate + 'T00:00:00'), 'dd/MM')}</span>
             </div>
           )}
