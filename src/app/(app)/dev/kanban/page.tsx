@@ -39,20 +39,20 @@ const initialColumns: ColumnsState = {
   backlog: {
     name: 'Backlog',
     tasks: [
-      { id: '1', title: 'Configurar autenticação OAuth com Google', points: 3, dueDate: '2025-07-25', assignedTo: { name: 'João Silva' }, tag: { name: 'Backend', color: 'bg-blue-100 text-blue-800' } },
-      { id: '2', title: 'Desenvolver componente de calendário financeiro', points: 5, dueDate: '2025-07-28', assignedTo: { name: 'Maria Pereira' }, tag: { name: 'Frontend', color: 'bg-green-100 text-green-800' } },
+      { id: '1', title: 'Configurar autenticação OAuth com Google', points: 3, dueDate: '2025-07-25', assignedTo: { name: 'João Silva' }, tag: { name: 'Backend', color: 'bg-blue-200 text-blue-800 border border-blue-400 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700' } },
+      { id: '2', title: 'Desenvolver componente de calendário financeiro', points: 5, dueDate: '2025-07-28', assignedTo: { name: 'Maria Pereira' }, tag: { name: 'Frontend', color: 'bg-green-200 text-green-800 border border-green-400 dark:bg-green-900/50 dark:text-green-200 dark:border-green-700' } },
     ],
   },
   doing: {
     name: 'Em Andamento',
     tasks: [
-      { id: '3', title: 'Criar página de dashboard com gráficos', points: 8, dueDate: '2025-08-02', assignedTo: { name: 'Lucas Costa' }, tag: { name: 'Frontend', color: 'bg-green-100 text-green-800' } },
+      { id: '3', title: 'Criar página de dashboard com gráficos', points: 8, dueDate: '2025-08-02', assignedTo: { name: 'Lucas Costa' }, tag: { name: 'Frontend', color: 'bg-green-200 text-green-800 border border-green-400 dark:bg-green-900/50 dark:text-green-200 dark:border-green-700' } },
     ],
   },
   done: {
     name: 'Concluído',
     tasks: [
-      { id: '4', title: 'Estruturar projeto Next.js com ShadCN', points: 2, dueDate: '2025-07-20', assignedTo: { name: 'Ana Souza' }, tag: { name: 'Infra', color: 'bg-purple-100 text-purple-800' } },
+      { id: '4', title: 'Estruturar projeto Next.js com ShadCN', points: 2, dueDate: '2025-07-20', assignedTo: { name: 'Ana Souza' }, tag: { name: 'Infra', color: 'bg-purple-200 text-purple-800 border border-purple-400 dark:bg-purple-900/50 dark:text-purple-200 dark:border-purple-700' } },
     ],
   },
 };
@@ -150,39 +150,48 @@ export default function DevKanbanPage() {
 
     if (!destination) return;
 
-    if (source.droppableId === destination.droppableId) {
-      // Reordenar na mesma coluna
-      const column = columns[source.droppableId];
-      const newTasks = Array.from(column.tasks);
-      const [reorderedItem] = newTasks.splice(source.index, 1);
-      newTasks.splice(destination.index, 0, reorderedItem);
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return; 
+    }
 
+    const sourceColumn = columns[source.droppableId];
+    const destColumn = columns[destination.droppableId];
+
+    if (!sourceColumn || !destColumn) return;
+
+    const sourceTasks = Array.from(sourceColumn.tasks);
+    const [removed] = sourceTasks.splice(source.index, 1);
+
+    if (source.droppableId === destination.droppableId) {
+      // Movendo dentro da mesma coluna
+      sourceTasks.splice(destination.index, 0, removed);
+      const newColumn = {
+        ...sourceColumn,
+        tasks: sourceTasks,
+      };
       setColumns({
         ...columns,
-        [source.droppableId]: {
-          ...column,
-          tasks: newTasks,
-        },
+        [source.droppableId]: newColumn,
       });
     } else {
-      // Mover para uma coluna diferente
-      const sourceColumn = columns[source.droppableId];
-      const destColumn = columns[destination.droppableId];
-      const sourceTasks = Array.from(sourceColumn.tasks);
+      // Movendo para uma coluna diferente
       const destTasks = Array.from(destColumn.tasks);
-      const [movedTask] = sourceTasks.splice(source.index, 1);
-      destTasks.splice(destination.index, 0, movedTask);
-
+      destTasks.splice(destination.index, 0, removed);
+      const newSourceCol = {
+        ...sourceColumn,
+        tasks: sourceTasks,
+      };
+      const newDestCol = {
+        ...destColumn,
+        tasks: destTasks,
+      };
       setColumns({
         ...columns,
-        [source.droppableId]: {
-          ...sourceColumn,
-          tasks: sourceTasks,
-        },
-        [destination.droppableId]: {
-          ...destColumn,
-          tasks: destTasks,
-        },
+        [source.droppableId]: newSourceCol,
+        [destination.droppableId]: newDestCol,
       });
     }
   };
