@@ -277,6 +277,10 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 *   **Causa:** Um ou mais elementos no layout principal podem estar excedendo a largura da viewport, ou o gerenciamento de `overflow` não está correto.
 *   **Solução:** Aplicar a classe `overflow-hidden` ao contêiner raiz do layout principal da aplicação (ex: o `div` em `src/app/(app)/layout.tsx` que envolve `AppHeader` e o conteúdo `<main>`). Isso previne que o contêiner raiz seja rolável, delegando o scroll vertical para o elemento `<main>` interno (que geralmente tem `overflow-y-auto`).
 
+### 13. Calendário com Layout Quebrado ou Erro `getDay is not defined`
+*   **Causa:** A implementação de calendário anterior era customizada, com bugs, e não se adaptava bem ao contêiner flexível do layout principal, causando um visual "espremido". Além disso, uma chamada incorreta à função `getDay` (sem ser a partir de um objeto `Date`) causava um `ReferenceError` que impedia o carregamento da página.
+*   **Solução:** A página de calendário foi totalmente reconstruída usando a biblioteca **FullCalendar**, que é robusta e estável. Para corrigir o problema de layout, a classe `min-w-0` foi adicionada ao elemento `<main>` em `src/app/(app)/layout.tsx`, permitindo que componentes flexíveis como o FullCalendar se redimensionem corretamente sem estourar o layout.
+
 ## 🗺️ Roadmap
 *   [ ] Implementação completa de gestão de Assinaturas (Stripe).
 *   [ ] Testes unitários e de integração.
