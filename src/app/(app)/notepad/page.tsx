@@ -1,4 +1,3 @@
-
 // src/app/(app)/notepad/page.tsx
 "use client";
 
@@ -47,10 +46,39 @@ export default function NotepadPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const dragControls = useDragControls();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     document.title = `Anotações - ${APP_NAME}`;
   }, []);
+
+  // Carregar notas do localStorage na renderização inicial
+  useEffect(() => {
+    try {
+      const storedNotes = localStorage.getItem('flortune-notes');
+      if (storedNotes) {
+        setNotes(JSON.parse(storedNotes));
+      }
+    } catch (error) {
+      console.error("Failed to load notes from localStorage", error);
+      toast({
+        title: "Erro ao carregar notas",
+        description: "Não foi possível carregar suas anotações salvas localmente.",
+        variant: "destructive"
+      });
+    }
+    setIsInitialLoad(false);
+  }, []);
+
+  // Salvar notas no localStorage sempre que elas mudarem
+  useEffect(() => {
+    if (isInitialLoad) return;
+    try {
+      localStorage.setItem('flortune-notes', JSON.stringify(notes));
+    } catch (error) {
+      console.error("Failed to save notes to localStorage", error);
+    }
+  }, [notes, isInitialLoad]);
 
   const { control, register, handleSubmit, reset, setValue, formState: { errors } } = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
@@ -156,7 +184,7 @@ export default function NotepadPage() {
         </form>
       </Card>
 
-      {notes.length === 0 && (
+      {notes.length === 0 && !isInitialLoad && (
         <div className="text-center py-10 text-muted-foreground">
           <NotebookPen className="h-16 w-16 mx-auto mb-4 opacity-30" />
           <p>Nenhuma anotação ainda. Crie sua primeira!</p>
