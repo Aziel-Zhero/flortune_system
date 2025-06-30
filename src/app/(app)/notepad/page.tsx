@@ -1,4 +1,3 @@
-
 // src/app/(app)/notepad/page.tsx
 "use client";
 
@@ -52,7 +51,6 @@ export default function NotepadPage() {
     document.title = `Anotações - ${APP_NAME}`;
   }, []);
 
-  // Carregar notas do localStorage na renderização inicial
   useEffect(() => {
     try {
       const storedNotes = localStorage.getItem('flortune-notes');
@@ -70,7 +68,6 @@ export default function NotepadPage() {
     setIsInitialLoad(false);
   }, []);
 
-  // Salvar notas no localStorage sempre que elas mudarem
   useEffect(() => {
     if (isInitialLoad) return;
     try {
@@ -197,10 +194,10 @@ export default function NotepadPage() {
             <motion.div
                 key={note.id}
                 layout
-                drag
-                dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-                whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: "0px 10px 30px rgba(0,0,0,0.2)" }}
-                className="cursor-grab active:cursor-grabbing"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
             >
                 <Card className={cn("shadow-md hover:shadow-lg transition-shadow border-2 h-full flex flex-col", note.color, note.isPinned && "ring-2 ring-primary/80")}>
                     <CardHeader className="pb-3 flex-row items-start justify-between">

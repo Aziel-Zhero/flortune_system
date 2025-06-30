@@ -1,4 +1,3 @@
-
 // src/app/(app)/notes/page.tsx
 "use client";
 
