@@ -83,9 +83,11 @@ export function UserNav() {
                 <Thermometer className="mr-2 h-4 w-4" />
                 <span>Configurar Clima</span>
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => alert("Funcionalidade de Suporte (placeholder)")}>
-                <LifeBuoy className="mr-2 h-4 w-4" />
-                <span>Suporte</span>
+             <DropdownMenuItem asChild>
+                <Link href="/help">
+                    <LifeBuoy className="mr-2 h-4 w-4" />
+                    <span>Ajuda</span>
+                </Link>
              </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
