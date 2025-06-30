@@ -15,7 +15,7 @@ export default function ObsoleteNotesPage() {
 
   return (
     <div>
-      <p>Redirecionando para o Notepad...</p>
+      <p>Redirecionando...</p>
     </div>
   );
 }
