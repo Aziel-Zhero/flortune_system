@@ -53,7 +53,7 @@ export default function PlansPage() {
                     {tier.name}
                   </CardTitle>
                 </div>
-                <div className="flex items-baseline gap-x-1">
+                <div className="flex flex-wrap items-baseline gap-x-1">
                   <span className={cn("text-4xl font-bold tracking-tight", tier.featured ? "text-primary" : "text-foreground")}>
                     {tier.priceMonthly}
                   </span>
