@@ -14,10 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
-import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, addMonths } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
@@ -36,8 +35,6 @@ const transactionFormSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória." }),
   type: z.enum(["income", "expense"], { required_error: "Selecione o tipo da transação." }),
   category_id: z.string().min(1, "Selecione uma categoria."),
-  is_recurring: z.boolean().optional().default(false),
-  recurring_frequency: z.enum(["daily", "weekly", "monthly", "yearly"]).optional().nullable(),
   notes: z.string().optional(),
 });
 
@@ -64,12 +61,10 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       type: "expense",
       amount: 0,
       date: new Date(),
-      is_recurring: false,
     },
   });
 
   const transactionType = watch("type");
-  const isRecurring = watch("is_recurring");
 
   const fetchCategoriesData = useCallback(async () => {
     if (!user?.id) return;
@@ -108,9 +103,6 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       date: format(data.date, "yyyy-MM-dd"),
       type: data.type,
       category_id: data.category_id,
-      is_recurring: data.is_recurring,
-      recurring_frequency: data.is_recurring ? (data.recurring_frequency || 'monthly') : null,
-      next_billing_date: data.is_recurring ? format(addMonths(data.date, 1), "yyyy-MM-dd") : null, // Placeholder logic
       notes: data.notes,
     };
 
@@ -146,7 +138,6 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-6 w-1/2" />
             <Skeleton className="h-20 w-full" />
             <div className="flex justify-end gap-2 pt-4">
                 <Skeleton className="h-10 w-24" />
@@ -268,49 +259,6 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 )}
             />
             {errors.category_id && <p className="text-sm text-destructive mt-1">{errors.category_id.message}</p>}
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2 pt-2">
-            <Controller
-              name="is_recurring"
-              control={control}
-              render={({ field }) => (
-                <Switch
-                  id="is_recurring"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  aria-label="Marcar como transação recorrente"
-                />
-              )}
-            />
-            <Label htmlFor="is_recurring" className="font-normal flex items-center">
-              <Repeat className="mr-2 h-4 w-4 text-muted-foreground"/>
-              Esta é uma transação recorrente? (Ex: Assinatura)
-            </Label>
-          </div>
-          {isRecurring && (
-            <div className="pl-8 space-y-2 animate-in fade-in-0">
-               <Label htmlFor="recurring_frequency">Frequência</Label>
-                 <Controller
-                    name="recurring_frequency"
-                    control={control}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} defaultValue={field.value ?? "monthly"}>
-                        <SelectTrigger id="recurring_frequency">
-                          <SelectValue placeholder="Selecione a frequência" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Diária</SelectItem>
-                          <SelectItem value="weekly">Semanal</SelectItem>
-                          <SelectItem value="monthly">Mensal</SelectItem>
-                          <SelectItem value="yearly">Anual</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                />
-            </div>
-          )}
         </div>
         
         <div className="space-y-2">

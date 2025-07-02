@@ -34,9 +34,6 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
         date,
         type,
         notes,
-        is_recurring,
-        recurring_frequency,
-        next_billing_date,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -82,9 +79,6 @@ export async function addTransaction(userId: string, transactionData: NewTransac
         date,
         type,
         notes,
-        is_recurring,
-        recurring_frequency,
-        next_billing_date,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -129,9 +123,6 @@ export async function updateTransaction(transactionId: string, userId: string, t
         date,
         type,
         notes,
-        is_recurring,
-        recurring_frequency,
-        next_billing_date,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)

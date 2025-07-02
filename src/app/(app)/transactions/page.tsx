@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat } from "lucide-react";
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,14 +58,6 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
   if (categoryType === 'expense') return categoryTypeColors.expense;
   return categoryTypeColors.default;
 };
-
-const recurringFrequencyLabels: Record<string, string> = {
-  daily: "Diária",
-  weekly: "Semanal",
-  monthly: "Mensal",
-  yearly: "Anual",
-};
-
 
 export default function TransactionsPage() {
   const { data: session, status: authStatus } = useSession(); 
@@ -286,22 +278,7 @@ export default function TransactionsPage() {
                       <TableCell className="text-muted-foreground text-xs md:text-sm">
                         {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
                       </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {transaction.description}
-                          {transaction.is_recurring && (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Repeat className="h-3.5 w-3.5 text-blue-500" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Recorrente: {recurringFrequencyLabels[transaction.recurring_frequency || ""] || transaction.recurring_frequency}</p>
-                                {transaction.next_billing_date && <p>Próxima: {new Date(transaction.next_billing_date + 'T00:00:00Z').toLocaleDateString('pt-BR')}</p>}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                        </TableCell>
+                      <TableCell className="font-medium">{transaction.description}</TableCell>
                       <TableCell>
                         <Badge 
                             variant="outline" 
