@@ -3,6 +3,7 @@
 
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 // Tipos para os dados do clima
 interface WeatherData {
@@ -27,7 +28,7 @@ export interface AppSettingsProviderValue {
   setWeatherCity: (city: string | null) => void;
   weatherData: WeatherData | null;
   weatherError: string | null;
-  fetchWeather: (city: string) => Promise<void>;
+  loadWeatherForCity: (city: string) => Promise<void>;
   isLoadingWeather: boolean;
 }
 
@@ -44,7 +45,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
   // --- Funções e Efeitos para Clima ---
-  const fetchWeather = useCallback(async (city: string) => {
+  const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) return;
     setIsLoadingWeather(true);
     setWeatherError(null);
@@ -66,6 +67,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
         setWeatherError(err.message);
         setWeatherData(null);
+        toast({ title: "Erro ao buscar clima", description: err.message, variant: "destructive" });
     } finally {
         setIsLoadingWeather(false);
     }
@@ -75,7 +77,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       if(city && city.trim() !== '') {
           localStorage.setItem('flortune-weather-city', city);
           setWeatherCityState(city);
-          fetchWeather(city);
       } else {
           localStorage.removeItem('flortune-weather-city');
           setWeatherCityState(null);
@@ -99,12 +100,12 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedCity = localStorage.getItem('flortune-weather-city');
       if (storedCity) {
         setWeatherCityState(storedCity);
-        fetchWeather(storedCity);
+        loadWeatherForCity(storedCity);
       }
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }
-  }, [fetchWeather]);
+  }, [loadWeatherForCity]);
 
   const applyTheme = useCallback((themeId: string) => {
     const root = document.documentElement;
@@ -133,7 +134,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     applyTheme(currentTheme);
   }, [currentTheme, applyTheme]);
 
-
   const togglePrivateMode = useCallback(() => {
     setIsPrivateMode(prev => {
         const newMode = !prev;
@@ -147,7 +147,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isPrivateMode, setIsPrivateMode, togglePrivateMode,
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
-      weatherCity, setWeatherCity, weatherData, weatherError, fetchWeather, isLoadingWeather
+      weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather
     }}>
       {children}
     </AppSettingsContext.Provider>

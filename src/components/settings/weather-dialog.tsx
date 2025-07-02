@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,23 +20,30 @@ import { toast } from "@/hooks/use-toast";
 
 interface WeatherSettingsDialogProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function WeatherSettingsDialog({ isOpen, onOpenChange }: WeatherSettingsDialogProps) {
-  const { weatherCity, setWeatherCity, isLoadingWeather } = useAppSettings();
+  const { weatherCity, setWeatherCity, loadWeatherForCity, isLoadingWeather } = useAppSettings();
   const [cityInput, setCityInput] = useState(weatherCity || "");
 
+  useEffect(() => {
+    if (isOpen) {
+      setCityInput(weatherCity || "");
+    }
+  }, [isOpen, weatherCity]);
+
   const handleSave = () => {
-    if (cityInput.trim()) {
-      setWeatherCity(cityInput.trim());
-      toast({ title: "Cidade Salva!", description: `Buscando clima para ${cityInput.trim()}.` });
-      onOpenChange(false);
+    const trimmed = cityInput.trim();
+    if (trimmed) {
+      setWeatherCity(trimmed);
+      loadWeatherForCity(trimmed);
+      toast({ title: "Cidade salva!", description: `Buscando clima para ${trimmed}.` });
     } else {
       setWeatherCity(null);
-      toast({ title: "Cidade Removida", description: `A exibição do clima foi desativada.` });
-      onOpenChange(false);
+      toast({ title: "Cidade removida", description: "A exibição do clima foi desativada." });
     }
+    onOpenChange(false);
   };
 
   return (
@@ -51,27 +58,27 @@ export function WeatherSettingsDialog({ isOpen, onOpenChange }: WeatherSettingsD
             Insira o nome da sua cidade para ver o clima na barra lateral. Deixe em branco para desativar.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="city-input">Nome da Cidade</Label>
-            <Input
-              id="city-input"
-              placeholder="Ex: São Paulo, BR"
-              value={cityInput}
-              onChange={(e) => setCityInput(e.target.value)}
-            />
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="city-input">Nome da Cidade</Label>
+              <Input
+                id="city-input"
+                placeholder="Ex: São Paulo, BR"
+                value={cityInput}
+                onChange={(e) => setCityInput(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancelar
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button type="submit" disabled={isLoadingWeather}>
+              {isLoadingWeather ? "Carregando..." : "Salvar"}
             </Button>
-          </DialogClose>
-          <Button type="button" onClick={handleSave} disabled={isLoadingWeather}>
-            {isLoadingWeather ? "Carregando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

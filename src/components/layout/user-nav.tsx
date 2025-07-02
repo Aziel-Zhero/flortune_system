@@ -44,7 +44,6 @@ export function UserNav() {
                           : displayName.charAt(0).toUpperCase() || "U";
   const avatarUrl = userProfile?.avatar_url || session.user.image || `https://placehold.co/100x100.png?text=${fallbackInitial}`;
 
-
   return (
     <>
       <DropdownMenu>
@@ -79,7 +78,7 @@ export function UserNav() {
                 <span>Configurações</span>
               </Link>
             </DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => setIsWeatherDialogOpen(true)}>
+             <DropdownMenuItem onSelect={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
                 <Thermometer className="mr-2 h-4 w-4" />
                 <span>Configurar Clima</span>
              </DropdownMenuItem>

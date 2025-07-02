@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-    Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Cloudy, Sun, Moon, Tornado, Wind
+    Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Cloudy, Sun, Moon, Tornado, Wind, Loader2
 } from 'lucide-react';
 
 
@@ -120,9 +120,9 @@ export function AppSidebar() {
               </div>
             </Link>
              <div className="mt-2 group-data-[collapsible=icon]:mt-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-                {isLoadingWeather && weatherCity && <Skeleton className="h-5 w-24" />}
+                {isLoadingWeather && weatherCity && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 {!isLoadingWeather && weatherData && WeatherIcon && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:flex-col">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-0">
                        <WeatherIcon className="h-5 w-5"/>
                        <span className="font-medium">{weatherData.temperature}°C</span>
                        <span className="hidden sm:inline group-data-[collapsible=icon]:hidden"> - {weatherData.city}</span>

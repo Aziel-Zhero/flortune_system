@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { LifeBuoy, Info, Mail, Phone, MessageSquare } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const faqItems = [
@@ -21,7 +22,7 @@ const faqItems = [
   },
   {
     question: "Meus dados financeiros estão seguros?",
-    answer: `Sim, a segurança é nossa prioridade. Utilizamos as melhores práticas de segurança do mercado, incluindo criptografia, para proteger suas informações. Suas senhas são armazenadas de forma segura e não temos acesso a elas.`,
+    answer: "Sim, a segurança é nossa prioridade. Utilizamos as melhores práticas de segurança do mercado, incluindo criptografia, para proteger suas informações. Suas senhas são armazenadas de forma segura e não temos acesso a elas.",
   },
   {
     question: "Posso usar o Flortune em múltiplos dispositivos?",
@@ -32,6 +33,39 @@ const faqItems = [
     answer: "A página de Análise oferece uma visão detalhada de suas finanças com gráficos interativos. Você pode ver a distribuição de seus gastos por categoria, suas fontes de renda e a evolução de seu fluxo de caixa ao longo do tempo.",
   },
 ];
+
+function SupportContactItem({
+  icon: Icon,
+  title,
+  description,
+  children,
+  disabled = false,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  children?: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-4 p-3 rounded-md",
+        "hover:bg-muted/50",
+        disabled && "opacity-60 cursor-not-allowed"
+      )}
+    >
+      <Icon className="h-5 w-5 text-primary mt-1" />
+      <div>
+        <h4 className="font-semibold flex items-center gap-2">
+          {title} {disabled && <Badge variant="outline">em breve</Badge>}
+        </h4>
+        <p className="text-sm text-muted-foreground">{description}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function HelpPage() {
   useEffect(() => {
@@ -72,7 +106,9 @@ export default function HelpPage() {
           <Accordion type="single" collapsible className="w-full">
             {faqItems.map((item, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
-                <AccordionTrigger className="text-left font-semibold">{item.question}</AccordionTrigger>
+                <AccordionTrigger aria-label={`Pergunta: ${item.question}`} className="text-left font-semibold">
+                  {item.question}
+                </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   {item.answer}
                 </AccordionContent>
@@ -88,30 +124,42 @@ export default function HelpPage() {
           <CardDescription>Precisa de mais ajuda? Entre em contato conosco através dos canais abaixo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div className="flex items-start gap-4 p-3 rounded-md hover:bg-muted/50">
-                <Mail className="h-5 w-5 text-primary mt-1"/>
-                <div>
-                    <h4 className="font-semibold">Email</h4>
-                    <p className="text-sm text-muted-foreground">Para dúvidas gerais, sugestões ou problemas técnicos.</p>
-                    <a href="mailto:suporte@flortune.com" className={cn(buttonVariants({variant: "link"}), "p-0 h-auto text-primary")}>suporte@flortune.com</a>
-                </div>
-            </div>
-            <div className="flex items-start gap-4 p-3 rounded-md hover:bg-muted/50">
-                <Phone className="h-5 w-5 text-primary mt-1"/>
-                <div>
-                    <h4 className="font-semibold">Telefone (Em Breve)</h4>
-                    <p className="text-sm text-muted-foreground">Um canal de voz para suporte em tempo real estará disponível em breve para planos selecionados.</p>
-                </div>
-            </div>
-             <div className="flex items-start gap-4 p-3 rounded-md hover:bg-muted/50">
-                <MessageSquare className="h-5 w-5 text-primary mt-1"/>
-                <div>
-                    <h4 className="font-semibold">Chat de Suporte (Em Breve)</h4>
-                    <p className="text-sm text-muted-foreground">Converse com nossa equipe diretamente pelo aplicativo. Funcionalidade futura.</p>
-                </div>
-            </div>
+          <SupportContactItem
+            icon={Mail}
+            title="Email"
+            description="Para dúvidas gerais, sugestões ou problemas técnicos."
+          >
+            <a
+              href="mailto:suporte@flortune.com"
+              className={cn(buttonVariants({ variant: "link" }), "p-0 h-auto text-primary")}
+            >
+              suporte@flortune.com
+            </a>
+          </SupportContactItem>
+
+          <SupportContactItem
+            icon={Phone}
+            title="Telefone"
+            description="Um canal de voz para suporte em tempo real estará disponível em breve para planos selecionados."
+            disabled
+          />
+
+          <SupportContactItem
+            icon={MessageSquare}
+            title="Chat de Suporte"
+            description="Converse com nossa equipe diretamente pelo aplicativo. Funcionalidade futura."
+            disabled
+          />
         </CardContent>
       </Card>
+      
+       <p className="text-sm text-muted-foreground text-center mt-6">
+        Ainda tem dúvidas? Envie um email para{" "}
+        <a href="mailto:suporte@flortune.com" className="underline text-primary">
+          suporte@flortune.com
+        </a>
+        .
+      </p>
     </div>
   );
 }
