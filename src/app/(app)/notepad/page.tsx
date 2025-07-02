@@ -1,14 +1,34 @@
-// src/app/(app)/notepad/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { NotebookPen, PlusCircle, Edit2, Trash2, Pin, PinOff, Eye, EyeOff } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  NotebookPen,
+  PlusCircle,
+  Edit2,
+  Trash2,
+  Pin,
+  PinOff,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useForm, Controller } from "react-hook-form";
@@ -16,6 +36,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+import { Label } from "@/components/ui/label";
 
 interface Note {
   id: string;
@@ -47,22 +85,23 @@ export default function NotepadPage() {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  const sensors = useSensors(useSensor(PointerSensor));
+
   useEffect(() => {
     document.title = `Anotações - ${APP_NAME}`;
   }, []);
 
   useEffect(() => {
     try {
-      const storedNotes = localStorage.getItem('flortune-notes');
+      const storedNotes = localStorage.getItem("flortune-notes");
       if (storedNotes) {
         setNotes(JSON.parse(storedNotes));
       }
     } catch (error) {
-      console.error("Failed to load notes from localStorage", error);
       toast({
         title: "Erro ao carregar notas",
-        description: "Não foi possível carregar suas anotações salvas localmente.",
-        variant: "destructive"
+        description: "Não foi possível carregar suas anotações.",
+        variant: "destructive",
       });
     }
     setIsInitialLoad(false);
@@ -70,11 +109,7 @@ export default function NotepadPage() {
 
   useEffect(() => {
     if (isInitialLoad) return;
-    try {
-      localStorage.setItem('flortune-notes', JSON.stringify(notes));
-    } catch (error) {
-      console.error("Failed to save notes to localStorage", error);
-    }
+    localStorage.setItem("flortune-notes", JSON.stringify(notes));
   }, [notes, isInitialLoad]);
 
   const { control, register, handleSubmit, reset, setValue, formState: { errors } } = useForm<NoteFormData>({
@@ -85,11 +120,16 @@ export default function NotepadPage() {
   const handleAddOrUpdateNote = (data: NoteFormData) => {
     if (editingNote) {
       setNotes(notes.map(n => n.id === editingNote.id ? { ...editingNote, ...data } : n));
-      toast({ title: "Nota Atualizada!", description: `"${data.title}" foi atualizada.`});
+      toast({ title: "Nota atualizada", description: `“${data.title}” foi atualizada.` });
     } else {
-      const newNote: Note = { ...data, id: `note_${Date.now()}`, isPinned: false, isPrivate: false };
+      const newNote: Note = {
+        ...data,
+        id: `note_${Date.now()}`,
+        isPinned: false,
+        isPrivate: false,
+      };
       setNotes(prev => [newNote, ...prev]);
-      toast({ title: "Nota Criada!", description: `"${data.title}" foi adicionada.`});
+      toast({ title: "Nota criada", description: `“${data.title}” foi adicionada.` });
     }
     setEditingNote(null);
     reset({ title: "", content: "", color: noteColors[0].value });
@@ -100,22 +140,31 @@ export default function NotepadPage() {
     setValue("title", note.title);
     setValue("content", note.content);
     setValue("color", note.color);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    setNotes(notes.filter(n => n.id !== noteId));
-    toast({ title: "Nota Deletada!", variant: "destructive"});
-  };
-  
-  const togglePinNote = (noteId: string) => {
-    setNotes(notes.map(n => n.id === noteId ? { ...n, isPinned: !n.isPinned } : n));
+  const handleDeleteNote = (id: string) => {
+    setNotes(notes.filter(n => n.id !== id));
   };
 
-  const togglePrivateNote = (noteId: string) => {
-     setNotes(notes.map(n => n.id === noteId ? { ...n, isPrivate: !n.isPrivate } : n));
+  const togglePinNote = (id: string) => {
+    setNotes(notes.map(n => n.id === id ? { ...n, isPinned: !n.isPinned } : n));
   };
-  
+
+  const togglePrivateNote = (id: string) => {
+    setNotes(notes.map(n => n.id === id ? { ...n, isPrivate: !n.isPrivate } : n));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      const oldIndex = notes.findIndex(n => n.id === active.id);
+      const newIndex = notes.findIndex(n => n.id === over?.id);
+      const newNotes = arrayMove(notes, oldIndex, newIndex);
+      setNotes(newNotes);
+    }
+  };
+
   const sortedNotes = useMemo(() => {
     return [...notes].sort((a, b) => Number(b.isPinned) - Number(a.isPinned));
   }, [notes]);
@@ -127,60 +176,64 @@ export default function NotepadPage() {
         description="Seu espaço para ideias, lembretes e o que mais precisar anotar."
         icon={<NotebookPen className="h-6 w-6 text-primary" />}
       />
+
+      {/* Formulário */}
       <Card className="mb-6 shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline text-xl">{editingNote ? "Editar Anotação" : "Nova Anotação"}</CardTitle>
+          <CardTitle className="font-headline">{editingNote ? "Editar Anotação" : "Nova Anotação"}</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit(handleAddOrUpdateNote)}>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="note-title">Título</Label>
-                    <Input id="note-title" {...register("title")} placeholder="Título da sua anotação" />
-                    {errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="note-color">Cor da Nota</Label>
-                    <Controller
-                        name="color"
-                        control={control}
-                        render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger id="note-color"><SelectValue placeholder="Cor" /></SelectTrigger>
-                            <SelectContent>
-                            {noteColors.map(nc => (
-                                <SelectItem key={nc.value} value={nc.value}>
-                                <div className="flex items-center gap-2">
-                                    <span className={cn("h-4 w-4 rounded-full inline-block border", nc.value.split(' ')[0])}></span>
-                                    {nc.name}
-                                </div>
-                                </SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                        )}
-                    />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="note-title">Título</Label>
+                <Input id="note-title" {...register("title")} />
+                {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <Controller
+                  name="color"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {noteColors.map((nc) => (
+                          <SelectItem key={nc.value} value={nc.value}>
+                            <div className="flex items-center gap-2">
+                              <span className={cn("h-4 w-4 rounded-full border", nc.value.split(" ")[0])}></span>
+                              {nc.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="note-content">Conteúdo</Label>
-              <Textarea id="note-content" {...register("content")} placeholder="Escreva sua anotação aqui..." rows={4} />
-              {errors.content && <p className="text-sm text-destructive mt-1">{errors.content.message}</p>}
+              <Textarea id="note-content" {...register("content")} rows={4} />
+              {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
             </div>
           </CardContent>
           <CardFooter className="gap-2">
             <Button type="submit">
-              <PlusCircle className="mr-2 h-4 w-4" /> {editingNote ? "Salvar Alterações" : "Adicionar Nota"}
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {editingNote ? "Salvar Alterações" : "Adicionar Nota"}
             </Button>
             {editingNote && (
-              <Button type="button" variant="outline" onClick={() => { setEditingNote(null); reset({ title: "", content: "", color: noteColors[0].value }); }}>
-                Cancelar Edição
+              <Button variant="outline" onClick={() => { setEditingNote(null); reset(); }}>
+                Cancelar
               </Button>
             )}
           </CardFooter>
         </form>
       </Card>
 
+      {/* Lista de notas */}
       {notes.length === 0 && !isInitialLoad && (
         <div className="text-center py-10 text-muted-foreground">
           <NotebookPen className="h-16 w-16 mx-auto mb-4 opacity-30" />
@@ -188,50 +241,69 @@ export default function NotepadPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <AnimatePresence>
-            {sortedNotes.map(note => (
-            <motion.div
-                key={note.id}
-                layout
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-            >
-                <Card className={cn("shadow-md hover:shadow-lg transition-shadow border-2 h-full flex flex-col", note.color, note.isPinned && "ring-2 ring-primary/80")}>
-                    <CardHeader className="pb-3 flex-row items-start justify-between">
-                        <CardTitle className="font-headline text-lg break-words">{note.title}</CardTitle>
-                        <button onClick={() => togglePinNote(note.id)} className="text-muted-foreground hover:text-yellow-500 transition-colors z-10">
-                            {note.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-                        </button>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={sortedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <AnimatePresence>
+              {sortedNotes.map((note) => (
+                <SortableNoteCard key={note.id} note={note}>
+                  <Card className={cn("border-2 flex flex-col h-full", note.color, note.isPinned && "ring-2 ring-primary/80")}>
+                    <CardHeader className="pb-3 flex-row justify-between items-start">
+                      <CardTitle className="text-lg break-words">{note.title}</CardTitle>
+                      <button onClick={() => togglePinNote(note.id)} className="hover:text-yellow-500">
+                        {note.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                      </button>
                     </CardHeader>
-                    <CardContent className="text-sm break-words flex-grow">
-                    {note.isPrivate ? (
+                    <CardContent className="text-sm flex-grow">
+                      {note.isPrivate ? (
                         <div className="italic text-muted-foreground blur-sm select-none">
-                            <p>Conteúdo privado.</p>
-                            <p>Clique no ícone para revelar.</p>
+                          <p>Conteúdo privado.</p>
                         </div>
-                    ) : (
-                        <p className="whitespace-pre-wrap">{note.content}</p>
-                    )}
+                      ) : (
+                        <p className="whitespace-pre-wrap break-words">{note.content}</p>
+                      )}
                     </CardContent>
                     <CardFooter className="flex justify-end gap-1 pt-3">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => togglePrivateNote(note.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePrivateNote(note.id)}>
                         {note.isPrivate ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500" onClick={() => handleEditNote(note)}>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditNote(note)}>
                         <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(note.id)}>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteNote(note.id)}>
                         <Trash2 className="h-4 w-4" />
-                    </Button>
+                      </Button>
                     </CardFooter>
-                </Card>
-            </motion.div>
-            ))}
-        </AnimatePresence>
-      </div>
+                  </Card>
+                </SortableNoteCard>
+              ))}
+            </AnimatePresence>
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
+  );
+}
+
+function SortableNoteCard({ note, children }: { note: Note; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: note.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      layout
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
+    >
+      {children}
+    </motion.div>
   );
 }
