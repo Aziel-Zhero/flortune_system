@@ -50,6 +50,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingWeather(true);
     setWeatherError(null);
     try {
+        // Chama nossa API route interna para segurança
         const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
         const data = await response.json();
 
@@ -57,11 +58,12 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
             throw new Error(data.error || 'Falha ao buscar dados do clima.');
         }
         
+        // `data` agora é o objeto limpo retornado pela nossa API
         setWeatherData({
-            city: data.name,
-            temperature: Math.round(data.main.temp),
-            description: data.weather[0].description,
-            icon: data.weather[0].icon,
+            city: data.city,
+            temperature: Math.round(data.temperature),
+            description: data.description,
+            icon: data.icon,
         });
 
     } catch (err: any) {

@@ -30,7 +30,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: errorMessage }, { status: response.status });
     }
     
-    return NextResponse.json(data);
+    // Limpa a resposta para enviar apenas os dados necessários ao frontend
+    const cleanedData = {
+        city: data.name,
+        temperature: data.main.temp,
+        description: data.weather[0].description,
+        icon: data.weather[0].icon,
+    };
+
+    return NextResponse.json(cleanedData);
+
   } catch (error) {
     console.error("Error fetching weather data:", error);
     return NextResponse.json({ error: 'Failed to connect to weather service.' }, { status: 500 });
