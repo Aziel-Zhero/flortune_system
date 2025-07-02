@@ -27,8 +27,8 @@ export function WeatherSettingsDialog({ isOpen, onOpenChange }: WeatherSettingsD
   const { weatherCity, setWeatherCity, loadWeatherForCity, isLoadingWeather } = useAppSettings();
   const [cityInput, setCityInput] = useState(weatherCity || "");
 
+  // Sincroniza o input com o estado global sempre que o diálogo é aberto
   useEffect(() => {
-    // Sync local state if the context's city changes from outside
     if (isOpen) {
       setCityInput(weatherCity || "");
     }
