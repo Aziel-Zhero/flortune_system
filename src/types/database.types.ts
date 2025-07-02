@@ -1,4 +1,3 @@
-
 // Tipos para o schema 'public'
 export interface Profile {
   id: string; // UUID, chave primária, FK para next_auth.users.id
@@ -35,7 +34,9 @@ export interface Transaction {
   date: string; // DATE (YYYY-MM-DD)
   type: 'income' | 'expense';
   notes?: string | null;
-  is_recurring?: boolean; // Adicionado para transações recorrentes
+  is_recurring: boolean;
+  recurring_frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
+  next_billing_date?: string | null; // DATE (YYYY-MM-DD)
   created_at: string;
   updated_at: string;
   category?: Category | null; // Para joins
@@ -176,5 +177,3 @@ export interface ServiceListResponse<T> {
   error: Error | null;
   count?: number | null;
 }
-
-    

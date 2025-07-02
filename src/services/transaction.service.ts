@@ -1,4 +1,3 @@
-
 'use server';
 
 // import { supabase } from '@/lib/supabase/client'; // Usaremos o cliente com token quando apropriado
@@ -8,12 +7,8 @@ import type { Transaction, ServiceListResponse, ServiceResponse, Category } from
 
 export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'> & {
   category_id: string;
-  is_recurring?: boolean; // Adicionado
 };
-export type UpdateTransactionData = Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>> & {
-  category_id?: string;
-  is_recurring?: boolean; // Adicionado
-};
+export type UpdateTransactionData = Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>>;
 
 async function getSupabaseClientForUser() {
   const session = await auth(); // Obtém a sessão do NextAuth
@@ -38,7 +33,9 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
         date,
         type,
         notes,
-        is_recurring, 
+        is_recurring,
+        recurring_frequency,
+        next_billing_date,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -74,7 +71,6 @@ export async function addTransaction(userId: string, transactionData: NewTransac
       .insert([{ 
         ...transactionData, 
         user_id: userId,
-        is_recurring: transactionData.is_recurring ?? false // Garantir valor padrão se undefined
       }])
       .select(`
         id,
@@ -86,6 +82,8 @@ export async function addTransaction(userId: string, transactionData: NewTransac
         type,
         notes,
         is_recurring,
+        recurring_frequency,
+        next_billing_date,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -131,6 +129,8 @@ export async function updateTransaction(transactionId: string, userId: string, t
         type,
         notes,
         is_recurring,
+        recurring_frequency,
+        next_billing_date,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -171,5 +171,3 @@ export async function deleteTransaction(transactionId: string, userId: string): 
     return { data: null, error };
   }
 }
-
-    

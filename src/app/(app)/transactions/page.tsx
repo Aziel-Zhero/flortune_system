@@ -1,4 +1,3 @@
-
 // src/app/(app)/transactions/page.tsx
 "use client";
 
@@ -10,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat } from "lucide-react"; // Adicionado Repeat
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
