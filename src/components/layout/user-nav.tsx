@@ -78,7 +78,7 @@ export function UserNav() {
                 <span>Configurações</span>
               </Link>
             </DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
+             <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
                 <Thermometer className="mr-2 h-4 w-4" />
                 <span>Configurar Clima</span>
              </DropdownMenuItem>
