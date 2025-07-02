@@ -28,6 +28,7 @@ export function WeatherSettingsDialog({ isOpen, onOpenChange }: WeatherSettingsD
   const [cityInput, setCityInput] = useState(weatherCity || "");
 
   useEffect(() => {
+    // Sync local state if the context's city changes from outside
     if (isOpen) {
       setCityInput(weatherCity || "");
     }
