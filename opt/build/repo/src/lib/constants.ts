@@ -11,7 +11,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/budgets", label: "Orçamentos", icon: "Target" as const, type: "link" as const },
   { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
   { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
-  { href: "/notepad", label: "Notepad", icon: "NotebookPen" as const, type: "link" as const },
+  { href: "/notepad", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/systems", label: "Sistemas e Ferramentas", icon: "HardDrive" as const, type: "link" as const },
@@ -23,6 +23,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/dev/kanban", label: "Quadro Kanban", icon: "KanbanSquare" as const, type: "link" as const },
   { type: "separator" as const },
   { href: "/plans", label: "Nossos Planos", icon: "Gem" as const, type: "link" as const },
+  { href: "/help", label: "Ajuda", icon: "LifeBuoy" as const, type: "link" as const },
   { href: "/settings", label: "Configurações", icon: "Settings" as const, type: "link" as const },
 ] as const;
 
