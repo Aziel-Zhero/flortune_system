@@ -1,4 +1,3 @@
-
 // src/app/(app)/transactions/new/page.tsx
 "use client";
 
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PlusCircle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
-import { TransactionForm } from "./transaction-form";
+import { TransactionForm } from "../transaction-form";
 import { useRouter } from "next/navigation";
 
 export default function NewTransactionPage() {
