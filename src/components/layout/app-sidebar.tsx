@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link"; 
@@ -22,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-    Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Cloudy, Sun, Moon, Tornado, Wind, Loader2
+    Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Cloudy, Sun, Moon, Tornado, Wind, Loader2
 } from 'lucide-react';
 
 
@@ -106,34 +107,7 @@ export function AppSidebar() {
             </Link>
         </SidebarHeader>
 
-        {!isLoadingAuth && user && (
-          <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
-            <Link href="/settings" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
-              <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
-                  <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>
-                  <AvatarFallback>{avatarFallback}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                  <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{displayName}</span>
-                  <span className="text-xs text-muted-foreground">Conta Pessoal</span>
-              </div>
-            </Link>
-             <div className="mt-2 group-data-[collapsible=icon]:mt-3 w-full flex justify-center text-xs text-muted-foreground">
-                {isLoadingWeather && weatherCity ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                ) : weatherError && weatherCity ? (
-                    <div className="text-destructive group-data-[collapsible=icon]:text-center" title={weatherError}>Erro</div>
-                ) : weatherData && WeatherIcon ? (
-                    <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-0.5">
-                        <WeatherIcon className="h-5 w-5" />
-                        <span className="font-medium">{weatherData.temperature}°C</span>
-                        <span className="group-data-[collapsible=icon]:hidden"> - {weatherData.city}</span>
-                    </div>
-                ) : null}
-            </div>
-          </div>
-        )}
-        {isLoadingAuth && (
+        {isLoadingAuth ? (
            <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <div className="flex items-center gap-3 p-2 -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
               <Skeleton className="h-9 w-9 rounded-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
@@ -143,6 +117,34 @@ export function AppSidebar() {
               </div>
             </div>
           </div>
+        ) : (
+          user && (
+            <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
+              <Link href="/settings" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
+                <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
+                    <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>
+                    <AvatarFallback>{avatarFallback}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                    <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{displayName}</span>
+                    <span className="text-xs text-muted-foreground">Conta Pessoal</span>
+                </div>
+              </Link>
+              <div className="mt-2 text-xs text-muted-foreground w-full flex justify-center group-data-[collapsible=icon]:mt-3">
+                {isLoadingWeather && weatherCity ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                ) : weatherError && weatherCity ? (
+                    <div className="text-destructive group-data-[collapsible=icon]:text-center" title={weatherError}>Erro</div>
+                ) : weatherData && WeatherIcon ? (
+                    <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-0.5">
+                        <WeatherIcon className="h-5 w-5" />
+                        <span className="font-medium">{weatherData.temperature}°C</span>
+                        <span className="hidden sm:inline group-data-[collapsible=icon]:hidden"> - {weatherData.city}</span>
+                    </div>
+                ) : null}
+              </div>
+            </div>
+          )
         )}
         <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
 
@@ -190,3 +192,5 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -49,7 +50,7 @@ import {
   arrayMove,
   SortableContext,
   useSortable,
-  verticalListSortingStrategy,
+  rectSortingStrategy, // Changed from verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -85,7 +86,12 @@ export default function NotepadPage() {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(useSensor(PointerSensor, {
+    // Allows clicks on buttons inside the draggable item
+    activationConstraint: {
+      distance: 8,
+    },
+  }));
 
   useEffect(() => {
     document.title = `Anotações - ${APP_NAME}`;
@@ -157,14 +163,15 @@ export default function NotepadPage() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
-      const oldIndex = notes.findIndex(n => n.id === active.id);
-      const newIndex = notes.findIndex(n => n.id === over?.id);
-      const newNotes = arrayMove(notes, oldIndex, newIndex);
-      setNotes(newNotes);
+    if (over && active.id !== over.id) {
+      setNotes((currentNotes) => {
+        const oldIndex = currentNotes.findIndex((item) => item.id === active.id);
+        const newIndex = currentNotes.findIndex((item) => item.id === over.id);
+        return arrayMove(currentNotes, oldIndex, newIndex);
+      });
     }
   };
-
+  
   const sortedNotes = useMemo(() => {
     return [...notes].sort((a, b) => Number(b.isPinned) - Number(a.isPinned));
   }, [notes]);
@@ -234,7 +241,7 @@ export default function NotepadPage() {
       </Card>
 
       {/* Lista de notas */}
-      {notes.length === 0 && !isInitialLoad && (
+      {sortedNotes.length === 0 && !isInitialLoad && (
         <div className="text-center py-10 text-muted-foreground">
           <NotebookPen className="h-16 w-16 mx-auto mb-4 opacity-30" />
           <p>Nenhuma anotação ainda. Crie sua primeira!</p>
@@ -242,7 +249,7 @@ export default function NotepadPage() {
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={sortedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={sortedNotes.map(n => n.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <AnimatePresence>
               {sortedNotes.map((note) => (
@@ -307,3 +314,5 @@ function SortableNoteCard({ note, children }: { note: Note; children: React.Reac
     </motion.div>
   );
 }
+
+    

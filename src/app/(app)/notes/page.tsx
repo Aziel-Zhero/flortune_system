@@ -1,3 +1,4 @@
+
 // src/app/(app)/notes/page.tsx
 "use client";
 
@@ -18,3 +19,5 @@ export default function ObsoleteNotesPage() {
     </div>
   );
 }
+
+    
