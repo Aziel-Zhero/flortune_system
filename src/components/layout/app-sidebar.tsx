@@ -1,4 +1,3 @@
-
 "use client"
 
 import Link from "next/link"; 
@@ -119,13 +118,13 @@ export function AppSidebar() {
                   <span className="text-xs text-muted-foreground">Conta Pessoal</span>
               </div>
             </Link>
-             <div className="mt-2 group-data-[collapsible=icon]:mt-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center text-xs text-muted-foreground">
+             <div className="mt-2 group-data-[collapsible=icon]:mt-3 w-full flex justify-center text-xs text-muted-foreground">
                 {isLoadingWeather && weatherCity ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                 ) : weatherError && weatherCity ? (
-                    <div className="text-destructive group-data-[collapsible=icon]:text-center">Erro</div>
+                    <div className="text-destructive group-data-[collapsible=icon]:text-center" title={weatherError}>Erro</div>
                 ) : weatherData && WeatherIcon ? (
-                    <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-0">
+                    <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-0.5">
                         <WeatherIcon className="h-5 w-5" />
                         <span className="font-medium">{weatherData.temperature}°C</span>
                         <span className="group-data-[collapsible=icon]:hidden"> - {weatherData.city}</span>
