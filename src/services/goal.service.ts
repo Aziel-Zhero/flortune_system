@@ -1,12 +1,13 @@
 
 'use server';
 
-// import { supabase } from '@/lib/supabase/client';
 import { createSupabaseClientWithToken } from '@/lib/supabase/client';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
 import type { FinancialGoal, ServiceListResponse, ServiceResponse } from '@/types/database.types';
 
 export type NewFinancialGoalData = Omit<FinancialGoal, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'current_amount' | 'status'>;
+export type UpdateFinancialGoalData = Partial<Omit<FinancialGoal, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
+
 
 async function getSupabaseClientForUser() {
   const session = await auth();
@@ -62,6 +63,32 @@ export async function addFinancialGoal(userId: string, goalData: NewFinancialGoa
     return { data: null, error };
   }
 }
+
+export async function updateFinancialGoal(goalId: string, userId: string, goalData: UpdateFinancialGoalData): Promise<ServiceResponse<FinancialGoal>> {
+    const supabaseClient = await getSupabaseClientForUser();
+    if (!userId) {
+        const error = new Error("User ID is required to update a financial goal.");
+        return { data: null, error };
+    }
+    try {
+        const dataToUpdate = { ...goalData, updated_at: new Date().toISOString() };
+        const { data, error } = await supabaseClient
+            .from('financial_goals')
+            .update(dataToUpdate)
+            .eq('id', goalId)
+            .eq('user_id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { data: data as FinancialGoal, error: null };
+    } catch (err) {
+        const error = err as Error;
+        console.error('Service error updating financial goal:', error.message);
+        return { data: null, error };
+    }
+}
+
 
 export async function deleteFinancialGoal(goalId: string, userId: string): Promise<ServiceResponse<null>> {
   const supabaseClient = await getSupabaseClientForUser();

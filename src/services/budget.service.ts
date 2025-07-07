@@ -10,6 +10,8 @@ export type NewBudgetData = Omit<Budget, 'id' | 'user_id' | 'created_at' | 'upda
   category_id: string; 
 };
 
+export type UpdateBudgetData = Partial<Pick<Budget, 'category_id' | 'limit_amount' | 'period_start_date' | 'period_end_date'>>;
+
 async function getSupabaseClientForUser() {
   const session = await auth();
   return createSupabaseClientWithToken(session);
@@ -89,6 +91,43 @@ export async function addBudget(userId: string, budgetData: NewBudgetData): Prom
     return { data: null, error };
   }
 }
+
+export async function updateBudget(budgetId: string, userId: string, budgetData: UpdateBudgetData): Promise<ServiceResponse<Budget>> {
+  const supabaseClient = await getSupabaseClientForUser();
+  if (!userId) {
+    const error = new Error("User ID is required to update a budget.");
+    return { data: null, error };
+  }
+  try {
+    const dataToUpdate = { ...budgetData, updated_at: new Date().toISOString() };
+    const { data, error } = await supabaseClient
+      .from('budgets')
+      .update(dataToUpdate)
+      .eq('id', budgetId)
+      .eq('user_id', userId)
+      .select(`
+        id,
+        user_id,
+        category_id,
+        limit_amount,
+        spent_amount,
+        period_start_date,
+        period_end_date,
+        created_at,
+        updated_at,
+        category:categories (id, name, type, icon, is_default)
+      `)
+      .single();
+    if (error) throw error;
+    const updatedBudget = { ...data, category: data.category as Category } as Budget;
+    return { data: updatedBudget, error: null };
+  } catch (err) {
+    const error = err as Error;
+    console.error('Service error updating budget:', error.message);
+    return { data: null, error };
+  }
+}
+
 
 export async function deleteBudget(budgetId: string, userId: string): Promise<ServiceResponse<null>> {
   const supabaseClient = await getSupabaseClientForUser();
