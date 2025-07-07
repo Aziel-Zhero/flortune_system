@@ -12,11 +12,11 @@ import {
   AlertTriangle, 
   Wallet, 
   TrendingDown,
-  AreaChart as AreaIconLucideReal, // Renomeado para o gráfico de evolução real
+  AreaChart as AreaIconLucide,
   BarChart3 as BarIconLucide, 
   Radar as RadarIconLucide, 
   Target as RadialIconLucide,
-  LineChart as LineIconLucide // Ícone para exemplos de LineChart
+  LineChart as LineIconLucide 
 } from "lucide-react";
 import {
   Select,
@@ -40,30 +40,30 @@ import {
 } from "@/components/ui/chart";
 
 import {
-  AreaChart, // Componente Recharts
+  AreaChart, 
   Area,      
+  LineChart, // Renomeado para uso explícito na galeria
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  PieChart, // Componente Recharts
+  PieChart, 
   Pie,
   Cell,
   Tooltip as RechartsTooltip,
   Legend,
-  BarChart, // Componente Recharts
+  BarChart, 
   Bar,
   LabelList,
-  RadarChart, // Componente Recharts
+  RadarChart, 
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar, // Elemento Recharts
-  RadialBarChart, // Componente Recharts
+  Radar, 
+  RadialBarChart, 
   RadialBar,
-  Brush,
-  LineChart as RechartsLineChart // Alias para LineChart do Recharts, usado na galeria
+  Brush
 } from "recharts";
 import { toast } from "@/hooks/use-toast";
 
@@ -400,7 +400,7 @@ export default function AnalysisPage() {
                 </>
             )}
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucideReal className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-80 sm:h-96 overflow-hidden">
                     {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
                         <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
@@ -463,7 +463,7 @@ export default function AnalysisPage() {
       <PageHeader title="Galeria de Exemplos de Gráficos" description="Demonstração de diferentes tipos de gráficos." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Area Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <AreaChart accessibilityLayer data={mockAreaData} margin={{left: 12, right: 12}}>
@@ -477,7 +477,7 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Area Chart - Gradient (Mock)</CardTitle><CardDescription>Com preenchimento gradiente.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Gradient (Mock)</CardTitle><CardDescription>Com preenchimento gradiente.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <AreaChart accessibilityLayer data={mockAreaData} margin={{left: 12, right: 12}}>
@@ -530,14 +530,14 @@ export default function AnalysisPage() {
           <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucide className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label (Mock)</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <RechartsLineChart accessibilityLayer data={mockLineData} margin={{top: 20, left: 12, right: 12}}>
+              <LineChart accessibilityLayer data={mockLineData} margin={{top: 20, left: 12, right: 12}}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
                 <Line dataKey="desktop" type="natural" stroke="var(--color-desktop)" strokeWidth={2} dot={{fill: "var(--color-desktop)"}} activeDot={{ r: 6 }} >
                   <LabelList dataKey="desktop" position="top" offset={12} className="fill-foreground" fontSize={12} />
                 </Line>
-              </RechartsLineChart>
+              </LineChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -545,7 +545,7 @@ export default function AnalysisPage() {
           <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucide className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <RechartsLineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>
+              <LineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
                 <YAxis tickMargin={8} />
@@ -553,7 +553,7 @@ export default function AnalysisPage() {
                 <Line dataKey="desktop" type="natural" stroke="var(--color-desktop)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
                 <Line dataKey="mobile" type="natural" stroke="var(--color-mobile)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
                 <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={15} />
-              </RechartsLineChart>
+              </LineChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -640,7 +640,7 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1"> {/* Alterado para lg:col-span-1 */}
+        <Card className="lg:col-span-1">
           <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Multiple (Mock)</CardTitle><CardDescription>Múltiplas barras radiais.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
              <ChartContainer config={genericChartConfig} className="w-full max-w-[300px] aspect-square">

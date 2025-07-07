@@ -2,7 +2,7 @@
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +33,7 @@ const goalFormSchema = z.object({
     z.number().positive("O valor alvo deve ser positivo.")
   ),
   deadline_date: z.date().optional().nullable(),
-  icon: z.string().optional().nullable(), // Mantém string, mas usaremos NO_ICON_VALUE para 'nenhum'
+  icon: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -73,12 +73,10 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<GoalFormData>({
+  const { control, handleSubmit, register, formState: { errors }, reset } = useForm<GoalFormData>({
     resolver: zodResolver(goalFormSchema),
     defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" },
   });
-
-  const selectedIconValue = watch("icon"); 
 
   const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
     if (!user?.id) {
@@ -91,7 +89,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       name: data.name, 
       target_amount: data.target_amount, 
       deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, 
-      icon: data.icon === NO_ICON_VALUE ? null : data.icon, // Converte NO_ICON_VALUE para null
+      icon: data.icon === NO_ICON_VALUE ? null : data.icon,
       notes: data.notes,
     };
     try {
@@ -170,17 +168,22 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
             return (
               <Select
                 onValueChange={field.onChange}
-                value={field.value ?? NO_ICON_VALUE} // Garante que o valor nunca seja nulo/undefined para o Select
+                value={field.value ?? NO_ICON_VALUE}
                 disabled={isSubmitting || isAuthLoading}
               >
                 <SelectTrigger id="goal-form-icon">
-                  <SelectValue placeholder={<div className="flex items-center gap-2"><CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" /><span>{availableIcons.find(opt => opt.value === (field.value ?? NO_ICON_VALUE))?.name || "Selecione um ícone"}</span></div>} />
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                        <CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" />
+                        <span>{availableIcons.find(opt => opt.value === (field.value ?? NO_ICON_VALUE))?.name || "Selecione um ícone"}</span>
+                    </div>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {availableIcons.map((iconOpt) => {
                     const IconComp = iconOpt.icon;
                     return (
-                      <SelectItem key={iconOpt.value} value={iconOpt.value}> {/* value aqui nunca será string vazia */}
+                      <SelectItem key={iconOpt.value} value={iconOpt.value}>
                         <div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div>
                       </SelectItem>
                     );
@@ -209,4 +212,3 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     </form>
   );
 }
-    
