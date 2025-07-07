@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HardDrive, Calculator, Coins, ClockIcon, PercentSquare, ServerCog, Briefcase, Repeat } from "lucide-react";
+import { HardDrive, Calculator, Coins, ClockIcon, Repeat, ServerCog, Briefcase, PercentSquare } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ interface ToolCardProps {
 
 const tools: ToolCardProps[] = [
   {
-    title: "Precificação Freelancer (Simples)",
+    title: "Precificação Freelancer",
     description: "Calcule o preço de projetos com base em valor/hora, complexidade e margem.",
     icon: Calculator,
     href: "/dev/systems/project-pricing",

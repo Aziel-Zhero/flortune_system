@@ -105,7 +105,7 @@ export default function CurrencyConverterPage() {
           <CardHeader>
             <CardTitle className="font-headline">Detalhes da Conversão</CardTitle>
             <CardDescription>
-              Selecione as moedas e insira o valor. Cotações fornecidas por <a href="https://exchangerate.host" target="_blank" rel="noopener noreferrer" className="underline text-primary">ExchangeRate.host</a>.
+              Selecione as moedas e insira o valor. Cotações fornecidas por <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer" className="underline text-primary">ExchangeRate-API</a>.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

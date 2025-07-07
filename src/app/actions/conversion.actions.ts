@@ -9,31 +9,19 @@ const currencyConversionSchema = z.object({
   toCurrency: z.string().length(3),
 });
 
-interface ConversionApiResponse {
-  success: boolean;
-  query: {
-    from: string;
-    to: string;
-    amount: number;
-  };
-  info: {
-    timestamp: number;
-    rate: number;
-  };
-  historical: boolean;
-  date: string; // YYYY-MM-DD
-  result: number;
-  error?: {
-    code: number;
-    type: string;
-    info: string;
-  }
+interface V6ApiResponse {
+  result: 'success' | 'error';
+  conversion_result?: number;
+  conversion_rate?: number;
+  time_last_update_utc?: string;
+  'error-type'?: string;
 }
+
 
 interface ConversionResult {
     convertedAmount: number;
     rate: number;
-    date: string; // YYYY-MM-DD
+    date: string; 
 }
 
 
@@ -49,11 +37,18 @@ export async function convertCurrency(
   }
 
   const { amount: validAmount, fromCurrency: validFrom, toCurrency: validTo } = validation.data;
+  const apiKey = process.env.EXCHANGERATE_API_KEY;
 
-  const apiUrl = `https://api.exchangerate.host/convert?from=${validFrom}&to=${validTo}&amount=${validAmount}&source=ecb`;
+  if (!apiKey) {
+    const errorMsg = "A chave da API de conversão de moeda não está configurada no servidor.";
+    console.error(errorMsg);
+    return { data: null, error: "Serviço de conversão indisponível." };
+  }
+  
+  const apiUrl = `https://v6.exchangerate-api.com/v6/${apiKey}/pair/${validFrom}/${validTo}/${validAmount}`;
 
   try {
-    const response = await fetch(apiUrl, { cache: 'no-store' }); 
+    const response = await fetch(apiUrl, { next: { revalidate: 3600 } }); // Cache de 1 hora
     
     if (!response.ok) {
       const errorBody = await response.text();
@@ -61,14 +56,21 @@ export async function convertCurrency(
       return { data: null, error: `Falha ao obter cotação da API (status: ${response.status}). Tente novamente mais tarde.` };
     }
 
-    const data: ConversionApiResponse = await response.json();
+    const data: V6ApiResponse = await response.json();
 
-    if (data.success && data.result !== undefined && data.info?.rate !== undefined && data.date) {
-      return { data: { convertedAmount: data.result, rate: data.info.rate, date: data.date }, error: null };
+    if (data.result === 'success' && data.conversion_result && data.conversion_rate && data.time_last_update_utc) {
+      return { 
+          data: { 
+              convertedAmount: data.conversion_result, 
+              rate: data.conversion_rate, 
+              date: data.time_last_update_utc 
+          }, 
+          error: null 
+      };
     } else {
-      const errorMessage = data.error?.info || "Resposta da API inválida ou incompleta.";
-      console.error("API response missing expected fields or not successful:", data);
-      return { data: null, error: errorMessage };
+      const errorMessage = data['error-type'] || "Resposta da API inválida ou incompleta.";
+      console.error("API response error:", data);
+      return { data: null, error: `Erro da API de conversão: ${errorMessage}` };
     }
   } catch (error: any) {
     console.error("Network or other error in convertCurrency action:", error);
