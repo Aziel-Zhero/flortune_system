@@ -22,7 +22,7 @@ import { ListChecks, GanttChartSquare, BarChart, History, Users, PlusCircle, Use
 import { APP_NAME } from "@/lib/constants";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
@@ -50,6 +50,13 @@ const newMemberSchema = z.object({
 });
 type NewMemberFormData = z.infer<typeof newMemberSchema>;
 
+const newSprintSchema = z.object({
+    name: z.string().min(5, "O nome da sprint é obrigatório."),
+    goal: z.string().min(10, "O objetivo da sprint é obrigatório."),
+});
+type NewSprintFormData = z.infer<typeof newSprintSchema>;
+
+
 const roleIcons: Record<ScrumRole, React.ElementType> = {
     "Product Owner": Crown,
     "Scrum Master": Shield,
@@ -59,10 +66,16 @@ const roleIcons: Record<ScrumRole, React.ElementType> = {
 export default function DevScrumPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeam);
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+  const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
 
   const { control, register, handleSubmit, reset, formState: { errors } } = useForm<NewMemberFormData>({
     resolver: zodResolver(newMemberSchema),
   });
+  
+  const { register: sprintRegister, handleSubmit: handleSprintSubmit, reset: resetSprintForm, formState: { errors: sprintErrors }} = useForm<NewSprintFormData>({
+    resolver: zodResolver(newSprintSchema)
+  });
+
 
   useEffect(() => {
     document.title = `Scrum Planner (DEV) - ${APP_NAME}`;
@@ -81,6 +94,12 @@ export default function DevScrumPage() {
     toast({ title: "Membro Adicionado!", description: `${data.name} foi adicionado(a) ao time como ${data.role}.` });
   };
   
+  const onNewSprintSubmit: SubmitHandler<NewSprintFormData> = (data) => {
+    toast({ title: "Nova Sprint Criada!", description: `A sprint "${data.name}" foi iniciada.` });
+    resetSprintForm();
+    setIsSprintModalOpen(false);
+  };
+  
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({
@@ -96,7 +115,35 @@ export default function DevScrumPage() {
         title="Painel Visual Scrum (DEV)"
         description="Visualize e gerencie seu projeto Scrum em um fluxo de trabalho claro e conectado."
         icon={<GanttChartSquare className="h-6 w-6 text-primary" />}
-        actions={<Button><PlusCircle className="mr-2"/>Nova Sprint</Button>}
+        actions={
+            <Dialog open={isSprintModalOpen} onOpenChange={setIsSprintModalOpen}>
+                <DialogTrigger asChild>
+                    <Button><PlusCircle className="mr-2"/>Nova Sprint</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Planejar Nova Sprint</DialogTitle>
+                        <DialogDescription>Defina o nome e o objetivo principal para a próxima sprint.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSprintSubmit(onNewSprintSubmit)} className="space-y-4">
+                        <div>
+                            <Label htmlFor="sprint-name">Nome da Sprint</Label>
+                            <Input id="sprint-name" {...sprintRegister("name")} placeholder='Ex: Lançamento V2 - Core' />
+                            {sprintErrors.name && <p className="text-sm text-destructive mt-1">{sprintErrors.name.message}</p>}
+                        </div>
+                        <div>
+                            <Label htmlFor="sprint-goal">Objetivo da Sprint</Label>
+                            <Input id="sprint-goal" {...sprintRegister("goal")} placeholder='Ex: Implementar autenticação e perfil do usuário' />
+                            {sprintErrors.goal && <p className="text-sm text-destructive mt-1">{sprintErrors.goal.message}</p>}
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                            <Button type="submit">Iniciar Sprint</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        }
       />
       
       {/* Fluxo de Trabalho Visual */}

@@ -34,6 +34,7 @@ export interface Transaction {
   date: string; // DATE (YYYY-MM-DD)
   type: 'income' | 'expense';
   notes?: string | null;
+  is_recurring: boolean; // Assumindo que a coluna foi adicionada
   created_at: string;
   updated_at: string;
   category?: Category | null; // Para joins

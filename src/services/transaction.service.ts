@@ -1,4 +1,3 @@
-
 'use server';
 
 // import { supabase } from '@/lib/supabase/client'; // Usaremos o cliente com token quando apropriado
@@ -8,6 +7,7 @@ import type { Transaction, ServiceListResponse, ServiceResponse, Category } from
 
 export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'> & {
   category_id: string;
+  is_recurring: boolean;
 };
 export type UpdateTransactionData = Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>>;
 
@@ -34,6 +34,7 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
         date,
         type,
         notes,
+        is_recurring,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -79,6 +80,7 @@ export async function addTransaction(userId: string, transactionData: NewTransac
         date,
         type,
         notes,
+        is_recurring,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)
@@ -123,6 +125,7 @@ export async function updateTransaction(transactionId: string, userId: string, t
         date,
         type,
         notes,
+        is_recurring,
         created_at,
         updated_at,
         category:categories (id, name, type, icon, is_default)

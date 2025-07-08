@@ -107,7 +107,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       type: data.type,
       category_id: data.category_id,
       notes: data.notes,
-      // is_recurring: data.is_recurring, // Backend precisa suportar este campo
+      is_recurring: data.is_recurring ?? false,
     };
 
     try {

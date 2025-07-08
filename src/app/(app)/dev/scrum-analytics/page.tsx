@@ -1,11 +1,10 @@
-
 // src/app/(app)/dev/scrum-analytics/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart, LineChart, PieChart, Flag, Clock, CheckCircle } from "lucide-react";
+import { BarChart, LineChart, PieChart as PieChartIcon, Flag, Clock, CheckCircle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -73,7 +72,7 @@ export default function ScrumAnalyticsPage() {
       <PageHeader
         title="Scrum Analytics (DEV)"
         description="Métricas e insights visuais sobre o desempenho e progresso dos seus projetos Scrum."
-        icon={<PieChart className="h-6 w-6 text-primary" />}
+        icon={<PieChartIcon className="h-6 w-6 text-primary" />}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -143,7 +142,7 @@ export default function ScrumAnalyticsPage() {
         <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><PieChart /> Participação do Time</CardTitle>
+              <CardTitle className="font-headline flex items-center gap-2"><PieChartIcon /> Participação do Time</CardTitle>
               <CardDescription>Distribuição de tarefas concluídas na sprint.</CardDescription>
             </CardHeader>
             <CardContent>

@@ -3,12 +3,20 @@
 
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { PageHeader } from "@/components/shared/page-header";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { KanbanSquare, PlusCircle, Calendar } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "@/hooks/use-toast";
 
 // --- Types ---
 interface Assignee {
@@ -33,6 +41,14 @@ interface Column {
 interface ColumnsState {
   [key: string]: Column;
 }
+
+const taskSchema = z.object({
+  title: z.string().min(3, "O título é obrigatório."),
+  points: z.coerce.number().optional(),
+  assignedTo: z.string().optional(),
+});
+
+type TaskFormData = z.infer<typeof taskSchema>;
 
 // --- Initial Data ---
 const initialColumns: ColumnsState = {
@@ -97,14 +113,14 @@ const KanbanCard: React.FC<{ task: Task }> = ({ task }) => {
   );
 };
 
-const KanbanColumn: React.FC<{ title: string; tasks: Task[]; droppableId: string }> = ({ title, tasks, droppableId }) => {
-  const totalPoints = tasks.reduce((sum, task) => sum + (task.points || 0), 0);
+const KanbanColumn: React.FC<{ droppableId: string; column: Column; children: React.ReactNode }> = ({ droppableId, column, children }) => {
+  const totalPoints = column.tasks.reduce((sum, task) => sum + (task.points || 0), 0);
   
   return (
     <div className="w-80 bg-muted/50 rounded-lg p-3 flex flex-col flex-shrink-0 max-h-[calc(100vh-16rem)]">
        <div className="flex justify-between items-center mb-3 px-1">
-        <h2 className="text-lg font-bold font-headline text-foreground">{title}</h2>
-        <span className="text-sm font-medium text-muted-foreground bg-background px-2 py-1 rounded-md">{tasks.length} / {totalPoints} pts</span>
+        <h2 className="text-lg font-bold font-headline text-foreground">{column.name}</h2>
+        <span className="text-sm font-medium text-muted-foreground bg-background px-2 py-1 rounded-md">{column.tasks.length} / {totalPoints} pts</span>
       </div>
       <Droppable droppableId={droppableId}>
         {(provided, snapshot) => (
@@ -116,26 +132,11 @@ const KanbanColumn: React.FC<{ title: string; tasks: Task[]; droppableId: string
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
-            {tasks.map((task, index) => (
-              <Draggable key={task.id} draggableId={task.id} index={index}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                  >
-                    <KanbanCard task={task} />
-                  </div>
-                )}
-              </Draggable>
-            ))}
+            {children}
             {provided.placeholder}
           </div>
         )}
       </Droppable>
-       <button className="mt-3 text-sm text-muted-foreground hover:text-primary flex items-center justify-center p-2 rounded-md hover:bg-primary/10 transition-colors">
-        <PlusCircle className="h-4 w-4 mr-2" /> Adicionar Tarefa
-      </button>
     </div>
   );
 };
@@ -144,56 +145,55 @@ const KanbanColumn: React.FC<{ title: string; tasks: Task[]; droppableId: string
 // --- Main Page Component ---
 export default function DevKanbanPage() {
   const [columns, setColumns] = useState<ColumnsState>(initialColumns);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<TaskFormData>({
+    resolver: zodResolver(taskSchema),
+  });
 
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
 
     if (!destination) return;
 
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
-      return; 
-    }
-
-    const sourceColumn = columns[source.droppableId];
-    const destColumn = columns[destination.droppableId];
-
-    if (!sourceColumn || !destColumn) return;
-
-    const sourceTasks = Array.from(sourceColumn.tasks);
-    const [removed] = sourceTasks.splice(source.index, 1);
-
     if (source.droppableId === destination.droppableId) {
-      // Movendo dentro da mesma coluna
-      sourceTasks.splice(destination.index, 0, removed);
-      const newColumn = {
-        ...sourceColumn,
-        tasks: sourceTasks,
-      };
-      setColumns({
-        ...columns,
-        [source.droppableId]: newColumn,
-      });
+        const column = columns[source.droppableId];
+        const copiedTasks = [...column.tasks];
+        const [removed] = copiedTasks.splice(source.index, 1);
+        copiedTasks.splice(destination.index, 0, removed);
+        setColumns({ ...columns, [source.droppableId]: { ...column, tasks: copiedTasks } });
     } else {
-      // Movendo para uma coluna diferente
-      const destTasks = Array.from(destColumn.tasks);
-      destTasks.splice(destination.index, 0, removed);
-      const newSourceCol = {
-        ...sourceColumn,
-        tasks: sourceTasks,
-      };
-      const newDestCol = {
-        ...destColumn,
-        tasks: destTasks,
-      };
-      setColumns({
-        ...columns,
-        [source.droppableId]: newSourceCol,
-        [destination.droppableId]: newDestCol,
-      });
+        const sourceColumn = columns[source.droppableId];
+        const destColumn = columns[destination.droppableId];
+        const sourceTasks = [...sourceColumn.tasks];
+        const destTasks = [...destColumn.tasks];
+        const [removed] = sourceTasks.splice(source.index, 1);
+        destTasks.splice(destination.index, 0, removed);
+        setColumns({
+            ...columns,
+            [source.droppableId]: { ...sourceColumn, tasks: sourceTasks },
+            [destination.droppableId]: { ...destColumn, tasks: destTasks }
+        });
     }
+  };
+  
+  const handleAddTask: SubmitHandler<TaskFormData> = (data) => {
+    const newTask: Task = {
+      id: `task_${Date.now()}`,
+      title: data.title,
+      points: data.points,
+      assignedTo: data.assignedTo ? { name: data.assignedTo } : undefined,
+    };
+    
+    const updatedBacklog = {
+      ...columns.backlog,
+      tasks: [newTask, ...columns.backlog.tasks],
+    };
+    
+    setColumns({ ...columns, backlog: updatedBacklog });
+    toast({ title: "Tarefa Adicionada!", description: `"${data.title}" foi adicionada ao Backlog.`});
+    reset({ title: "", points: undefined, assignedTo: "" });
+    setIsTaskModalOpen(false);
   };
 
   return (
@@ -206,13 +206,58 @@ export default function DevKanbanPage() {
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
           {Object.entries(columns).map(([id, col]) => (
-            <KanbanColumn key={id} title={col.name} tasks={col.tasks} droppableId={id} />
+            <KanbanColumn key={id} droppableId={id} column={col}>
+              {col.tasks.map((task, index) => (
+                <Draggable key={task.id} draggableId={task.id} index={index}>
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      <KanbanCard task={task} />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+            </KanbanColumn>
           ))}
            <div className="w-72 flex-shrink-0">
-             <button className="w-full h-12 bg-muted/30 hover:bg-muted/60 transition-colors rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground">
-                <PlusCircle className="h-5 w-5 mr-2"/>
-                Adicionar nova coluna
-            </button>
+             <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
+                <DialogTrigger asChild>
+                    <button className="w-full h-full bg-muted/30 hover:bg-muted/60 transition-colors rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground">
+                        <PlusCircle className="h-5 w-5 mr-2"/>
+                        Adicionar Tarefa
+                    </button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Nova Tarefa</DialogTitle>
+                        <DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit(handleAddTask)} className="space-y-4">
+                        <div>
+                            <Label htmlFor="title">Título da Tarefa</Label>
+                            <Input id="title" {...register("title")} />
+                            {errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}
+                        </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="points">Story Points</Label>
+                                <Input id="points" type="number" {...register("points")} />
+                            </div>
+                            <div>
+                                <Label htmlFor="assignedTo">Atribuído a</Label>
+                                <Input id="assignedTo" {...register("assignedTo")} placeholder="Nome do membro" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                             <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                             <Button type="submit">Adicionar ao Backlog</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+             </Dialog>
            </div>
         </div>
       </DragDropContext>
