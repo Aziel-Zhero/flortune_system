@@ -1,12 +1,12 @@
 // src/app/(app)/dev/clients/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -23,7 +23,6 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -40,7 +39,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users2, PlusCircle, Edit, Trash2, Download, Circle } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileCsv, AlertTriangle, ChevronsRight } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -86,10 +86,10 @@ const statusConfig: Record<ClientStatus, { label: string; color: string; iconCol
   delayed: { label: 'Atrasado', color: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700', iconColor: 'bg-red-500' },
 };
 
-const priorityConfig: Record<ClientPriority, { label: string }> = {
-  low: { label: 'Baixa' },
-  medium: { label: 'Média' },
-  high: { label: 'Alta' },
+const priorityConfig: Record<ClientPriority, { label: string, color: string }> = {
+  low: { label: 'Baixa', color: 'text-gray-500' },
+  medium: { label: 'Média', color: 'text-yellow-500' },
+  high: { label: 'Alta', color: 'text-red-500' },
 };
 
 export default function DevClientsPage() {
@@ -97,12 +97,16 @@ export default function DevClientsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
   });
   
-  // Efeito para carregar dados do localStorage
   useEffect(() => {
     document.title = `Clientes & Projetos (DEV) - ${APP_NAME}`;
     try {
@@ -113,11 +117,28 @@ export default function DevClientsPage() {
     } catch (e) { console.error("Falha ao carregar clientes do localStorage", e); }
   }, []);
 
-  // Efeito para salvar dados no localStorage
   useEffect(() => {
     try {
         localStorage.setItem("flortune-dev-clients", JSON.stringify(clients));
     } catch(e) { console.error("Falha ao salvar clientes no localStorage", e); }
+  }, [clients]);
+  
+  const filteredClients = useMemo(() => {
+      return clients
+        .filter(client => {
+          if (statusFilter !== 'all' && client.status !== statusFilter) return false;
+          if (priorityFilter !== 'all' && client.priority !== priorityFilter) return false;
+          if (searchTerm && !client.name.toLowerCase().includes(searchTerm.toLowerCase()) && !client.serviceType.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+          return true;
+        });
+    }, [clients, searchTerm, statusFilter, priorityFilter]);
+    
+  const clientSummary = useMemo(() => {
+    return clients.reduce((acc, client) => {
+        acc[client.status] = (acc[client.status] || 0) + 1;
+        acc.total = (acc.total || 0) + 1;
+        return acc;
+    }, {} as Record<ClientStatus | 'total', number>);
   }, [clients]);
 
   const handleOpenForm = (client: Client | null = null) => {
@@ -126,14 +147,9 @@ export default function DevClientsPage() {
       reset(client);
     } else {
       reset({
-        name: "",
-        serviceType: "",
-        status: "planning",
-        priority: "medium",
-        startDate: format(new Date(), 'yyyy-MM-dd'),
-        deadline: format(new Date(), 'yyyy-MM-dd'),
-        notes: "",
-        tasks: "",
+        name: "", serviceType: "", status: "planning", priority: "medium",
+        startDate: format(new Date(), 'yyyy-MM-dd'), deadline: format(new Date(), 'yyyy-MM-dd'),
+        notes: "", tasks: "",
       });
     }
     setIsFormOpen(true);
@@ -141,11 +157,9 @@ export default function DevClientsPage() {
 
   const onSubmit: SubmitHandler<ClientFormData> = (data) => {
     if (editingClient) {
-      // Editar
       setClients(clients.map(c => c.id === editingClient.id ? { ...c, ...data } : c));
       toast({ title: "Cliente Atualizado!", description: `"${data.name}" foi atualizado com sucesso.` });
     } else {
-      // Adicionar
       const newClient: Client = { ...data, id: `client_${Date.now()}` };
       setClients(prev => [newClient, ...prev]);
       toast({ title: "Cliente Adicionado!", description: `"${data.name}" foi adicionado.` });
@@ -161,8 +175,48 @@ export default function DevClientsPage() {
         setClientToDelete(null);
     }
   };
+  
+   const escapeCSV = (str: string | null | undefined): string => {
+    if (str === null || str === undefined) return '""';
+    const s = String(str);
+    if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return `"${s}"`;
+  };
 
-  const handleExport = () => {
+  const handleExportCSV = () => {
+    if (clients.length === 0) {
+      toast({ title: "Nenhum dado para exportar", variant: "destructive" });
+      return;
+    }
+    const headers = ["ID", "Nome", "Tipo de Servico", "Status", "Data de Inicio", "Prazo", "Prioridade", "Anotacoes", "Tarefas"];
+    const csvContent = [
+      headers.join(','),
+      ...clients.map(c => [
+        escapeCSV(c.id), escapeCSV(c.name), escapeCSV(c.serviceType),
+        escapeCSV(c.status), escapeCSV(c.startDate), escapeCSV(c.deadline),
+        escapeCSV(c.priority), escapeCSV(c.notes), escapeCSV(c.tasks)
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement('a');
+    if(link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `flortune_clients_backup_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: "Exportação CSV Iniciada", description: "O arquivo será baixado."});
+    } else {
+       toast({ title: "Exportação falhou", description: "Seu navegador não suporta a exportação de arquivos.", variant: "destructive" });
+    }
+  };
+
+  const handleExportJSON = () => {
     if (clients.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
@@ -177,7 +231,7 @@ export default function DevClientsPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast({ title: "Exportação Iniciada", description: "O arquivo JSON será baixado."});
+    toast({ title: "Exportação JSON Iniciada", description: "O arquivo será baixado."});
   };
 
   return (
@@ -188,20 +242,61 @@ export default function DevClientsPage() {
         icon={<Users2 className="h-6 w-6 text-primary" />}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4"/>Exportar JSON</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="outline"><Download className="mr-2 h-4 w-4"/>Exportar</Button></DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleExportJSON}><FileJson className="mr-2 h-4 w-4"/>Exportar JSON</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV}><FileCsv className="mr-2 h-4 w-4"/>Exportar CSV</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Cliente</Button>
           </div>
         }
       />
       
-      {clients.length === 0 ? (
+      {/* Filtros e Busca */}
+       <Card className="mb-6 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+             <Input placeholder="Buscar por nome ou serviço..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10"/>
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger><div className="flex items-center gap-2"><Filter className="h-4 w-4"/>Status: {statusFilter === 'all' ? 'Todos' : statusConfig[statusFilter as ClientStatus].label}</div></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos os Status</SelectItem>{Object.entries(statusConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent>
+          </Select>
+           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger><div className="flex items-center gap-2"><Filter className="h-4 w-4"/>Prioridade: {priorityFilter === 'all' ? 'Todas' : priorityConfig[priorityFilter as ClientPriority].label}</div></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todas as Prioridades</SelectItem>{Object.entries(priorityConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent>
+          </Select>
+        </div>
+      </Card>
+
+      {/* Resumo/Ranking */}
+      {clients.length > 0 && (
+         <Card className="mb-6">
+            <CardHeader><CardTitle className="font-headline text-lg">Resumo de Projetos</CardTitle></CardHeader>
+            <CardContent className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2 font-medium">Total: <span className="text-xl font-bold">{clientSummary.total || 0}</span></div>
+                {Object.entries(clientSummary).filter(([key]) => key !== 'total').map(([status, count]) => (
+                    <div key={status} className="flex items-center gap-2"><Circle className={cn("h-3 w-3", statusConfig[status as ClientStatus].iconColor)}/>{statusConfig[status as ClientStatus].label}: <span className="font-bold">{count}</span></div>
+                ))}
+            </CardContent>
+         </Card>
+      )}
+      
+      {filteredClients.length === 0 ? (
         <Card className="text-center py-12 border-dashed">
-            <CardHeader><CardTitle>Nenhum cliente cadastrado</CardTitle><CardDescription>Comece adicionando seu primeiro cliente ou projeto.</CardDescription></CardHeader>
-            <CardContent><Button onClick={() => handleOpenForm()}>Adicionar Primeiro Cliente</Button></CardContent>
+            <CardHeader>
+                <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50"/>
+                <CardTitle className="mt-4">Nenhum resultado encontrado</CardTitle>
+                <CardDescription>Tente ajustar seus filtros ou adicione um novo cliente.</CardDescription>
+            </CardHeader>
+            <CardContent><Button onClick={() => handleOpenForm()}>Adicionar Novo Cliente</Button></CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {clients.map(client => (
+            {filteredClients.map(client => (
                 <Card key={client.id} className="flex flex-col shadow-lg hover:shadow-primary/20 transition-shadow">
                     <CardHeader>
                         <div className="flex justify-between items-start">
@@ -214,7 +309,7 @@ export default function DevClientsPage() {
                         <CardDescription>{client.serviceType}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm flex-grow">
-                        <p><strong>Prioridade:</strong> {priorityConfig[client.priority].label}</p>
+                        <p className="flex items-center gap-1"><strong>Prioridade:</strong> <span className={cn(priorityConfig[client.priority].color, 'font-semibold')}>{priorityConfig[client.priority].label}</span></p>
                         <p><strong>Início:</strong> {format(new Date(client.startDate), "dd/MM/yyyy")}</p>
                         <p><strong>Entrega:</strong> {format(new Date(client.deadline), "dd/MM/yyyy")}</p>
                     </CardContent>
@@ -234,7 +329,7 @@ export default function DevClientsPage() {
             <DialogTitle className="font-headline">{editingClient ? "Editar Cliente/Projeto" : "Adicionar Novo Cliente/Projeto"}</DialogTitle>
             <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
                 <div><Label htmlFor="serviceType">Tipo de Serviço</Label><Input id="serviceType" {...register("serviceType")} placeholder="Ex: Website, API, Automação" />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div>
@@ -249,7 +344,7 @@ export default function DevClientsPage() {
             </div>
             <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} placeholder="- Tarefa 1&#10;- Tarefa 2" rows={4}/></div>
             <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} placeholder="Decisões, pendências, etc." rows={4}/></div>
-            <DialogFooter>
+            <DialogFooter className="sticky bottom-0 bg-background pt-4 -mb-4 -mx-1 px-1">
               <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
               <Button type="submit">Salvar</Button>
             </DialogFooter>
