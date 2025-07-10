@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/scrum/page.tsx
 "use client";
 
@@ -118,7 +119,7 @@ export default function DevScrumPage() {
         actions={
             <Dialog open={isSprintModalOpen} onOpenChange={setIsSprintModalOpen}>
                 <DialogTrigger asChild>
-                    <Button><PlusCircle className="mr-2"/>Nova Sprint</Button>
+                    <Button><PlusCircle className="mr-2 h-4 w-4"/>Nova Sprint</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
