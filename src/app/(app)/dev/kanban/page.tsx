@@ -3,8 +3,8 @@
 
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
-import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
 import { PageHeader } from "@/components/shared/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
@@ -113,35 +113,6 @@ const KanbanCard: React.FC<{ task: Task }> = ({ task }) => {
   );
 };
 
-const KanbanColumn: React.FC<{ droppableId: string; column: Column; children: React.ReactNode }> = ({ droppableId, column, children }) => {
-  const totalPoints = column.tasks.reduce((sum, task) => sum + (task.points || 0), 0);
-  
-  return (
-    <div className="w-80 bg-muted/50 rounded-lg p-3 flex flex-col flex-shrink-0 max-h-[calc(100vh-16rem)]">
-       <div className="flex justify-between items-center mb-3 px-1">
-        <h2 className="text-lg font-bold font-headline text-foreground">{column.name}</h2>
-        <span className="text-sm font-medium text-muted-foreground bg-background px-2 py-1 rounded-md">{column.tasks.length} / {totalPoints} pts</span>
-      </div>
-      <Droppable droppableId={droppableId}>
-        {(provided, snapshot) => (
-          <div
-            className={cn(
-              "flex-1 space-y-2 transition-colors duration-200 p-1 rounded-md overflow-y-auto",
-              snapshot.isDraggingOver ? 'bg-primary/10' : 'bg-transparent'
-            )}
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-          >
-            {children}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
-    </div>
-  );
-};
-
-
 // --- Main Page Component ---
 export default function DevKanbanPage() {
   const [columns, setColumns] = useState<ColumnsState>(initialColumns);
@@ -197,70 +168,88 @@ export default function DevKanbanPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader
-        title="Quadro Kanban (DEV)"
-        description="Visualize e gerencie o fluxo de trabalho de forma ágil. Arraste e solte as tarefas entre as colunas."
-        icon={<KanbanSquare className="h-6 w-6 text-primary" />}
-      />
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
-          {Object.entries(columns).map(([id, col]) => (
-            <KanbanColumn key={id} droppableId={id} column={col}>
-              {col.tasks.map((task, index) => (
-                <Draggable key={task.id} draggableId={task.id} index={index}>
-                  {(provided) => (
+    <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
+      <div className="flex flex-col h-full">
+        <PageHeader
+          title="Quadro Kanban (DEV)"
+          description="Visualize e gerencie o fluxo de trabalho de forma ágil. Arraste e solte as tarefas entre as colunas."
+          icon={<KanbanSquare className="h-6 w-6 text-primary" />}
+        />
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
+            {Object.entries(columns).map(([id, col]) => (
+              <div key={id} className="w-80 bg-muted/50 rounded-lg p-3 flex flex-col flex-shrink-0 max-h-[calc(100vh-16rem)]">
+                <div className="flex justify-between items-center mb-3 px-1">
+                  <h2 className="text-lg font-bold font-headline text-foreground">{col.name}</h2>
+                  <span className="text-sm font-medium text-muted-foreground bg-background px-2 py-1 rounded-md">{col.tasks.length} / {col.tasks.reduce((sum, task) => sum + (task.points || 0), 0)} pts</span>
+                </div>
+                <Droppable droppableId={id}>
+                  {(provided, snapshot) => (
                     <div
+                      className={cn(
+                        "flex-1 space-y-2 transition-colors duration-200 p-1 rounded-md overflow-y-auto",
+                        snapshot.isDraggingOver ? 'bg-primary/10' : 'bg-transparent'
+                      )}
                       ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
+                      {...provided.droppableProps}
                     >
-                      <KanbanCard task={task} />
+                      {col.tasks.map((task, index) => (
+                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                            >
+                              <KanbanCard task={task} />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
                   )}
-                </Draggable>
-              ))}
-            </KanbanColumn>
-          ))}
-           <div className="w-72 flex-shrink-0">
-             <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
-                <DialogTrigger asChild>
-                    <button className="w-full h-full bg-muted/30 hover:bg-muted/60 transition-colors rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground">
-                        <PlusCircle className="h-5 w-5 mr-2"/>
-                        Adicionar Tarefa
-                    </button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Nova Tarefa</DialogTitle>
-                        <DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit(handleAddTask)} className="space-y-4">
-                        <div>
-                            <Label htmlFor="title">Título da Tarefa</Label>
-                            <Input id="title" {...register("title")} />
-                            {errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}
-                        </div>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="points">Story Points</Label>
-                                <Input id="points" type="number" {...register("points")} />
-                            </div>
-                            <div>
-                                <Label htmlFor="assignedTo">Atribuído a</Label>
-                                <Input id="assignedTo" {...register("assignedTo")} placeholder="Nome do membro" />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                             <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                             <Button type="submit">Adicionar ao Backlog</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-             </Dialog>
-           </div>
-        </div>
-      </DragDropContext>
-    </div>
+                </Droppable>
+              </div>
+            ))}
+            <div className="w-72 flex-shrink-0">
+              <DialogTrigger asChild>
+                  <button className="w-full h-full bg-muted/30 hover:bg-muted/60 transition-colors rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground">
+                      <PlusCircle className="h-5 w-5 mr-2"/>
+                      Adicionar Tarefa
+                  </button>
+              </DialogTrigger>
+            </div>
+          </div>
+        </DragDropContext>
+      </div>
+       <DialogContent>
+          <DialogHeader>
+              <DialogTitle>Nova Tarefa</DialogTitle>
+              <DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(handleAddTask)} className="space-y-4">
+              <div>
+                  <Label htmlFor="title">Título da Tarefa</Label>
+                  <Input id="title" {...register("title")} />
+                  {errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}
+              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                      <Label htmlFor="points">Story Points</Label>
+                      <Input id="points" type="number" {...register("points")} />
+                  </div>
+                  <div>
+                      <Label htmlFor="assignedTo">Atribuído a</Label>
+                      <Input id="assignedTo" {...register("assignedTo")} placeholder="Nome do membro" />
+                  </div>
+              </div>
+              <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                    <Button type="submit">Adicionar ao Backlog</Button>
+              </DialogFooter>
+          </form>
+      </DialogContent>
+    </Dialog>
   );
 }

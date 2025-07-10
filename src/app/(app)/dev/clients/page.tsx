@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/clients/page.tsx
 "use client";
 
@@ -237,7 +236,7 @@ export default function DevClientsPage() {
   };
 
   return (
-    <>
+    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
       <PageHeader
         title="Clientes & Projetos (DEV)"
         description="Gerencie seus clientes, projetos, prazos e anotações."
@@ -323,34 +322,32 @@ export default function DevClientsPage() {
       )}
 
       {/* --- Diálogo de Adicionar/Editar --- */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-headline">{editingClient ? "Editar Cliente/Projeto" : "Adicionar Novo Cliente/Projeto"}</DialogTitle>
-            <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
-                <div><Label htmlFor="serviceType">Tipo de Serviço</Label><Input id="serviceType" {...register("serviceType")} placeholder="Ex: Website, API, Automação" />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div>
-                <div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label htmlFor="status">Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="status"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/>{errors.status && <p className="text-sm text-destructive mt-1">{errors.status.message}</p>}</div>
-                <div><Label htmlFor="priority">Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="priority"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/>{errors.priority && <p className="text-sm text-destructive mt-1">{errors.priority.message}</p>}</div>
-            </div>
-            <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} placeholder="- Tarefa 1&#10;- Tarefa 2" rows={4}/></div>
-            <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} placeholder="Decisões, pendências, etc." rows={4}/></div>
-            <DialogFooter className="sticky bottom-0 bg-background pt-4 -mb-4 -mx-1 px-1">
-              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-              <Button type="submit">Salvar</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="font-headline">{editingClient ? "Editar Cliente/Projeto" : "Adicionar Novo Cliente/Projeto"}</DialogTitle>
+          <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
+              <div><Label htmlFor="serviceType">Tipo de Serviço</Label><Input id="serviceType" {...register("serviceType")} placeholder="Ex: Website, API, Automação" />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div>
+              <div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label htmlFor="status">Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="status"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/>{errors.status && <p className="text-sm text-destructive mt-1">{errors.status.message}</p>}</div>
+              <div><Label htmlFor="priority">Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="priority"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/>{errors.priority && <p className="text-sm text-destructive mt-1">{errors.priority.message}</p>}</div>
+          </div>
+          <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} placeholder="- Tarefa 1&#10;- Tarefa 2" rows={4}/></div>
+          <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} placeholder="Decisões, pendências, etc." rows={4}/></div>
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 -mb-4 -mx-1 px-1">
+            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+            <Button type="submit">Salvar</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
       
       {/* --- Diálogo de Exclusão --- */}
       <AlertDialog open={!!clientToDelete} onOpenChange={(isOpen) => !isOpen && setClientToDelete(null)}>
@@ -362,6 +359,6 @@ export default function DevClientsPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </Dialog>
   );
 }
