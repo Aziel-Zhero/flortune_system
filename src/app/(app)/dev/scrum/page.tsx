@@ -81,7 +81,7 @@ export default function DevScrumPage() {
     document.title = `Scrum Planner (DEV) - ${APP_NAME}`;
   }, []);
 
-  const onAddMember = (data: NewMemberFormData) => {
+  const onAddMember: SubmitHandler<NewMemberFormData> = (data) => {
     const newMember: TeamMember = {
       id: `user_${Date.now()}`,
       name: data.name,
@@ -96,7 +96,7 @@ export default function DevScrumPage() {
   
   const onNewSprintSubmit: SubmitHandler<NewSprintFormData> = (data) => {
     toast({ title: "Nova Sprint Criada!", description: `A sprint "${data.name}" foi iniciada.` });
-    resetSprintForm();
+    resetSprintForm({name: "", goal: ""});
     setIsSprintModalOpen(false);
   };
   

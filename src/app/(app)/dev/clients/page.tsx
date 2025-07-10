@@ -40,11 +40,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileCsv, AlertTriangle, ChevronsRight } from "lucide-react";
+import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileCsv, AlertTriangle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 // --- Tipos e Dados ---
 type ClientStatus = 'planning' | 'in_progress' | 'delivered' | 'on_hold' | 'delayed';
@@ -69,8 +69,8 @@ const clientSchema = z.object({
   startDate: z.string().refine(v => v, { message: "Data de início é obrigatória." }),
   deadline: z.string().refine(v => v, { message: "Data de entrega é obrigatória." }),
   priority: z.enum(['low', 'medium', 'high']),
-  notes: z.string().optional(),
-  tasks: z.string().optional(),
+  notes: z.string().optional().default(""),
+  tasks: z.string().optional().default(""),
 }).refine(data => new Date(data.deadline) >= new Date(data.startDate), {
   message: "A data de entrega não pode ser anterior à data de início.",
   path: ["deadline"],
@@ -254,7 +254,6 @@ export default function DevClientsPage() {
         }
       />
       
-      {/* Filtros e Busca */}
        <Card className="mb-6 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
@@ -272,7 +271,6 @@ export default function DevClientsPage() {
         </div>
       </Card>
 
-      {/* Resumo/Ranking */}
       {clients.length > 0 && (
          <Card className="mb-6">
             <CardHeader><CardTitle className="font-headline text-lg">Resumo de Projetos</CardTitle></CardHeader>
@@ -310,8 +308,8 @@ export default function DevClientsPage() {
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm flex-grow">
                         <p className="flex items-center gap-1"><strong>Prioridade:</strong> <span className={cn(priorityConfig[client.priority].color, 'font-semibold')}>{priorityConfig[client.priority].label}</span></p>
-                        <p><strong>Início:</strong> {format(new Date(client.startDate), "dd/MM/yyyy")}</p>
-                        <p><strong>Entrega:</strong> {format(new Date(client.deadline), "dd/MM/yyyy")}</p>
+                        <p><strong>Início:</strong> {format(parseISO(client.startDate), "dd/MM/yyyy")}</p>
+                        <p><strong>Entrega:</strong> {format(parseISO(client.deadline), "dd/MM/yyyy")}</p>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
                         <Button variant="ghost" size="sm" onClick={() => handleOpenForm(client)}><Edit className="mr-2 h-4 w-4"/>Editar</Button>
@@ -339,8 +337,8 @@ export default function DevClientsPage() {
                 <div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label htmlFor="status">Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="status"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
-                <div><Label htmlFor="priority">Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="priority"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
+                <div><Label htmlFor="status">Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="status"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/>{errors.status && <p className="text-sm text-destructive mt-1">{errors.status.message}</p>}</div>
+                <div><Label htmlFor="priority">Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="priority"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([key, {label}]) => (<SelectItem key={key} value={key}>{label}</SelectItem>))}</SelectContent></Select>)}/>{errors.priority && <p className="text-sm text-destructive mt-1">{errors.priority.message}</p>}</div>
             </div>
             <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} placeholder="- Tarefa 1&#10;- Tarefa 2" rows={4}/></div>
             <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} placeholder="Decisões, pendências, etc." rows={4}/></div>
