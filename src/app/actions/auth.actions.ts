@@ -123,18 +123,17 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
 
     // 1. Verificar se o email já existe em `public.profiles`
-    //    A RLS em `public.profiles` deve permitir `anon` ler a coluna `email`.
-    //    A política "Allow anon to select email from profiles for signup check" com USING (true) deve cobrir isso.
     console.log(`[SignupUser Action] Verificando se email ${email} já existe em public.profiles...`);
     const { data: existingProfileByEmail, error: fetchError } = await supabase
       .from('profiles')
       .select('email')
       .eq('email', email)
-      .maybeSingle(); // Use maybeSingle para não dar erro se não encontrar
+      .maybeSingle(); 
 
     if (fetchError) {
       console.error("[SignupUser Action] Erro ao verificar perfil existente em public.profiles (DB select):", fetchError);
-      return { message: "Erro ao verificar dados do usuário. Tente novamente.", success: false, errors: {_form: ["Erro no banco de dados ao verificar email."]} };
+      // *** MUDANÇA: MENSAGEM DE ERRO MAIS ESPECÍFICA ***
+      return { message: "Não foi possível verificar os dados no banco. Verifique as permissões (RLS) da tabela 'profiles' para a role 'anon' e tente novamente.", success: false, errors: {_form: ["Erro de permissão no banco de dados ao verificar email."]} };
     }
 
     if (existingProfileByEmail) {
@@ -147,12 +146,8 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     }
     console.log("[SignupUser Action] Email não encontrado em public.profiles, prosseguindo com cadastro.");
 
-    // 2. Criar o usuário em `next_auth.users` usando o SupabaseAdapter (indiretamente via signIn)
-    //    Para cadastro por credenciais, precisamos primeiro criar o perfil em `public.profiles`
-    //    e depois fazer o login programático com NextAuth para que o Adapter crie o usuário em `next_auth.users`.
-    //    O ID do perfil em `public.profiles` DEVE ser o mesmo que será usado em `next_auth.users`.
-
-    const profileId = uuidv4(); // Gerar UUID para o novo perfil e futuro usuário NextAuth
+    // 2. Preparar dados para o novo perfil
+    const profileId = uuidv4();
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let cpfCnpjValue: string | null = null;
@@ -163,11 +158,11 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     const phoneValue = phone ? phone.replace(/\D/g, '') : null;
     
     const newProfileData: Omit<Profile, 'created_at' | 'updated_at'> = {
-        id: profileId, // Usar o UUID gerado
+        id: profileId,
         full_name: fullName,
         display_name: displayName,
         email: email,
-        hashed_password: hashedPassword, // Senha hasheada
+        hashed_password: hashedPassword,
         phone: phoneValue,
         cpf_cnpj: cpfCnpjValue,
         rg: rgValue,
@@ -175,29 +170,17 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         account_type: accountType,
     };
     
-    // A RLS na tabela `public.profiles` DEVE permitir que a role `anon` (ou a chave usada pelo Supabase client aqui) faça INSERT.
-    // A política "Allow service_role to insert new profiles..." era uma tentativa, mas
-    // se o `supabase` client aqui usa a `anon_key`, precisamos de uma política de INSERT para `anon`.
-    // No entanto, é mais seguro que a criação de perfil seja feita por uma `service_role` ou função `SECURITY DEFINER`.
-    // O trigger `handle_new_user_from_next_auth` é SECURITY DEFINER.
-    // Para este fluxo de cadastro por credenciais, a action `signupUser` (Server Action) executa no contexto do servidor.
-    // O cliente `supabase` aqui usará a `anon_key` por padrão.
-    // Portanto, `public.profiles` precisa de uma política de INSERT para `anon`.
-    // Vamos adicionar: `CREATE POLICY "Allow anon to insert their own profile" ON public.profiles FOR INSERT TO anon WITH CHECK (true);` no SQL.
-    // E restringir as colunas que podem ser inseridas.
-    // A alternativa é usar o `supabaseAdmin` (com service_role_key) aqui, mas isso expõe a chave no server-side.
-    // O melhor é o trigger. Mas para cadastro por credenciais, o `public.profiles` é criado ANTES do `next_auth.users`.
-
-    console.log("[SignupUser Action] Tentando inserir novo perfil em public.profiles com ID:", profileId, "Email:", newProfileData.email);
+    // 3. Inserir o novo perfil na tabela `public.profiles`
+    console.log("[SignupUser Action] Tentando inserir novo perfil em public.profiles com ID:", profileId);
     const { data: createdProfile, error: insertProfileError } = await supabase
         .from('profiles')
         .insert(newProfileData)
-        .select('id, email') // Selecionar apenas o necessário para confirmação
+        .select('id, email')
         .single();
 
     if (insertProfileError) {
         console.error("[SignupUser Action] Erro ao criar perfil em public.profiles:", insertProfileError);
-        if (insertProfileError.code === '23505') { // Erro de constraint UNIQUE (email ou cpf_cnpj)
+        if (insertProfileError.code === '23505') { 
              return { message: "Este email ou CPF/CNPJ já está registrado.", success: false, errors: {email: ["Email ou CPF/CNPJ já registrado."] }};
         }
         return { message: `Falha ao criar conta (DB insert profile): ${insertProfileError.message}.`, success: false, errors: {_form: [insertProfileError.message]} };
@@ -210,50 +193,33 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     console.log("[SignupUser Action] Perfil criado com sucesso em public.profiles com ID:", createdProfile.id);
     
-    // 3. Agora, fazer login programático para que o SupabaseAdapter crie a entrada em `next_auth.users`
-    //    e o trigger crie a entrada (ou confirme) em `public.profiles`.
-    //    O `authorize` do CredentialsProvider será chamado.
-    console.log("[SignupUser Action] Tentando login programático com NextAuth para vincular conta...");
-    const signInResult = await nextAuthSignIn('credentials', {
-      email: email,
-      password: password, // Senha original, não hasheada. O `authorize` fará o hash e a comparação.
-      redirect: false, // Não redirecionar ainda, queremos o resultado.
-    });
+    // 4. Inserir o usuário na tabela `next_auth.users`
+    // Esta etapa é crucial para que o NextAuth.js reconheça o usuário.
+    // O trigger fará a sincronização reversa se necessário, mas para o fluxo de credenciais, é melhor ser explícito.
+    console.log("[SignupUser Action] Tentando inserir usuário em next_auth.users para vincular conta...");
+    const { error: insertAuthUserError } = await supabase
+      .from('next_auth_users') // Nome da tabela como definido no adapter
+      .insert({
+        id: profileId,
+        email: email,
+        name: displayName,
+        image: newProfileData.avatar_url,
+      });
 
-    if (signInResult?.error) {
-      console.error("[SignupUser Action] Erro durante o login programático após cadastro:", signInResult.error);
-      // Aqui pode ser um problema se o `authorize` falhar mesmo com dados corretos.
-      // Poderia ser um problema de timing ou configuração.
-      // Se o perfil foi criado, mas o login falha, o usuário pode tentar logar manualmente.
-      // Por enquanto, vamos informar o usuário sobre o sucesso do cadastro e pedir para logar.
-      // Isso evita um estado inconsistente onde o perfil existe mas o usuário vê um erro de "falha no login".
-      // No entanto, se o `authorize` falha consistentemente aqui, há um problema maior.
-      // Uma causa comum é o `profiles.id` não ser FK para `next_auth.users.id` ainda.
-      // No nosso caso, o `profiles.id` é FK, e o `next_auth.users.id` é gerado pelo adapter.
-      // O `authorize` retorna `id: profile.id`. O Adapter usa esse `id` para criar/linkar `next_auth.users`.
-      // O trigger `handle_new_user_from_next_auth` dispara em INSERT em `next_auth.users`.
-      // Se ele tenta inserir em `profiles` e o `profile.id` já existe (criamos acima), o `ON CONFLICT (id) DO NOTHING` do trigger deve funcionar.
-
-      // Por causa da complexidade de depurar o signIn programático aqui e potenciais loops de erro,
-      // uma abordagem mais simples para o usuário é:
-      // 1. Criar o perfil em `public.profiles`.
-      // 2. Redirecionar para `/login?signup=success`.
-      // O usuário então faz login manualmente, e o `CredentialsProvider` + `SupabaseAdapter` cuidam de criar
-      // a entrada em `next_auth.users` e o trigger cuida da sincronização com `public.profiles`.
-      // Isso é mais robusto.
-
-      // Removendo o signIn programático e redirecionando para login manual.
-      // console.warn("[SignupUser Action] Login programático falhou após cadastro, mas perfil foi criado. Usuário deve logar manualmente. Erro:", signInResult.error);
-      // return { message: "Conta criada, mas login automático falhou. Por favor, tente fazer login.", success: true, errors: {_form: ["Login automático falhou após cadastro."]} };
+    if (insertAuthUserError) {
+      console.error("[SignupUser Action] Erro ao criar usuário em next_auth.users:", insertAuthUserError);
+      // Aqui, temos um problema: o perfil foi criado mas a conta de autenticação não.
+      // Seria ideal ter uma transação para reverter a criação do perfil. Por simplicidade,
+      // vamos notificar e pedir para tentar novamente, sabendo que o email agora estará bloqueado.
+      return { message: "Ocorreu um erro ao vincular a conta. Por favor, contate o suporte.", success: false, errors: {_form: ["Falha na vinculação da conta de autenticação."]} };
     }
 
-    // Se o perfil foi criado com sucesso:
-    console.log("[SignupUser Action] Cadastro e criação de perfil em public.profiles bem-sucedidos. Redirecionando para login.");
-    redirect('/login?signup=success'); // Redireciona para a página de login com uma mensagem de sucesso
+    console.log("[SignupUser Action] Cadastro completo e bem-sucedido. Redirecionando para login.");
+    redirect('/login?signup=success'); 
 
   } catch (error: any) {
     if (error.message?.includes('NEXT_REDIRECT')) {
-      throw error; // Necessário para o redirect funcionar
+      throw error; 
     }
     console.error("[SignupUser Action] Erro inesperado durante o cadastro:", error);
     return {

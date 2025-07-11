@@ -24,43 +24,40 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 const nextAuthSecret = process.env.AUTH_SECRET;
-const authUrl = process.env.AUTH_URL; // Using AUTH_URL as primary
-const nextauthUrlEnv = process.env.NEXTAUTH_URL; // Also check NEXTAUTH_URL
+const authUrl = process.env.AUTH_URL; 
+const nextauthUrlEnv = process.env.NEXTAUTH_URL; 
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-console.log("\n--- Environment Variables Check ---");
-console.log(`NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? `Present (Value: ${supabaseUrl})` : "🚨 MISSING or EMPTY"}`);
+console.log("\n--- Environment Variables Check (from [...nextauth]/route.ts) ---");
+console.log(`NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? `Present (Value: ${supabaseUrl.substring(0,20)}...)` : "🚨 MISSING or EMPTY"}`);
 console.log(`SUPABASE_SERVICE_ROLE_KEY: ${supabaseServiceRoleKey ? `Present (Key starts with ${supabaseServiceRoleKey.substring(0, 5)}...)` : "🚨 MISSING or EMPTY (CRITICAL for Adapter)"}`);
 console.log(`SUPABASE_JWT_SECRET: ${supabaseJwtSecret ? "Present (Status)" : "🚨 MISSING or EMPTY (Needed for supabaseAccessToken)"}`);
 console.log(`AUTH_SECRET: ${nextAuthSecret ? "Present (Status)" : "🚨 MISSING or EMPTY (CRITICAL for NextAuth)"}`);
 console.log(`AUTH_URL: ${authUrl ? `Present (Value: ${authUrl})` : "🚨 MISSING or EMPTY (Important for redirects)"}`);
 console.log(`NEXTAUTH_URL (Fallback): ${nextauthUrlEnv ? `Present (Value: ${nextauthUrlEnv})` : "Not set"}`);
-console.log(`GOOGLE_CLIENT_ID: ${googleClientId ? `Present (Value: ${googleClientId})` : "🚨 MISSING or EMPTY (For Google Provider)"}`);
+console.log(`GOOGLE_CLIENT_ID: ${googleClientId ? `Present (Value: ${googleClientId.substring(0,20)}...)` : "🚨 MISSING or EMPTY (For Google Provider)"}`);
 console.log(`GOOGLE_CLIENT_SECRET: ${googleClientSecret ? "Present (Status)" : "🚨 MISSING or EMPTY (For Google Provider)"}`);
-console.log("------------------------------------");
+console.log("----------------------------------------------------------");
 
 // --- Critical Environment Variable Checks ---
 if (!supabaseUrl) {
-  console.error("❌ CRITICAL ERROR: Missing NEXT_PUBLIC_SUPABASE_URL.");
-  // Not throwing error here to allow build to complete and show logs, but it will fail at runtime.
+  console.error("❌ CRITICAL ERROR (build-time check): Missing NEXT_PUBLIC_SUPABASE_URL.");
 }
 if (!supabaseServiceRoleKey) {
-  console.error("❌ CRITICAL ERROR: Missing SUPABASE_SERVICE_ROLE_KEY.");
+  console.error("❌ CRITICAL ERROR (build-time check): Missing SUPABASE_SERVICE_ROLE_KEY.");
 }
 if (!nextAuthSecret) {
-  console.error("❌ CRITICAL ERROR: Missing AUTH_SECRET.");
-  // This is a common cause for build failures / runtime errors if NextAuth tries to initialize without it.
-  // Forcing a build error if this critical variable is missing during build time.
-  if (process.env.NODE_ENV === 'production') { // Only throw in production builds
-    throw new Error("CRITICAL: Missing AUTH_SECRET. NextAuth.js will not work securely.");
+  console.error("❌ CRITICAL ERROR (build-time check): Missing AUTH_SECRET.");
+  if (process.env.NODE_ENV === 'production') { 
+    console.error("CRITICAL: Missing AUTH_SECRET. NextAuth.js will not work securely. Build will likely fail or app will not run correctly.");
   }
 }
-if (!authUrl && !nextauthUrlEnv) {
-  console.warn("⚠️ WARNING: Neither AUTH_URL nor NEXTAUTH_URL is set. This WILL LIKELY CAUSE ISSUES with redirects or endpoint discovery.");
-} else if (!authUrl && nextauthUrlEnv) {
-  console.warn(`⚠️ WARNING: AUTH_URL is not set, but NEXTAUTH_URL is (${nextauthUrlEnv}). Consider migrating to AUTH_URL.`);
+if (!authUrl && !nextauthUrlEnv && process.env.NODE_ENV === 'production') {
+  console.warn("⚠️ WARNING (build-time check): Neither AUTH_URL nor NEXTAUTH_URL is set. This WILL LIKELY CAUSE ISSUES with redirects or endpoint discovery in production.");
+} else if (!authUrl && nextauthUrlEnv && process.env.NODE_ENV === 'production') {
+  console.warn(`⚠️ WARNING (build-time check): AUTH_URL is not set, but NEXTAUTH_URL is (${nextauthUrlEnv}). Consider migrating to AUTH_URL.`);
 }
 
 
@@ -106,7 +103,7 @@ const providers: NextAuthConfig['providers'] = [
         if (passwordsMatch) {
           console.log(`[NextAuth Authorize Success] Password match for profile ID: ${profile.id}.`);
           return {
-            id: profile.id, // This ID must match what SupabaseAdapter expects (the ID from public.profiles)
+            id: profile.id, 
             email: profile.email,
             name: profile.display_name || profile.full_name,
             image: profile.avatar_url,
@@ -129,7 +126,6 @@ if (googleClientId && googleClientSecret) {
     GoogleProvider({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
-      // Allow linking accounts for users who signed up with credentials first and then try Google with the same email.
       allowDangerousEmailAccountLinking: true, 
     })
   );
@@ -140,8 +136,8 @@ if (googleClientId && googleClientSecret) {
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
   adapter: SupabaseAdapter({
-    url: supabaseUrl!, // Assert non-null because we checked above
-    secret: supabaseServiceRoleKey!, // Assert non-null
+    url: supabaseUrl!, 
+    secret: supabaseServiceRoleKey!, 
   }),
   providers: providers,
   session: {
@@ -149,25 +145,23 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async jwt({ token, user, account }) {
-      // If signing in with OAuth, account object will be present
       if (account && user) {
-        token.accessToken = account.access_token; // Store provider access token if needed
-        token.provider = account.provider; // Store provider name
+        token.accessToken = account.access_token; 
+        token.provider = account.provider; 
       }
       if (user?.id) {
-        token.sub = user.id; // 'sub' is the standard JWT claim for subject (user ID)
+        token.sub = user.id; 
       }
       return token;
     },
     async session({ session, token }) {
       if (token.sub && session.user) {
-        session.user.id = token.sub; // Ensure user.id is populated from token.sub
+        session.user.id = token.sub; 
 
-        // Fetch the full profile from your public.profiles table
         const { data: userProfileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', token.sub) // Use token.sub which is the user's ID from next_auth.users
+          .eq('id', token.sub) 
           .single();
 
         if (profileError) {
@@ -175,11 +169,10 @@ export const authConfig: NextAuthConfig = {
           session.user.profile = null;
         } else if (userProfileData) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { hashed_password, ...profileForSession } = userProfileData; // Exclude hashed_password
+          const { hashed_password, ...profileForSession } = userProfileData; 
           session.user.profile = profileForSession as Omit<AppProfile, 'hashed_password'>;
-          // Optionally update top-level session.user fields if needed, though profile should be primary source
           session.user.name = userProfileData.display_name || userProfileData.full_name || session.user.name;
-          session.user.email = userProfileData.email || session.user.email; // Email in profiles should match next_auth.users
+          session.user.email = userProfileData.email || session.user.email; 
           session.user.image = userProfileData.avatar_url || session.user.image;
         } else {
            console.warn(`[NextAuth Session Callback] No profile found in public.profiles for user ID: ${token.sub}. Trigger 'handle_new_user_from_next_auth' might have issues or this user was created before trigger.`);
@@ -187,14 +180,13 @@ export const authConfig: NextAuthConfig = {
         }
       }
 
-      // Generate Supabase access token if JWT secret is available
       if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
-          exp: Math.floor(new Date(session.expires).getTime() / 1000), // Use session.expires
+          exp: Math.floor(new Date(session.expires).getTime() / 1000), 
           sub: token.sub,
           email: token.email,
-          role: "authenticated", // Standard role for authenticated users
+          role: "authenticated", 
         };
         try {
             session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
@@ -208,21 +200,17 @@ export const authConfig: NextAuthConfig = {
     },
   },
   pages: {
-    signIn: '/login', // Your custom login page
-    error: '/login', // Redirect to login page on error (e.g., OAuth errors)
-    // signOut: '/login', // Optionally, redirect to login after sign out
-    // verifyRequest: '/auth/verify-request', // For email provider
-    // newUser: null // If you want to redirect new users to a specific page after OAuth signup
+    signIn: '/login', 
+    error: '/login', 
   },
-  secret: nextAuthSecret, // Essential for JWT signing
-  // debug: process.env.NODE_ENV === 'development', // Enable debug logs in development
-  // trustHost: true, // Needed if deployed behind a proxy that terminates TLS
+  secret: nextAuthSecret, 
+  // debug: process.env.NODE_ENV === 'development', 
+  // trustHost: true, 
 };
 
 console.log("🚦 Initializing NextAuth with final config... 🚦");
 const authHandlers = NextAuth(authConfig);
 
-// Log after initialization to confirm it didn't throw an error
 if (authHandlers?.auth) {
   console.log("✅ NextAuth initialized successfully. Exporting handlers, auth, signIn, signOut.");
 } else {
