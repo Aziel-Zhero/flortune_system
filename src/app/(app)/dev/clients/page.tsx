@@ -321,7 +321,6 @@ export default function DevClientsPage() {
         </div>
       )}
 
-      {/* --- Diálogo de Adicionar/Editar --- */}
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-headline">{editingClient ? "Editar Cliente/Projeto" : "Adicionar Novo Cliente/Projeto"}</DialogTitle>
@@ -349,7 +348,6 @@ export default function DevClientsPage() {
         </form>
       </DialogContent>
       
-      {/* --- Diálogo de Exclusão --- */}
       <AlertDialog open={!!clientToDelete} onOpenChange={(isOpen) => !isOpen && setClientToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir "{clientToDelete?.name}"? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>

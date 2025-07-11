@@ -13,7 +13,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/notepad", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "PARA DEVs" },
-  { href: "/dev/clients", label: "Clientes", icon: "Users2" as const, type: "link" as const },
+  { href: "/dev/clients", label: "Clientes & Projetos", icon: "Users2" as const, type: "link" as const },
   { href: "/dev/systems", label: "Ferramentas DEV", icon: "HardDrive" as const, type: "link" as const },
   { href: "/dev/devops", label: "DevOps", icon: "GitMerge" as const, type: "link" as const },
   { type: "separator" as const },

@@ -123,7 +123,6 @@ export default function DevScrumPage() {
           }
         />
         
-        {/* Fluxo de Trabalho Visual */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
           <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="w-full lg:w-1/4">
               <Card className="shadow-md h-full">
@@ -165,7 +164,7 @@ export default function DevScrumPage() {
           <Dialog open={isMemberModalOpen} onOpenChange={setIsMemberModalOpen}>
             <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible" className="w-full lg:w-1/4">
                 <Card className="shadow-md h-full">
-                  <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users/> Time Scrum</CardTitle><CardDescription>Membros da Sprint.</CardDescription></CardHeader>
+                  <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users2/> Time Scrum</CardTitle><CardDescription>Membros da Sprint.</CardDescription></CardHeader>
                   <CardContent className="space-y-3">
                       {teamMembers.map(member => {
                           const RoleIcon = roleIcons[member.role];
