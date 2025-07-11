@@ -2,13 +2,14 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Briefcase, Calculator, Users2 } from "lucide-react";
+import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import * as LucideIcons from "lucide-react";
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -16,8 +17,15 @@ import { useGSAP } from '@gsap/react';
 import anime from 'animejs';
 import React, { useRef, useEffect, type FC } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
+  if (!iconName) return Gem;
+  const IconComponent = (LucideIcons as any)[iconName];
+  return IconComponent || Gem;
+};
 
 interface FeatureCardProps {
   icon: React.ElementType;
@@ -78,6 +86,7 @@ export default function LandingPage() {
   const heroImageRef = useRef<HTMLDivElement>(null);
   const featuresSectionRef = useRef<HTMLElement>(null);
   const featuresHeaderRef = useRef<HTMLDivElement>(null);
+  const pricingSectionRef = useRef<HTMLElement>(null);
   const finalCtaSectionRef = useRef<HTMLElement>(null);
 
   useGSAP(() => {
@@ -90,6 +99,9 @@ export default function LandingPage() {
     if (featuresSectionRef.current && featuresHeaderRef.current) {
       gsap.fromTo(featuresHeaderRef.current.children, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.2, scrollTrigger: { trigger: featuresSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
       gsap.fromTo(featuresSectionRef.current.querySelectorAll(".feature-card"), { opacity: 0, y: 50, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: "power2.out", scrollTrigger: { trigger: featuresSectionRef.current, start: "top 75%", toggleActions: "play none none none" }});
+    }
+     if (pricingSectionRef.current) {
+      gsap.fromTo(pricingSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: pricingSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
     }
     if (finalCtaSectionRef.current && (!session && !isLoading)) gsap.fromTo(finalCtaSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: finalCtaSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
   }, { scope: mainContainerRef, dependencies: [isLoading, session] });
@@ -125,20 +137,34 @@ export default function LandingPage() {
             {heroActions}
             <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0"><Image src="https://placehold.co/800x450.png" alt="Flortune App Mockup" width={800} height={450} className="rounded-lg shadow-2xl border-4 border-white/20" data-ai-hint="app dashboard" priority /></div>
           </section>
-          <section className="py-16 md:py-24" ref={featuresSectionRef}>
-            <div ref={featuresHeaderRef} className="text-center opacity-0">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Uma Caixa de Ferramentas Completa</h2>
-              <p className="text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">Do controle financeiro pessoal à gestão de projetos de desenvolvimento, o {APP_NAME} tem tudo o que você precisa.</p>
+          
+          <section className="py-16 md:py-24" ref={pricingSectionRef}>
+             <div className="text-center opacity-0">
+              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Planos Para Todos os Perfis</h2>
+              <p className="text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">Do cultivador iniciante ao mestre desenvolvedor, temos o plano perfeito para você.</p>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <FeatureCard icon={CalendarDays} title="Organização Financeira Total" description="Visualize despesas, receitas, orçamentos e metas em um calendário intuitivo e painéis claros." className="feature-card opacity-0" />
-              <FeatureCard icon={BrainCircuit} title="Insights com Inteligência Artificial" description="Receba dicas personalizadas para otimizar seus orçamentos e economizar mais. (Plano Mestre)" className="feature-card opacity-0" />
-              <FeatureCard icon={Calculator} title="Calculadoras para Desenvolvedores" description="Precifique projetos, calcule ROI de automações e estruture pacotes de serviços com nossas ferramentas dedicadas." className="feature-card opacity-0" />
-              <FeatureCard icon={Users2} title="Gestão de Clientes e Projetos" description="Acompanhe o status, prazos e métricas de entrega dos seus projetos de desenvolvimento em um só lugar." className="feature-card opacity-0" />
-              <FeatureCard icon={Eye} title="Modo Privado Inteligente" description="Oculte seus dados financeiros com um clique. Privacidade e discrição quando você mais precisa." className="feature-card opacity-0" />
-              <FeatureCard icon={ShieldCheck} title="Segurança em Primeiro Lugar" description="Seus dados são protegidos com criptografia de ponta e as melhores práticas de segurança do mercado." className="feature-card opacity-0" />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 items-stretch">
+                {PRICING_TIERS.map((tier) => {
+                  const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
+                  return (
+                    <Card key={tier.id} className={cn("flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:shadow-primary/20", tier.featured ? "border-primary ring-2 ring-primary" : "")}>
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center gap-3 mb-2"><div className={cn("flex h-12 w-12 items-center justify-center rounded-lg", tier.featured ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><TierIcon className="h-6 w-6" /></div><CardTitle className={cn("font-headline text-xl", tier.featured ? "text-primary" : "text-foreground")}>{tier.name}</CardTitle></div>
+                        <div className="flex flex-wrap items-baseline gap-x-1"><span className={cn("text-4xl font-bold tracking-tight", tier.featured ? "text-primary" : "text-foreground")}>{tier.priceMonthly}</span>{tier.priceMonthly !== 'Grátis' && tier.priceAnnotation && (<span className="text-sm font-normal text-muted-foreground">{tier.priceAnnotation}</span>)}{tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (<span className="text-sm font-normal text-muted-foreground">/mês</span>)}</div>
+                        <CardDescription className="pt-2 text-sm min-h-[60px]">{tier.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <ul role="list" className="space-y-2.5 text-sm text-muted-foreground">
+                          {tier.features.map((feature) => (<li key={feature} className="flex gap-x-3 items-start"><Check className={cn("h-5 w-5 flex-none mt-0.5", tier.featured ? "text-primary" : "text-green-500")} aria-hidden="true" /><span>{feature}</span></li>))}
+                        </ul>
+                      </CardContent>
+                      <CardFooter><Button asChild size="lg" className={cn("w-full", tier.featured ? buttonVariants({variant: "default"}) : buttonVariants({variant: "outline"}))}><Link href={tier.href}>{tier.priceMonthly === 'Grátis' ? 'Começar Agora' : tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}</Link></Button></CardFooter>
+                    </Card>
+                  );
+                })}
+              </div>
           </section>
+
           {!session && !isLoading && (
             <section className="py-16 md:py-24 text-center opacity-0" ref={finalCtaSectionRef}>
                  <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">

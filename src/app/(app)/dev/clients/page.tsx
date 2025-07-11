@@ -251,7 +251,9 @@ export default function DevClientsPage() {
                 <DropdownMenuItem onClick={handleExportCSV}><FileCsv className="mr-2 h-4 w-4"/>Exportar CSV</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Cliente</Button>
+            <DialogTrigger asChild>
+                <Button><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Cliente</Button>
+            </DialogTrigger>
           </div>
         }
       />
@@ -292,7 +294,7 @@ export default function DevClientsPage() {
                 <CardTitle className="mt-4">Nenhum resultado encontrado</CardTitle>
                 <CardDescription>Tente ajustar seus filtros ou adicione um novo cliente.</CardDescription>
             </CardHeader>
-            <CardContent><Button onClick={() => handleOpenForm()}>Adicionar Novo Cliente</Button></CardContent>
+            <CardContent><DialogTrigger asChild><Button>Adicionar Novo Cliente</Button></DialogTrigger></CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
