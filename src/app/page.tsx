@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem } from "lucide-react";
+import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
@@ -137,7 +137,22 @@ export default function LandingPage() {
             {heroActions}
             <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0"><Image src="https://placehold.co/800x450.png" alt="Flortune App Mockup" width={800} height={450} className="rounded-lg shadow-2xl border-4 border-white/20" data-ai-hint="app dashboard" priority /></div>
           </section>
-          
+
+          <section className="py-16 md:py-24" ref={featuresSectionRef}>
+            <div className="text-center mb-12 md:mb-16" ref={featuresHeaderRef}>
+              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4 opacity-0">Funcionalidades Principais</h2>
+              <p className="text-white/80 max-w-xl mx-auto opacity-0">Tudo o que você precisa para florescer financeiramente e profissionalmente.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <FeatureCard className="feature-card" icon={BarChart3} title="Análise Visual" description="Entenda seus gastos e receitas com gráficos intuitivos e relatórios detalhados." />
+                <FeatureCard className="feature-card" icon={CalendarDays} title="Calendário Financeiro" description="Visualize todos os seus eventos e transações importantes em um único lugar." />
+                <FeatureCard className="feature-card" icon={BrainCircuit} title="Insights com IA" description="Receba sugestões inteligentes para otimizar seus gastos e alcançar suas metas mais rápido (em breve)." />
+                <FeatureCard className="feature-card" icon={Eye} title="Modo Privado" description="Proteja sua privacidade com um clique, ocultando todos os valores sensíveis na tela." />
+                <FeatureCard className="feature-card" icon={ShieldCheck} title="Segurança Avançada" description="Seus dados são protegidos com as melhores práticas de segurança e criptografia." />
+                <FeatureCard className="feature-card" icon={GanttChartSquare} title="Ferramentas DEV" description="Gerencie clientes, projetos e utilize calculadoras especializadas para freelancers." />
+            </div>
+          </section>
+
           <section className="py-16 md:py-24" ref={pricingSectionRef}>
              <div className="text-center opacity-0">
               <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Planos Para Todos os Perfis</h2>
