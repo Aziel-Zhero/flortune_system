@@ -43,14 +43,19 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
     const currentCardRef = cardRef.current;
     const currentIconRef = iconRef.current;
     if (!currentCardRef || !currentIconRef) return;
+
     const handleMouseEnter = () => {
       anime.remove(currentIconRef);
       anime({ targets: currentIconRef, scale: [{ value: 1.2, duration: 200, easing: 'easeOutQuad' }, { value: 1, duration: 300, easing: 'easeInOutQuad' }], rotate: [{ value: 10, duration: 150, easing: 'easeOutSine' }, { value: -10, duration: 150, delay: 50, easing: 'easeInOutSine' }, { value: 0, duration: 150, delay: 50, easing: 'easeInSine' }], translateY: [{ value: -5, duration: 150, easing: 'easeOutQuad' }, { value: 0, duration: 200, easing: 'easeInQuad' }], duration: 600 });
+      anime({ targets: currentCardRef, translateY: -5, scale: 1.02, duration: 300, easing: 'easeOutQuad' });
     };
+    
     const handleMouseLeave = () => {
       anime.remove(currentIconRef);
       anime({ targets: currentIconRef, scale: 1, rotate: 0, translateY: 0, duration: 300, easing: 'easeOutQuad' });
+      anime({ targets: currentCardRef, translateY: 0, scale: 1, duration: 300, easing: 'easeOutQuad' });
     };
+
     currentCardRef.addEventListener('mouseenter', handleMouseEnter);
     currentCardRef.addEventListener('mouseleave', handleMouseLeave);
     return () => {
@@ -63,7 +68,7 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
   }, []);
 
   return (
-    <div ref={cardRef} className={cn("bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-shadow duration-300 h-full flex flex-col", className)}>
+    <div ref={cardRef} className={cn("bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-all duration-300 h-full flex flex-col", className)}>
       <div ref={iconRef} className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
         <Icon className="w-6 h-6" />
       </div>
@@ -91,27 +96,34 @@ export default function LandingPage() {
 
   useGSAP(() => {
     if (isLoading) return;
+
     const tlHero = gsap.timeline({ defaults: { ease: "power3.out" } });
-    tlHero.fromTo(heroTitleRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8 })
-      .fromTo(heroParagraphRef.current, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, "-=0.6")
-      .fromTo(heroButtonsRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 }, "-=0.6")
-      .fromTo(heroImageRef.current, { opacity: 0, scale: 0.9, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.5");
+    tlHero
+      .fromTo(heroTitleRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1 })
+      .fromTo(heroParagraphRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8 }, "-=0.7")
+      .fromTo(heroButtonsRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8 }, "-=0.7")
+      .fromTo(heroImageRef.current, { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 1, ease: "power2.out" }, "-=0.5");
+      
+    gsap.to(heroImageRef.current, { y: -50, scrollTrigger: { trigger: mainContainerRef.current, start: 'top top', end: 'bottom top', scrub: 1.5 } });
+
     if (featuresSectionRef.current && featuresHeaderRef.current) {
       gsap.fromTo(featuresHeaderRef.current.children, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.2, scrollTrigger: { trigger: featuresSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
-      gsap.fromTo(featuresSectionRef.current.querySelectorAll(".feature-card"), { opacity: 0, y: 50, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: "power2.out", scrollTrigger: { trigger: featuresSectionRef.current, start: "top 75%", toggleActions: "play none none none" }});
+      gsap.fromTo(featuresSectionRef.current.querySelectorAll(".feature-card"), { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: "power2.out", scrollTrigger: { trigger: featuresSectionRef.current, start: "top 75%", toggleActions: "play none none none" }});
     }
      if (pricingSectionRef.current) {
-      gsap.fromTo(pricingSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: pricingSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
+      gsap.fromTo(pricingSectionRef.current.querySelector(".pricing-header"), { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: pricingSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
+      gsap.fromTo(pricingSectionRef.current.querySelectorAll(".pricing-card"), { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.2, ease: "power2.out", scrollTrigger: { trigger: pricingSectionRef.current, start: "top 70%", toggleActions: "play none none none" }});
     }
     if (finalCtaSectionRef.current && (!session && !isLoading)) gsap.fromTo(finalCtaSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: finalCtaSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
+  
   }, { scope: mainContainerRef, dependencies: [isLoading, session] });
 
   let headerActions = null;
   let heroActions = null;
 
   if (isLoading) {
-    headerActions = (<><Skeleton className="h-10 w-24 bg-muted/50 rounded-md opacity-0" /><Skeleton className="h-10 w-32 bg-muted/50 rounded-md opacity-0" /></>);
-    heroActions = (<div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}><Skeleton className="h-12 w-48 bg-muted/50 rounded-md" /><Skeleton className="h-12 w-40 bg-muted/50 rounded-md" /></div>);
+    headerActions = (<><Skeleton className="h-10 w-24 bg-muted/50 rounded-md" /><Skeleton className="h-10 w-32 bg-muted/50 rounded-md" /></>);
+    heroActions = (<div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}><Skeleton className="h-12 w-48 bg-muted/50 rounded-md" /><Skeleton className="h-12 w-40 bg-muted/50 rounded-md" /></div>);
   } else if (session) {
     headerActions = (<Link href="/dashboard" className={cn(buttonVariants({ variant: 'default' }), "text-white hover:bg-white/10 hover:text-white")}>Acessar Painel</Link>);
     heroActions = (<div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}><Link href="/dashboard" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Ir para o Painel</Link></div>);
@@ -154,7 +166,7 @@ export default function LandingPage() {
           </section>
 
           <section className="py-16 md:py-24" ref={pricingSectionRef}>
-             <div className="text-center opacity-0">
+             <div className="text-center pricing-header">
               <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Planos Para Todos os Perfis</h2>
               <p className="text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">Do cultivador iniciante ao mestre desenvolvedor, temos o plano perfeito para você.</p>
             </div>
@@ -162,7 +174,7 @@ export default function LandingPage() {
                 {PRICING_TIERS.map((tier) => {
                   const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
                   return (
-                    <Card key={tier.id} className={cn("flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:shadow-primary/20", tier.featured ? "border-primary ring-2 ring-primary" : "")}>
+                    <Card key={tier.id} className={cn("flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:shadow-primary/20 pricing-card", tier.featured ? "border-primary ring-2 ring-primary" : "")}>
                       <CardHeader className="pb-4">
                         <div className="flex items-center gap-3 mb-2"><div className={cn("flex h-12 w-12 items-center justify-center rounded-lg", tier.featured ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><TierIcon className="h-6 w-6" /></div><CardTitle className={cn("font-headline text-xl", tier.featured ? "text-primary" : "text-foreground")}>{tier.name}</CardTitle></div>
                         <div className="flex flex-wrap items-baseline gap-x-1"><span className={cn("text-4xl font-bold tracking-tight", tier.featured ? "text-primary" : "text-foreground")}>{tier.priceMonthly}</span>{tier.priceMonthly !== 'Grátis' && tier.priceAnnotation && (<span className="text-sm font-normal text-muted-foreground">{tier.priceAnnotation}</span>)}{tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (<span className="text-sm font-normal text-muted-foreground">/mês</span>)}</div>
@@ -181,7 +193,7 @@ export default function LandingPage() {
           </section>
 
           {!session && !isLoading && (
-            <section className="py-16 md:py-24 text-center opacity-0" ref={finalCtaSectionRef}>
+            <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
                  <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
                     <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro?</h2>
                     <p className="text-white/80 mb-8">Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o {APP_NAME}. É rápido, fácil e gratuito para começar.</p>
