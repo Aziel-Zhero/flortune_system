@@ -3,13 +3,12 @@
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
-// import { signIn as nextAuthSignIn } from '@/app/api/auth/[...nextauth]/route'; // Não é usado diretamente para credenciais
 import { supabase } from '@/lib/supabase/client'; // Usa o cliente Supabase padrão (anon key)
 import bcrypt from 'bcryptjs';
 import type { Profile } from "@/types/database.types";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid'; // Para gerar um ID consistente
 
-// Esquemas de validação Zod
+// Esquemas de validação Zod (sem alterações)
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
   .regex(/[a-z]/, { message: "A senha deve conter pelo menos uma letra minúscula." })
@@ -65,7 +64,7 @@ const signupSchema = signupSchemaBase.refine(data => data.password === data.conf
 .refine(data => {
     if (data.accountType === 'pessoa' && data.rg) {
         const rgCleaned = data.rg.replace(/[^0-9Xx]/gi, '');
-        return rgCleaned.length >= 5 && rgCleaned.length <= 10; // Ajustado para um range mais comum
+        return rgCleaned.length >= 5 && rgCleaned.length <= 10;
     }
     return true;
 }, {
@@ -93,7 +92,7 @@ export type SignupFormState = {
 };
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
-  console.log("[SignupUser Action] Iniciando processo de cadastro...");
+  console.log("[SignupUser Action] Iniciando novo fluxo de cadastro...");
   try {
     const rawData = Object.fromEntries(formData.entries());
     if (rawData.cpf === '') rawData.cpf = undefined;
@@ -115,7 +114,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
 
     // 1. Verificar se o email já existe em `public.profiles`
-    console.log(`[SignupUser Action] Verificando se email ${email} já existe em public.profiles...`);
+    console.log(`[SignupUser Action] Verificando se email ${email} já existe...`);
     const { data: existingProfileByEmail, error: fetchError } = await supabase
       .from('profiles')
       .select('email')
@@ -124,7 +123,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     if (fetchError) {
       console.error("[SignupUser Action] Erro ao verificar perfil existente:", fetchError.message);
-      return { message: `Erro no banco de dados ao verificar email: ${fetchError.message}`, success: false, errors: {_form: [fetchError.message]} };
+      return { message: `Erro no banco de dados: ${fetchError.message}`, success: false, errors: {_form: [fetchError.message]} };
     }
 
     if (existingProfileByEmail) {
@@ -136,44 +135,48 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       };
     }
 
-    console.log("[SignupUser Action] Email disponível. Criando novo usuário...");
+    console.log("[SignupUser Action] Email disponível. Processando novo usuário...");
 
-    // 2. Usar o método de signup do Supabase Auth que também insere na tabela auth.users
-    // A chave do Supabase client aqui é a anon key, que tem permissão para signup.
-    const { data: authData, error: signupError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          display_name: displayName,
-          phone: phone ? phone.replace(/\D/g, '') : null,
-          cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
-          rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
-          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-          account_type: accountType,
-        },
-      },
-    });
+    // 2. Gerar ID e hashear a senha ANTES de inserir no banco
+    const userId = uuidv4();
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    if (signupError) {
-      console.error("[SignupUser Action] Erro durante o Supabase Auth signUp:", signupError);
-      return { message: signupError.message, success: false, errors: { _form: [signupError.message] }};
+    // 3. Criar o novo perfil na tabela `public.profiles`
+    const newProfileData: Omit<Profile, 'created_at' | 'updated_at'> = {
+        id: userId,
+        full_name: fullName,
+        display_name: displayName,
+        email: email,
+        hashed_password: hashedPassword,
+        phone: phone ? phone.replace(/\D/g, '') : null,
+        cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
+        rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
+        avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
+        account_type: accountType,
+    };
+    
+    console.log(`[SignupUser Action] Inserindo perfil com ID ${userId} em public.profiles...`);
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert(newProfileData);
+
+    if (insertError) {
+      console.error("[SignupUser Action] Erro ao inserir perfil na tabela 'profiles':", insertError);
+      return { message: `Falha ao registrar perfil: ${insertError.message}`, success: false, errors: { _form: [insertError.message] }};
     }
     
-    if (!authData.user) {
-        console.error("[SignupUser Action] Supabase Auth signUp não retornou um usuário.");
-        return { message: "Falha ao criar usuário, tente novamente.", success: false, errors: { _form: ["Ocorreu um erro desconhecido durante o cadastro."] }};
-    }
-
-    // O trigger `handle_new_user_from_next_auth` irá lidar com a criação do perfil em `public.profiles`
-    // quando o registro for adicionado em `next_auth.users`.
-    // Como o signUp do Supabase cria em `auth.users`, o trigger `on_auth_user_created`
-    // cuidará de popular `public.profiles`. O adapter do NextAuth cuidará de `next_auth.users`.
+    // O novo trigger 'on_public_profile_created' irá cuidar da inserção em 'auth.users'.
+    // O NextAuth.js adapter cuidará de criar a entrada em 'next_auth.users' no primeiro login.
     
-    // A verificação acima já é uma boa medida. A lógica completa de criação de perfil
-    // agora será delegada ao trigger do banco de dados para garantir consistência.
-
+    // 4. (Opcional, mas recomendado) Enviar um email de boas-vindas/confirmação
+    // Aqui, podemos chamar o método do Supabase para enviar o email de confirmação,
+    // que agora apenas serve para verificar o email e não para criar o usuário.
+    const { error: emailError } = await supabase.auth.signUp({ email, password });
+    if(emailError && emailError.message !== "User already registered") {
+      // Ignoramos o erro "User already registered" pois já tratamos, mas logamos outros erros.
+      console.warn("[SignupUser Action] Erro ao tentar enviar email de confirmação (pode ser ignorado se o usuário já existe no auth.users):", emailError.message);
+    }
+    
     console.log("[SignupUser Action] Cadastro completo e bem-sucedido. Redirecionando para login.");
     redirect('/login?signup=success'); 
 

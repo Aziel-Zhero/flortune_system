@@ -1,3 +1,4 @@
+
 // src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthConfig } from 'next-auth';
@@ -11,17 +12,15 @@ import type { Profile as AppProfile } from '@/types/database.types';
 
 export const runtime = 'nodejs'; // Explicitly set runtime to Node.js
 
-// --- Environment Variable Reading & Logging ---
+// --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 const nextAuthSecret = process.env.AUTH_SECRET;
-const authUrl = process.env.AUTH_URL; 
-const nextauthUrlEnv = process.env.NEXTAUTH_URL; 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-// --- Critical Environment Variable Checks at build/load time ---
+// --- Critical Environment Variable Checks ---
 if (!supabaseUrl || supabaseUrl.includes('<SEU_PROJECT_REF>')) {
   throw new Error("CRITICAL: NEXT_PUBLIC_SUPABASE_URL is not set or is a placeholder.");
 }
@@ -31,7 +30,6 @@ if (!supabaseServiceRoleKey) {
 if (!nextAuthSecret) {
   throw new Error("CRITICAL: AUTH_SECRET is not set.");
 }
-
 
 // --- Provider Configuration ---
 const providers: NextAuthConfig['providers'] = [
@@ -49,6 +47,7 @@ const providers: NextAuthConfig['providers'] = [
       const password = credentials.password as string;
 
       try {
+        // Agora o 'authorize' procura em `public.profiles`
         const { data: profile, error: dbError } = await supabase
           .from('profiles')
           .select('*')
@@ -60,17 +59,19 @@ const providers: NextAuthConfig['providers'] = [
           return null;
         }
         
+        // Compara a senha fornecida com a senha hasheada no nosso banco
         const passwordsMatch = await bcrypt.compare(password, profile.hashed_password || "");
 
         if (passwordsMatch) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
+          // Retorna os dados para o NextAuth, que serão usados no callback jwt
           return {
             id: userProfile.id,
             email: userProfile.email,
             name: userProfile.display_name || userProfile.full_name,
             image: userProfile.avatar_url,
-            profile: userProfile, // Pass the full profile object to the JWT callback
+            profile: userProfile,
           };
         }
       } catch (e: any) {
@@ -104,18 +105,18 @@ export const authConfig: NextAuthConfig = {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user, account, profile }) {
-      // On initial sign-in
+    async jwt({ token, user, account }) {
+      // Ao fazer login (com credenciais ou OAuth), o objeto `user` está disponível
       if (user) {
         token.sub = user.id;
 
-        // For credentials provider, profile is passed directly from authorize
+        // Se for login com credenciais, o objeto 'profile' que passamos do `authorize` estará aqui
         if (user.profile) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...safeProfile } = user.profile;
           token.profile = safeProfile;
         } 
-        // For OAuth providers, fetch profile from DB on first sign-in
+        // Se for login OAuth, buscamos o perfil no banco de dados na primeira vez
         else if (account?.provider !== 'credentials') {
           const { data: dbProfile } = await supabase
             .from('profiles')
@@ -136,7 +137,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.sub;
       }
       
-      // Assign profile from token to session
+      // Anexa o perfil do token JWT à sessão, evitando buscas desnecessárias no banco
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
@@ -144,7 +145,7 @@ export const authConfig: NextAuthConfig = {
         session.user.email = session.user.profile.email || session.user.email;
       }
 
-      // Create Supabase Access Token
+      // Cria o token de acesso do Supabase
       if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
