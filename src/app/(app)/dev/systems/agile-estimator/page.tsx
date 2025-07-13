@@ -1,23 +1,23 @@
-// src/app/(app)/dev/systems/project-pricing/page.tsx
+// src/app/(app)/dev/systems/agile-estimator/page.tsx
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Calculator, Construction } from "lucide-react";
+import { GanttChartSquare, Construction } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
 
-export default function ProjectPricingPage() {
+export default function AgileEstimatorPage() {
   useEffect(() => {
-    document.title = `Orçamento de Projeto Tech - ${APP_NAME}`;
+    document.title = `Estimador Ágil - ${APP_NAME}`;
   }, []);
 
   return (
     <div>
       <PageHeader
-        title="Orçamento de Projeto Tech (Software/Web/App)"
-        description="Calcule o custo estimado de um sistema baseado em escopo, tempo e complexidade."
-        icon={<Calculator className="h-6 w-6 text-primary" />}
+        title="Estimador Ágil (Sprint Estimator)"
+        description="Estime o esforço de um projeto ágil baseado em story points e velocidade da equipe."
+        icon={<GanttChartSquare className="h-6 w-6 text-primary" />}
       />
       <Card className="shadow-lg">
         <CardHeader>
@@ -28,7 +28,7 @@ export default function ProjectPricingPage() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Esta calculadora está em desenvolvimento e em breve permitirá que você estime o custo de seus projetos de software de forma detalhada.
+            Esta ferramenta para estimar o tempo e o número de sprints de seus projetos ágeis estará disponível em breve.
           </p>
         </CardContent>
       </Card>

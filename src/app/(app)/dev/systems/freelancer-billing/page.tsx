@@ -1,23 +1,23 @@
-// src/app/(app)/dev/systems/project-pricing/page.tsx
+// src/app/(app)/dev/systems/freelancer-billing/page.tsx
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Calculator, Construction } from "lucide-react";
+import { DollarSign, Construction } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
 
-export default function ProjectPricingPage() {
+export default function FreelancerBillingPage() {
   useEffect(() => {
-    document.title = `Orçamento de Projeto Tech - ${APP_NAME}`;
+    document.title = `Calculadora de Faturamento Freelancer - ${APP_NAME}`;
   }, []);
 
   return (
     <div>
       <PageHeader
-        title="Orçamento de Projeto Tech (Software/Web/App)"
-        description="Calcule o custo estimado de um sistema baseado em escopo, tempo e complexidade."
-        icon={<Calculator className="h-6 w-6 text-primary" />}
+        title="Calculadora de Faturamento Dev Freelancer"
+        description="Planeje seu faturamento com base em carga horária, folgas e valor hora."
+        icon={<DollarSign className="h-6 w-6 text-primary" />}
       />
       <Card className="shadow-lg">
         <CardHeader>
@@ -28,7 +28,7 @@ export default function ProjectPricingPage() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Esta calculadora está em desenvolvimento e em breve permitirá que você estime o custo de seus projetos de software de forma detalhada.
+            Esta ferramenta para planejar suas metas de faturamento mensal e anual como freelancer estará disponível em breve.
           </p>
         </CardContent>
       </Card>

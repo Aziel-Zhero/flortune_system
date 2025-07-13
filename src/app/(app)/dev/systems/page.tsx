@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HardDrive, Calculator, Coins, ClockIcon, Repeat, ServerCog, Briefcase, PercentSquare } from "lucide-react";
+import { HardDrive, Calculator, Coins, ClockIcon, Repeat, ServerCog, Briefcase, PercentSquare, GanttChartSquare, Cloud, Sigma } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -20,53 +20,46 @@ interface ToolCardProps {
 
 const tools: ToolCardProps[] = [
   {
-    title: "Precificação Freelancer",
-    description: "Calcule o preço de projetos com base em valor/hora, complexidade e margem.",
+    title: "Orçamento de Projeto Tech",
+    description: "Calcule o custo estimado de um software baseado em escopo, tempo e complexidade.",
     icon: Calculator,
     href: "/dev/systems/project-pricing",
-    status: "Pronto",
+    status: "Em Breve",
   },
   {
     title: "Precificação de Automação (ROI)",
-    description: "Justifique valor com base no ganho anual estimado para o cliente.",
+    description: "Justifique valor com base no ganho anual estimado para o cliente. Use o exemplo fornecido.",
     icon: Briefcase,
     href: "/dev/systems/automation-pricing",
     status: "Pronto",
   },
   {
-    title: "Pacotes e Assinaturas",
-    description: "Estruture preços para serviços recorrentes e pacotes escaláveis.",
-    icon: PercentSquare,
-    href: "/dev/systems/package-pricing",
-    status: "Pronto",
+    title: "Estimador Ágil (Sprint Estimator)",
+    description: "Estime o esforço de um projeto ágil baseado em story points e velocidade da equipe.",
+    icon: GanttChartSquare,
+    href: "/dev/systems/agile-estimator",
+    status: "Em Breve",
   },
   {
-    title: "Conversor de Moeda",
-    description: "Converta valores entre diferentes moedas usando uma API externa.",
-    icon: Coins,
-    href: "/dev/systems/currency-converter",
-    status: "Pronto",
+    title: "Calculadora de Custos Cloud",
+    description: "Simule o custo mensal de manter uma aplicação na nuvem (AWS, Vercel, etc.).",
+    icon: Cloud,
+    href: "/dev/systems/cloud-cost-calculator",
+    status: "Em Breve",
+  },
+   {
+    title: "Calculadora de Faturamento Freelancer",
+    description: "Planeje seu faturamento com base em carga horária, folgas e valor hora.",
+    icon: DollarSign,
+    href: "/dev/systems/freelancer-billing",
+    status: "Em Breve",
   },
   {
-    title: "Conversor de Tempo",
-    description: "Converta unidades de tempo (minutos, horas, dias).",
-    icon: ClockIcon,
-    href: "/dev/systems/time-converter",
-    status: "Pronto",
-  },
-  {
-    title: "Juros Compostos / Simples",
-    description: "Simule o crescimento de capital com diferentes taxas e períodos.",
-    icon: Repeat,
-    href: "/dev/systems/interest-calculator",
-    status: "Pronto",
-  },
-  {
-    title: "Calculadora de Uptime (SLA)",
-    description: "Entenda o tempo de inatividade para um SLA específico.",
-    icon: ServerCog,
-    href: "/dev/systems/uptime-calculator",
-    status: "Pronto",
+    title: "Estimador de Complexidade Técnica",
+    description: "Avalie a complexidade de um sistema para orçar ou planejar sprints com mais precisão.",
+    icon: Sigma,
+    href: "/dev/systems/complexity-estimator",
+    status: "Em Breve",
   },
 ];
 
@@ -92,7 +85,7 @@ export default function DevSystemsPage() {
                 </div>
                 <CardTitle className="font-headline text-lg">{tool.title}</CardTitle>
               </div>
-              <CardDescription className="text-sm min-h-[40px]">{tool.description}</CardDescription>
+              <CardDescription className="text-sm min-h-[60px]">{tool.description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
               <p className={cn("text-xs font-medium", tool.status === "Pronto" ? "text-emerald-600" : "text-amber-600")}>
