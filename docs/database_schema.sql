@@ -1,126 +1,71 @@
--- ------------------------------------------------------------------------------------------------
--- FLORTUNE DATABASE SCHEMA
--- Last Updated: [YYYY-MM-DD]
--- Description: This script sets up the necessary schemas, tables, policies, and triggers
--- for the Flortune application, integrating with NextAuth.js via the Supabase adapter.
--- ------------------------------------------------------------------------------------------------
 
--- ================================================================================================
--- 1. EXTENSIONS
--- ================================================================================================
--- Habilita a extensão para geração de UUIDs.
+-- ### SCHEMA: next_auth ###
+-- Este schema é gerenciado pelo SupabaseAdapter do NextAuth.js.
+-- As tabelas (users, accounts, sessions, verification_token) são criadas automaticamente pelo adapter.
+-- É crucial expor este schema na API do Supabase.
+-- Vá para Project Settings > API > Exposed schemas e adicione "next_auth".
+
+-- ### EXTENSIONS ###
+-- Habilita a geração de UUIDs.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
+-- ### SCHEMA: public ###
 
--- ================================================================================================
--- 2. SCHEMAS
--- ================================================================================================
--- O schema `next_auth` é requerido pelo SupabaseAdapter.
--- Ele armazena os dados de sessão, usuários e contas OAuth gerenciados pelo NextAuth.
-CREATE SCHEMA IF NOT EXISTS next_auth;
-
-
--- ================================================================================================
--- 3. NEXT_AUTH TABLES (Gerenciado pelo SupabaseAdapter)
--- Documentação de referência: https://authjs.dev/reference/adapter/supabase
--- Estas tabelas são criadas e gerenciadas pelo adapter, mas as definimos aqui para clareza
--- e para garantir que o schema esteja correto.
--- ================================================================================================
-
--- Tabela de Usuários (Central do NextAuth)
-CREATE TABLE IF NOT EXISTS next_auth.users (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
-  name text,
-  email text,
-  "emailVerified" timestamptz,
-  image text,
-  CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT email_unique UNIQUE (email)
-);
-
--- Tabela de Sessões (Armazena sessões de login ativas)
-CREATE TABLE IF NOT EXISTS next_auth.sessions (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
-  "sessionToken" text NOT NULL,
-  "userId" uuid NOT NULL,
-  expires timestamptz NOT NULL,
-  CONSTRAINT sessions_pkey PRIMARY KEY (id),
-  CONSTRAINT session_token_unique UNIQUE ("sessionToken"),
-  CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
-);
-
--- Tabela de Contas (Armazena contas de provedores OAuth, como Google)
-CREATE TABLE IF NOT EXISTS next_auth.accounts (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
-  "userId" uuid NOT NULL,
-  type text NOT NULL,
-  provider text NOT NULL,
-  "providerAccountId" text NOT NULL,
-  refresh_token text,
-  access_token text,
-  expires_at bigint,
-  token_type text,
-  scope text,
-  id_token text,
-  session_state text,
-  CONSTRAINT accounts_pkey PRIMARY KEY (id),
-  CONSTRAINT "provider_unique" UNIQUE (provider, "providerAccountId"),
-  CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
-);
-
--- Tabela de Tokens de Verificação (Usado para email "magic link")
-CREATE TABLE IF NOT EXISTS next_auth.verification_tokens (
-  identifier text,
-  token text,
-  expires timestamptz NOT NULL,
-  CONSTRAINT verification_tokens_pkey PRIMARY KEY (token),
-  CONSTRAINT "token_identifier_unique" UNIQUE (token, identifier)
-);
-
-
--- ================================================================================================
--- 4. PUBLIC SCHEMA TABLES (Tabelas da Aplicação Flortune)
--- ================================================================================================
-
--- Tabela de Perfis de Usuários (Estende `next_auth.users` com dados específicos da aplicação)
+-- Tabela de Perfis de Usuário
+-- Armazena dados públicos e privados do perfil, complementando a tabela `next_auth.users`.
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid NOT NULL,
+  id uuid NOT NULL PRIMARY KEY, -- FK para next_auth.users.id
   full_name text,
   display_name text,
-  email text NOT NULL,
+  email text NOT NULL UNIQUE,
   hashed_password text, -- Para login com credenciais
   phone text,
-  cpf_cnpj text,
+  cpf_cnpj text UNIQUE,
   rg text,
   avatar_url text,
   account_type text, -- 'pessoa' ou 'empresa'
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT profiles_email_key UNIQUE (email),
-  CONSTRAINT profiles_cpf_cnpj_key UNIQUE (cpf_cnpj),
-  -- A FK direta foi removida para permitir que o cadastro manual (credenciais) crie o perfil
-  -- antes do usuário existir em `next_auth.users`. O trigger cuidará da sincronização.
-  -- CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES next_auth.users(id) ON DELETE CASCADE
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES next_auth.users(id) ON DELETE CASCADE
 );
+COMMENT ON TABLE public.profiles IS 'Stores user profile data, extending the main user table from next_auth.';
 
 -- Tabela de Categorias
+-- Armazena categorias de transações, com opções padrão e personalizadas pelo usuário.
 CREATE TABLE IF NOT EXISTS public.categories (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
   user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
   name text NOT NULL,
   type text NOT NULL, -- 'income' ou 'expense'
   icon text,
   is_default boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT categories_pkey PRIMARY KEY (id)
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+COMMENT ON TABLE public.categories IS 'Stores transaction categories, including default and user-defined ones.';
+
+-- Inserindo categorias padrão (se não existirem)
+INSERT INTO public.categories (name, type, icon, is_default) VALUES
+  ('Salário', 'income', 'DollarSign', true),
+  ('Vendas', 'income', 'Briefcase', true),
+  ('Freelance', 'income', 'Laptop', true),
+  ('Investimentos', 'income', 'TrendingUp', true),
+  ('Outras Receitas', 'income', 'PlusCircle', true),
+  ('Alimentação', 'expense', 'Utensils', true),
+  ('Moradia', 'expense', 'Home', true),
+  ('Transporte', 'expense', 'Car', true),
+  ('Lazer', 'expense', 'Gamepad2', true),
+  ('Saúde', 'expense', 'Heart', true),
+  ('Educação', 'expense', 'BookOpen', true),
+  ('Compras', 'expense', 'ShoppingBag', true),
+  ('Serviços', 'expense', 'Cog', true),
+  ('Impostos', 'expense', 'Landmark', true),
+  ('Outras Despesas', 'expense', 'MinusCircle', true)
+ON CONFLICT (name) DO NOTHING;
 
 -- Tabela de Transações
 CREATE TABLE IF NOT EXISTS public.transactions (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL,
   description text NOT NULL,
@@ -130,13 +75,13 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   notes text,
   is_recurring boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT transactions_pkey PRIMARY KEY (id)
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+COMMENT ON TABLE public.transactions IS 'Records all financial transactions for users.';
 
 -- Tabela de Orçamentos
 CREATE TABLE IF NOT EXISTS public.budgets (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   category_id uuid NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
   limit_amount numeric(12, 2) NOT NULL,
@@ -144,14 +89,13 @@ CREATE TABLE IF NOT EXISTS public.budgets (
   period_start_date date NOT NULL,
   period_end_date date NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT budgets_pkey PRIMARY KEY (id),
-  CONSTRAINT budgets_user_category_period_unique UNIQUE (user_id, category_id, period_start_date)
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+COMMENT ON TABLE public.budgets IS 'Defines spending limits for categories over specific periods.';
 
 -- Tabela de Metas Financeiras
 CREATE TABLE IF NOT EXISTS public.financial_goals (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   name text NOT NULL,
   target_amount numeric(12, 2) NOT NULL,
@@ -161,117 +105,101 @@ CREATE TABLE IF NOT EXISTS public.financial_goals (
   notes text,
   status text NOT NULL DEFAULT 'in_progress', -- 'in_progress', 'achieved', 'cancelled'
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT financial_goals_pkey PRIMARY KEY (id)
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+COMMENT ON TABLE public.financial_goals IS 'Tracks user''s financial saving goals.';
 
 -- Tabela de Tarefas (To-Dos)
 CREATE TABLE IF NOT EXISTS public.todos (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   description text NOT NULL,
   is_completed boolean NOT NULL DEFAULT false,
   due_date date,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT todos_pkey PRIMARY KEY (id)
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+COMMENT ON TABLE public.todos IS 'A simple to-do list for users.';
 
 
--- ================================================================================================
--- 5. TRIGGERS AND FUNCTIONS
--- ================================================================================================
+-- ### TRIGGERS E FUNÇÕES ###
 
--- Função para atualizar `updated_at` automaticamente
-CREATE OR REPLACE FUNCTION public.handle_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Triggers para `updated_at` em cada tabela
-DROP TRIGGER IF EXISTS on_profiles_update ON public.profiles;
-CREATE TRIGGER on_profiles_update BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS on_categories_update ON public.categories;
-CREATE TRIGGER on_categories_update BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS on_transactions_update ON public.transactions;
-CREATE TRIGGER on_transactions_update BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS on_budgets_update ON public.budgets;
-CREATE TRIGGER on_budgets_update BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS on_financial_goals_update ON public.financial_goals;
-CREATE TRIGGER on_financial_goals_update BEFORE UPDATE ON public.financial_goals FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS on_todos_update ON public.todos;
-CREATE TRIGGER on_todos_update BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE PROCEDURE public.handle_updated_at();
-
--- ------------------------------------------------------------------------------------------------
--- Função e Trigger para sincronizar `public.profiles` com `next_auth.users`
--- ------------------------------------------------------------------------------------------------
--- Esta função é disparada sempre que um novo usuário é criado em `next_auth.users`
--- (seja por OAuth ou pelo adapter após um login com credenciais bem-sucedido).
--- Ela cria uma entrada correspondente em `public.profiles`.
--- O `ON CONFLICT (id) DO NOTHING` garante que, se um perfil já foi criado manualmente
--- (no caso do signup com credenciais), a operação não falhe.
--- O `DO UPDATE` garante que, se o usuário fizer login com OAuth e já tiver uma conta
--- de credenciais, os dados (nome, avatar) sejam atualizados.
--- A função é `SECURITY DEFINER` para ter permissões de inserir em `public.profiles`.
--- ------------------------------------------------------------------------------------------------
+-- Função para criar um perfil público quando um novo usuário é criado no `next_auth.users`.
+-- Isso garante que, se um usuário se inscrever via OAuth (que cria direto no next_auth),
+-- seu perfil correspondente seja criado em `public.profiles`.
 CREATE OR REPLACE FUNCTION public.handle_new_user_from_next_auth()
-RETURNS TRIGGER AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER -- Executa com os privilégios de quem definiu a função (geralmente superusuário)
+AS $$
 BEGIN
-  -- SET LOCAL search_path = public, extensions; -- Adicionado para garantir o acesso a uuid_generate_v4
-  INSERT INTO public.profiles (id, full_name, display_name, email, avatar_url)
+  -- Tenta inserir. Se o ID já existir (criado pela action de signup), atualiza os dados.
+  INSERT INTO public.profiles (id, email, full_name, display_name, avatar_url, account_type)
   VALUES (
-    NEW.id,
-    NEW.name,
-    NEW.name,
+    NEW.id, 
     NEW.email,
-    NEW.image
+    NEW.name, -- Usa o 'name' do NextAuth como um fallback para full_name e display_name
+    NEW.name,
+    NEW.image,
+    'pessoa' -- Assume 'pessoa' como padrão para contas OAuth. Pode ser ajustado.
   )
   ON CONFLICT (id) DO UPDATE SET
-    full_name = COALESCE(NEW.name, public.profiles.full_name),
-    display_name = COALESCE(NEW.name, public.profiles.display_name),
-    email = COALESCE(NEW.email, public.profiles.email),
-    avatar_url = COALESCE(NEW.image, public.profiles.avatar_url),
-    updated_at = now();
+    -- Apenas atualiza campos se eles estiverem vazios no perfil existente,
+    -- para não sobrescrever dados inseridos no signup manual.
+    email = COALESCE(public.profiles.email, NEW.email),
+    full_name = COALESCE(public.profiles.full_name, NEW.name),
+    display_name = COALESCE(public.profiles.display_name, NEW.name),
+    avatar_url = COALESCE(public.profiles.avatar_url, NEW.image);
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- Trigger que chama a função acima
+-- Trigger que chama a função acima sempre que um novo usuário é adicionado à tabela do NextAuth.
 DROP TRIGGER IF EXISTS on_next_auth_user_created ON next_auth.users;
 CREATE TRIGGER on_next_auth_user_created
   AFTER INSERT ON next_auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user_from_next_auth();
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_from_next_auth();
 
 
--- ================================================================================================
--- 6. ROW LEVEL SECURITY (RLS)
--- ================================================================================================
+-- Função para atualizar o timestamp 'updated_at' automaticamente
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_at = now();
+   RETURN NEW;
+END;
+$$ language 'plpgsql';
 
--- Ativa a RLS em todas as tabelas relevantes.
+-- Triggers para 'updated_at' em cada tabela
+DROP TRIGGER IF EXISTS set_profiles_updated_at ON public.profiles;
+CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS set_categories_updated_at ON public.categories;
+CREATE TRIGGER set_categories_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS set_transactions_updated_at ON public.transactions;
+CREATE TRIGGER set_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS set_budgets_updated_at ON public.budgets;
+CREATE TRIGGER set_budgets_updated_at BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS set_goals_updated_at ON public.financial_goals;
+CREATE TRIGGER set_goals_updated_at BEFORE UPDATE ON public.financial_goals FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS set_todos_updated_at ON public.todos;
+CREATE TRIGGER set_todos_updated_at BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+-- ### POLÍTICAS DE ROW LEVEL SECURITY (RLS) ###
+
+-- --- Tabela: profiles ---
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
-
--- ------ Políticas para `public.profiles` ------
--- Usuários podem ver seu próprio perfil.
-DROP POLICY IF EXISTS "Allow user to view their own profile" ON public.profiles;
-CREATE POLICY "Allow user to view their own profile" ON public.profiles
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
+CREATE POLICY "Users can view their own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
 
--- Usuários podem atualizar seu próprio perfil.
-DROP POLICY IF EXISTS "Allow user to update their own profile" ON public.profiles;
-CREATE POLICY "Allow user to update their own profile" ON public.profiles
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+CREATE POLICY "Users can update their own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
 -- Permite que a action de signup (usando anon key) insira um novo perfil.
@@ -281,84 +209,110 @@ CREATE POLICY "Allow anon to insert their own profile on signup"
   ON public.profiles FOR INSERT
   TO anon
   WITH CHECK (true);
-  
--- *** NOVO: Permite que a anon key verifique se um email já existe durante o cadastro ***
-DROP POLICY IF EXISTS "Allow anon to select email for signup check" ON public.profiles;
-CREATE POLICY "Allow anon to select email for signup check"
+
+-- Permite ler o e-mail de outros perfis para a verificação de e-mail duplicado durante o signup
+DROP POLICY IF EXISTS "Allow anon to read emails for signup check" ON public.profiles;
+CREATE POLICY "Allow anon to read emails for signup check"
   ON public.profiles FOR SELECT
   TO anon
   USING (true);
 
 
--- ------ Políticas para `public.categories` ------
--- Usuários podem ver suas próprias categorias E as categorias padrão.
-DROP POLICY IF EXISTS "Allow user to view their own and default categories" ON public.categories;
-CREATE POLICY "Allow user to view their own and default categories" ON public.categories
-  FOR SELECT USING (auth.uid() = user_id OR is_default = true);
-
--- Usuários podem criar categorias para si mesmos.
-DROP POLICY IF EXISTS "Allow user to create their own categories" ON public.categories;
-CREATE POLICY "Allow user to create their own categories" ON public.categories
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Usuários podem atualizar suas próprias categorias (mas não as padrão).
-DROP POLICY IF EXISTS "Allow user to update their own categories" ON public.categories;
-CREATE POLICY "Allow user to update their own categories" ON public.categories
-  FOR UPDATE USING (auth.uid() = user_id AND is_default = false);
-
--- Usuários podem deletar suas próprias categorias (mas não as padrão).
-DROP POLICY IF EXISTS "Allow user to delete their own categories" ON public.categories;
-CREATE POLICY "Allow user to delete their own categories" ON public.categories
-  FOR DELETE USING (auth.uid() = user_id AND is_default = false);
-
-
--- ------ Políticas para `public.transactions`, `budgets`, `financial_goals`, `todos` ------
--- (O padrão é o mesmo para todas: o usuário só pode manipular seus próprios dados)
-
--- Transactions
-DROP POLICY IF EXISTS "Allow full access to own transactions" ON public.transactions;
-CREATE POLICY "Allow full access to own transactions" ON public.transactions
+-- --- Tabela: categories ---
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own categories" ON public.categories;
+CREATE POLICY "Users can manage their own categories" ON public.categories
   FOR ALL USING (auth.uid() = user_id);
 
--- Budgets
-DROP POLICY IF EXISTS "Allow full access to own budgets" ON public.budgets;
-CREATE POLICY "Allow full access to own budgets" ON public.budgets
+DROP POLICY IF EXISTS "Allow authenticated users to read default categories" ON public.categories;
+CREATE POLICY "Allow authenticated users to read default categories" ON public.categories
+  FOR SELECT TO authenticated USING (is_default = true);
+
+-- --- Tabela: transactions ---
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own transactions" ON public.transactions;
+CREATE POLICY "Users can manage their own transactions" ON public.transactions
   FOR ALL USING (auth.uid() = user_id);
 
--- Financial Goals
-DROP POLICY IF EXISTS "Allow full access to own financial goals" ON public.financial_goals;
-CREATE POLICY "Allow full access to own financial goals" ON public.financial_goals
+-- --- Tabela: budgets ---
+ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own budgets" ON public.budgets;
+CREATE POLICY "Users can manage their own budgets" ON public.budgets
   FOR ALL USING (auth.uid() = user_id);
 
--- Todos
-DROP POLICY IF EXISTS "Allow full access to own todos" ON public.todos;
-CREATE POLICY "Allow full access to own todos" ON public.todos
+-- --- Tabela: financial_goals ---
+ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own financial goals" ON public.financial_goals;
+CREATE POLICY "Users can manage their own financial goals" ON public.financial_goals
   FOR ALL USING (auth.uid() = user_id);
 
+-- --- Tabela: todos ---
+ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own todos" ON public.todos;
+CREATE POLICY "Users can manage their own todos" ON public.todos
+  FOR ALL USING (auth.uid() = user_id);
 
--- ================================================================================================
--- 7. DADOS INICIAIS (SEED DATA)
--- ================================================================================================
--- Insere categorias padrão que estarão disponíveis para todos os usuários.
--- O `ON CONFLICT (name) DO NOTHING` impede a inserção de duplicatas se o script for rodado novamente.
-INSERT INTO public.categories (name, type, icon, is_default) VALUES
-  ('Salário', 'income', 'DollarSign', true),
-  ('Freelance', 'income', 'Briefcase', true),
-  ('Investimentos', 'income', 'TrendingUp', true),
-  ('Outras Receitas', 'income', 'PlusCircle', true),
-  ('Moradia', 'expense', 'Home', true),
-  ('Alimentação', 'expense', 'ShoppingBasket', true),
-  ('Transporte', 'expense', 'Car', true),
-  ('Saúde', 'expense', 'Heart', true),
-  ('Lazer', 'expense', 'GlassWater', true),
-  ('Educação', 'expense', 'BookOpen', true),
-  ('Contas', 'expense', 'FileText', true), -- Ex: água, luz, internet
-  ('Compras', 'expense', 'ShoppingBag', true),
-  ('Viagens', 'expense', 'Plane', true),
-  ('Impostos', 'expense', 'Landmark', true),
-  ('Outras Despesas', 'expense', 'MinusCircle', true)
-ON CONFLICT (name) DO NOTHING;
+-- --- VIEW para atualizar o spent_amount dos orçamentos ---
+CREATE OR REPLACE VIEW public.budget_spent_view AS
+SELECT
+  b.id AS budget_id,
+  b.user_id,
+  COALESCE(SUM(t.amount), 0) AS total_spent
+FROM
+  public.budgets b
+LEFT JOIN
+  public.transactions t
+ON
+  b.user_id = t.user_id
+  AND b.category_id = t.category_id
+  AND t.type = 'expense'
+  AND t.date >= b.period_start_date
+  AND t.date <= b.period_end_date
+GROUP BY
+  b.id;
 
--- ------------------------------------------------------------------------------------------------
--- FIM DO SCRIPT
--- ------------------------------------------------------------------------------------------------
+-- Função para atualizar spent_amount na tabela de budgets
+CREATE OR REPLACE FUNCTION public.update_budget_spent_amount()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE public.budgets b
+  SET spent_amount = v.total_spent
+  FROM public.budget_spent_view v
+  WHERE b.id = v.budget_id;
+  RETURN NULL; -- Retorno nulo porque é um trigger AFTER
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para atualizar orçamentos após inserções/atualizações/deleções em transações
+DROP TRIGGER IF EXISTS on_transaction_change_update_budgets ON public.transactions;
+CREATE TRIGGER on_transaction_change_update_budgets
+  AFTER INSERT OR UPDATE OR DELETE ON public.transactions
+  FOR EACH STATEMENT
+  EXECUTE FUNCTION public.update_budget_spent_amount();
+
+-- Função para atualizar current_amount na tabela de metas financeiras
+-- Assumindo que TODAS as transações do tipo 'income' contribuem para TODAS as metas 'in_progress'
+-- Isso é uma simplificação. Um modelo mais complexo poderia ter uma tabela de ligação.
+CREATE OR REPLACE FUNCTION public.update_goal_current_amount()
+RETURNS TRIGGER AS $$
+DECLARE
+  total_income numeric;
+BEGIN
+  -- Este é um modelo muito simples. Recomenda-se uma lógica mais específica.
+  -- Por exemplo, poderia recalcular o total de receitas do usuário e aplicar a alguma meta.
+  -- A implementação atual é um placeholder e pode não ser performática ou correta para todos os casos de uso.
+  
+  -- Para ser seguro e evitar lógica complexa no trigger, a atualização do current_amount
+  -- deve ser feita pela aplicação quando uma contribuição para a meta é feita.
+  -- Mantemos o trigger como um exemplo, mas a lógica real seria na aplicação.
+  
+  RETURN NULL; -- Não faz nada por padrão para evitar comportamento inesperado.
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS on_transaction_change_update_goals ON public.transactions;
+-- CREATE TRIGGER on_transaction_change_update_goals
+--   AFTER INSERT OR UPDATE ON public.transactions
+--   FOR EACH ROW
+--   WHEN (NEW.type = 'income')
+--   EXECUTE FUNCTION public.update_goal_current_amount();
