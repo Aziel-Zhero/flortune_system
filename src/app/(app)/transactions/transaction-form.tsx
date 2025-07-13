@@ -23,7 +23,6 @@ import { useSession } from "next-auth/react";
 import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
 import { getCategories } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
-import { Skeleton } from "@/components/ui/skeleton";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -264,7 +263,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
             />
             <Label htmlFor="is_recurring" className="font-normal text-sm text-muted-foreground flex items-center gap-1.5">
                 <Repeat className="h-3 w-3" />
-                Marcar como transação recorrente (funcionalidade em breve).
+                Marcar como transação recorrente.
             </Label>
         </div>
         
