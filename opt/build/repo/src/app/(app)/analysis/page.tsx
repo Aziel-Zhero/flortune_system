@@ -1,4 +1,3 @@
-
 // src/app/(app)/analysis/page.tsx
 "use client";
 
@@ -16,7 +15,7 @@ import {
   BarChart3 as BarIconLucide, 
   Radar as RadarIconLucide, 
   Target as RadialIconLucide,
-  LineChart as LineIconLucide 
+  LineChart as LineIconLucideReal // Renomeado para evitar conflito
 } from "lucide-react";
 import {
   Select,
@@ -42,7 +41,7 @@ import {
 import {
   AreaChart, 
   Area,      
-  LineChart, // Renomeado para uso explícito na galeria
+  LineChart, // Este é o componente do Recharts
   Line,
   XAxis,
   YAxis,
@@ -527,7 +526,7 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucide className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label (Mock)</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label (Mock)</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <LineChart accessibilityLayer data={mockLineData} margin={{top: 20, left: 12, right: 12}}>
@@ -542,7 +541,7 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucide className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
           <CardContent className="h-72">
             <ChartContainer config={genericChartConfig} className="w-full h-full">
               <LineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>

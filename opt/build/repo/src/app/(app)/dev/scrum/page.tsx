@@ -78,7 +78,7 @@ export default function DevScrumPage() {
 
 
   useEffect(() => {
-    document.title = `Scrum Visual (DEV) - ${APP_NAME}`;
+    document.title = `Scrum Planner (DEV) - ${APP_NAME}`;
   }, []);
 
   const onAddMember: SubmitHandler<NewMemberFormData> = (data) => {
