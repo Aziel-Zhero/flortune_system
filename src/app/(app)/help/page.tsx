@@ -130,7 +130,7 @@ export default function HelpPage() {
             description="Para dúvidas gerais, sugestões ou problemas técnicos."
           >
             <a
-              href="mailto:suporte@flortune.com"
+              href="mailto:flortune_@outlook.com"
               className={cn(buttonVariants({ variant: "link" }), "p-0 h-auto text-primary")}
             >
               suporte@flortune.com
