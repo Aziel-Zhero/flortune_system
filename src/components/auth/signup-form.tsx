@@ -2,7 +2,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, Building, Fingerprint, Phone as PhoneIcon, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, UserPlus, KeyRound, Mail, User as UserIcon, Building, Fingerprint, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ import 'react-phone-number-input/style.css';
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { signIn } from "next-auth/react"; 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 // Placeholder Google icon as SVG component
 const GoogleIcon = () => (
@@ -56,7 +56,7 @@ const formatRG = (value: string): string => {
 
 export function SignupForm() {
   const initialState: SignupFormState = { message: undefined, errors: {}, success: undefined };
-  const [state, dispatch, isPending] = useActionState(signupUser, initialState);
+  const [state, dispatch] = useActionState(signupUser, initialState);
   const [accountType, setAccountType] = useState<'pessoa' | 'empresa'>('pessoa');
   const [phoneValue, setPhoneValue] = useState<string | undefined>();
   const [cpfValue, setCpfValue] = useState('');
@@ -71,7 +71,11 @@ export function SignupForm() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const router = useRouter();
+  const { pending: isPending } = useActionState(async (previousState: SignupFormState, formData: FormData) => {
+    const newState = await signupUser(previousState, formData);
+    return newState;
+  }, initialState);
+  
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -121,7 +125,7 @@ export function SignupForm() {
        if (e.message?.includes("OAuthAccountNotLinked")) {
           friendlyError = "Esta conta já existe com outro método de login. Tente usar email e senha ou o método original."
        }
-       setFormError(friendlyError); // Corrigido aqui
+       setFormError(friendlyError);
        toast({ title: "Erro com Google", description: friendlyError, variant: "destructive" });
        setIsGoogleLoading(false);
     }
@@ -215,7 +219,6 @@ export function SignupForm() {
             </div>
             {state?.errors?.confirmPassword && <p id="confirmPassword-error" className="text-sm text-destructive">{state.errors.confirmPassword.join(', ')}</p>}
             {passwordsMatch === false && <p className="text-sm text-destructive mt-1">As senhas não coincidem.</p>}
-            {passwordsMatch === true && <p className="text-sm text-emerald-600 mt-1">As senhas coincidem.</p>}
           </div>
         </div>
         

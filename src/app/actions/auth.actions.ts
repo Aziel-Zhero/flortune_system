@@ -3,12 +3,12 @@
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client'; // Usa o cliente Supabase padrão (anon key)
+import { createClient } from '@supabase/supabase-js'; // Usaremos um cliente com service key aqui
 import bcrypt from 'bcryptjs';
 import type { Profile } from "@/types/database.types";
-import { v4 as uuidv4 } from 'uuid'; // Para gerar um ID consistente
+import { v4 as uuidv4 } from 'uuid';
 
-// Esquemas de validação Zod (sem alterações)
+// Esquemas de validação Zod
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
   .regex(/[a-z]/, { message: "A senha deve conter pelo menos uma letra minúscula." })
@@ -92,7 +92,14 @@ export type SignupFormState = {
 };
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
-  console.log("[SignupUser Action] Iniciando novo fluxo de cadastro...");
+  console.log("[SignupUser Action] Iniciando novo fluxo de cadastro unificado...");
+
+  // Criar um cliente Supabase com a SERVICE_ROLE_KEY para ter permissões elevadas
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
     const rawData = Object.fromEntries(formData.entries());
     if (rawData.cpf === '') rawData.cpf = undefined;
@@ -113,35 +120,54 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
 
-    // 1. Verificar se o email já existe em `public.profiles`
-    console.log(`[SignupUser Action] Verificando se email ${email} já existe...`);
-    const { data: existingProfileByEmail, error: fetchError } = await supabase
-      .from('profiles')
-      .select('email')
+    // 1. Verificar se o email já existe em `auth.users`
+    console.log(`[SignupUser Action] Verificando se email ${email} já existe em auth.users...`);
+    const { data: existingUser, error: fetchUserError } = await supabaseAdmin
+      .from('users')
+      .select('id')
       .eq('email', email)
-      .maybeSingle(); 
+      .maybeSingle();
 
-    if (fetchError) {
-      console.error("[SignupUser Action] Erro ao verificar perfil existente:", fetchError.message);
-      return { message: `Erro no banco de dados: ${fetchError.message}`, success: false, errors: {_form: [fetchError.message]} };
+    if (fetchUserError) {
+      console.error("[SignupUser Action] Erro ao verificar usuário existente em auth.users:", fetchUserError.message);
+      return { message: `Erro no banco de dados: ${fetchUserError.message}`, success: false, errors: {_form: [fetchUserError.message]} };
     }
 
-    if (existingProfileByEmail) {
-      console.log("[SignupUser Action] Email já registrado.");
+    if (existingUser) {
+      console.log("[SignupUser Action] Email já registrado em auth.users.");
       return {
         errors: { email: ["Este email já está registrado."] },
         message: "Este email já está registrado. Tente fazer login ou use outro email.",
         success: false,
       };
     }
-
+    
     console.log("[SignupUser Action] Email disponível. Processando novo usuário...");
 
-    // 2. Gerar ID e hashear a senha ANTES de inserir no banco
+    // 2. Gerar ID e hashear a senha
     const userId = uuidv4();
     const hashedPassword = await bcrypt.hash(password, 10);
+    const avatarUrl = `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`;
 
-    // 3. Criar o novo perfil na tabela `public.profiles`
+    // 3. Inserir na tabela `auth.users`
+    console.log(`[SignupUser Action] Inserindo usuário com ID ${userId} em auth.users...`);
+    const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+        id: userId,
+        email: email,
+        password: password, // Supabase precisa da senha original aqui para criar o usuário no seu sistema interno
+        email_confirm: true, // Auto-confirma o e-mail
+        user_metadata: {
+            name: displayName,
+            avatar_url: avatarUrl
+        }
+    });
+
+    if (createUserError) {
+      console.error("[SignupUser Action] Erro ao criar usuário em auth.users:", createUserError.message);
+      return { message: `Falha ao criar usuário: ${createUserError.message}`, success: false, errors: { _form: [createUserError.message] }};
+    }
+    
+    // 4. Inserir na tabela `public.profiles`
     const newProfileData: Omit<Profile, 'created_at' | 'updated_at'> = {
         id: userId,
         full_name: fullName,
@@ -151,22 +177,25 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         phone: phone ? phone.replace(/\D/g, '') : null,
         cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
         rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
-        avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
+        avatar_url: avatarUrl,
         account_type: accountType,
     };
     
     console.log(`[SignupUser Action] Inserindo perfil com ID ${userId} em public.profiles...`);
-    const { error: insertError } = await supabase
+    const { error: insertProfileError } = await supabaseAdmin
       .from('profiles')
       .insert(newProfileData);
 
-    if (insertError) {
-      console.error("[SignupUser Action] Erro ao inserir perfil na tabela 'profiles':", insertError);
-      return { message: `Falha ao registrar perfil: ${insertError.message}`, success: false, errors: { _form: [insertError.message] }};
+    if (insertProfileError) {
+      console.error("[SignupUser Action] Erro ao inserir perfil na tabela 'profiles':", insertProfileError);
+      // Opcional: deletar o usuário criado no passo 3 para reverter a operação
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      console.error("[SignupUser Action] Usuário de auth.users revertido devido a erro na inserção do perfil.");
+      return { message: `Falha ao registrar perfil: ${insertProfileError.message}`, success: false, errors: { _form: [insertProfileError.message] }};
     }
     
     console.log("[SignupUser Action] Cadastro completo e bem-sucedido. Redirecionando para login.");
-    redirect('/login?signup=success'); 
+    redirect('/login?signup=success');
 
   } catch (error: any) {
     if (error.message?.includes('NEXT_REDIRECT')) {

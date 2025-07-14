@@ -6,7 +6,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from "next-auth/providers/google";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
 import jwt from "jsonwebtoken";
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js'; // Usado para criar cliente admin localmente
 import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
@@ -46,9 +46,12 @@ const providers: NextAuthConfig['providers'] = [
       const email = credentials.email as string;
       const password = credentials.password as string;
 
+      // Usar um cliente admin para poder ler a tabela `profiles`
+      // que pode ter RLS ativada.
+      const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceRoleKey!);
+
       try {
-        // Agora o 'authorize' procura em `public.profiles`
-        const { data: profile, error: dbError } = await supabase
+        const { data: profile, error: dbError } = await supabaseAdmin
           .from('profiles')
           .select('*')
           .eq('email', email)
@@ -59,13 +62,11 @@ const providers: NextAuthConfig['providers'] = [
           return null;
         }
         
-        // Compara a senha fornecida com a senha hasheada no nosso banco
         const passwordsMatch = await bcrypt.compare(password, profile.hashed_password || "");
 
         if (passwordsMatch) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
-          // Retorna os dados para o NextAuth, que serão usados no callback jwt
           return {
             id: userProfile.id,
             email: userProfile.email,
@@ -106,19 +107,16 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async jwt({ token, user, account }) {
-      // Ao fazer login (com credenciais ou OAuth), o objeto `user` está disponível
       if (user) {
         token.sub = user.id;
-
-        // Se for login com credenciais, o objeto 'profile' que passamos do `authorize` estará aqui
         if (user.profile) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...safeProfile } = user.profile;
           token.profile = safeProfile;
         } 
-        // Se for login OAuth, buscamos o perfil no banco de dados na primeira vez
         else if (account?.provider !== 'credentials') {
-          const { data: dbProfile } = await supabase
+          const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceRoleKey!);
+          const { data: dbProfile } = await supabaseAdmin
             .from('profiles')
             .select('*')
             .eq('id', user.id)
@@ -137,7 +135,6 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.sub;
       }
       
-      // Anexa o perfil do token JWT à sessão, evitando buscas desnecessárias no banco
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
@@ -145,7 +142,6 @@ export const authConfig: NextAuthConfig = {
         session.user.email = session.user.profile.email || session.user.email;
       }
 
-      // Cria o token de acesso do Supabase
       if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
