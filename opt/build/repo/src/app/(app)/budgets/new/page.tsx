@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Target } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
-import { BudgetForm } from "../budget-form";
+import { BudgetForm } from "@/app/(app)/budgets/budget-form";
 import { useRouter } from "next/navigation";
 
 export default function NewBudgetPage() {
