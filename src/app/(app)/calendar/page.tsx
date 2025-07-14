@@ -7,30 +7,34 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { ptBR } from "date-fns/locale";
-import type { EventClickArg, DateSelectArg, EventInput, EventDropArg } from '@fullcalendar/core';
-
+import type { EventClickArg, DateSelectArg, EventInput } from '@fullcalendar/core';
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAppSettings } from "@/contexts/app-settings-context";
+import { Textarea } from "@/components/ui/textarea";
+import { useSession } from "next-auth/react";
+import { getTransactions } from "@/services/transaction.service";
+import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
-
 import {
   Calendar as CalendarIconLucide,
   Plus,
   Trash2,
-  AlertTriangle,
   Tag,
   CreditCard,
   DollarSign,
-  Info
+  Info,
+  Circle
 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, isEqual } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface CalendarEvent extends EventInput {
   id: string;
@@ -41,6 +45,7 @@ interface CalendarEvent extends EventInput {
   extendedProps: {
     type: 'lembrete' | 'pagamento' | 'recebimento' | 'evento';
     description?: string;
+    source: 'manual' | 'transaction';
   };
 }
 
@@ -55,30 +60,78 @@ const getEventTypeConfig = (typeValue: string) => {
   return eventTypes.find(t => t.value === typeValue) || eventTypes[0];
 };
 
-const initialEvents: CalendarEvent[] = [
-  { id: '1', title: 'Salário Mensal', start: new Date().toISOString().split('T')[0], allDay: true, extendedProps: { type: 'recebimento', description: 'Recebimento do salário da empresa.'}, backgroundColor: getEventTypeConfig('recebimento').color, borderColor: getEventTypeConfig('recebimento').color },
-  { id: '2', title: 'Pagar Aluguel', start: '2024-07-05', end: '2024-07-05', allDay: true, extendedProps: { type: 'pagamento', description: 'Vencimento do aluguel do apartamento.' }, backgroundColor: getEventTypeConfig('pagamento').color, borderColor: getEventTypeConfig('pagamento').color },
-  { id: '3', title: 'Reunião de Equipe', start: '2024-07-10T14:00:00', end: '2024-07-10T15:00:00', allDay: false, extendedProps: { type: 'evento', description: 'Alinhamento semanal do projeto Flortune.'}, backgroundColor: getEventTypeConfig('evento').color, borderColor: getEventTypeConfig('evento').color },
-];
-
 export default function CalendarPage() {
-  const { weatherData, isLoadingWeather, weatherError, weatherCity } = useAppSettings();
-  const WeatherIcon = weatherData?.icon ? getWeatherIcon(weatherData.icon) : null;
-  const [events, setEvents] = useState<EventInput[]>(initialEvents);
+  const { data: session, status } = useSession();
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<CalendarEvent>>({});
+  
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  
+  const fetchCalendarData = useCallback(async () => {
+    if (!session?.user?.id) {
+        setIsLoading(false);
+        return;
+    }
+    setIsLoading(true);
+    try {
+        const { data: transactions, error } = await getTransactions(session.user.id);
+        if (error) throw error;
+        
+        const transactionEvents = (transactions || []).map((tx: Transaction): CalendarEvent => ({
+            id: `tx-${tx.id}`,
+            title: tx.description,
+            start: tx.date,
+            allDay: true,
+            extendedProps: {
+                type: tx.type === 'income' ? 'recebimento' : 'pagamento',
+                description: `R$ ${tx.amount.toFixed(2)} - ${tx.category?.name || 'Sem Categoria'}`,
+                source: 'transaction',
+            },
+            backgroundColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
+            borderColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
+        }));
+        
+        // Carregar eventos manuais do localStorage
+        const storedManualEvents = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
+        
+        setEvents([...transactionEvents, ...storedManualEvents]);
+    } catch(err: any) {
+        toast({ title: "Erro ao carregar dados", description: err.message, variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [session?.user?.id]);
+  
+  useEffect(() => {
+    if (status === 'authenticated') {
+        fetchCalendarData();
+    }
+  }, [status, fetchCalendarData]);
 
   useEffect(() => {
     document.title = `Calendário Financeiro - ${APP_NAME}`;
   }, []);
   
+  const manualEvents = useMemo(() => events.filter(e => e.extendedProps.source === 'manual'), [events]);
+  useEffect(() => {
+    if(!isLoading) localStorage.setItem('flortune-manual-events', JSON.stringify(manualEvents));
+  }, [manualEvents, isLoading]);
+
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     setSelectedEvent(clickInfo.event as unknown as CalendarEvent);
   }, []);
 
+  const handleDateClick = useCallback((arg: { date: Date, allDay: boolean, jsEvent: UIEvent }) => {
+    setSelectedDay(arg.date);
+  }, []);
+
   const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
-    setFormData({ start: selectInfo.startStr, end: selectInfo.endStr, allDay: selectInfo.allDay, extendedProps: { type: 'evento' }});
+    setFormData({ start: selectInfo.startStr, end: selectInfo.endStr, allDay: selectInfo.allDay, extendedProps: { type: 'evento', source: 'manual' }});
     setIsFormOpen(true);
   }, []);
   
@@ -87,6 +140,7 @@ export default function CalendarPage() {
         toast({ title: "Título obrigatório", description: "Por favor, insira um título para o evento.", variant: "destructive" });
         return;
     }
+    const eventType = formData.extendedProps?.type || 'evento';
     const newEvent: CalendarEvent = {
         id: formData.id || `evt_${Date.now()}`,
         title: formData.title,
@@ -94,20 +148,20 @@ export default function CalendarPage() {
         end: formData.end,
         allDay: formData.allDay || false,
         extendedProps: {
-            type: formData.extendedProps?.type || 'evento',
-            description: formData.extendedProps?.description || ''
+            type: eventType,
+            description: formData.extendedProps?.description || '',
+            source: 'manual',
         },
-        backgroundColor: getEventTypeConfig(formData.extendedProps?.type || 'evento').color,
-        borderColor: getEventTypeConfig(formData.extendedProps?.type || 'evento').color,
+        backgroundColor: getEventTypeConfig(eventType).color,
+        borderColor: getEventTypeConfig(eventType).color,
     };
 
-    if(formData.id) { // Editing
-        setEvents(prev => prev.map(e => e.id === formData.id ? newEvent : e));
-        toast({ title: "Evento Atualizado!" });
-    } else { // Creating
-        setEvents(prev => [...prev, newEvent]);
-        toast({ title: "Evento Criado!" });
-    }
+    setEvents(prev => {
+        const otherEvents = prev.filter(e => e.id !== newEvent.id);
+        return [...otherEvents, newEvent];
+    });
+
+    toast({ title: formData.id ? "Evento Atualizado!" : "Evento Criado!" });
     setIsFormOpen(false);
     setFormData({});
   }
@@ -120,84 +174,100 @@ export default function CalendarPage() {
     }
   }
   
-  const WeatherDisplay = () => (
-     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      {isLoadingWeather && <Skeleton className="h-5 w-24" />}
-      {!isLoadingWeather && WeatherIcon && weatherData && (
-        <>
-          <WeatherIcon className="h-5 w-5" />
-          <span>{weatherData.temperature}°C em {weatherData.city}</span>
-        </>
-      )}
-      {!isLoadingWeather && weatherError && weatherCity && (
-        <span className="text-destructive text-xs">Erro ao buscar clima.</span>
-      )}
-    </div>
-  );
+  const eventsForSidebar = useMemo(() => {
+    const start = startOfMonth(selectedDay || currentDate);
+    const end = endOfMonth(selectedDay || currentDate);
+    
+    return events
+        .filter(e => {
+            const eventStart = parseISO(e.start as string);
+            if (selectedDay) return isEqual(eventStart, selectedDay);
+            return eventStart >= start && eventStart <= end;
+        })
+        .sort((a,b) => new Date(a.start as string).getTime() - new Date(b.start as string).getTime());
+  }, [events, currentDate, selectedDay]);
 
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader
-        title="Calendário Financeiro"
-        description="Visualize e gerencie seus eventos e transações de forma interativa."
-        icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
-        actions={
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-                <WeatherDisplay />
-                <Button onClick={() => { setFormData({ start: new Date().toISOString().split('T')[0], allDay: true, extendedProps: { type: 'evento' } }); setIsFormOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Novo Evento
-                </Button>
-            </div>
-        }
-      />
-      <div className="flex-1 p-1 -m-1 bg-card border rounded-lg shadow-sm overflow-hidden min-h-[600px]">
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
-          initialView="dayGridMonth"
-          locale={ptBR}
-          weekends={true}
-          events={events}
-          editable={true}
-          selectable={true}
-          selectMirror={true}
-          dayMaxEvents={true}
-          eventClick={handleEventClick}
-          select={handleDateSelect}
-          height="100%"
-          buttonText={{ today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia' }}
-          slotLabelFormat={{ hour: '2-digit', minute: '2-digit', meridiem: false, hour12: false }}
+    <div className="flex flex-col md:flex-row h-full gap-6">
+      <div className="flex-1 flex flex-col min-h-[70vh] md:min-h-0">
+        <PageHeader
+          title="Calendário Financeiro"
+          description="Visualize e gerencie seus eventos de forma interativa."
+          icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
         />
+        <div className="flex-1 p-1 -m-1 bg-card border rounded-lg shadow-sm overflow-hidden">
+            {isLoading ? (
+                <div className="p-4 space-y-4">
+                    <Skeleton className="h-10 w-1/2" />
+                    <Skeleton className="h-[500px] w-full" />
+                </div>
+            ) : (
+                <FullCalendar
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                    headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
+                    initialView="dayGridMonth"
+                    locale={ptBR}
+                    weekends={true}
+                    events={events}
+                    editable={true}
+                    selectable={true}
+                    selectMirror={true}
+                    dayMaxEvents={true}
+                    eventClick={handleEventClick}
+                    select={handleDateSelect}
+                    dateClick={handleDateClick}
+                    datesSet={(arg) => setCurrentDate(arg.view.currentStart)}
+                    height="100%"
+                    buttonText={{ today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia' }}
+                    slotLabelFormat={{ hour: '2-digit', minute: '2-digit', meridiem: false, hour12: false }}
+                />
+            )}
+        </div>
       </div>
+      <Card className="w-full md:w-80 lg:w-96 flex flex-col shadow-sm">
+        <CardHeader>
+            <CardTitle className="font-headline text-lg">
+                {selectedDay ? `Eventos de ${format(selectedDay, "d 'de' MMMM", {locale: ptBR})}` : `Eventos de ${format(currentDate, "MMMM", {locale: ptBR})}`}
+            </CardTitle>
+            {selectedDay && <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setSelectedDay(null)}>Ver mês inteiro</Button>}
+        </CardHeader>
+        <CardContent className="flex-grow overflow-hidden">
+            <ScrollArea className="h-full pr-4">
+                <div className="space-y-4">
+                {eventsForSidebar.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento neste período.</p> : eventsForSidebar.map(event => {
+                    const eventConfig = getEventTypeConfig(event.extendedProps.type);
+                    return(
+                        <div key={event.id} className="flex items-start gap-3 p-2 rounded-md border-l-4" style={{borderColor: eventConfig.color}}>
+                            <div className="mt-1"><eventConfig.icon className="h-4 w-4" style={{color: eventConfig.color}}/></div>
+                            <div>
+                                <p className="font-semibold text-sm">{event.title}</p>
+                                <p className="text-xs text-muted-foreground">{event.extendedProps.description}</p>
+                                <p className="text-xs text-muted-foreground/80">{format(parseISO(event.start as string), "dd/MM/yy")}</p>
+                            </div>
+                        </div>
+                    );
+                })}
+                </div>
+            </ScrollArea>
+        </CardContent>
+        <CardFooter>
+            <Button className="w-full" onClick={() => { setFormData({ start: new Date().toISOString().split('T')[0], allDay: true, extendedProps: { type: 'evento', source: 'manual' } }); setIsFormOpen(true); }}>
+                <Plus className="mr-2 h-4 w-4" /> Novo Evento Manual
+            </Button>
+        </CardFooter>
+      </Card>
       
        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{formData.id ? "Editar Evento" : "Novo Evento"}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{formData.id ? "Editar Evento" : "Novo Evento"}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Título</Label>
-              <Input id="title" value={formData.title || ''} onChange={(e) => setFormData(p => ({...p, title: e.target.value}))} className="col-span-3" />
+            <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="title" className="text-right">Título</Label><Input id="title" value={formData.title || ''} onChange={(e) => setFormData(p => ({...p, title: e.target.value}))} className="col-span-3" /></div>
+            <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Tipo</Label>
+              <Select value={formData.extendedProps?.type || 'evento'} onValueChange={(v) => setFormData(p => ({...p, extendedProps: {...p.extendedProps, type: v as any}}))}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent>{eventTypes.filter(t => t.value === 'evento' || t.value === 'lembrete').map(t => <SelectItem key={t.value} value={t.value}><div className="flex items-center gap-2"><t.icon className="h-4 w-4"/> {t.label}</div></SelectItem>)}</SelectContent></Select>
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="type" className="text-right">Tipo</Label>
-              <Select value={formData.extendedProps?.type || 'evento'} onValueChange={(v) => setFormData(p => ({...p, extendedProps: {...p.extendedProps, type: v as any}}))}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecione um tipo" />
-                </SelectTrigger>
-                <SelectContent>{eventTypes.map(t => <SelectItem key={t.value} value={t.value}><div className="flex items-center gap-2"><t.icon className="h-4 w-4"/> {t.label}</div></SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">Descrição</Label>
-              <Input id="description" value={formData.extendedProps?.description || ''} onChange={(e) => setFormData(p => ({...p, extendedProps: {...p.extendedProps, description: e.target.value}}))} className="col-span-3" />
-            </div>
+            <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Descrição</Label><Textarea id="description" value={formData.extendedProps?.description || ''} onChange={(e) => setFormData(p => ({...p, extendedProps: {...p.extendedProps, description: e.target.value}}))} className="col-span-3" /></div>
           </div>
-          <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-            <Button type="button" onClick={handleFormSave}>Salvar</Button>
-          </DialogFooter>
+          <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="button" onClick={handleFormSave}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
       
@@ -206,23 +276,13 @@ export default function CalendarPage() {
           {selectedEvent && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                    <getEventTypeConfig.icon className="h-5 w-5" style={{color: getEventTypeConfig(selectedEvent.extendedProps.type).color }}/>
-                    {selectedEvent.title}
-                </DialogTitle>
+                <DialogTitle className="flex items-center gap-2"><Circle className="h-4 w-4" style={{color: selectedEvent.backgroundColor as string}}/>{selectedEvent.title}</DialogTitle>
                 <DialogDescription className="pt-2">
                   <p>{selectedEvent.extendedProps.description}</p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {selectedEvent.allDay ? `Todo o dia em ${format(parseISO(selectedEvent.start as string), "PPP", {locale: ptBR})}`
-                    : `De ${format(parseISO(selectedEvent.start as string), "Pp", {locale: ptBR})} até ${selectedEvent.end ? format(parseISO(selectedEvent.end), "Pp", {locale: ptBR}) : ''}`}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">{selectedEvent.allDay ? `Todo o dia em ${format(parseISO(selectedEvent.start as string), "PPP", {locale: ptBR})}` : `De ${format(parseISO(selectedEvent.start as string), "Pp", {locale: ptBR})} até ${selectedEvent.end ? format(parseISO(selectedEvent.end), "Pp", {locale: ptBR}) : ''}`}</p>
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => { setSelectedEvent(null); setFormData(selectedEvent); setIsFormOpen(true);}}>Editar</Button>
-                <Button type="button" variant="destructive" onClick={handleDeleteEvent}><Trash2 className="mr-2 h-4 w-4" /> Deletar</Button>
-                <DialogClose asChild><Button type="button" variant="outline">Fechar</Button></DialogClose>
-              </DialogFooter>
+              <DialogFooter>{selectedEvent.extendedProps.source === 'manual' && <Button type="button" variant="ghost" onClick={() => { setSelectedEvent(null); setFormData(selectedEvent); setIsFormOpen(true);}}>Editar</Button>} {selectedEvent.extendedProps.source === 'manual' && <Button type="button" variant="destructive" onClick={handleDeleteEvent}><Trash2 className="mr-2 h-4 w-4" /> Deletar</Button>} <DialogClose asChild><Button type="button" variant="outline">Fechar</Button></DialogClose></DialogFooter>
             </>
           )}
         </DialogContent>
@@ -230,18 +290,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-
-// Helper to get weather icon component
-const weatherIconMapping: { [key: string]: React.ElementType } = {
-  "01d": CalendarIconLucide, "01n": CalendarIconLucide,
-  "02d": CalendarIconLucide, "02n": CalendarIconLucide,
-  "03d": CalendarIconLucide, "03n": CalendarIconLucide,
-  "04d": CalendarIconLucide, "04n": CalendarIconLucide,
-  "09d": CalendarIconLucide, "09n": CalendarIconLucide,
-  "10d": CalendarIconLucide, "10n": CalendarIconLucide,
-  "11d": CalendarIconLucide, "11n": CalendarIconLucide,
-  "13d": CalendarIconLucide, "13n": CalendarIconLucide,
-  "50d": CalendarIconLucide, "50n": CalendarIconLucide,
-  "default": CalendarIconLucide,
-};
-const getWeatherIcon = (iconCode: string) => weatherIconMapping[iconCode] || weatherIconMapping["default"];
