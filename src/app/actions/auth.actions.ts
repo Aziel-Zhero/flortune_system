@@ -165,18 +165,6 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       return { message: `Falha ao registrar perfil: ${insertError.message}`, success: false, errors: { _form: [insertError.message] }};
     }
     
-    // O novo trigger 'on_public_profile_created' irá cuidar da inserção em 'auth.users'.
-    // O NextAuth.js adapter cuidará de criar a entrada em 'next_auth.users' no primeiro login.
-    
-    // 4. (Opcional, mas recomendado) Enviar um email de boas-vindas/confirmação
-    // Aqui, podemos chamar o método do Supabase para enviar o email de confirmação,
-    // que agora apenas serve para verificar o email e não para criar o usuário.
-    const { error: emailError } = await supabase.auth.signUp({ email, password });
-    if(emailError && emailError.message !== "User already registered") {
-      // Ignoramos o erro "User already registered" pois já tratamos, mas logamos outros erros.
-      console.warn("[SignupUser Action] Erro ao tentar enviar email de confirmação (pode ser ignorado se o usuário já existe no auth.users):", emailError.message);
-    }
-    
     console.log("[SignupUser Action] Cadastro completo e bem-sucedido. Redirecionando para login.");
     redirect('/login?signup=success'); 
 
