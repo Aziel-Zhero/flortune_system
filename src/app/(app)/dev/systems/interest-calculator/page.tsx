@@ -168,7 +168,7 @@ export default function InterestCalculatorPage() {
                 {errors.timePeriod && <p className="text-sm text-destructive mt-1">{errors.timePeriod.message}</p>}
               </div>
             </div>
-          </CardContent>
+          </CardFooter>
           <CardFooter className="flex flex-col items-start gap-4">
              <div className="flex gap-2">
                 <Button type="submit">Calcular Juros</Button>
