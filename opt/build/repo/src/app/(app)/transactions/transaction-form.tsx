@@ -1,4 +1,3 @@
-
 // src/app/(app)/transactions/transaction-form.tsx
 "use client";
 
@@ -15,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, DollarSign, CheckCircle, Save } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,8 +23,8 @@ import { useSession } from "next-auth/react";
 import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
 import { getCategories } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
-import { Skeleton } from "@/components/ui/skeleton";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const transactionFormSchema = z.object({
   description: z.string().min(2, "A descrição deve ter pelo menos 2 caracteres."),
@@ -37,6 +36,7 @@ const transactionFormSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Selecione o tipo da transação." }),
   category_id: z.string().min(1, "Selecione uma categoria."),
   notes: z.string().optional(),
+  is_recurring: z.boolean().optional().default(false),
 });
 
 type TransactionFormData = z.infer<typeof transactionFormSchema>;
@@ -62,6 +62,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       type: "expense",
       amount: 0,
       date: new Date(),
+      is_recurring: false,
     },
   });
 
@@ -105,6 +106,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       type: data.type,
       category_id: data.category_id,
       notes: data.notes,
+      is_recurring: data.is_recurring ?? false,
     };
 
     try {
@@ -132,21 +134,6 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
   };
 
   const filteredCategories = categories.filter(cat => cat.type === transactionType || cat.is_default);
-
-  if (status === "loading" && !initialData) {
-     return (
-        <div className="space-y-4 py-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-20 w-full" />
-            <div className="flex justify-end gap-2 pt-4">
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="h-10 w-24" />
-            </div>
-        </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
@@ -242,7 +229,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 name="category_id"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingCategories}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
                     <SelectTrigger id="category_id">
                       <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria de ${transactionType === 'income' ? 'receita' : 'despesa'}`} />
                     </SelectTrigger>
@@ -260,6 +247,24 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 )}
             />
             {errors.category_id && <p className="text-sm text-destructive mt-1">{errors.category_id.message}</p>}
+        </div>
+
+        <div className="flex items-center space-x-2">
+            <Controller
+                name="is_recurring"
+                control={control}
+                render={({ field }) => (
+                    <Checkbox
+                        id="is_recurring"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                )}
+            />
+            <Label htmlFor="is_recurring" className="font-normal text-sm text-muted-foreground flex items-center gap-1.5">
+                <Repeat className="h-3 w-3" />
+                Marcar como transação recorrente.
+            </Label>
         </div>
         
         <div className="space-y-2">
@@ -282,5 +287,3 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     </form>
   );
 }
-
-    

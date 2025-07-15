@@ -1,4 +1,3 @@
-
 // src/app/(app)/transactions/page.tsx
 "use client";
 
@@ -10,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2 } from "lucide-react";
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +44,8 @@ import { getTransactions, deleteTransaction } from "@/services/transaction.servi
 import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionForm } from "./transaction-form"; 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const categoryTypeColors: { [key: string]: string } = {
   income: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-800/30 dark:text-emerald-300 dark:border-emerald-700",
@@ -213,6 +214,7 @@ export default function TransactionsPage() {
   }
   
   return (
+    <TooltipProvider>
     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
       <div className="w-full">
         <PageHeader
@@ -276,7 +278,17 @@ export default function TransactionsPage() {
                       <TableCell className="text-muted-foreground text-xs md:text-sm">
                         {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
                       </TableCell>
-                      <TableCell className="font-medium">{transaction.description}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                            {transaction.is_recurring && (
+                                <Tooltip>
+                                    <TooltipTrigger><Repeat className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                    <TooltipContent><p>Transação Recorrente</p></TooltipContent>
+                                </Tooltip>
+                            )}
+                            <span>{transaction.description}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge 
                             variant="outline" 
@@ -368,6 +380,6 @@ export default function TransactionsPage() {
         )}
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 }
-    

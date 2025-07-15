@@ -18,7 +18,7 @@ import {
   DialogClose,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { GanttChartSquare, PlusCircle, UserPlus, Crown, Shield, Code, ArrowRight, ClipboardList, Flag, CheckCircle, BarChart, History } from "lucide-react";
+import { GanttChartSquare, PlusCircle, UserPlus, Crown, Shield, Code, ArrowRight, ClipboardList, Flag, CheckCircle, BarChart, History, Users2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
