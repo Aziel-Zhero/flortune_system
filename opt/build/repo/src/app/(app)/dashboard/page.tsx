@@ -5,7 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -72,10 +72,10 @@ export default function DashboardPage() {
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
-    { title: "Saldo Atual (Simulado)", value: null, icon: DollarSign, trend: null, trendColor: "text-muted-foreground", isLoading: true },
+    { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: true },
     { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
     { title: "Despesas Este Mês", value: null, icon: CreditCard, trend: null, trendColor: "text-red-500", isLoading: true },
-    { title: "Meta Principal (Progresso)", value: null, icon: PiggyBank, unit: "%", trend: null, trendColor: "text-emerald-500", isLoading: true },
+    { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
   ]);
 
   const fetchDashboardData = useCallback(async () => {
@@ -97,23 +97,11 @@ export default function DashboardPage() {
       } else {
         setAllTransactions(Array.isArray(transactionsData) ? transactionsData : []);
       }
-
-      const { data: goalsData, error: goalsError } = await getFinancialGoals(user.id);
-      let primaryGoalProgress: number | null = null;
-      if (goalsError) {
-        // Silently fail for goals on dashboard for now
-      } else if (goalsData && goalsData.length > 0) {
-        const inProgressGoals = goalsData.filter(g => g.status === 'in_progress');
-        if (inProgressGoals.length > 0) {
-            const primaryGoal = inProgressGoals.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]; 
-            if (primaryGoal.target_amount > 0) {
-                 primaryGoalProgress = Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100);
-            }
-        }
-      }
       
       let totalIncome = 0;
       let totalExpenses = 0;
+      let recurringIncome = 0;
+      let recurringExpenses = 0;
       const currentMonth = new Date().getUTCMonth();
       const currentYear = new Date().getUTCFullYear();
 
@@ -123,23 +111,27 @@ export default function DashboardPage() {
             const txDate = new Date(tx.date + 'T00:00:00Z');
             if (isNaN(txDate.getTime())) return;
 
-            if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
-            if (tx.type === 'income' && typeof tx.amount === 'number') {
-                totalIncome += tx.amount;
-            } else if (tx.type === 'expense' && typeof tx.amount === 'number') {
-                totalExpenses += tx.amount;
+            if (tx.is_recurring) {
+              if (tx.type === 'income') recurringIncome += tx.amount;
+              else if (tx.type === 'expense') recurringExpenses += tx.amount;
             }
+
+            if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+              if (tx.type === 'income' && typeof tx.amount === 'number') totalIncome += tx.amount;
+              else if (tx.type === 'expense' && typeof tx.amount === 'number') totalExpenses += tx.amount;
             }
         } catch(e) {
             console.error("Error processing transaction for summary: ", tx, e);
         }
       });
+
+      const recurringBalance = recurringIncome - recurringExpenses;
       
       setSummaryValues([
-        { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "N/A", trendColor: "text-muted-foreground", isLoading: false },
+        { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
         { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
         { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
-        { title: "Meta Principal", value: primaryGoalProgress, icon: PiggyBank, unit: "%", trend: primaryGoalProgress !== null ? "Ver Meta" : "Nenhuma meta ativa", trendColor: "text-emerald-500", isLoading: false },
+        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: "Receitas - Despesas Fixas", trendColor: recurringBalance >= 0 ? "text-blue-500" : "text-destructive", isLoading: false },
       ]);
 
     } catch (error) {
@@ -147,7 +139,6 @@ export default function DashboardPage() {
       toast({ title: "Erro de Dados", description: "Não foi possível carregar todos os dados do painel.", variant: "destructive" });
     } finally {
       setTransactionsLoading(false);
-      setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false }))); 
     }
   }, [user?.id]);
 
