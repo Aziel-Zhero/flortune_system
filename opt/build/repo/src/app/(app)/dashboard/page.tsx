@@ -131,7 +131,7 @@ export default function DashboardPage() {
         { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
         { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
         { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
-        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: "Receitas - Despesas Fixas", trendColor: recurringBalance >= 0 ? "text-blue-500" : "text-destructive", isLoading: false },
+        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringBalance >= 0 ? "Saldo Positivo" : "Saldo Negativo", trendColor: recurringBalance >= 0 ? "text-emerald-500" : "text-destructive", isLoading: false },
       ]);
 
     } catch (error) {

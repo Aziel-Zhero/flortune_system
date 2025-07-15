@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/clients/page.tsx
 "use client";
 
@@ -199,15 +200,16 @@ export default function DevClientsPage() {
       </div>
 
       <DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle className="font-headline">{editingClient ? "Editar" : "Adicionar"} Cliente/Projeto</DialogTitle><DialogDescription>Preencha os detalhes abaixo.</DialogDescription></DialogHeader>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 max-h-[70vh]"><form onSubmit={handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto px-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div><div><Label htmlFor="serviceType">Serviço</Label><Input id="serviceType" {...register("serviceType")} />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div><div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><Label>Status</Label><Controller name="status" control={control} render={({ field }) => (<Select {...field}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div><div><Label>Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select {...field}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div></div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 pt-4 max-h-[70vh] overflow-y-auto"><form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-1 lg:pr-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div><div><Label htmlFor="serviceType">Serviço</Label><Input id="serviceType" {...register("serviceType")} />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div><div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><Label>Status</Label><Controller name="status" control={control} render={({ field }) => (<Select {...field}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div><div><Label>Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select {...field}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div></div>
           <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} rows={4}/></div>
           <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} rows={4}/></div>
           <DialogFooter className="sticky bottom-0 bg-background/80 backdrop-blur-sm pt-4 pb-2 -mx-1 -mb-4"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
-        </form><ProjectPricingCalculator/></div></DialogContent>
+        </form><div className="px-1"><ProjectPricingCalculator/></div></div></DialogContent>
       <AlertDialog open={!!clientToDelete} onOpenChange={(o) => !o && setClientToDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{clientToDelete?.name}"? A ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({variant: "destructive"})}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </Dialog>
   );
 }
+
