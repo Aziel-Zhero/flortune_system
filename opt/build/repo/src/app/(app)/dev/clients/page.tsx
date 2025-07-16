@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileCsv, AlertTriangle, Calculator } from "lucide-react";
+import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileCsv, AlertTriangle, Calculator, Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ interface Client {
   priority: ClientPriority;
   notes: string;
   tasks: string;
-  totalPrice?: string | null; // Novo campo para o preço
+  totalPrice?: string | null;
 }
 
 const clientSchema = z.object({
@@ -118,7 +118,7 @@ const ProjectPricingCalculator: FC<ProjectPricingCalculatorProps> = ({ onPriceCa
         if (hr <= 0 || eh <= 0) { toast({ title: "Valores Inválidos", variant: "destructive" }); setTotalPrice(null); return; }
         const finalPrice = (hr * eh * factor);
         setTotalPrice(finalPrice);
-        onPriceCalculated(finalPrice); // Informa o componente pai sobre o novo preço
+        onPriceCalculated(finalPrice);
     }, [formState, onPriceCalculated]);
 
     return (
@@ -179,6 +179,7 @@ export default function DevClientsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ClientFormData>({ resolver: zodResolver(clientSchema), });
   
@@ -195,14 +196,18 @@ export default function DevClientsPage() {
 
   const handleOpenForm = useCallback((client: Client | null = null) => {
     setEditingClient(client);
-    setCalculatedPrice(null); // Reseta o preço ao abrir o formulário
+    setCalculatedPrice(null);
     reset(client || { name: "", serviceType: "", status: "planning", priority: "medium", startDate: format(new Date(), 'yyyy-MM-dd'), deadline: format(new Date(), 'yyyy-MM-dd'), notes: "", tasks: "" });
     setIsFormOpen(true);
   }, [reset]);
 
-  const onSubmit: SubmitHandler<ClientFormData> = useCallback((data) => {
+  const onSubmit: SubmitHandler<ClientFormData> = useCallback(async (data) => {
+    setIsSubmitting(true);
+    // Simular uma pequena espera para mostrar o feedback de loading
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...c, ...data, totalPrice: calculatedPrice?.toString() } : c));
+      setClients(clients.map(c => c.id === editingClient.id ? { ...editingClient, ...data, totalPrice: calculatedPrice?.toString() } : c));
       toast({ title: "Cliente Atualizado!" });
     } else {
       const finalClient: Client = {
@@ -213,6 +218,7 @@ export default function DevClientsPage() {
       setClients(prev => [finalClient, ...prev]);
       toast({ title: "Cliente Adicionado!" });
     }
+    setIsSubmitting(false);
     setIsFormOpen(false);
   }, [clients, editingClient, calculatedPrice]);
   
@@ -294,7 +300,7 @@ export default function DevClientsPage() {
                       <div className="flex justify-between items-start">
                           <CardTitle className="font-headline text-lg">{c.name}</CardTitle>
                           <Badge variant="outline" className={cn(statusConfig[c.status].color, "whitespace-nowrap ml-auto mt-1 px-3 py-1 rounded-full")}>
-                              <Circle className={cn("mr-1 h-2 w-2", statusConfig[c.status].iconColor)}/>
+                              <Circle className={cn("mr-1 h-2 w-2 rounded-full", statusConfig[c.status].iconColor)}/>
                               {statusConfig[c.status].label}
                           </Badge>
                       </div>
@@ -374,8 +380,11 @@ export default function DevClientsPage() {
                 <div><ProjectPricingCalculator onPriceCalculated={setCalculatedPrice} /></div>
             </div>
             <DialogFooter className="sticky bottom-0 bg-background/90 backdrop-blur-sm pt-4 border-t -mx-6 px-6 pb-6 mt-auto">
-                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                <Button type="submit">Salvar</Button>
+                <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSubmitting ? "Salvando..." : "Salvar"}
+                </Button>
             </DialogFooter>
         </form>
       </DialogContent>
