@@ -96,11 +96,11 @@ const priorityConfig: Record<ClientPriority, { label: string, color: string }> =
 };
 
 // --- Componentes ---
-interface PricingFormState { hourlyRate: string; estimatedHours: string; complexity: "low" | "medium" | "high"; fees: string; profitMargin: string; }
+interface PricingFormState { hourlyRate: string; estimatedHours: string; complexity: "low" | "medium" | "high"; }
 const complexityFactors = { low: 1.0, medium: 1.25, high: 1.5 };
 
 const ProjectPricingCalculator: FC = () => {
-    const [formState, setFormState] = useState<PricingFormState>({ hourlyRate: "50", estimatedHours: "10", complexity: "medium", fees: "0", profitMargin: "20" });
+    const [formState, setFormState] = useState<PricingFormState>({ hourlyRate: "50", estimatedHours: "10", complexity: "medium" });
     const [totalPrice, setTotalPrice] = useState<number | null>(null);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFormState(prev => ({ ...prev, [e.target.name]: e.target.value })); };
@@ -110,25 +110,23 @@ const ProjectPricingCalculator: FC = () => {
         const hr = parseFloat(formState.hourlyRate) || 0;
         const eh = parseFloat(formState.estimatedHours) || 0;
         const factor = complexityFactors[formState.complexity];
-        const feeVal = parseFloat(formState.fees) || 0;
-        const marginPercent = parseFloat(formState.profitMargin) || 0;
         if (hr <= 0 || eh <= 0) { toast({ title: "Valores Inválidos", variant: "destructive" }); setTotalPrice(null); return; }
-        const finalPrice = (hr * eh * factor + feeVal) * (1 + marginPercent / 100);
+        const finalPrice = (hr * eh * factor);
         setTotalPrice(finalPrice);
     };
 
     return (
         <Card className="shadow-inner bg-muted/50">
-            <CardHeader><CardTitle className="font-headline text-lg flex items-center gap-2"><Calculator/>Calculadora Rápida de Projeto</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="font-headline text-lg flex items-center gap-2"><Calculator/>Calculadora Rápida</CardTitle></CardHeader>
             <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><Label htmlFor="hourlyRate">Valor/Hora (R$)</Label><Input type="number" id="hourlyRate" name="hourlyRate" value={formState.hourlyRate} onChange={handleInputChange} placeholder="50" /></div>
-                    <div><Label htmlFor="estimatedHours">Horas Estimadas</Label><Input type="number" id="estimatedHours" name="estimatedHours" value={formState.estimatedHours} onChange={handleInputChange} placeholder="10" /></div>
+                    <div><Label htmlFor="calc-hourlyRate">Valor/Hora (R$)</Label><Input type="number" id="calc-hourlyRate" name="hourlyRate" value={formState.hourlyRate} onChange={handleInputChange} placeholder="50" /></div>
+                    <div><Label htmlFor="calc-estimatedHours">Horas Estimadas</Label><Input type="number" id="calc-estimatedHours" name="estimatedHours" value={formState.estimatedHours} onChange={handleInputChange} placeholder="10" /></div>
                 </div>
-                <div><Label htmlFor="complexity">Complexidade</Label><Select name="complexity" value={formState.complexity} onValueChange={(val) => handleSelectChange(val as any)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
-                {totalPrice !== null && (<div className="mt-4 p-3 bg-primary/10 rounded-md text-center"><p className="text-sm text-muted-foreground">Preço Total Estimado:</p><p className="text-2xl font-bold text-primary"><PrivateValue value={totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/></p></div>)}
+                <div><Label htmlFor="calc-complexity">Complexidade</Label><Select name="complexity" value={formState.complexity} onValueChange={(val) => handleSelectChange(val as any)}><SelectTrigger id="calc-complexity"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
+                {totalPrice !== null && (<div className="mt-4 p-3 bg-primary/10 rounded-md text-center"><p className="text-sm text-muted-foreground">Preço Estimado:</p><p className="text-2xl font-bold text-primary"><PrivateValue value={totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/></p></div>)}
             </CardContent>
-            <CardFooter><Button onClick={calculatePrice} className="w-full">Calcular Preço</Button></CardFooter>
+            <CardFooter><Button onClick={calculatePrice} className="w-full">Calcular</Button></CardFooter>
         </Card>
     );
 };
@@ -199,69 +197,69 @@ export default function DevClientsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredClients.map(c => <Card key={c.id} className="flex flex-col shadow-lg hover:shadow-primary/20"><CardHeader><div className="flex justify-between items-start"><CardTitle className="font-headline text-lg">{c.name}</CardTitle><Badge variant="outline" className={cn(statusConfig[c.status].color, "ws-nowrap")}><Circle className={cn("mr-2 h-2 w-2", statusConfig[c.status].iconColor)}/>{statusConfig[c.status].label}</Badge></div><CardDescription>{c.serviceType}</CardDescription></CardHeader><CardContent className="space-y-2 text-sm flex-grow"><p><strong>Prioridade:</strong> <span className={priorityConfig[c.priority].color}>{priorityConfig[c.priority].label}</span></p><p><strong>Início:</strong> {format(parseISO(c.startDate), "dd/MM/yy")}</p><p><strong>Entrega:</strong> {format(parseISO(c.deadline), "dd/MM/yy")}</p></CardContent><CardFooter className="flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={() => handleOpenForm(c)}><Edit className="mr-2 h-4 w-4"/>Editar</Button><Button variant="destructive-outline" size="sm" onClick={() => setClientToDelete(c)}><Trash2 className="mr-2 h-4 w-4"/>Excluir</Button></CardFooter></Card>)}</div>}
       </div>
 
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-4xl">
         <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogHeader>
-                <DialogTitle className="font-headline">{editingClient ? "Editar" : "Adicionar"} Cliente/Projeto</DialogTitle>
-                <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
-            </DialogHeader>
+          <DialogHeader>
+              <DialogTitle className="font-headline">{editingClient ? "Editar" : "Adicionar"} Cliente/Projeto</DialogTitle>
+              <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
+          </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-4 max-h-[70vh] overflow-y-auto">
-                <div className="space-y-4 px-1 md:pr-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="name">Nome Cliente/Projeto</Label>
-                            <Input id="name" {...register("name")} />
-                            {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
-                        </div>
-                        <div>
-                            <Label htmlFor="serviceType">Serviço</Label>
-                            <Input id="serviceType" {...register("serviceType")} />
-                            {errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="startDate">Data de Início</Label>
-                            <Input id="startDate" type="date" {...register("startDate")} />
-                            {errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}
-                        </div>
-                        <div>
-                            <Label htmlFor="deadline">Data de Entrega</Label>
-                            <Input id="deadline" type="date" {...register("deadline")} />
-                            {errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Status</Label>
-                            <Controller name="status" control={control} render={({ field }) => (
-                                <Select {...field}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent>
-                                </Select>
-                            )}/>
-                        </div>
-                        <div>
-                            <Label>Prioridade</Label>
-                            <Controller name="priority" control={control} render={({ field }) => (
-                                <Select {...field}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent>
-                                </Select>
-                            )}/>
-                        </div>
-                    </div>
-                    <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} rows={4}/></div>
-                    <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} rows={4}/></div>
-                </div>
-                <div className="px-1"><ProjectPricingCalculator/></div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-x-8 gap-y-6 pt-4 max-h-[70vh] overflow-y-auto px-1">
+              <div className="space-y-4 md:pr-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                          <Label htmlFor="name">Nome Cliente/Projeto</Label>
+                          <Input id="name" {...register("name")} />
+                          {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
+                      </div>
+                      <div>
+                          <Label htmlFor="serviceType">Serviço</Label>
+                          <Input id="serviceType" {...register("serviceType")} />
+                          {errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}
+                      </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                          <Label htmlFor="startDate">Data de Início</Label>
+                          <Input id="startDate" type="date" {...register("startDate")} />
+                          {errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}
+                      </div>
+                      <div>
+                          <Label htmlFor="deadline">Data de Entrega</Label>
+                          <Input id="deadline" type="date" {...register("deadline")} />
+                          {errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}
+                      </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                          <Label>Status</Label>
+                          <Controller name="status" control={control} render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <SelectTrigger><SelectValue/></SelectTrigger>
+                                  <SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent>
+                              </Select>
+                          )}/>
+                      </div>
+                      <div>
+                          <Label>Prioridade</Label>
+                          <Controller name="priority" control={control} render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <SelectTrigger><SelectValue/></SelectTrigger>
+                                  <SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent>
+                              </Select>
+                          )}/>
+                      </div>
+                  </div>
+                  <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} rows={4}/></div>
+                  <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} rows={4}/></div>
+              </div>
+              <div className="px-1"><ProjectPricingCalculator/></div>
+          </div>
 
-            <DialogFooter className="sticky bottom-0 bg-background/80 backdrop-blur-sm pt-4 pb-2 mt-4">
-                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                <Button type="submit">Salvar</Button>
-            </DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-background/80 backdrop-blur-sm pt-4 pb-2 mt-4 -mx-6 px-6">
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Salvar</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
       <AlertDialog open={!!clientToDelete} onOpenChange={(o) => !o && setClientToDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{clientToDelete?.name}"? A ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({variant: "destructive"})}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
