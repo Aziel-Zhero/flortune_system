@@ -7,7 +7,7 @@ import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileCsv, AlertTriangle, Calculator, DollarSign } from "lucide-react";
+import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileCsv, AlertTriangle, Calculator } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,7 @@ interface Client {
   priority: ClientPriority;
   notes: string;
   tasks: string;
+  totalPrice?: string | null; // Novo campo para o preço
 }
 
 const clientSchema = z.object({
@@ -99,7 +100,11 @@ const priorityConfig: Record<ClientPriority, { label: string, color: string }> =
 interface PricingFormState { hourlyRate: string; estimatedHours: string; complexity: "low" | "medium" | "high"; }
 const complexityFactors = { low: 1.0, medium: 1.25, high: 1.5 };
 
-const ProjectPricingCalculator: FC = () => {
+interface ProjectPricingCalculatorProps {
+  onPriceCalculated: (price: number) => void;
+}
+
+const ProjectPricingCalculator: FC<ProjectPricingCalculatorProps> = ({ onPriceCalculated }) => {
     const [formState, setFormState] = useState<PricingFormState>({ hourlyRate: "50", estimatedHours: "10", complexity: "medium" });
     const [totalPrice, setTotalPrice] = useState<number | null>(null);
 
@@ -113,20 +118,53 @@ const ProjectPricingCalculator: FC = () => {
         if (hr <= 0 || eh <= 0) { toast({ title: "Valores Inválidos", variant: "destructive" }); setTotalPrice(null); return; }
         const finalPrice = (hr * eh * factor);
         setTotalPrice(finalPrice);
-    }, [formState]);
+        onPriceCalculated(finalPrice); // Informa o componente pai sobre o novo preço
+    }, [formState, onPriceCalculated]);
 
     return (
-        <Card className="shadow-inner bg-muted/50">
-            <CardHeader><CardTitle className="font-headline text-lg flex items-center gap-2"><Calculator/>Calculadora Rápida</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><Label htmlFor="calc-hourlyRate">Valor/Hora (R$)</Label><Input type="number" id="calc-hourlyRate" name="hourlyRate" value={formState.hourlyRate} onChange={handleInputChange} placeholder="50" /></div>
-                    <div><Label htmlFor="calc-estimatedHours">Horas Estimadas</Label><Input type="number" id="calc-estimatedHours" name="estimatedHours" value={formState.estimatedHours} onChange={handleInputChange} placeholder="10" /></div>
+        <Card className="shadow-md bg-background border">
+            <CardHeader>
+                <CardTitle className="font-headline text-md flex items-center gap-2">
+                    <Calculator className="w-5 h-5" />
+                    Calculadora Rápida
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="calc-hourlyRate">Valor/Hora (R$)</Label>
+                        <Input type="number" id="calc-hourlyRate" name="hourlyRate" value={formState.hourlyRate} onChange={handleInputChange} />
+                    </div>
+                    <div>
+                        <Label htmlFor="calc-estimatedHours">Horas Estimadas</Label>
+                        <Input type="number" id="calc-estimatedHours" name="estimatedHours" value={formState.estimatedHours} onChange={handleInputChange} />
+                    </div>
                 </div>
-                <div><Label htmlFor="calc-complexity">Complexidade</Label><Select name="complexity" value={formState.complexity} onValueChange={(val) => handleSelectChange(val as any)}><SelectTrigger id="calc-complexity"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
-                {totalPrice !== null && (<div className="mt-4 p-3 bg-primary/10 rounded-md text-center"><p className="text-sm text-muted-foreground">Preço Estimado:</p><p className="text-2xl font-bold text-primary"><PrivateValue value={totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/></p></div>)}
+                <div>
+                    <Label htmlFor="calc-complexity">Complexidade</Label>
+                    <Select name="complexity" value={formState.complexity} onValueChange={(val) => handleSelectChange(val as any)}>
+                        <SelectTrigger id="calc-complexity"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="low">Baixa</SelectItem>
+                            <SelectItem value="medium">Média</SelectItem>
+                            <SelectItem value="high">Alta</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                {totalPrice !== null && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md text-center">
+                        <p className="text-sm text-muted-foreground mb-1">Preço Estimado</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-300">
+                            <PrivateValue value={totalPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
+                        </p>
+                    </div>
+                )}
             </CardContent>
-            <CardFooter><Button onClick={calculatePrice} className="w-full">Calcular</Button></CardFooter>
+            <CardFooter className="pt-2">
+                <Button type="button" onClick={calculatePrice} className="w-full">
+                    Calcular
+                </Button>
+            </CardFooter>
         </Card>
     );
 };
@@ -140,6 +178,7 @@ export default function DevClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ClientFormData>({ resolver: zodResolver(clientSchema), });
   
@@ -156,20 +195,26 @@ export default function DevClientsPage() {
 
   const handleOpenForm = useCallback((client: Client | null = null) => {
     setEditingClient(client);
+    setCalculatedPrice(null); // Reseta o preço ao abrir o formulário
     reset(client || { name: "", serviceType: "", status: "planning", priority: "medium", startDate: format(new Date(), 'yyyy-MM-dd'), deadline: format(new Date(), 'yyyy-MM-dd'), notes: "", tasks: "" });
     setIsFormOpen(true);
   }, [reset]);
 
   const onSubmit: SubmitHandler<ClientFormData> = useCallback((data) => {
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...c, ...data } : c));
+      setClients(clients.map(c => c.id === editingClient.id ? { ...c, ...data, totalPrice: calculatedPrice?.toString() } : c));
       toast({ title: "Cliente Atualizado!" });
     } else {
-      setClients(prev => [{ ...data, id: `client_${Date.now()}` }, ...prev]);
+      const finalClient: Client = {
+          ...data,
+          id: `client_${Date.now()}`,
+          totalPrice: calculatedPrice?.toString() || null,
+      };
+      setClients(prev => [finalClient, ...prev]);
       toast({ title: "Cliente Adicionado!" });
     }
     setIsFormOpen(false);
-  }, [clients, editingClient]);
+  }, [clients, editingClient, calculatedPrice]);
   
   const handleConfirmDelete = useCallback(() => { 
     if (clientToDelete) { 
@@ -183,7 +228,7 @@ export default function DevClientsPage() {
     if (clients.length === 0) { toast({ title: "Nenhum dado para exportar", variant: "destructive" }); return; }
     const now = new Date();
     const formattedTimestamp = now.toISOString().replace(/[:.]/g, "-");
-    const fileContent = type === 'json' ? JSON.stringify(clients, null, 2) : ["ID,Nome,Tipo,Status,Inicio,Prazo,Prioridade,Anotacoes,Tarefas", ...clients.map(c => [c.id, c.name, c.serviceType, c.status, c.startDate, c.deadline, c.priority, `"${c.notes.replace(/"/g, '""')}"`, `"${c.tasks.replace(/"/g, '""')}"`].join(','))].join('\n');
+    const fileContent = type === 'json' ? JSON.stringify(clients, null, 2) : ["ID,Nome,Tipo,Status,Inicio,Prazo,Prioridade,Anotacoes,Tarefas,PrecoEstimado", ...clients.map(c => [c.id, c.name, c.serviceType, c.status, c.startDate, c.deadline, c.priority, `"${c.notes.replace(/"/g, '""')}"`, `"${c.tasks.replace(/"/g, '""')}"`, c.totalPrice || ""].join(','))].join('\n');
     const blob = new Blob([type === 'csv' ? `\uFEFF${fileContent}` : fileContent], { type: type === 'csv' ? "text/csv;charset=utf-8;" : "application/json" });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -229,11 +274,11 @@ export default function DevClientsPage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4 lg:flex-1">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger><Filter className="h-4 w-4 mr-2"/>Status: {statusFilter === 'all' ? 'Todos' : statusConfig[statusFilter as ClientStatus].label}</SelectTrigger>
+                  <SelectTrigger className="flex-1"><Filter className="h-4 w-4 mr-2"/>Status: {statusFilter === 'all' ? 'Todos' : statusConfig[statusFilter as ClientStatus].label}</SelectTrigger>
                   <SelectContent><SelectItem value="all">Todos</SelectItem>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent>
                 </Select>
                 <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger><Filter className="h-4 w-4 mr-2"/>Prioridade: {priorityFilter === 'all' ? 'Todas' : priorityConfig[priorityFilter as ClientPriority].label}</SelectTrigger>
+                  <SelectTrigger className="flex-1"><Filter className="h-4 w-4 mr-2"/>Prioridade: {priorityFilter === 'all' ? 'Todas' : priorityConfig[priorityFilter as ClientPriority].label}</SelectTrigger>
                   <SelectContent><SelectItem value="all">Todas</SelectItem>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent>
                 </Select>
               </div>
@@ -243,7 +288,32 @@ export default function DevClientsPage() {
         {clients.length > 0 && <Card><CardHeader><CardTitle className="font-headline text-lg">Resumo</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-x-4 gap-y-2 text-sm"><div className="flex items-center gap-2 font-medium">Total: <span className="text-xl font-bold">{clientSummary.total || 0}</span></div>{Object.entries(clientSummary).filter(([k]) => k !== 'total').map(([s, c]) => (<div key={s} className="flex items-center gap-2"><Circle className={cn("h-3 w-3 rounded-full", statusConfig[s as ClientStatus].iconColor)}/>{statusConfig[s as ClientStatus].label}: <span className="font-bold">{c}</span></div>))}</CardContent></Card>}
         
         {filteredClients.length === 0 ? <Card className="text-center py-12 border-dashed"><CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50"/><CardTitle className="mt-4">Nenhum resultado</CardTitle><CardDescription>Tente ajustar seus filtros ou adicione um cliente.</CardDescription></CardHeader><CardContent><Button onClick={() => handleOpenForm(null)}>Adicionar Cliente</Button></CardContent></Card> :
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredClients.map(c => <Card key={c.id} className="min-h-[260px] flex flex-col justify-between shadow-md transition hover:shadow-xl hover:border-primary/30 border border-transparent"><CardHeader><div className="flex justify-between items-start"><CardTitle className="font-headline text-lg">{c.name}</CardTitle><Badge variant="outline" className={cn(statusConfig[c.status].color, "ws-nowrap")}><Circle className={cn("mr-2 h-2 w-2 rounded-full", statusConfig[c.status].iconColor)}/>{statusConfig[c.status].label}</Badge></div><CardDescription>{c.serviceType}</CardDescription></CardHeader><CardContent className="space-y-2 text-sm flex-grow"><p><strong>Prioridade:</strong> <span className={priorityConfig[c.priority].color}>{priorityConfig[c.priority].label}</span></p><p><strong>Início:</strong> {format(parseISO(c.startDate), "dd/MM/yy")}</p><p><strong>Entrega:</strong> {format(parseISO(c.deadline), "dd/MM/yy")}</p></CardContent><div className="border-t pt-2 mt-2"><CardFooter className="flex justify-end gap-2 p-2"><Button variant="ghost" size="sm" onClick={() => handleOpenForm(c)}><Edit className="mr-2 h-4 w-4"/>Editar</Button><Button variant="destructive-outline" size="sm" onClick={() => setClientToDelete(c)}><Trash2 className="mr-2 h-4 w-4"/>Excluir</Button></CardFooter></div></Card>)}</div>}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredClients.map(c => 
+              <Card key={c.id} className="min-h-[260px] flex flex-col justify-between shadow-md transition hover:shadow-xl hover:border-primary/30 border border-transparent">
+                  <CardHeader>
+                      <div className="flex justify-between items-start">
+                          <CardTitle className="font-headline text-lg">{c.name}</CardTitle>
+                          <Badge variant="outline" className={cn(statusConfig[c.status].color, "whitespace-nowrap ml-auto mt-1 px-3 py-1 rounded-full")}>
+                              <Circle className={cn("mr-1 h-2 w-2", statusConfig[c.status].iconColor)}/>
+                              {statusConfig[c.status].label}
+                          </Badge>
+                      </div>
+                      <CardDescription>{c.serviceType}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm flex-grow">
+                      <p><strong>Prioridade:</strong> <span className={priorityConfig[c.priority].color}>{priorityConfig[c.priority].label}</span></p>
+                      <p><strong>Início:</strong> {format(parseISO(c.startDate), "dd/MM/yy")}</p>
+                      <p><strong>Entrega:</strong> {format(parseISO(c.deadline), "dd/MM/yy")}</p>
+                      {c.totalPrice && (<p><strong>Preço Estimado:</strong> <span className="text-primary font-semibold"><PrivateValue value={parseFloat(c.totalPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/></span></p>)}
+                  </CardContent>
+                  <div className="border-t pt-2 mt-2">
+                      <CardFooter className="flex justify-end gap-2 p-2">
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenForm(c)}><Edit className="mr-2 h-4 w-4"/>Editar</Button>
+                          <Button variant="destructive-outline" size="sm" onClick={() => setClientToDelete(c)}><Trash2 className="mr-2 h-4 w-4"/>Excluir</Button>
+                      </CardFooter>
+                  </div>
+              </Card>
+          )}</div>}
       </div>
 
       <DialogContent className="sm:max-w-4xl flex flex-col max-h-[90vh]">
@@ -251,8 +321,8 @@ export default function DevClientsPage() {
             <DialogTitle className="font-headline">{editingClient ? "Editar" : "Adicionar"} Cliente/Projeto</DialogTitle>
             <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
         </DialogHeader>
-        <div className="flex-grow overflow-y-auto pr-2">
-            <form id="client-form" onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex flex-col overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-6 pt-4 overflow-y-auto pr-2 flex-grow">
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -301,15 +371,15 @@ export default function DevClientsPage() {
                     <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} rows={4}/></div>
                     <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} rows={4}/></div>
                 </div>
-                <div className="px-1"><ProjectPricingCalculator/></div>
-            </form>
-        </div>
-        <DialogFooter className="sticky bottom-0 bg-background/90 backdrop-blur-sm pt-4 border-t -mx-6 px-6 pb-6">
-            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-            <Button type="submit" form="client-form">Salvar</Button>
-        </DialogFooter>
+                <div><ProjectPricingCalculator onPriceCalculated={setCalculatedPrice} /></div>
+            </div>
+            <DialogFooter className="sticky bottom-0 bg-background/90 backdrop-blur-sm pt-4 border-t -mx-6 px-6 pb-6 mt-auto">
+                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                <Button type="submit">Salvar</Button>
+            </DialogFooter>
+        </form>
       </DialogContent>
-      <AlertDialog open={!!clientToDelete} onOpenChange={(o) => !o && setClientToDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{clientToDelete?.name}"? A ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({variant: "destructive"})}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={!!clientToDelete} onOpenChange={(o) => !o && setClientToDelete(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{clientToDelete?.name}"? A ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className={cn("bg-destructive text-destructive-foreground")}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </Dialog>
   );
 }
