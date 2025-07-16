@@ -25,7 +25,6 @@ export const NAV_LINKS_CONFIG = [
   { type: "separator" as const },
   { href: "/plans", label: "Nossos Planos", icon: "Gem" as const, type: "link" as const },
   { href: "/help", label: "Ajuda", icon: "LifeBuoy" as const, type: "link" as const },
-  { href: "/settings", label: "Configurações", icon: "Settings" as const, type: "link" as const },
 ] as const;
 
 // Union type for NavLinkConfig items
