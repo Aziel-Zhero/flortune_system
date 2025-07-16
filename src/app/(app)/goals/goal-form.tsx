@@ -2,7 +2,7 @@
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, BookOpen, Laptop, Heart, Save, AlertTriangle, Loader2 } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, BookOpen, Laptop, Heart, Save, AlertTriangle, Loader2, GraduationCap, Rings } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -33,7 +33,7 @@ const goalFormSchema = z.object({
     z.number().positive("O valor alvo deve ser positivo.")
   ),
   deadline_date: z.date().optional().nullable(),
-  icon: z.string().optional().nullable(), // Mantém string, mas usaremos NO_ICON_VALUE para 'nenhum'
+  icon: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -44,13 +44,14 @@ const availableIcons = [
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
-  { name: "Educação", value: "BookOpen", icon: BookOpen },
+  { name: "Educação", value: "GraduationCap", icon: GraduationCap },
+  { name: "Casamento", value: "Rings", icon: Rings },
   { name: "Eletrônicos", value: "Laptop", icon: Laptop },
   { name: "Compras", value: "ShoppingBag", icon: ShoppingBag },
   { name: "Presente", value: "Gift", icon: Gift },
   { name: "Saúde", value: "Heart", icon: Heart },
   { name: "Negócios", value: "Briefcase", icon: Briefcase },
-  { name: "Troféu", value: "Trophy", icon: Trophy },
+  { name: "Conquista", value: "Trophy", icon: Trophy },
 ];
 
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
@@ -89,7 +90,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       name: data.name, 
       target_amount: data.target_amount, 
       deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, 
-      icon: data.icon === NO_ICON_VALUE ? null : data.icon, // Converte NO_ICON_VALUE para null
+      icon: data.icon === NO_ICON_VALUE ? null : data.icon,
       notes: data.notes,
     };
     try {
@@ -168,7 +169,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
             return (
               <Select
                 onValueChange={field.onChange}
-                value={field.value ?? NO_ICON_VALUE} // Garante que o valor nunca seja nulo/undefined para o Select
+                value={field.value ?? NO_ICON_VALUE}
                 disabled={isSubmitting || isAuthLoading}
               >
                 <SelectTrigger id="goal-form-icon">
@@ -212,5 +213,3 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     </form>
   );
 }
-
-    

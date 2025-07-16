@@ -5,7 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -72,10 +72,11 @@ export default function DashboardPage() {
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
-    { title: "Saldo Atual (Simulado)", value: null, icon: DollarSign, trend: null, trendColor: "text-muted-foreground", isLoading: true },
+    { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: true },
     { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
     { title: "Despesas Este Mês", value: null, icon: CreditCard, trend: null, trendColor: "text-red-500", isLoading: true },
-    { title: "Meta Principal (Progresso)", value: null, icon: PiggyBank, unit: "%", trend: null, trendColor: "text-emerald-500", isLoading: true },
+    { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
+    { title: "Meta Principal", value: null, icon: PiggyBank, unit: "%", trend: "Nenhuma meta ativa", trendColor: "text-emerald-500", isLoading: true },
   ]);
 
   const fetchDashboardData = useCallback(async () => {
@@ -90,56 +91,66 @@ export default function DashboardPage() {
     setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: true })));
 
     try {
-      const { data: transactionsData, error: transactionsError } = await getTransactions(user.id);
-      if (transactionsError) {
-        toast({ title: "Erro ao buscar transações", description: transactionsError.message, variant: "destructive" });
+      const [transactionsRes, goalsRes] = await Promise.all([
+        getTransactions(user.id),
+        getFinancialGoals(user.id)
+      ]);
+      
+      if (transactionsRes.error) {
+        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
         setAllTransactions([]);
       } else {
-        setAllTransactions(Array.isArray(transactionsData) ? transactionsData : []);
-      }
-
-      const { data: goalsData, error: goalsError } = await getFinancialGoals(user.id);
-      let primaryGoalProgress: number | null = null;
-      if (goalsError) {
-        // Silently fail for goals on dashboard for now
-      } else if (goalsData && goalsData.length > 0) {
-        const inProgressGoals = goalsData.filter(g => g.status === 'in_progress');
-        if (inProgressGoals.length > 0) {
-            const primaryGoal = inProgressGoals.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]; 
-            if (primaryGoal.target_amount > 0) {
-                 primaryGoalProgress = Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100);
-            }
-        }
+        setAllTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
       }
       
       let totalIncome = 0;
       let totalExpenses = 0;
+      let recurringIncome = 0;
+      let recurringExpenses = 0;
       const currentMonth = new Date().getUTCMonth();
       const currentYear = new Date().getUTCFullYear();
 
-      (Array.isArray(transactionsData) ? transactionsData : []).forEach(tx => {
+      (Array.isArray(transactionsRes.data) ? transactionsRes.data : []).forEach(tx => {
         if (!tx.date || typeof tx.date !== 'string') return;
         try {
             const txDate = new Date(tx.date + 'T00:00:00Z');
             if (isNaN(txDate.getTime())) return;
 
-            if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
-            if (tx.type === 'income' && typeof tx.amount === 'number') {
-                totalIncome += tx.amount;
-            } else if (tx.type === 'expense' && typeof tx.amount === 'number') {
-                totalExpenses += tx.amount;
+            if (tx.is_recurring) {
+              if (tx.type === 'income') recurringIncome += tx.amount;
+              else if (tx.type === 'expense') recurringExpenses += tx.amount;
             }
+
+            if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+              if (tx.type === 'income' && typeof tx.amount === 'number') totalIncome += tx.amount;
+              else if (tx.type === 'expense' && typeof tx.amount === 'number') totalExpenses += tx.amount;
             }
         } catch(e) {
             console.error("Error processing transaction for summary: ", tx, e);
         }
       });
       
+      const recurringBalance = recurringIncome - recurringExpenses;
+
+      let primaryGoalProgress: number | null = null;
+      let primaryGoalTrend: string | null = "Nenhuma meta ativa";
+      if (!goalsRes.error && goalsRes.data && goalsRes.data.length > 0) {
+        const inProgressGoals = goalsRes.data.filter(g => g.status === 'in_progress');
+        if (inProgressGoals.length > 0) {
+            const primaryGoal = inProgressGoals.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]; 
+            if (primaryGoal.target_amount > 0) {
+                 primaryGoalProgress = Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100);
+                 primaryGoalTrend = `Meta: "${primaryGoal.name}"`;
+            }
+        }
+      }
+      
       setSummaryValues([
-        { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "N/A", trendColor: "text-muted-foreground", isLoading: false },
+        { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
         { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
         { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
-        { title: "Meta Principal", value: primaryGoalProgress, icon: PiggyBank, unit: "%", trend: primaryGoalProgress !== null ? "Ver Meta" : "Nenhuma meta ativa", trendColor: "text-emerald-500", isLoading: false },
+        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringBalance > 0 ? "Saldo Positivo" : (recurringBalance < 0 ? "Saldo Negativo" : "Saldo Neutro"), trendColor: recurringBalance > 0 ? "text-emerald-500" : (recurringBalance < 0 ? "text-destructive" : "text-muted-foreground"), isLoading: false },
+        { title: "Meta Principal", value: primaryGoalProgress, icon: PiggyBank, unit: "%", trend: primaryGoalTrend, trendColor: "text-emerald-500", isLoading: false },
       ]);
 
     } catch (error) {
@@ -147,7 +158,6 @@ export default function DashboardPage() {
       toast({ title: "Erro de Dados", description: "Não foi possível carregar todos os dados do painel.", variant: "destructive" });
     } finally {
       setTransactionsLoading(false);
-      setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false }))); 
     }
   }, [user?.id]);
 
@@ -213,8 +223,8 @@ export default function DashboardPage() {
           description="Aqui está seu resumo financeiro para este mês."
            actions={<Skeleton className="h-10 w-36 rounded-md" />}
         />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array(4).fill(0).map((_, index) => (
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          {Array(5).fill(0).map((_, index) => (
             <Card key={index} className="shadow-sm h-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-3/4" />
@@ -280,7 +290,7 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         {summaryValues.map((item, index) => (
           <motion.div key={item.title} custom={index} variants={cardVariants} initial="hidden" animate="visible">
             <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
@@ -308,7 +318,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     {item.trend && (
-                      <p className={cn("text-xs text-muted-foreground mt-1", item.trendColor)}>
+                      <p className={cn("text-xs text-muted-foreground mt-1 truncate", item.trendColor)}>
                         {item.trend}
                       </p>
                     )}
@@ -412,5 +422,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
