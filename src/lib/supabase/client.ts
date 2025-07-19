@@ -1,10 +1,10 @@
 // src/lib/supabase/client.ts
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Session } from 'next-auth'; // Para usar o supabaseAccessToken
+import type { Session } from 'next-auth';
 
 // --- Helper function to check for valid URL ---
 function isValidSupabaseUrl(url: string | undefined): url is string {
-  return !!url && typeof url === 'string' && url.trim() !== '' && url.startsWith('http');
+  return !!url && url.startsWith('http') && !url.includes('<');
 }
 
 // --- Initialize Supabase Client ---
@@ -17,7 +17,7 @@ if (isValidSupabaseUrl(supabaseUrl) && supabaseAnonKey) {
   supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
 } else {
   console.warn(
-    "🔴 CRITICAL WARNING: Supabase client not initialized. NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY are invalid or missing. The application will run, but database features will fail."
+    "⚠️ WARNING: Supabase client not initialized. NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY are invalid or missing. Database features will fail."
   );
 }
 

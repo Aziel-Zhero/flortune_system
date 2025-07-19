@@ -20,9 +20,14 @@ const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
+// --- Helper function for URL validation ---
+function isValidSupabaseUrl(url: string | undefined): url is string {
+  return !!url && url.startsWith('http') && !url.includes('<');
+}
+
 // --- Log Environment Variable Status ---
-if (!supabaseUrl) {
-  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set.");
+if (!isValidSupabaseUrl(supabaseUrl)) {
+  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or is a placeholder.");
 }
 if (!supabaseServiceRoleKey) {
   console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set.");
@@ -46,7 +51,7 @@ const providers: NextAuthConfig['providers'] = [
       const email = credentials.email as string;
       const password = credentials.password as string;
       
-      if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseUrl.startsWith('http')) {
+      if (!isValidSupabaseUrl(supabaseUrl) || !supabaseServiceRoleKey) {
           console.error('[NextAuth Authorize] Supabase credentials are not configured or invalid.');
           return null;
       }
@@ -100,7 +105,7 @@ if (googleClientId && googleClientSecret) {
 
 // Conditionally create the adapter
 const adapter =
-  supabaseUrl && supabaseServiceRoleKey && supabaseUrl.startsWith('http')
+  isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey
     ? SupabaseAdapter({
         url: supabaseUrl,
         secret: supabaseServiceRoleKey,
@@ -123,7 +128,7 @@ export const authConfig: NextAuthConfig = {
           const { hashed_password, ...safeProfile } = user.profile;
           token.profile = safeProfile;
         } 
-        else if (account?.provider !== 'credentials' && supabaseUrl && supabaseServiceRoleKey) {
+        else if (account?.provider !== 'credentials' && isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
           const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
           const { data: dbProfile } = await supabaseAdmin
             .from('profiles')
