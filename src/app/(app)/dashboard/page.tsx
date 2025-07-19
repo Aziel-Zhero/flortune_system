@@ -5,7 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -23,6 +23,8 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"; 
+import { useAppSettings } from "@/contexts/app-settings-context";
+import type { QuoteData } from "@/services/quote.service";
 
 interface SummaryData {
   title: string;
@@ -67,6 +69,8 @@ export default function DashboardPage() {
   const authIsLoading = status === "loading";
   const user = session?.user;
   const profile = user?.profile;
+
+  const { showQuotes, quotes, isLoadingQuotes, selectedQuotes } = useAppSettings();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
@@ -329,9 +333,48 @@ export default function DashboardPage() {
           </motion.div>
         ))}
       </div>
+      
+      {showQuotes && (
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+            {(isLoadingQuotes ? Array(5).fill(0) : quotes.length > 0 ? quotes : selectedQuotes.map(q => q !== 'none' ? 0 : null).filter(Boolean)).map((quote: QuoteData | 0 | null, index: number) => {
+                const isLoading = quote === 0;
+                if(quote === null) return null; // Não renderiza nada para 'none'
+
+                const quoteData = !isLoading ? quotes.find(q => q.code === selectedQuotes[index]) : null;
+                const finalQuote = isLoading ? null : quoteData;
+
+                const pctChange = finalQuote ? parseFloat(finalQuote.pctChange) : 0;
+                const isPositive = pctChange >= 0;
+                
+                return (
+                  <motion.div key={isLoading ? `skel-quote-${index}` : finalQuote?.code || index} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                    <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          {isLoading ? <Skeleton className="h-4 w-16" /> : finalQuote?.name.split('/')[0] || "Carregando..."}
+                        </CardTitle>
+                        {finalQuote && (
+                          <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
+                              {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                              {pctChange.toFixed(2)}%
+                          </div>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold font-headline">
+                            {isLoading || !finalQuote ? <Skeleton className="h-8 w-24" /> : <span>R$<PrivateValue value={parseFloat(finalQuote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span> }
+                          </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+            })}
+          </div>
+      )}
+
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
+        <motion.div custom={10} variants={cardVariants} initial="hidden" animate="visible">
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline">Transações Recentes</CardTitle>
@@ -373,7 +416,7 @@ export default function DashboardPage() {
         </Card>
         </motion.div>
 
-        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
+        <motion.div custom={11} variants={cardVariants} initial="hidden" animate="visible">
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Visão Geral de Gastos (Este Mês)</CardTitle>
@@ -402,7 +445,7 @@ export default function DashboardPage() {
         </motion.div>
       </div>
       
-       <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
+       <motion.div custom={12} variants={cardVariants} initial="hidden" animate="visible">
        <Card className="shadow-sm bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30">
         <CardHeader>
             <CardTitle className="font-headline text-primary flex items-center">

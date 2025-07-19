@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, MapPin } from "lucide-react";
+import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, MapPin, BarChart3 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import { APP_NAME } from '@/lib/constants';
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import Link from 'next/link';
 
 interface ThemeOption {
   name: string;
@@ -38,7 +39,7 @@ const availableThemes: ThemeOption[] = [
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
-  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme, weatherCity, setWeatherCity, loadWeatherForCity } = useAppSettings();
+  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme, weatherCity, setWeatherCity, loadWeatherForCity, showQuotes, setShowQuotes } = useAppSettings();
 
   const isLoading = status === "loading";
   
@@ -79,6 +80,12 @@ export default function SettingsPage() {
       toast({ title: "Clima Desativado", description: "A exibição do clima foi removida." });
     }
   };
+  
+  const handleLogout = async () => {
+    toast({ title: "Saindo...", description: "Você está sendo desconectado." });
+    await signOut({ callbackUrl: '/login?logout=success' }); 
+  };
+
 
   if (isLoading) {
     return (
@@ -98,10 +105,29 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Configurações da Conta"
-        description="Gerencie sua conta, preferências e configurações do aplicativo."
+        title="Configurações da Aplicação"
+        description="Gerencie as preferências, aparência e configurações do aplicativo."
         icon={<Settings2 className="h-6 w-6 text-primary"/>}
       />
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl"><Palette className="mr-2 h-5 w-5 text-primary"/>Módulos do Painel</CardTitle>
+          <CardDescription>Ative ou desative módulos de informação no seu dashboard.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/30">
+            <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
+              <span>Exibir Cards de Cotações</span>
+               <span className="font-normal leading-snug text-muted-foreground text-sm">
+                Mostra ou oculta os 5 cards de cotações de mercado no dashboard.
+              </span>
+            </Label>
+            <Switch id="show-quotes" checked={showQuotes} onCheckedChange={setShowQuotes} aria-label={showQuotes ? "Desativar cards de cotações" : "Ativar cards de cotações"} />
+          </div>
+        </CardContent>
+      </Card>
+
 
       <Card className="shadow-sm">
         <CardHeader>
@@ -231,6 +257,14 @@ export default function SettingsPage() {
           <Button variant="outline" onClick={() => setIsShareModalOpen(true)} disabled>Gerenciar Módulos Compartilhados</Button>
         </CardContent>
       </Card>
+
+      <div className="flex justify-end pt-4">
+         <Button variant="destructive" className="w-full md:w-auto" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4"/>
+            Sair da Conta
+        </Button>
+      </div>
+      <ShareModuleDialog isOpen={isShareModalOpen} onOpenChange={setIsShareModalOpen} />
     </div>
   );
 }
