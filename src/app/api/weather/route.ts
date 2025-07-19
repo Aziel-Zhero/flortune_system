@@ -1,3 +1,4 @@
+
 // src/app/api/weather/route.ts
 import { NextResponse } from 'next/server';
 
@@ -49,4 +50,6 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error("Error fetching weather data:", error);
-    return NextResponse.json({ error: 'Falha de conexão com o serviço de clima.' }, { status: 
+    return NextResponse.json({ error: 'Falha de conexão com o serviço de clima.' }, { status: 500 });
+  }
+}
