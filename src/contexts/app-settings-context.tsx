@@ -65,7 +65,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   // --- Funções e Efeitos para Cotações ---
   const loadQuotes = useCallback(async (quoteList: string[]) => {
     // Filtra para buscar apenas as cotações válidas
-    const validQuotes = quoteList.filter(q => q && q !== 'none');
+    const validQuotes = quoteList.filter(q => q && q !== '');
     if (validQuotes.length === 0) {
       setQuotes([]);
       setIsLoadingQuotes(false);
@@ -80,16 +80,18 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       setQuotesError(err.message);
       setQuotes([]);
-      // toast({ title: "Erro ao buscar cotações", description: err.message, variant: "destructive" });
     } finally {
       setIsLoadingQuotes(false);
     }
   }, []);
 
   const setSelectedQuotes = (newQuotes: string[]) => {
-    localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
-    setSelectedQuotesState(newQuotes);
-    loadQuotes(newQuotes);
+    const validQuotes = newQuotes.filter(q => q && q.trim() !== '');
+    localStorage.setItem('flortune-selected-quotes', JSON.stringify(validQuotes));
+    setSelectedQuotesState(validQuotes);
+    if(showQuotes) {
+      loadQuotes(validQuotes);
+    }
   }
 
   // --- Funções e Efeitos para Clima ---
@@ -150,7 +152,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
       // Carregar cotações salvas
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : Array(5).fill('none');
+      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : [];
       setSelectedQuotesState(initialQuotes);
       
       const storedShowQuotes = localStorage.getItem('flortune-show-quotes');

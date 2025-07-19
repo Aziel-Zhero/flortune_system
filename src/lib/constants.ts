@@ -108,3 +108,23 @@ export const PRICING_TIERS = [
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
+
+
+// Lista de cotações disponíveis na API AwesomeAPI
+export type Quote = { code: string; name: string };
+export const AVAILABLE_QUOTES: Quote[] = [
+  { name: "Dólar Comercial", code: "USD-BRL" },
+  { name: "Dólar Turismo", code: "USDT-BRL" },
+  { name: "Euro", code: "EUR-BRL" },
+  { name: "Libra Esterlina", code: "GBP-BRL" },
+  { name: "Iene Japonês", code: "JPY-BRL" },
+  { name: "Peso Argentino", code: "ARS-BRL" },
+  { name: "Bitcoin", code: "BTC-BRL" },
+  { name: "Ethereum", code: "ETH-BRL" },
+  { name: "Dogecoin", code: "DOGE-BRL" },
+  { name: "Litecoin", code: "LTC-BRL" },
+  { name: "Ibovespa", code: "IBOV" }, 
+  { name: "Nasdaq", code: "NASDAQ" },
+  { name: "Cacau", code: "CAC" },
+  { name: "Ouro", code: "GOLD" },
+];

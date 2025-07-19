@@ -1,4 +1,3 @@
-
 // src/components/settings/quote-dialog.tsx
 "use client";
 
@@ -27,23 +26,35 @@ interface QuoteSettingsDialogProps {
 
 export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialogProps) {
   const { selectedQuotes, setSelectedQuotes } = useAppSettings();
-  const [localQuotes, setLocalQuotes] = useState<string[]>(['none', 'none', 'none', 'none', 'none']);
+  const [localQuotes, setLocalQuotes] = useState<(string | null)[]>(Array(5).fill(null));
 
   useEffect(() => {
     if (isOpen) {
-      const initialQuotes = Array(5).fill('none').map((_, i) => selectedQuotes[i] || 'none');
+      const initialQuotes = Array(5).fill(null).map((_, i) => selectedQuotes[i] || null);
       setLocalQuotes(initialQuotes);
     }
   }, [isOpen, selectedQuotes]);
 
   const handleSelectChange = (index: number, value: string) => {
     const newQuotes = [...localQuotes];
-    newQuotes[index] = value;
+    newQuotes[index] = value === "" ? null : value;
     setLocalQuotes(newQuotes);
   };
 
   const handleSave = () => {
-    setSelectedQuotes(localQuotes);
+    const validQuotes = localQuotes.filter((q): q is string => !!q);
+    const uniqueQuotes = new Set(validQuotes);
+    
+    if (uniqueQuotes.size !== validQuotes.length) {
+      toast({
+        title: "Cotações repetidas!",
+        description: "Por favor, evite selecionar a mesma cotação mais de uma vez.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedQuotes(localQuotes.map(q => q || '')); // Envia array com '' para slots vazios
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
   };
@@ -64,12 +75,12 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
           {localQuotes.map((quote, index) => (
             <div key={index} className="space-y-2">
               <Label htmlFor={`quote-select-${index}`}>Cotação {index + 1}</Label>
-              <Select value={quote} onValueChange={(value) => handleSelectChange(index, value)}>
+              <Select value={quote || ""} onValueChange={(value) => handleSelectChange(index, value)}>
                 <SelectTrigger id={`quote-select-${index}`}>
                   <SelectValue placeholder="Selecione uma cotação..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
+                  <SelectItem value="">Nenhum</SelectItem>
                   {AVAILABLE_QUOTES.map(q => (
                     <SelectItem key={q.code} value={q.code}>
                       {q.name} ({q.code})
