@@ -79,7 +79,7 @@ export default function DashboardPage() {
     { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: true },
     { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
     { title: "Despesas Este Mês", value: null, icon: CreditCard, trend: null, trendColor: "text-red-500", isLoading: true },
-    { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
+    { title: "Balanço Recorrente", value: null, icon: Repeat, trend: "Receitas - Despesas Fixas", trendColor: "text-muted-foreground", isLoading: true },
     { title: "Meta Principal", value: null, icon: PiggyBank, unit: "%", trend: "Nenhuma meta ativa", trendColor: "text-emerald-500", isLoading: true },
   ]);
 
@@ -135,6 +135,8 @@ export default function DashboardPage() {
       });
       
       const recurringBalance = recurringIncome - recurringExpenses;
+      const recurringTrend = recurringBalance > 0 ? "Saldo Positivo" : (recurringBalance < 0 ? "Saldo Negativo" : "Saldo Neutro");
+      const recurringTrendColor = recurringBalance > 0 ? "text-emerald-500" : (recurringBalance < 0 ? "text-destructive" : "text-muted-foreground");
 
       let primaryGoalProgress: number | null = null;
       let primaryGoalTrend: string | null = "Nenhuma meta ativa";
@@ -153,7 +155,7 @@ export default function DashboardPage() {
         { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
         { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
         { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
-        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringBalance > 0 ? "Saldo Positivo" : (recurringBalance < 0 ? "Saldo Negativo" : "Saldo Neutro"), trendColor: recurringBalance > 0 ? "text-emerald-500" : (recurringBalance < 0 ? "text-destructive" : "text-muted-foreground"), isLoading: false },
+        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringTrend, trendColor: recurringTrendColor, isLoading: false },
         { title: "Meta Principal", value: primaryGoalProgress, icon: PiggyBank, unit: "%", trend: primaryGoalTrend, trendColor: "text-emerald-500", isLoading: false },
       ]);
 
@@ -339,6 +341,8 @@ export default function DashboardPage() {
             {(isLoadingQuotes ? Array(quotes.length > 0 ? quotes.length : 5).fill(0) : quotes).map((quote: QuoteData | 0, index: number) => {
                 const isLoading = quote === 0;
                 
+                if(!isLoading && !quote) return null; // Não renderiza o card se a cotação for nula (slot vazio)
+
                 const pctChange = !isLoading ? parseFloat(quote.pctChange) : 0;
                 const isPositive = pctChange >= 0;
                 
@@ -367,7 +371,6 @@ export default function DashboardPage() {
             })}
           </div>
       )}
-
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <motion.div custom={10} variants={cardVariants} initial="hidden" animate="visible">

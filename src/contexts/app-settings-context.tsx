@@ -36,7 +36,7 @@ export interface AppSettingsProviderValue {
   showQuotes: boolean;
   setShowQuotes: Dispatch<SetStateAction<boolean>>;
   selectedQuotes: string[];
-  setSelectedQuotes: (quotes: string[]) => void;
+  setSelectedQuotes: (quotes: (string | null)[]) => void;
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
@@ -85,14 +85,20 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const setSelectedQuotes = (newQuotes: string[]) => {
-    const validQuotes = newQuotes.filter(q => q && q.trim() !== '');
+  const setSelectedQuotes = (newQuotes: (string | null)[]) => {
+    const validQuotes = newQuotes.filter((q): q is string => !!q);
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(validQuotes));
     setSelectedQuotesState(validQuotes);
-    if(showQuotes) {
-      loadQuotes(validQuotes);
+  };
+  
+  useEffect(() => {
+    if (showQuotes && selectedQuotes.length > 0) {
+      loadQuotes(selectedQuotes);
+    } else {
+      setQuotes([]);
+      setIsLoadingQuotes(false);
     }
-  }
+  }, [showQuotes, selectedQuotes, loadQuotes]);
 
   // --- Funções e Efeitos para Clima ---
   const loadWeatherForCity = useCallback(async (city: string) => {
@@ -150,34 +156,21 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         loadWeatherForCity(storedCity);
       }
 
-      // Carregar cotações salvas
-      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : [];
-      setSelectedQuotesState(initialQuotes);
-      
+      // Carregar configurações de cotações
       const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
-      const showQuotesEnabled = storedShowQuotes ? JSON.parse(storedShowQuotes) : true;
-      setShowQuotes(showQuotesEnabled);
-
-      if (showQuotesEnabled) {
-          loadQuotes(initialQuotes);
-      } else {
-          setIsLoadingQuotes(false);
-      }
+      setShowQuotes(storedShowQuotes ? JSON.parse(storedShowQuotes) : true);
+      
+      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
+      setSelectedQuotesState(storedQuotes ? JSON.parse(storedQuotes) : []);
 
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }
-  }, [loadWeatherForCity, loadQuotes]);
+  }, [loadWeatherForCity]);
 
   useEffect(() => {
     localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
-    if(showQuotes) {
-      loadQuotes(selectedQuotes);
-    } else {
-      setQuotes([]);
-    }
-  }, [showQuotes, selectedQuotes, loadQuotes]);
+  }, [showQuotes]);
 
   const applyTheme = useCallback((themeId: string) => {
     const root = document.documentElement;

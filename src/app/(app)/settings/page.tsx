@@ -18,6 +18,7 @@ import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
+import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
 
 interface ThemeOption {
   name: string;
@@ -45,6 +46,7 @@ export default function SettingsPage() {
   
   const [localWeatherCity, setLocalWeatherCity] = useState(weatherCity || "");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   
   useEffect(() => {
     document.title = `Configurações - ${APP_NAME}`;
@@ -103,6 +105,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <>
     <div className="space-y-8">
       <PageHeader
         title="Configurações da Aplicação"
@@ -120,11 +123,15 @@ export default function SettingsPage() {
             <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
               <span>Exibir Cards de Cotações</span>
                <span className="font-normal leading-snug text-muted-foreground text-sm">
-                Mostra ou oculta os 5 cards de cotações de mercado no dashboard.
+                Mostra ou oculta os cards de cotações de mercado no dashboard.
               </span>
             </Label>
             <Switch id="show-quotes" checked={showQuotes} onCheckedChange={setShowQuotes} aria-label={showQuotes ? "Desativar cards de cotações" : "Ativar cards de cotações"} />
           </div>
+          <Button variant="outline" onClick={() => setIsQuoteDialogOpen(true)} disabled={!showQuotes}>
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Configurar Cotações Visíveis
+          </Button>
         </CardContent>
       </Card>
 
@@ -266,5 +273,7 @@ export default function SettingsPage() {
       </div>
       <ShareModuleDialog isOpen={isShareModalOpen} onOpenChange={setIsShareModalOpen} />
     </div>
+    <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
+    </>
   );
 }

@@ -1,3 +1,4 @@
+
 // src/components/settings/quote-dialog.tsx
 "use client";
 
@@ -54,7 +55,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
       return;
     }
 
-    setSelectedQuotes(localQuotes.map(q => q || '')); // Envia array com '' para slots vazios
+    setSelectedQuotes(localQuotes);
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
   };
