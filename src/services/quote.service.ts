@@ -1,4 +1,3 @@
-
 // src/services/quote.service.ts
 "use server";
 import axios from 'axios';
@@ -27,35 +26,36 @@ export async function getQuotes(
   if (!quotes || quotes.length === 0) {
     return { data: [], error: null };
   }
-
+  
+  const apiKey = process.env.AWESOMEAPI_API_KEY;
   const uniqueQuotes = [...new Set(quotes)];
   const query = uniqueQuotes.join(',');
-  const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
+  let apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
+  
+  // Anexa a chave da API à URL se ela estiver disponível
+  if (apiKey) {
+    apiUrl += `?token=${apiKey}`;
+  }
 
   try {
-    const response = await axios.get<ApiResponse | QuoteData>(apiUrl);
+    const response = await axios.get<ApiResponse>(apiUrl);
     
-    // A API tem um comportamento diferente para uma vs. múltiplas cotações.
-    // Se for apenas uma, ela não retorna um objeto com a chave, mas o objeto direto.
-    // Se forem múltiplas, retorna um objeto com chaves.
-    let dataArray: QuoteData[];
+    const responseData = response.data;
+    const dataArray: QuoteData[] = [];
+
+    // Itera sobre as cotações solicitadas para construir o array de resposta na ordem correta
+    // e para lidar com respostas de API que podem não incluir todas as cotações solicitadas (ex: IBOV)
+    uniqueQuotes.forEach(quoteCode => {
+      const responseKey = quoteCode.replace('-', ''); // A API retorna "USDBRL" para a query "USD-BRL"
+      if (responseData && responseData[responseKey]) {
+        dataArray.push(responseData[responseKey]);
+      }
+    });
+
+    if (dataArray.length === 0 && uniqueQuotes.length > 0) {
+        return { data: null, error: `Nenhuma das cotações solicitadas (${query}) foi encontrada.` };
+    }
     
-    if (uniqueQuotes.length === 1) {
-      // Se pedimos apenas uma, a API pode retornar o objeto diretamente.
-      const singleQuoteKey = uniqueQuotes[0].replace('-', '');
-      dataArray = [response.data[singleQuoteKey as keyof typeof response.data] as QuoteData];
-    } else {
-      // Se pedimos múltiplas, a API retorna um objeto com as chaves
-      dataArray = Object.values(response.data);
-    }
-
-    if (!dataArray || dataArray.some(item => item === undefined)) {
-        // Isso pode acontecer se uma das cotações for inválida.
-        // O `Object.values` retornaria undefined para essa chave.
-        console.error('Erro: Uma ou mais cotações resultaram em "undefined". Resposta da API:', response.data);
-        return { data: null, error: `Uma ou mais cotações (${query}) não foram encontradas.` };
-    }
-
     return { data: dataArray, error: null };
   } catch (error: any) {
     console.error('Erro ao buscar cotações na API:', error.message);
