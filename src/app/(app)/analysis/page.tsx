@@ -12,11 +12,11 @@ import {
   AlertTriangle, 
   Wallet, 
   TrendingDown,
-  AreaChart as AreaIconLucide, 
+  AreaChart as AreaIconLucide,
   BarChart3 as BarIconLucide, 
   Radar as RadarIconLucide, 
   Target as RadialIconLucide,
-  LineChart as LineIconLucideReal 
+  LineChart as LineIconLucideReal // Renomeado para evitar conflito
 } from "lucide-react";
 import {
   Select,
@@ -40,8 +40,9 @@ import {
 } from "@/components/ui/chart";
 
 import {
-  AreaChart, // Changed from LineChart for Evolucao Mensal
-  Area,      // Added for AreaChart
+  AreaChart, 
+  Area,      
+  LineChart, // Este é o componente do Recharts
   Line,
   XAxis,
   YAxis,
@@ -351,7 +352,7 @@ export default function AnalysisPage() {
                 <>
                     <Card className="shadow-sm">
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
-                        <CardContent className="h-80">
+                        <CardContent className="h-[320px] sm:h-80">
                             {spendingByCategory.length > 0 ? (
                                 <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -369,7 +370,7 @@ export default function AnalysisPage() {
                     </Card>
                     <Card className="shadow-sm">
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
-                        <CardContent className="h-80">
+                        <CardContent className="h-[320px] sm:h-80">
                             {incomeBySource.length > 0 ? (
                                 <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -387,7 +388,7 @@ export default function AnalysisPage() {
                     </Card>
                     <Card className="shadow-sm">
                         <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
-                        <CardContent className="h-80 overflow-y-auto">
+                        <CardContent className="h-[320px] sm:h-80 overflow-y-auto">
                             {topExpenses.length > 0 ? (
                                 <Table size="sm">
                                     <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
@@ -400,7 +401,7 @@ export default function AnalysisPage() {
             )}
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
-                <CardContent className="h-80 sm:h-96 overflow-hidden"> {/* Adjusted height and overflow */}
+                <CardContent className="h-80 sm:h-96 overflow-hidden">
                     {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
                         <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
                             <ResponsiveContainer width="99%" height="100%">
@@ -408,18 +409,18 @@ export default function AnalysisPage() {
                                     accessibilityLayer
                                     data={monthlyEvolution}
                                     margin={{
-                                        top: 20,
-                                        right: 30,
-                                        left: 30, 
-                                        bottom: 70,
+                                        top: 20, 
+                                        right: 30, 
+                                        left: 10,  
+                                        bottom: 70, 
                                     }}
                                 >
                                     <defs>
-                                        <linearGradient id="fillReceitas" x1="0" y1="0" x2="0" y2="1">
+                                        <linearGradient id="fillReceitasEvolution" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="var(--color-Receitas)" stopOpacity={0.8}/>
                                             <stop offset="95%" stopColor="var(--color-Receitas)" stopOpacity={0.1}/>
                                         </linearGradient>
-                                        <linearGradient id="fillDespesas" x1="0" y1="0" x2="0" y2="1">
+                                        <linearGradient id="fillDespesasEvolution" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="var(--color-Despesas)" stopOpacity={0.7}/>
                                             <stop offset="95%" stopColor="var(--color-Despesas)" stopOpacity={0.1}/>
                                         </linearGradient>
@@ -429,27 +430,27 @@ export default function AnalysisPage() {
                                         dataKey="month"
                                         tickLine={false}
                                         axisLine={false}
-                                        tickMargin={10}
+                                        tickMargin={10} 
                                         interval={0}
                                         angle={-45}
                                         textAnchor="end"
                                         height={80} 
                                         dy={10}    
-                                        tick={{ fontSize: 10 }}
+                                        tick={{ fontSize: '0.65rem' }}
                                     />
                                     <YAxis
                                         tickFormatter={(value) => `R$${Number(value / 1000).toFixed(0)}k`}
-                                        tick={{ fontSize: 10 }}
+                                        tick={{ fontSize: '0.65rem' }}
                                         tickLine={false}
                                         axisLine={false}
-                                        tickMargin={5}
-                                        dx={-5}   
-                                        width={70}
+                                        tickMargin={5} 
+                                        dx={-5}    
+                                        width={60} 
                                     />
                                     <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
                                     <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
-                                    <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitas)" stackId="1" name="Receitas" />
-                                    <Area type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" fillOpacity={1} fill="url(#fillDespesas)" stackId="2" name="Despesas" />
+                                    <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitasEvolution)" stackId="1" name="Receitas" />
+                                    <Area type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" fillOpacity={1} fill="url(#fillDespesasEvolution)" stackId="2" name="Despesas" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </ChartContainer>
@@ -459,10 +460,8 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      {/* Galeria de Exemplos de Gráficos */}
       <PageHeader title="Galeria de Exemplos de Gráficos" description="Demonstração de diferentes tipos de gráficos." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Area Chart - Interactive (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -477,8 +476,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Area Chart - Gradient (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Gradient (Mock)</CardTitle><CardDescription>Com preenchimento gradiente.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -488,18 +485,16 @@ export default function AnalysisPage() {
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <defs>
-                  <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="fillDesktopExample" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-desktop)" stopOpacity={0.8} />
                     <stop offset="95%" stopColor="var(--color-desktop)" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
-                <Area dataKey="desktop" type="natural" fill="url(#fillDesktop)" stroke="var(--color-desktop)" stackId="a" />
+                <Area dataKey="desktop" type="natural" fill="url(#fillDesktopExample)" stroke="var(--color-desktop)" stackId="a" />
               </AreaChart>
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Bar Chart - Custom Label (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Custom Label (Mock)</CardTitle><CardDescription>Barras com rótulos personalizados.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -516,8 +511,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Bar Chart - Stacked + Legend (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Stacked (Mock)</CardTitle><CardDescription>Barras empilhadas com legenda.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -533,8 +526,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        
-        {/* Line Chart - Label (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label (Mock)</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -550,8 +541,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Line Chart - Interactive (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -568,8 +557,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Pie Chart - Interactive (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
@@ -581,8 +568,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Pie Chart - Label (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Label (Mock)</CardTitle><CardDescription>Gráfico de Pizza com rótulos.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
@@ -594,8 +579,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Radar Chart - Grid Circle Filled (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Circle (Mock)</CardTitle><CardDescription>Grid circular com área preenchida.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -611,8 +594,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        
-        {/* Radar Chart - Grid Polygon Filled (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Polygon (Mock)</CardTitle><CardDescription>Grid poligonal com múltiplas séries.</CardDescription></CardHeader>
           <CardContent className="h-72">
@@ -629,8 +610,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Radial Bar Chart - Label (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Label (Mock)</CardTitle><CardDescription>Com rótulos nas barras.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
@@ -645,8 +624,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Radial Bar Chart - Text (Center Label) (mock) */}
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Center (Mock)</CardTitle><CardDescription>Com texto no centro.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
@@ -663,9 +640,7 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Radial Bar Chart - Multiple (mock) */}
-        <Card>
+        <Card className="lg:col-span-1">
           <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Multiple (Mock)</CardTitle><CardDescription>Múltiplas barras radiais.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
              <ChartContainer config={genericChartConfig} className="w-full max-w-[300px] aspect-square">
@@ -684,8 +659,6 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
-        {/* Bar Chart - Advanced Tooltip & Interactive (Brush) (mock) */}
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Interactive (Mock)</CardTitle><CardDescription>Com brush e tooltip customizado.</CardDescription></CardHeader>
           <CardContent className="h-80">
@@ -719,9 +692,7 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-
       </div>
     </div>
   );
 }
-
