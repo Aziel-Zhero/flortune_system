@@ -16,7 +16,7 @@ export const NAV_LINKS_CONFIG = [
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/clients", label: "Clientes & Projetos", icon: "Users2" as const, type: "link" as const },
   { href: "/dev/systems", label: "Ferramentas DEV", icon: "HardDrive" as const, type: "link" as const },
-  { href: "/dev/devops", label: "Gestão DevOps", icon: "GitMerge" as const, type: "link" as const },
+  { href: "/dev/devops", label: "Gestão de Sistemas", icon: "GitMerge" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "Metodologias Ágeis" },
   { href: "/dev/scrum", label: "Scrum Visual", icon: "GanttChartSquare" as const, type: "link" as const },
@@ -108,3 +108,22 @@ export const PRICING_TIERS = [
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
+
+
+// Lista de cotações disponíveis na API AwesomeAPI
+export const AVAILABLE_QUOTES = [
+  { name: "Dólar Comercial", code: "USD-BRL" },
+  { name: "Dólar Turismo", code: "USDT-BRL" },
+  { name: "Euro", code: "EUR-BRL" },
+  { name: "Libra Esterlina", code: "GBP-BRL" },
+  { name: "Iene Japonês", code: "JPY-BRL" },
+  { name: "Peso Argentino", code: "ARS-BRL" },
+  { name: "Bitcoin", code: "BTC-BRL" },
+  { name: "Ethereum", code: "ETH-BRL" },
+  { name: "Dogecoin", code: "DOGE-BRL" },
+  { name: "Litecoin", code: "LTC-BRL" },
+  { name: "Ibovespa", code: "IBOV" }, // Nota: API pode não retornar todos os campos para índices
+  { name: "Nasdaq", code: "NASDAQ" }, // Nota: API pode não retornar todos os campos para índices
+  { name: "Cacau", code: "CAC" },
+  { name: "Ouro", code: "GOLD" },
+];
