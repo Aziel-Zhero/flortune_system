@@ -34,10 +34,23 @@ export async function getQuotes(
   try {
     const response = await axios.get<ApiResponse>(apiUrl);
     
-    // A API retorna um objeto onde cada chave é a cotação.
-    // Precisamos converter isso em um array.
-    const dataArray = Object.values(response.data);
+    // A API pode retornar 200 OK mesmo que algumas cotações não sejam encontradas (ex: IBOV).
+    // Precisamos filtrar a resposta para incluir apenas as cotações que realmente foram retornadas.
+    const responseData = response.data;
+    const dataArray: QuoteData[] = [];
 
+    uniqueQuotes.forEach(quoteCode => {
+      const responseKey = quoteCode.replace('-', ''); // A API retorna "USDBRL" para a query "USD-BRL"
+      if (responseData && responseData[responseKey]) {
+        dataArray.push(responseData[responseKey]);
+      }
+    });
+
+    if (dataArray.length === 0 && uniqueQuotes.length > 0) {
+        // Se nenhuma das cotações pedidas foi encontrada
+        return { data: null, error: `Nenhuma das cotações solicitadas (${query}) foi encontrada.` };
+    }
+    
     return { data: dataArray, error: null };
   } catch (error: any) {
     console.error('Erro ao buscar cotações na API:', error.message);

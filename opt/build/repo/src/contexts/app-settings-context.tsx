@@ -33,8 +33,10 @@ export interface AppSettingsProviderValue {
   isLoadingWeather: boolean;
   
   // Novas propriedades para cotações
-  selectedQuotes: string[];
-  setSelectedQuotes: (quotes: string[]) => void;
+  showQuotes: boolean;
+  setShowQuotes: Dispatch<SetStateAction<boolean>>;
+  selectedQuotes: (string | null)[];
+  setSelectedQuotes: (quotes: (string | null)[]) => void;
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
@@ -54,14 +56,16 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
   // Estado para Cotações
-  const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
+  const [showQuotes, setShowQuotes] = useState(true);
+  const [selectedQuotes, setSelectedQuotesState] = useState<(string | null)[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
   // --- Funções e Efeitos para Cotações ---
-  const loadQuotes = useCallback(async (quoteList: string[]) => {
-    if (quoteList.length === 0) {
+  const loadQuotes = useCallback(async (quoteList: (string | null)[]) => {
+    const validQuotes = quoteList.filter((q): q is string => !!q && q !== '');
+    if (validQuotes.length === 0) {
       setQuotes([]);
       setIsLoadingQuotes(false);
       return;
@@ -69,23 +73,31 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingQuotes(true);
     setQuotesError(null);
     try {
-      const result = await getQuotes(quoteList);
+      const result = await getQuotes(validQuotes);
       if (result.error) throw new Error(result.error);
       setQuotes(result.data || []);
     } catch (err: any) {
       setQuotesError(err.message);
       setQuotes([]);
-      toast({ title: "Erro ao buscar cotações", description: err.message, variant: "destructive" });
+      // Não mostra toast de erro aqui, a UI pode lidar com isso se necessário
     } finally {
       setIsLoadingQuotes(false);
     }
   }, []);
 
-  const setSelectedQuotes = (newQuotes: string[]) => {
+  const setSelectedQuotes = (newQuotes: (string | null)[]) => {
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     setSelectedQuotesState(newQuotes);
-    loadQuotes(newQuotes);
-  }
+  };
+  
+  useEffect(() => {
+    if (showQuotes && selectedQuotes.length > 0) {
+      loadQuotes(selectedQuotes);
+    } else {
+      setQuotes([]);
+      setIsLoadingQuotes(false);
+    }
+  }, [showQuotes, selectedQuotes, loadQuotes]);
 
   // --- Funções e Efeitos para Clima ---
   const loadWeatherForCity = useCallback(async (city: string) => {
@@ -125,7 +137,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
-      // Carregar configurações gerais
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
 
@@ -136,23 +147,30 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       setCurrentTheme(storedTheme);
 
-      // Carregar cidade do clima
       const storedCity = localStorage.getItem('flortune-weather-city');
       if (storedCity) {
         setWeatherCityState(storedCity);
         loadWeatherForCity(storedCity);
       }
 
-      // Carregar cotações salvas
+      const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
+      setShowQuotes(storedShowQuotes ? JSON.parse(storedShowQuotes) : true);
+      
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
+      // Define um padrão inicial se nada for encontrado, garantindo uma boa experiência no primeiro uso
+      const initialQuotes = storedQuotes 
+        ? JSON.parse(storedQuotes) 
+        : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
       setSelectedQuotesState(initialQuotes);
-      loadQuotes(initialQuotes);
 
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }
-  }, [loadWeatherForCity, loadQuotes]);
+  }, [loadWeatherForCity]);
+
+  useEffect(() => {
+    localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
+  }, [showQuotes]);
 
   const applyTheme = useCallback((themeId: string) => {
     const root = document.documentElement;
@@ -195,7 +213,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
-      selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError
+      showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError
     }}>
       {children}
     </AppSettingsContext.Provider>
