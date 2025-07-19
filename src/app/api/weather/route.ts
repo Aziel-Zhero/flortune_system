@@ -10,9 +10,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'City is required' }, { status: 400 });
   }
 
-  if (!apiKey) {
-    console.error("OpenWeatherMap API key is not configured on the server.");
-    return NextResponse.json({ error: 'Weather service is not configured.' }, { status: 500 });
+  if (!apiKey || apiKey === 'SUA_CHAVE_API_AQUI') {
+    const errorMsg = "A chave da API OpenWeatherMap não está configurada no servidor.";
+    console.error(errorMsg);
+    return NextResponse.json({ error: 'Serviço de clima indisponível (API Key não configurada).', message: errorMsg }, { status: 503 });
   }
 
   const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=pt_br`;
@@ -27,7 +28,13 @@ export async function GET(request: Request) {
     if (!response.ok) {
       const errorMessage = data.message || `Failed to fetch weather data for city: ${city}`;
       console.error(`OpenWeatherMap API Error (${response.status}):`, data);
-      return NextResponse.json({ error: errorMessage }, { status: response.status });
+      let friendlyMessage = `Falha ao buscar dados para "${city}".`;
+      if (response.status === 404) {
+          friendlyMessage = `Cidade "${city}" não encontrada. Verifique o nome.`;
+      } else if (response.status === 401) {
+          friendlyMessage = "Chave da API inválida.";
+      }
+      return NextResponse.json({ error: friendlyMessage, details: errorMessage }, { status: response.status });
     }
     
     // Limpa a resposta para enviar apenas os dados necessários ao frontend
@@ -42,6 +49,4 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error("Error fetching weather data:", error);
-    return NextResponse.json({ error: 'Failed to connect to weather service.' }, { status: 500 });
-  }
-}
+    return NextResponse.json({ error: 'Falha de conexão com o serviço de clima.' }, { status: 

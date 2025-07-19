@@ -64,9 +64,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
   // --- Funções e Efeitos para Cotações ---
   const loadQuotes = useCallback(async (quoteList: string[]) => {
-    // Filtra para buscar apenas as cotações válidas
     const validQuotes = quoteList.filter(q => q && q !== '');
-    if (validQuotes.length === 0) {
+    if (!showQuotes || validQuotes.length === 0) {
       setQuotes([]);
       setIsLoadingQuotes(false);
       return;
@@ -83,7 +82,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoadingQuotes(false);
     }
-  }, []);
+  }, [showQuotes]);
 
   const setSelectedQuotes = (newQuotes: (string | null)[]) => {
     const validQuotes = newQuotes.filter((q): q is string => !!q);
@@ -138,7 +137,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
-      // Carregar configurações gerais
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
 
@@ -149,19 +147,17 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       setCurrentTheme(storedTheme);
 
-      // Carregar cidade do clima
       const storedCity = localStorage.getItem('flortune-weather-city');
       if (storedCity) {
         setWeatherCityState(storedCity);
         loadWeatherForCity(storedCity);
       }
 
-      // Carregar configurações de cotações
       const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
       setShowQuotes(storedShowQuotes ? JSON.parse(storedShowQuotes) : true);
       
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      setSelectedQuotesState(storedQuotes ? JSON.parse(storedQuotes) : []);
+      setSelectedQuotesState(storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ']);
 
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
@@ -223,7 +219,3 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 export const useAppSettings = (): AppSettingsProviderValue => {
   const context = useContext(AppSettingsContext);
   if (context === undefined) {
-    throw new Error('useAppSettings must be used within an AppSettingsProvider');
-  }
-  return context;
-};
