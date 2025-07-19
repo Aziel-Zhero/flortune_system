@@ -6,7 +6,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from "next-auth/providers/google";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
 import jwt from "jsonwebtoken";
-import { createClient } from '@supabase/supabase-js'; // Usado para criar cliente admin localmente
+import { createClient } from '@supabase/supabase-js'; 
 import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
@@ -20,15 +20,15 @@ const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-// --- Critical Environment Variable Checks ---
-if (!supabaseUrl || supabaseUrl.includes('<SEU_PROJECT_REF>')) {
-  throw new Error("CRITICAL: NEXT_PUBLIC_SUPABASE_URL is not set or is a placeholder.");
+// --- Log Environment Variable Status ---
+if (!supabaseUrl) {
+  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set.");
 }
 if (!supabaseServiceRoleKey) {
-  throw new Error("CRITICAL: SUPABASE_SERVICE_ROLE_KEY is not set.");
+  console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set.");
 }
 if (!nextAuthSecret) {
-  throw new Error("CRITICAL: AUTH_SECRET is not set.");
+  console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
 }
 
 // --- Provider Configuration ---
@@ -45,10 +45,13 @@ const providers: NextAuthConfig['providers'] = [
       }
       const email = credentials.email as string;
       const password = credentials.password as string;
+      
+      if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseUrl.startsWith('http')) {
+          console.error('[NextAuth Authorize] Supabase credentials are not configured or invalid.');
+          return null;
+      }
 
-      // Usar um cliente admin para poder ler a tabela `profiles`
-      // que pode ter RLS ativada.
-      const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceRoleKey!);
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
       try {
         const { data: profile, error: dbError } = await supabaseAdmin
@@ -95,12 +98,18 @@ if (googleClientId && googleClientSecret) {
   console.warn("⚠️ GoogleProvider is not configured. Login with Google will fail.");
 }
 
+// Conditionally create the adapter
+const adapter =
+  supabaseUrl && supabaseServiceRoleKey && supabaseUrl.startsWith('http')
+    ? SupabaseAdapter({
+        url: supabaseUrl,
+        secret: supabaseServiceRoleKey,
+      })
+    : undefined;
+
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
-  adapter: SupabaseAdapter({
-    url: supabaseUrl!, 
-    secret: supabaseServiceRoleKey!, 
-  }),
+  adapter,
   providers: providers,
   session: {
     strategy: 'jwt',
@@ -114,8 +123,8 @@ export const authConfig: NextAuthConfig = {
           const { hashed_password, ...safeProfile } = user.profile;
           token.profile = safeProfile;
         } 
-        else if (account?.provider !== 'credentials') {
-          const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceRoleKey!);
+        else if (account?.provider !== 'credentials' && supabaseUrl && supabaseServiceRoleKey) {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
           const { data: dbProfile } = await supabaseAdmin
             .from('profiles')
             .select('*')

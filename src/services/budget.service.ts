@@ -1,7 +1,6 @@
 
 'use server';
 
-// import { supabase } from '@/lib/supabase/client';
 import { createSupabaseClientWithToken } from '@/lib/supabase/client';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
 import type { Budget, ServiceListResponse, ServiceResponse, Category } from '@/types/database.types';
@@ -19,6 +18,9 @@ async function getSupabaseClientForUser() {
 
 export async function getBudgets(userId: string): Promise<ServiceListResponse<Budget>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: [], error: new Error("Supabase client is not initialized. Check environment variables."), count: 0 };
+  }
   if (!userId) {
     const error = new Error("User ID is required to fetch budgets.");
     return { data: [], error, count: 0 };
@@ -57,6 +59,9 @@ export async function getBudgets(userId: string): Promise<ServiceListResponse<Bu
 
 export async function addBudget(userId: string, budgetData: NewBudgetData): Promise<ServiceResponse<Budget>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to add a budget.");
     return { data: null, error };
@@ -94,6 +99,9 @@ export async function addBudget(userId: string, budgetData: NewBudgetData): Prom
 
 export async function updateBudget(budgetId: string, userId: string, budgetData: UpdateBudgetData): Promise<ServiceResponse<Budget>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to update a budget.");
     return { data: null, error };
@@ -131,6 +139,9 @@ export async function updateBudget(budgetId: string, userId: string, budgetData:
 
 export async function deleteBudget(budgetId: string, userId: string): Promise<ServiceResponse<null>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to delete a budget.");
     return { data: null, error };

@@ -16,6 +16,9 @@ async function getSupabaseClientForUser() {
 
 export async function getTodos(userId: string): Promise<ServiceListResponse<Todo>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: [], error: new Error("Supabase client is not initialized. Check environment variables."), count: 0 };
+  }
   if (!userId) {
     const error = new Error("User ID is required to fetch todos.");
     return { data: [], error, count: 0 };
@@ -40,6 +43,9 @@ export async function getTodos(userId: string): Promise<ServiceListResponse<Todo
 
 export async function addTodo(userId: string, todoData: NewTodoData): Promise<ServiceResponse<Todo>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to add a todo.");
     return { data: null, error };
@@ -62,6 +68,9 @@ export async function addTodo(userId: string, todoData: NewTodoData): Promise<Se
 
 export async function updateTodo(todoId: string, userId: string, updates: UpdateTodoData): Promise<ServiceResponse<Todo>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to update a todo.");
     return { data: null, error };
@@ -86,6 +95,9 @@ export async function updateTodo(todoId: string, userId: string, updates: Update
 
 export async function deleteTodo(todoId: string, userId: string): Promise<ServiceResponse<null>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to delete a todo.");
     return { data: null, error };
@@ -105,4 +117,3 @@ export async function deleteTodo(todoId: string, userId: string): Promise<Servic
     return { data: null, error };
   }
 }
-    

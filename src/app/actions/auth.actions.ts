@@ -3,12 +3,11 @@
 
 import { z } from "zod";
 import { redirect } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js'; // Usaremos um cliente com service key aqui
+import { createClient } from '@supabase/supabase-js'; 
 import bcrypt from 'bcryptjs';
 import type { Profile } from "@/types/database.types";
 import { v4 as uuidv4 } from 'uuid';
 
-// Esquemas de validação Zod
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
   .regex(/[a-z]/, { message: "A senha deve conter pelo menos uma letra minúscula." })
@@ -94,11 +93,16 @@ export type SignupFormState = {
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
   console.log("[SignupUser Action] Iniciando novo fluxo de cadastro unificado...");
 
-  // Criar um cliente Supabase com a SERVICE_ROLE_KEY para ter permissões elevadas
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseUrl.startsWith('http')) {
+    const errorMsg = "Serviço de autenticação indisponível. Configuração do servidor incompleta.";
+    console.error(errorMsg);
+    return { message: errorMsg, success: false, errors: { _form: [errorMsg] } };
+  }
+
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
   try {
     const rawData = Object.fromEntries(formData.entries());
@@ -154,8 +158,8 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         id: userId,
         email: email,
-        password: password, // Supabase precisa da senha original aqui para criar o usuário no seu sistema interno
-        email_confirm: true, // Auto-confirma o e-mail
+        password: password, 
+        email_confirm: true,
         user_metadata: {
             name: displayName,
             avatar_url: avatarUrl
@@ -188,7 +192,6 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     if (insertProfileError) {
       console.error("[SignupUser Action] Erro ao inserir perfil na tabela 'profiles':", insertProfileError);
-      // Opcional: deletar o usuário criado no passo 3 para reverter a operação
       await supabaseAdmin.auth.admin.deleteUser(userId);
       console.error("[SignupUser Action] Usuário de auth.users revertido devido a erro na inserção do perfil.");
       return { message: `Falha ao registrar perfil: ${insertProfileError.message}`, success: false, errors: { _form: [insertProfileError.message] }};

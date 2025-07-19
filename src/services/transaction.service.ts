@@ -18,6 +18,9 @@ async function getSupabaseClientForUser() {
 
 export async function getTransactions(userId: string): Promise<ServiceListResponse<Transaction>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: [], error: new Error("Supabase client is not initialized. Check environment variables."), count: 0 };
+  }
   if (!userId) {
     const error = new Error("User ID is required to fetch transactions.");
     return { data: [], error, count: 0 };
@@ -60,6 +63,9 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
 
 export async function addTransaction(userId: string, transactionData: NewTransactionData): Promise<ServiceResponse<Transaction>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to add a transaction.");
     return { data: null, error };
@@ -103,6 +109,9 @@ export async function addTransaction(userId: string, transactionData: NewTransac
 
 export async function updateTransaction(transactionId: string, userId: string, transactionData: UpdateTransactionData): Promise<ServiceResponse<Transaction>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to update a transaction.");
     return { data: null, error };
@@ -147,6 +156,9 @@ export async function updateTransaction(transactionId: string, userId: string, t
 
 export async function deleteTransaction(transactionId: string, userId: string): Promise<ServiceResponse<null>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
    if (!userId) {
     const error = new Error("User ID is required to delete a transaction.");
     return { data: null, error };

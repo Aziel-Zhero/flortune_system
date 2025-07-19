@@ -16,6 +16,9 @@ async function getSupabaseClientForUser() {
 
 export async function getFinancialGoals(userId: string): Promise<ServiceListResponse<FinancialGoal>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: [], error: new Error("Supabase client is not initialized. Check environment variables."), count: 0 };
+  }
   if (!userId) {
     const error = new Error("User ID is required to fetch financial goals.");
     return { data: [], error, count: 0 };
@@ -39,6 +42,9 @@ export async function getFinancialGoals(userId: string): Promise<ServiceListResp
 
 export async function addFinancialGoal(userId: string, goalData: NewFinancialGoalData): Promise<ServiceResponse<FinancialGoal>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to add a financial goal.");
     return { data: null, error };
@@ -66,6 +72,9 @@ export async function addFinancialGoal(userId: string, goalData: NewFinancialGoa
 
 export async function updateFinancialGoal(goalId: string, userId: string, goalData: UpdateFinancialGoalData): Promise<ServiceResponse<FinancialGoal>> {
     const supabaseClient = await getSupabaseClientForUser();
+    if (!supabaseClient) {
+      return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+    }
     if (!userId) {
         const error = new Error("User ID is required to update a financial goal.");
         return { data: null, error };
@@ -92,6 +101,9 @@ export async function updateFinancialGoal(goalId: string, userId: string, goalDa
 
 export async function deleteFinancialGoal(goalId: string, userId: string): Promise<ServiceResponse<null>> {
   const supabaseClient = await getSupabaseClientForUser();
+  if (!supabaseClient) {
+    return { data: null, error: new Error("Supabase client is not initialized. Check environment variables.") };
+  }
   if (!userId) {
     const error = new Error("User ID is required to delete a financial goal.");
     return { data: null, error };
