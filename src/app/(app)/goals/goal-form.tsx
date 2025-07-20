@@ -39,7 +39,7 @@ const goalFormSchema = z.object({
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
 const availableIcons = [
-  { name: "Nenhum", value: NO_ICON_VALUE, icon: Tag },
+  // A opção "Nenhum" foi removida. O placeholder do Select cuidará disso.
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
@@ -75,7 +75,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<GoalFormData>({
     resolver: zodResolver(goalFormSchema),
-    defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" },
+    defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: undefined, notes: "" },
   });
 
   const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
@@ -89,14 +89,14 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       name: data.name, 
       target_amount: data.target_amount, 
       deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, 
-      icon: data.icon === NO_ICON_VALUE ? null : data.icon,
+      icon: data.icon || null, // Converte undefined/string vazia para null
       notes: data.notes,
     };
     try {
       const result = await addFinancialGoal(user.id, newGoalData);
       if (result.error) throw result.error;
       toast({ title: "Meta Criada!", description: `Sua meta "${data.name}" foi criada com sucesso.`, action: <CheckCircle className="text-green-500" />, });
-      reset({ name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" }); 
+      reset({ name: "", target_amount: 0, deadline_date: null, icon: undefined, notes: "" }); 
       onGoalCreated(); 
       if (!isModal) router.push("/goals");
     } catch (error: any) {
@@ -164,7 +164,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         <div className="space-y-2">
           <Label htmlFor="goal-form-icon">Ícone (Opcional)</Label>
           <Controller name="icon" control={control} render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value ?? NO_ICON_VALUE} disabled={isSubmitting || isAuthLoading}>
+            <Select onValueChange={field.onChange} value={field.value || ""} disabled={isSubmitting || isAuthLoading}>
               <SelectTrigger id="goal-form-icon">
                 <SelectValue placeholder="Selecione um ícone" />
               </SelectTrigger>

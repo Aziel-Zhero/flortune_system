@@ -1,3 +1,4 @@
+
 // src/app/(app)/goals/page.tsx
 "use client";
 
