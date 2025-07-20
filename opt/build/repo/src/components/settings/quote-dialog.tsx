@@ -25,35 +25,40 @@ interface QuoteSettingsDialogProps {
 }
 
 export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialogProps) {
-  const { selectedQuotes, setSelectedQuotes } = useAppSettings();
-  const [localQuotes, setLocalQuotes] = useState<string[]>(['', '', '', '', '']);
+  const { selectedQuotes, setSelectedQuotes, loadQuotes } = useAppSettings();
+  const [localQuotes, setLocalQuotes] = useState<(string | null)[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       // Preenche o estado local com as cotações salvas ou valores vazios
-      const initialQuotes = Array(5).fill('').map((_, i) => selectedQuotes[i] || '');
+      const initialQuotes = Array(5).fill(null).map((_, i) => selectedQuotes[i] || null);
       setLocalQuotes(initialQuotes);
     }
   }, [isOpen, selectedQuotes]);
 
   const handleSelectChange = (index: number, value: string) => {
     const newQuotes = [...localQuotes];
-    newQuotes[index] = value;
+    // Usa null se a opção "Nenhum" (valor vazio) for selecionada
+    newQuotes[index] = value === "" ? null : value;
     setLocalQuotes(newQuotes);
   };
 
   const handleSave = () => {
-    // Filtra para garantir que apenas valores válidos (não vazios) sejam salvos
-    const quotesToSave = localQuotes.filter(q => q && q.trim() !== '');
-    if (quotesToSave.length !== 5) {
+    const cleanedQuotes = localQuotes.filter((q): q is string => !!q);
+    const uniqueQuotes = new Set(cleanedQuotes);
+
+    if (uniqueQuotes.size !== cleanedQuotes.length) {
       toast({
-        title: "Seleção Incompleta",
-        description: "Por favor, selecione 5 cotações para exibir no painel.",
+        title: "Cotações repetidas!",
+        description: "Por favor, evite selecionar a mesma cotação mais de uma vez.",
         variant: "destructive",
       });
       return;
     }
-    setSelectedQuotes(quotesToSave);
+    
+    setSelectedQuotes(cleanedQuotes);
+    loadQuotes(cleanedQuotes);
+    
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
   };
@@ -74,11 +79,12 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
           {localQuotes.map((quote, index) => (
             <div key={index} className="space-y-2">
               <Label htmlFor={`quote-select-${index}`}>Cotação {index + 1}</Label>
-              <Select value={quote} onValueChange={(value) => handleSelectChange(index, value)}>
+              <Select value={quote || ""} onValueChange={(value) => handleSelectChange(index, value)}>
                 <SelectTrigger id={`quote-select-${index}`}>
                   <SelectValue placeholder="Selecione uma cotação..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
                   {AVAILABLE_QUOTES.map(q => (
                     <SelectItem key={q.code} value={q.code}>
                       {q.name} ({q.code})

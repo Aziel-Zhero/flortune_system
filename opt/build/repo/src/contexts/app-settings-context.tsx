@@ -32,14 +32,14 @@ export interface AppSettingsProviderValue {
   loadWeatherForCity: (city: string) => Promise<void>;
   isLoadingWeather: boolean;
   
-  // Novas propriedades para cotações
   showQuotes: boolean;
   setShowQuotes: Dispatch<SetStateAction<boolean>>;
-  selectedQuotes: (string | null)[];
-  setSelectedQuotes: (quotes: (string | null)[]) => void;
+  selectedQuotes: string[];
+  setSelectedQuotes: (quotes: string[]) => void; // Apenas strings válidas
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
+  loadQuotes: (quoteList: string[]) => Promise<void>; // Exposto para uso externo
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -49,23 +49,20 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
   
-  // Estado para Clima
   const [weatherCity, setWeatherCityState] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
-  // Estado para Cotações
   const [showQuotes, setShowQuotes] = useState(true);
-  const [selectedQuotes, setSelectedQuotesState] = useState<(string | null)[]>([]);
+  const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
-  // --- Funções e Efeitos para Cotações ---
-  const loadQuotes = useCallback(async (quoteList: (string | null)[]) => {
-    const validQuotes = quoteList.filter((q): q is string => !!q && q !== '');
-    if (validQuotes.length === 0) {
+  const loadQuotes = useCallback(async (quoteList: string[]) => {
+    const validQuotes = quoteList.filter(q => q && q !== '');
+    if (!showQuotes || validQuotes.length === 0) {
       setQuotes([]);
       setIsLoadingQuotes(false);
       return;
@@ -79,13 +76,12 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       setQuotesError(err.message);
       setQuotes([]);
-      // Não mostra toast de erro aqui, a UI pode lidar com isso se necessário
     } finally {
       setIsLoadingQuotes(false);
     }
-  }, []);
+  }, [showQuotes]);
 
-  const setSelectedQuotes = (newQuotes: (string | null)[]) => {
+  const setSelectedQuotes = (newQuotes: string[]) => {
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     setSelectedQuotesState(newQuotes);
   };
@@ -99,7 +95,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [showQuotes, selectedQuotes, loadQuotes]);
 
-  // --- Funções e Efeitos para Clima ---
   const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) return;
     setIsLoadingWeather(true);
@@ -157,12 +152,13 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setShowQuotes(storedShowQuotes ? JSON.parse(storedShowQuotes) : true);
       
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      // Define um padrão inicial se nada for encontrado, garantindo uma boa experiência no primeiro uso
-      const initialQuotes = storedQuotes 
-        ? JSON.parse(storedQuotes) 
-        : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
-      setSelectedQuotesState(initialQuotes);
-
+      if (storedQuotes) {
+        setSelectedQuotesState(JSON.parse(storedQuotes));
+      } else {
+        const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
+        localStorage.setItem('flortune-selected-quotes', JSON.stringify(defaultQuotes));
+        setSelectedQuotesState(defaultQuotes);
+      }
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }
@@ -213,7 +209,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
-      showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError
+      showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
+      loadQuotes, // Expondo a função
     }}>
       {children}
     </AppSettingsContext.Provider>
