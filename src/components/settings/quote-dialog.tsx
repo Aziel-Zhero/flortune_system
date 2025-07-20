@@ -1,3 +1,4 @@
+
 // src/components/settings/quote-dialog.tsx
 "use client";
 
@@ -14,10 +15,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { BarChart3, Plus, Trash2 } from "lucide-react";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
 import { AVAILABLE_QUOTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface QuoteSettingsDialogProps {
   isOpen: boolean;
@@ -25,44 +28,44 @@ interface QuoteSettingsDialogProps {
 }
 
 export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialogProps) {
-  const { selectedQuotes, setSelectedQuotes, loadQuotes } = useAppSettings();
-  // Inicializa com string vazia para evitar passar `null` para o Select
-  const [localQuotes, setLocalQuotes] = useState<(string | null)[]>(Array(5).fill(""));
+  const { selectedQuotes, setSelectedQuotes, loadQuotes, showQuotes, setShowQuotes } = useAppSettings();
+  const [localQuotes, setLocalQuotes] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      // Garante que o estado local reflita as cotações salvas ou strings vazias
-      const initialQuotes = Array(5).fill(null).map((_, i) => selectedQuotes[i] || "");
-      setLocalQuotes(initialQuotes);
+      setLocalQuotes(selectedQuotes);
     }
   }, [isOpen, selectedQuotes]);
 
+  const handleAddQuoteField = () => {
+    if (localQuotes.length >= 5) {
+      toast({ title: "Limite atingido", description: "Você pode selecionar no máximo 5 cotações.", variant: "destructive" });
+      return;
+    }
+    setLocalQuotes(prev => [...prev, ""]);
+  };
+
+  const handleRemoveQuoteField = (index: number) => {
+    setLocalQuotes(prev => prev.filter((_, i) => i !== index));
+  };
+  
   const handleSelectChange = (index: number, value: string) => {
+    // Verificar se a cotação já foi selecionada
+    if (value && localQuotes.some((q, i) => q === value && i !== index)) {
+        toast({ title: "Cotação Repetida", description: "Esta cotação já foi selecionada. Escolha outra.", variant: "destructive"});
+        return;
+    }
     const newQuotes = [...localQuotes];
-    // O valor "Nenhum" já vem como uma string vazia do SelectItem
     newQuotes[index] = value;
     setLocalQuotes(newQuotes);
   };
 
   const handleSave = () => {
-    const cleanedQuotes = localQuotes.filter((q): q is string => !!q && q !== "");
-    const uniqueQuotes = new Set(cleanedQuotes);
-
-    if (uniqueQuotes.size !== cleanedQuotes.length) {
-      toast({
-        title: "Cotações repetidas!",
-        description: "Por favor, evite selecionar a mesma cotação mais de uma vez.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Atualiza o estado global e o localStorage com a lista limpa (que pode ter nulls)
-    setSelectedQuotes(localQuotes);
-    // Força o recarregamento imediato dos dados com as cotações válidas
+    const cleanedQuotes = localQuotes.filter(q => q && q !== "");
+    setSelectedQuotes(cleanedQuotes);
     loadQuotes(cleanedQuotes);
     
-    toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
+    toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado." });
     onOpenChange(false);
   };
 
@@ -75,34 +78,55 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
             Configurar Cotações do Painel
           </DialogTitle>
           <DialogDescription>
-            Escolha até 5 cotações que você deseja acompanhar no seu dashboard.
+            Ative, desative e escolha quais cotações você deseja acompanhar no seu dashboard.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          {localQuotes.map((quote, index) => (
-            <div key={index} className="space-y-2">
-              <Label htmlFor={`quote-select-${index}`}>Cotação {index + 1}</Label>
-              <Select value={quote || ""} onValueChange={(value) => handleSelectChange(index, value)}>
-                <SelectTrigger id={`quote-select-${index}`}>
-                  <SelectValue placeholder="Selecione uma cotação..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
-                  {AVAILABLE_QUOTES.map(q => (
-                    <SelectItem key={q.code} value={q.code}>
-                      {q.name} ({q.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        
+        <div className="py-4 space-y-6">
+            <div className="flex items-center space-x-2 rounded-lg border p-4">
+              <Switch id="show-quotes-switch" checked={showQuotes} onCheckedChange={setShowQuotes} />
+              <Label htmlFor="show-quotes-switch" className="flex flex-col">
+                <span className="font-medium">Exibir Cotações no Painel</span>
+                <span className="text-xs text-muted-foreground">Ative para ver os cards de cotações de mercado.</span>
+              </Label>
             </div>
-          ))}
+
+            <div className={cn("space-y-4 transition-opacity", !showQuotes && "opacity-50 pointer-events-none")}>
+              {localQuotes.map((quote, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="flex-grow space-y-1.5">
+                    <Label htmlFor={`quote-select-${index}`} className="text-xs">Cotação {index + 1}</Label>
+                    <Select value={quote} onValueChange={(value) => handleSelectChange(index, value)}>
+                      <SelectTrigger id={`quote-select-${index}`}>
+                        <SelectValue placeholder="Selecione uma cotação..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AVAILABLE_QUOTES.map(q => (
+                          <SelectItem key={q.code} value={q.code} disabled={localQuotes.includes(q.code) && quote !== q.code}>
+                            {q.name} ({q.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="ghost" size="icon" className="self-end text-muted-foreground hover:text-destructive" onClick={() => handleRemoveQuoteField(index)}>
+                      <Trash2 className="h-4 w-4"/>
+                  </Button>
+                </div>
+              ))}
+              {localQuotes.length < 5 && (
+                <Button variant="outline" size="sm" onClick={handleAddQuoteField}>
+                    <Plus className="mr-2 h-4 w-4"/> Adicionar Cotação
+                </Button>
+              )}
+            </div>
         </div>
+
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">Cancelar</Button>
           </DialogClose>
-          <Button type="button" onClick={handleSave}>Salvar</Button>
+          <Button type="button" onClick={handleSave}>Salvar Configurações</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

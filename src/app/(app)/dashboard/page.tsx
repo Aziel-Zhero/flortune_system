@@ -339,10 +339,9 @@ export default function DashboardPage() {
       {showQuotes && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             {(isLoadingQuotes ? Array(quotes.length > 0 ? quotes.length : 5).fill(0) : quotes).map((quote: QuoteData | 0, index: number) => {
-                const isLoading = quote === 0;
+                if (!isLoadingQuotes && !quote) return null; // Não renderiza o card se a cotação for nula (slot vazio)
                 
-                if(!isLoading && !quote) return null; // Não renderiza o card se a cotação for nula (slot vazio)
-
+                const isLoading = quote === 0;
                 const pctChange = !isLoading ? parseFloat(quote.pctChange) : 0;
                 const isPositive = pctChange >= 0;
                 

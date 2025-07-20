@@ -35,7 +35,7 @@ export interface AppSettingsProviderValue {
   showQuotes: boolean;
   setShowQuotes: Dispatch<SetStateAction<boolean>>;
   selectedQuotes: string[];
-  setSelectedQuotes: (quotes: (string | null)[]) => void;
+  setSelectedQuotes: (quotes: string[]) => void;
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
@@ -81,7 +81,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [showQuotes]);
 
-  const setSelectedQuotes = (newQuotes: (string | null)[]) => {
+  const setSelectedQuotes = (newQuotes: string[]) => {
     const validQuotes = newQuotes.filter((q): q is string => !!q && q !== "");
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(validQuotes));
     setSelectedQuotesState(validQuotes);
