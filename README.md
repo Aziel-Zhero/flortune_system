@@ -1,6 +1,6 @@
 # Flortune 🌿💰
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -292,6 +292,6 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 Contribuições são bem-vindas! Fork, branch, commit, push, PR.
 
 ## 📜 Licença
-MIT.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ---
 Cultive suas finanças com Flortune! 🌿💰
