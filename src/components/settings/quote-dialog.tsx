@@ -26,7 +26,7 @@ interface QuoteSettingsDialogProps {
 }
 
 export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialogProps) {
-  const { selectedQuotes, setSelectedQuotes } = useAppSettings();
+  const { selectedQuotes, setSelectedQuotes, loadQuotes } = useAppSettings();
   const [localQuotes, setLocalQuotes] = useState<(string | null)[]>(Array(5).fill(null));
 
   useEffect(() => {
@@ -55,7 +55,9 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
       return;
     }
 
-    setSelectedQuotes(localQuotes);
+    setSelectedQuotes(localQuotes); // Atualiza o estado e localStorage
+    loadQuotes(validQuotes); // Força o recarregamento imediato dos dados
+
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
   };

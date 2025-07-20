@@ -39,6 +39,7 @@ export interface AppSettingsProviderValue {
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
+  loadQuotes: (quoteList: string[]) => Promise<void>; // Exposto para uso externo
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -209,7 +210,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
-      showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError
+      showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
+      loadQuotes, // Expondo a função
     }}>
       {children}
     </AppSettingsContext.Provider>
