@@ -1,4 +1,3 @@
-
 // src/app/(app)/goals/page.tsx
 "use client";
 
@@ -9,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle, Loader2 } from "lucide-react";
+import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle, Loader2, GraduationCap, Rings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, NO_ICON_VALUE } from "@/lib/constants"; // Import NO_ICON_VALUE
 import {

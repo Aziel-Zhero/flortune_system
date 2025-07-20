@@ -1,4 +1,3 @@
-
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
@@ -164,35 +163,23 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         </div>
         <div className="space-y-2">
           <Label htmlFor="goal-form-icon">Ícone (Opcional)</Label>
-          <Controller name="icon" control={control} render={({ field }) => {
-            const CurrentSelectedIconComponent = getLucideIcon(field.value); 
-            return (
-              <Select
-                onValueChange={field.onChange}
-                value={field.value ?? NO_ICON_VALUE}
-                disabled={isSubmitting || isAuthLoading}
-              >
-                <SelectTrigger id="goal-form-icon">
-                  <SelectValue>
-                    <div className="flex items-center gap-2">
-                        <CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" />
-                        <span>{availableIcons.find(opt => opt.value === (field.value ?? NO_ICON_VALUE))?.name || "Selecione um ícone"}</span>
-                    </div>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {availableIcons.map((iconOpt) => {
-                    const IconComp = iconOpt.icon;
-                    return (
-                      <SelectItem key={iconOpt.value} value={iconOpt.value}>
-                        <div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            );
-          }} />
+          <Controller name="icon" control={control} render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value ?? NO_ICON_VALUE} disabled={isSubmitting || isAuthLoading}>
+              <SelectTrigger id="goal-form-icon">
+                <SelectValue placeholder="Selecione um ícone" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableIcons.map((iconOpt) => {
+                  const IconComp = iconOpt.icon;
+                  return (
+                    <SelectItem key={iconOpt.value} value={iconOpt.value}>
+                      <div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          )} />
           {errors.icon && <p className="text-sm text-destructive mt-1">{errors.icon.message}</p>}
         </div>
       </div>
