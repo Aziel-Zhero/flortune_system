@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, Heart, Save, AlertTriangle, Loader2, GraduationCap, Rings } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, Heart, Save, AlertTriangle, Loader2, GraduationCap, Rings, Laptop } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -164,7 +164,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         <div className="space-y-2">
           <Label htmlFor="goal-form-icon">Ícone (Opcional)</Label>
           <Controller name="icon" control={control} render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value || ""} disabled={isSubmitting || isAuthLoading}>
+            <Select onValueChange={field.onChange} value={field.value ?? undefined} disabled={isSubmitting || isAuthLoading}>
               <SelectTrigger id="goal-form-icon">
                 <SelectValue placeholder="Selecione um ícone" />
               </SelectTrigger>
