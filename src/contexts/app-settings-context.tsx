@@ -157,7 +157,14 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setShowQuotes(storedShowQuotes ? JSON.parse(storedShowQuotes) : true);
       
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      setSelectedQuotesState(storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ']);
+      if (storedQuotes) {
+        setSelectedQuotesState(JSON.parse(storedQuotes));
+      } else {
+        // Se não houver nada salvo, define um padrão inicial para uma boa UX
+        const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
+        localStorage.setItem('flortune-selected-quotes', JSON.stringify(defaultQuotes));
+        setSelectedQuotesState(defaultQuotes);
+      }
 
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
@@ -219,3 +226,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 export const useAppSettings = (): AppSettingsProviderValue => {
   const context = useContext(AppSettingsContext);
   if (context === undefined) {
+    throw new Error('useAppSettings must be used within an AppSettingsProvider');
+  }
+  return context;
+};
