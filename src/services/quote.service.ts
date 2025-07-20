@@ -26,16 +26,13 @@ export async function getQuotes(
   if (!quotes || quotes.length === 0) {
     return { data: [], error: null };
   }
-  
-  const apiKey = process.env.AWESOMEAPI_API_KEY;
+
   const uniqueQuotes = [...new Set(quotes)];
   const query = uniqueQuotes.join(',');
-  let apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
+  const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
   
-  // Anexa a chave da API à URL se ela estiver disponível
-  if (apiKey) {
-    apiUrl += `?token=${apiKey}`;
-  }
+  // A chave da API AWESOMEAPI_API_KEY não é usada aqui para manter a simplicidade do acesso público gratuito da API.
+  // A documentação indica que a chave é para evitar cache, mas a rota 'last' já tem um cache curto.
 
   try {
     const response = await axios.get<ApiResponse>(apiUrl);
@@ -46,14 +43,15 @@ export async function getQuotes(
     // Itera sobre as cotações solicitadas para construir o array de resposta na ordem correta
     // e para lidar com respostas de API que podem não incluir todas as cotações solicitadas (ex: IBOV)
     uniqueQuotes.forEach(quoteCode => {
-      const responseKey = quoteCode.replace('-', ''); // A API retorna "USDBRL" para a query "USD-BRL"
+      // A API retorna "USDBRL" para a query "USD-BRL", então normalizamos a chave de busca
+      const responseKey = quoteCode.replace('-', '');
       if (responseData && responseData[responseKey]) {
         dataArray.push(responseData[responseKey]);
       }
     });
 
     if (dataArray.length === 0 && uniqueQuotes.length > 0) {
-        return { data: null, error: `Nenhuma das cotações solicitadas (${query}) foi encontrada.` };
+        return { data: null, error: `Nenhuma das cotações solicitadas (${query}) foi encontrada na API.` };
     }
     
     return { data: dataArray, error: null };

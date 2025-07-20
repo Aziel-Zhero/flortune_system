@@ -32,7 +32,6 @@ export interface AppSettingsProviderValue {
   loadWeatherForCity: (city: string) => Promise<void>;
   isLoadingWeather: boolean;
   
-  // Novas propriedades para cotações
   showQuotes: boolean;
   setShowQuotes: Dispatch<SetStateAction<boolean>>;
   selectedQuotes: string[];
@@ -49,20 +48,17 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
   
-  // Estado para Clima
   const [weatherCity, setWeatherCityState] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
-  // Estado para Cotações
   const [showQuotes, setShowQuotes] = useState(true);
   const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
-  // --- Funções e Efeitos para Cotações ---
   const loadQuotes = useCallback(async (quoteList: string[]) => {
     const validQuotes = quoteList.filter(q => q && q !== '');
     if (!showQuotes || validQuotes.length === 0) {
@@ -99,7 +95,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [showQuotes, selectedQuotes, loadQuotes]);
 
-  // --- Funções e Efeitos para Clima ---
   const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) return;
     setIsLoadingWeather(true);
@@ -160,12 +155,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       if (storedQuotes) {
         setSelectedQuotesState(JSON.parse(storedQuotes));
       } else {
-        // Se não houver nada salvo, define um padrão inicial para uma boa UX
         const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
         localStorage.setItem('flortune-selected-quotes', JSON.stringify(defaultQuotes));
         setSelectedQuotesState(defaultQuotes);
       }
-
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }

@@ -17,13 +17,11 @@ interface V6ApiResponse {
   'error-type'?: string;
 }
 
-
 interface ConversionResult {
     convertedAmount: number;
     rate: number;
     date: string; 
 }
-
 
 export async function convertCurrency(
   amount: number,
@@ -37,10 +35,13 @@ export async function convertCurrency(
   }
 
   const { amount: validAmount, fromCurrency: validFrom, toCurrency: validTo } = validation.data;
+  
+  // Nota: A API Key fornecida é para a API `v6.exchangerate-api.com`. 
+  // Esta função está configurada para essa API.
   const apiKey = process.env.EXCHANGERATE_API_KEY;
 
   if (!apiKey) {
-    const errorMsg = "A chave da API de conversão de moeda não está configurada no servidor.";
+    const errorMsg = "A chave da API de conversão de moeda (EXCHANGERATE_API_KEY) não está configurada no servidor.";
     console.error(errorMsg);
     return { data: null, error: "Serviço de conversão indisponível." };
   }
