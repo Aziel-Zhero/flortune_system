@@ -39,7 +39,7 @@ export interface AppSettingsProviderValue {
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
-  loadQuotes: (quoteList: string[]) => Promise<void>; // Exposto para uso externo
+  loadQuotes: (quoteList: string[]) => Promise<void>;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -82,7 +82,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [showQuotes]);
 
   const setSelectedQuotes = (newQuotes: (string | null)[]) => {
-    const validQuotes = newQuotes.filter((q): q is string => !!q);
+    const validQuotes = newQuotes.filter((q): q is string => !!q && q !== "");
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(validQuotes));
     setSelectedQuotesState(validQuotes);
   };
@@ -211,7 +211,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
       showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
-      loadQuotes, // Expondo a função
+      loadQuotes, 
     }}>
       {children}
     </AppSettingsContext.Provider>

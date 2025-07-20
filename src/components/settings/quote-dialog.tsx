@@ -1,4 +1,3 @@
-
 // src/components/settings/quote-dialog.tsx
 "use client";
 
@@ -27,26 +26,29 @@ interface QuoteSettingsDialogProps {
 
 export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialogProps) {
   const { selectedQuotes, setSelectedQuotes, loadQuotes } = useAppSettings();
-  const [localQuotes, setLocalQuotes] = useState<(string | null)[]>(Array(5).fill(null));
+  // Inicializa com string vazia para evitar passar `null` para o Select
+  const [localQuotes, setLocalQuotes] = useState<(string | null)[]>(Array(5).fill(""));
 
   useEffect(() => {
     if (isOpen) {
-      const initialQuotes = Array(5).fill(null).map((_, i) => selectedQuotes[i] || null);
+      // Garante que o estado local reflita as cotações salvas ou strings vazias
+      const initialQuotes = Array(5).fill(null).map((_, i) => selectedQuotes[i] || "");
       setLocalQuotes(initialQuotes);
     }
   }, [isOpen, selectedQuotes]);
 
   const handleSelectChange = (index: number, value: string) => {
     const newQuotes = [...localQuotes];
-    newQuotes[index] = value === "" ? null : value;
+    // O valor "Nenhum" já vem como uma string vazia do SelectItem
+    newQuotes[index] = value;
     setLocalQuotes(newQuotes);
   };
 
   const handleSave = () => {
-    const validQuotes = localQuotes.filter((q): q is string => !!q);
-    const uniqueQuotes = new Set(validQuotes);
-    
-    if (uniqueQuotes.size !== validQuotes.length) {
+    const cleanedQuotes = localQuotes.filter((q): q is string => !!q && q !== "");
+    const uniqueQuotes = new Set(cleanedQuotes);
+
+    if (uniqueQuotes.size !== cleanedQuotes.length) {
       toast({
         title: "Cotações repetidas!",
         description: "Por favor, evite selecionar a mesma cotação mais de uma vez.",
@@ -54,10 +56,12 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
       });
       return;
     }
-
-    setSelectedQuotes(localQuotes); // Atualiza o estado e localStorage
-    loadQuotes(validQuotes); // Força o recarregamento imediato dos dados
-
+    
+    // Atualiza o estado global e o localStorage com a lista limpa (que pode ter nulls)
+    setSelectedQuotes(localQuotes);
+    // Força o recarregamento imediato dos dados com as cotações válidas
+    loadQuotes(cleanedQuotes);
+    
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
   };
