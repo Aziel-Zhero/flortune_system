@@ -338,29 +338,41 @@ export default function DashboardPage() {
       
       {showQuotes && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-            {(isLoadingQuotes ? Array(selectedQuotes.length || 5).fill(0) : quotes).map((quote: QuoteData | 0, index: number) => {
-                const isLoading = quote === 0;
-                const pctChange = !isLoading ? parseFloat(quote.pctChange) : 0;
+            {isLoadingQuotes && 
+                (selectedQuotes.length > 0 ? selectedQuotes : Array(3).fill(null)).map((_, index) => (
+                    <motion.div key={`skel-quote-${index}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                        <Card className="shadow-sm h-full">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <Skeleton className="h-4 w-16" />
+                                <Skeleton className="h-4 w-12"/>
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-8 w-24" />
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                ))
+            }
+            {!isLoadingQuotes && quotes.map((quote: QuoteData, index: number) => {
+                const pctChange = !isLoadingQuotes ? parseFloat(quote.pctChange) : 0;
                 const isPositive = pctChange >= 0;
-                const quoteName = !isLoading ? quote.name.split('/')[0] : 'Carregando...';
+                const quoteName = !isLoadingQuotes ? quote.name.split('/')[0] : '...';
                 
                 return (
-                  <motion.div key={isLoading ? `skel-quote-${index}` : quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                  <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
                     <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
-                          {isLoading ? <Skeleton className="h-4 w-16" /> : quoteName}
+                          {quoteName}
                         </CardTitle>
-                        {isLoading ? <Skeleton className="h-4 w-12"/> : (
-                          <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
-                              {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                              {pctChange.toFixed(2)}%
-                          </div>
-                        )}
+                        <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
+                            {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                            {pctChange.toFixed(2)}%
+                        </div>
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold font-headline">
-                            {isLoading ? <Skeleton className="h-8 w-24" /> : <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span> }
+                             <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
                           </div>
                       </CardContent>
                     </Card>

@@ -35,7 +35,7 @@ export interface AppSettingsProviderValue {
   showQuotes: boolean;
   setShowQuotes: Dispatch<SetStateAction<boolean>>;
   selectedQuotes: string[];
-  setSelectedQuotes: (quotes: (string | null)[]) => void;
+  setSelectedQuotes: (quotes: string[]) => void;
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
@@ -81,10 +81,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [showQuotes]);
 
-  const setSelectedQuotes = (newQuotes: (string | null)[]) => {
-    const validQuotes = newQuotes.filter((q): q is string => !!q && q !== "");
-    localStorage.setItem('flortune-selected-quotes', JSON.stringify(validQuotes));
-    setSelectedQuotesState(validQuotes);
+  const setSelectedQuotes = (newQuotes: string[]) => {
+    localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
+    setSelectedQuotesState(newQuotes);
   };
   
   useEffect(() => {
@@ -156,7 +155,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       if (storedQuotes) {
         setSelectedQuotesState(JSON.parse(storedQuotes));
       } else {
-        const defaultQuotes = ['USD-BRL', 'USDT-BRL', 'NASDAQ', 'IBOV', 'EUR-BRL'];
+        const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL'];
         localStorage.setItem('flortune-selected-quotes', JSON.stringify(defaultQuotes));
         setSelectedQuotesState(defaultQuotes);
       }
@@ -211,7 +210,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
       showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
-      loadQuotes, 
+      loadQuotes,
     }}>
       {children}
     </AppSettingsContext.Provider>
