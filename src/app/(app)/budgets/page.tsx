@@ -1,4 +1,3 @@
-
 // src/app/(app)/budgets/page.tsx
 "use client";
 
@@ -66,7 +65,6 @@ export default function BudgetsPage() {
   }, [user, authLoading, fetchBudgetsData]);
 
   const handleDeleteClick = (budget: Budget) => {
-    setItemToDelete({ id: budget.id, name: budget.category?.name || "desconhecido" });
     setDeleteDialog({ isOpen: true, item: { id: budget.id, name: budget.category?.name || 'desconhecido' }});
   };
 

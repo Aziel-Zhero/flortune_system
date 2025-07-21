@@ -1,4 +1,3 @@
-
 // src/app/(app)/todos/page.tsx
 "use client";
 
@@ -263,6 +262,7 @@ export default function TodosPage() {
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-primary"
                       onClick={() => toast({ title: "Editar Tarefa", description: "Funcionalidade de edição em desenvolvimento."})} // Placeholder
+                      disabled // Feature em desenvolvimento
                   >
                       <Edit3 className="h-4 w-4" />
                   </Button>
@@ -300,4 +300,3 @@ export default function TodosPage() {
     </div>
   );
 }
-    

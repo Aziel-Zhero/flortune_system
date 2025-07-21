@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calculator, DollarSign, ClockIcon, Percent, AlertCircle, BarChartHorizontalBig } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm, type SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PrivateValue } from "@/components/shared/private-value";
@@ -36,7 +36,8 @@ export default function ProjectPricingPage() {
     resolver: zodResolver(pricingSchema),
     defaultValues: {
         complexity: "medium",
-        profitMargin: 20
+        profitMargin: 20,
+        additionalFees: 0,
     }
   });
 
@@ -62,13 +63,7 @@ export default function ProjectPricingPage() {
   };
 
   const handleReset = () => {
-      reset({
-          hourlyRate: undefined,
-          estimatedHours: undefined,
-          complexity: "medium",
-          additionalFees: undefined,
-          profitMargin: 20,
-      });
+      reset();
       setTotalPrice(null);
   }
 

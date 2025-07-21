@@ -23,6 +23,7 @@ import { useSession } from "next-auth/react";
 import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NO_ICON_VALUE } from "@/lib/constants";
 
 const goalFormSchema = z.object({
   name: z.string().min(3, "O nome da meta deve ter pelo menos 3 caracteres."),
@@ -38,6 +39,7 @@ const goalFormSchema = z.object({
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
 const availableIcons = [
+  // A opção "Nenhum" foi removida. O placeholder do Select cuidará disso.
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
@@ -50,12 +52,6 @@ const availableIcons = [
   { name: "Negócios", value: "Briefcase", icon: Briefcase },
   { name: "Conquista", value: "Trophy", icon: Trophy },
 ];
-
-const getLucideIcon = (iconName?: string | null): React.ElementType => {
-  if (!iconName) return Trophy;
-  const IconComponent = (LucideIcons as any)[iconName];
-  return IconComponent || Trophy;
-};
 
 interface FinancialGoalFormProps {
   onGoalCreated: () => void;
@@ -87,7 +83,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       name: data.name, 
       target_amount: data.target_amount, 
       deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, 
-      icon: data.icon || null,
+      icon: data.icon || null, // Converte undefined/string vazia para null
       notes: data.notes,
     };
     try {
@@ -167,7 +163,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
             render={({ field }) => (
               <Select
                 onValueChange={field.onChange}
-                value={field.value || undefined} // GARANTE que o valor nunca seja ""
+                value={field.value || ""} // Usar string vazia para resetar e mostrar placeholder
                 disabled={isSubmitting || isAuthLoading}
               >
                 <SelectTrigger id="goal-form-icon">
