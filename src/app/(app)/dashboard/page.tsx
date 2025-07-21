@@ -70,7 +70,7 @@ export default function DashboardPage() {
   const user = session?.user;
   const profile = user?.profile;
 
-  const { showQuotes, quotes, isLoadingQuotes } = useAppSettings();
+  const { showQuotes, quotes, isLoadingQuotes, selectedQuotes } = useAppSettings();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
@@ -338,19 +338,18 @@ export default function DashboardPage() {
       
       {showQuotes && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-            {(isLoadingQuotes ? Array(quotes.length > 0 ? quotes.length : 5).fill(0) : quotes).map((quote: QuoteData | 0, index: number) => {
-                if (!isLoadingQuotes && !quote) return null; // Não renderiza o card se a cotação for nula (slot vazio)
-                
+            {(isLoadingQuotes ? Array(selectedQuotes.length || 5).fill(0) : quotes).map((quote: QuoteData | 0, index: number) => {
                 const isLoading = quote === 0;
                 const pctChange = !isLoading ? parseFloat(quote.pctChange) : 0;
                 const isPositive = pctChange >= 0;
+                const quoteName = !isLoading ? quote.name.split('/')[0] : 'Carregando...';
                 
                 return (
                   <motion.div key={isLoading ? `skel-quote-${index}` : quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
                     <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                          {isLoading ? <Skeleton className="h-4 w-16" /> : quote.name.split('/')[0]}
+                        <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
+                          {isLoading ? <Skeleton className="h-4 w-16" /> : quoteName}
                         </CardTitle>
                         {isLoading ? <Skeleton className="h-4 w-12"/> : (
                           <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
