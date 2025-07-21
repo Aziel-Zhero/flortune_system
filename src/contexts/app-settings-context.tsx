@@ -84,16 +84,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const setSelectedQuotes = (newQuotes: string[]) => {
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     setSelectedQuotesState(newQuotes);
+    loadQuotes(newQuotes); // Recarrega as cotações ao salvar
   };
-  
-  useEffect(() => {
-    if (showQuotes && selectedQuotes.length > 0) {
-      loadQuotes(selectedQuotes);
-    } else {
-      setQuotes([]);
-      setIsLoadingQuotes(false);
-    }
-  }, [showQuotes, selectedQuotes, loadQuotes]);
 
   const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) return;
@@ -131,6 +123,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Carrega todas as configurações do localStorage na inicialização
     try {
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
@@ -149,20 +142,22 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
-      setShowQuotes(storedShowQuotes ? JSON.parse(storedShowQuotes) : true);
+      const show = storedShowQuotes ? JSON.parse(storedShowQuotes) : true;
+      setShowQuotes(show);
       
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      if (storedQuotes) {
-        setSelectedQuotesState(JSON.parse(storedQuotes));
+      const quotesToLoad = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL'];
+      setSelectedQuotesState(quotesToLoad);
+      if (show) {
+        loadQuotes(quotesToLoad);
       } else {
-        const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL'];
-        localStorage.setItem('flortune-selected-quotes', JSON.stringify(defaultQuotes));
-        setSelectedQuotesState(defaultQuotes);
+        setIsLoadingQuotes(false);
       }
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
+        setIsLoadingQuotes(false);
     }
-  }, [loadWeatherForCity]);
+  }, [loadWeatherForCity, loadQuotes]);
 
   useEffect(() => {
     localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));

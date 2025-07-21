@@ -339,8 +339,8 @@ export default function DashboardPage() {
       {showQuotes && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             {isLoadingQuotes && 
-                (selectedQuotes.length > 0 ? selectedQuotes : Array(3).fill(null)).map((_, index) => (
-                    <motion.div key={`skel-quote-${index}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                (selectedQuotes.length > 0 ? selectedQuotes : []).map((code, index) => (
+                    <motion.div key={`skel-quote-${code || index}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
                         <Card className="shadow-sm h-full">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <Skeleton className="h-4 w-16" />
@@ -354,9 +354,9 @@ export default function DashboardPage() {
                 ))
             }
             {!isLoadingQuotes && quotes.map((quote: QuoteData, index: number) => {
-                const pctChange = !isLoadingQuotes ? parseFloat(quote.pctChange) : 0;
+                const pctChange = parseFloat(quote.pctChange);
                 const isPositive = pctChange >= 0;
-                const quoteName = !isLoadingQuotes ? quote.name.split('/')[0] : '...';
+                const quoteName = quote.name.split('/')[0];
                 
                 return (
                   <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
