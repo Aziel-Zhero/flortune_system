@@ -1,3 +1,4 @@
+
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
@@ -39,7 +40,6 @@ const goalFormSchema = z.object({
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
 const availableIcons = [
-  // A opção "Nenhum" foi removida. O placeholder do Select cuidará disso.
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
@@ -164,7 +164,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         <div className="space-y-2">
           <Label htmlFor="goal-form-icon">Ícone (Opcional)</Label>
           <Controller name="icon" control={control} render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value ?? undefined} disabled={isSubmitting || isAuthLoading}>
+            <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isSubmitting || isAuthLoading}>
               <SelectTrigger id="goal-form-icon">
                 <SelectValue placeholder="Selecione um ícone" />
               </SelectTrigger>
