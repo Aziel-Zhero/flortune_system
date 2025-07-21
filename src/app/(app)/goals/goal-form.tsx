@@ -1,4 +1,3 @@
-
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
@@ -24,7 +23,6 @@ import { useSession } from "next-auth/react";
 import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { NO_ICON_VALUE } from "@/lib/constants";
 
 const goalFormSchema = z.object({
   name: z.string().min(3, "O nome da meta deve ter pelo menos 3 caracteres."),
@@ -54,9 +52,9 @@ const availableIcons = [
 ];
 
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
-  if (!iconName || iconName === NO_ICON_VALUE) return Tag;
+  if (!iconName) return Trophy;
   const IconComponent = (LucideIcons as any)[iconName];
-  return IconComponent || Tag;
+  return IconComponent || Trophy;
 };
 
 interface FinancialGoalFormProps {
@@ -89,7 +87,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       name: data.name, 
       target_amount: data.target_amount, 
       deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, 
-      icon: data.icon || null, // Converte undefined/string vazia para null
+      icon: data.icon || null,
       notes: data.notes,
     };
     try {
@@ -163,23 +161,31 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         </div>
         <div className="space-y-2">
           <Label htmlFor="goal-form-icon">Ícone (Opcional)</Label>
-          <Controller name="icon" control={control} render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isSubmitting || isAuthLoading}>
-              <SelectTrigger id="goal-form-icon">
-                <SelectValue placeholder="Selecione um ícone" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableIcons.map((iconOpt) => {
-                  const IconComp = iconOpt.icon;
-                  return (
-                    <SelectItem key={iconOpt.value} value={iconOpt.value}>
-                      <div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          )} />
+          <Controller
+            name="icon"
+            control={control}
+            render={({ field }) => (
+              <Select
+                onValueChange={field.onChange}
+                value={field.value || undefined} // GARANTE que o valor nunca seja ""
+                disabled={isSubmitting || isAuthLoading}
+              >
+                <SelectTrigger id="goal-form-icon">
+                  <SelectValue placeholder="Selecione um ícone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableIcons.map((iconOpt) => {
+                    const IconComp = iconOpt.icon;
+                    return (
+                      <SelectItem key={iconOpt.value} value={iconOpt.value}>
+                        <div className="flex items-center gap-2"><IconComp className="h-4 w-4" />{iconOpt.name}</div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.icon && <p className="text-sm text-destructive mt-1">{errors.icon.message}</p>}
         </div>
       </div>
