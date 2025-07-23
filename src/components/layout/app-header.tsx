@@ -32,7 +32,7 @@ export function AppHeader() {
             </Button>
           )}
           <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Flortune Logo" width={28} height={28} />
+            <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
             <span className="font-bold text-xl font-headline hidden sm:inline-block">{APP_NAME}</span>
           </Link>
         </div>

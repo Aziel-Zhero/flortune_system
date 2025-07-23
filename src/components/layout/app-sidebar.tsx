@@ -93,7 +93,7 @@ export function AppSidebar() {
               )} 
               onClick={closeMobileSidebar}
             >
-                <Image src="/logo.png" alt="Flortune Logo" width={28} height={28} />
+                <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
                 <span className="font-bold text-xl font-headline">{APP_NAME}</span>
             </Link>
             <Link 
@@ -105,7 +105,7 @@ export function AppSidebar() {
                 )}
                 onClick={closeMobileSidebar}
             >
-                <Image src="/logo.png" alt="Flortune Logo" width={28} height={28} />
+                <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
             </Link>
         </SidebarHeader>
 
