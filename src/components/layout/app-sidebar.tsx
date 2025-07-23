@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { useSession } from "next-auth/react"; 
 import { useAppSettings } from "@/contexts/app-settings-context";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkItem, type NavLinkIconName } from "@/lib/constants";
@@ -23,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-    Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Cloudy, Sun, Moon, Tornado, Wind, Loader2
+  Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Cloudy, Sun, Moon, Wind, Loader2
 } from 'lucide-react';
 
 
@@ -33,13 +34,14 @@ const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   return IconComponent || LucideIcons.HelpCircle;
 };
 
+// Mapeamento correto dos ícones do OpenWeatherMap para Lucide
 const weatherIconMapping: { [key: string]: React.ElementType } = {
   "01d": Sun, "01n": Moon,
-  "02d": CloudSun, "02n": Cloud,
+  "02d": CloudSun, "02n": Cloudy, 
   "03d": Cloud, "03n": Cloud,
   "04d": Cloudy, "04n": Cloudy,
   "09d": CloudRain, "09n": CloudRain,
-  "10d": CloudDrizzle, "10n": CloudDrizzle,
+  "10d": CloudRain, "10n": CloudRain, 
   "11d": CloudLightning, "11n": CloudLightning,
   "13d": CloudSnow, "13n": CloudSnow,
   "50d": CloudFog, "50n": CloudFog,
@@ -91,7 +93,7 @@ export function AppSidebar() {
               )} 
               onClick={closeMobileSidebar}
             >
-                <LucideIcons.Leaf className="h-7 w-7" />
+                <Image src="/logo.png" alt="Flortune Logo" width={28} height={28} />
                 <span className="font-bold text-xl font-headline">{APP_NAME}</span>
             </Link>
             <Link 
@@ -103,7 +105,7 @@ export function AppSidebar() {
                 )}
                 onClick={closeMobileSidebar}
             >
-                <LucideIcons.Leaf className="h-7 w-7" />
+                <Image src="/logo.png" alt="Flortune Logo" width={28} height={28} />
             </Link>
         </SidebarHeader>
 
@@ -130,7 +132,7 @@ export function AppSidebar() {
                     <span className="text-xs text-muted-foreground">Conta Pessoal</span>
                 </div>
               </Link>
-              <div className="mt-2 text-xs text-muted-foreground w-full flex justify-center group-data-[collapsible=icon]:mt-3">
+              <div className="mt-2 text-xs text-muted-foreground w-full flex justify-center group-data-[collapsible=icon]:mt-3 h-5">
                 {isLoadingWeather && weatherCity ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                 ) : weatherError && weatherCity ? (
@@ -192,5 +194,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
-    

@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf, BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare } from "lucide-react";
+import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
@@ -138,7 +138,10 @@ export default function LandingPage() {
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
-            <Link href="/" className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity"><Leaf size={32} /><span className="text-2xl font-headline font-bold">{APP_NAME}</span></Link>
+            <Link href="/" className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity">
+              <Image src="/logo.png" alt="Flortune Logo" width={32} height={32} />
+              <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
+            </Link>
             <nav className="flex items-center gap-2">{headerActions}</nav>
           </div>
         </header>
