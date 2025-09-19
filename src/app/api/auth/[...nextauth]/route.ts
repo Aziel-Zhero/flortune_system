@@ -1,3 +1,4 @@
+
 // src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthConfig } from 'next-auth';
@@ -25,11 +26,8 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
 // --- Log Environment Variable Status ---
-if (!isValidSupabaseUrl(supabaseUrl)) {
-  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or is a placeholder. Supabase-related features (including manual login) will fail.");
-}
-if (!supabaseServiceRoleKey) {
-  console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set. Supabase-related features (including manual login) will fail.");
+if (!isValidSupabaseUrl(supabaseUrl) || !supabaseServiceRoleKey) {
+  console.warn("⚠️ WARNING: Supabase environment variables are not set or are placeholders. Manual login and database-dependent features will fail.");
 }
 if (!nextAuthSecret) {
   console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
@@ -102,9 +100,23 @@ if (googleClientId && googleClientSecret) {
   console.warn("⚠️ GoogleProvider is not configured. Login with Google will fail.");
 }
 
+// Conditionally create the adapter
+const adapter =
+  isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey
+    ? SupabaseAdapter({
+        url: supabaseUrl,
+        secret: supabaseServiceRoleKey,
+      })
+    : undefined;
+
+if (!adapter) {
+    console.warn("⚠️ SupabaseAdapter is not configured due to missing or invalid environment variables. Database-dependent auth features will not work.");
+}
+
 // --- Main NextAuth Configuration ---
-const authConfig: NextAuthConfig = {
-  providers: providers,
+export const authConfig: NextAuthConfig = {
+  adapter,
+  providers,
   session: {
     strategy: 'jwt',
   },
@@ -168,15 +180,5 @@ const authConfig: NextAuthConfig = {
   },
   secret: nextAuthSecret, 
 };
-
-// Conditionally add the adapter only if Supabase environment variables are valid.
-if (isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
-  authConfig.adapter = SupabaseAdapter({
-    url: supabaseUrl,
-    secret: supabaseServiceRoleKey,
-  });
-} else {
-  console.warn("⚠️ SupabaseAdapter is not configured due to missing or invalid environment variables. Database-dependent auth features will not work.");
-}
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
