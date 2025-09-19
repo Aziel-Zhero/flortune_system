@@ -1,10 +1,10 @@
 
 import type { Metadata } from 'next';
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
-// import { AuthProvider } from '@/contexts/auth-context'; // Removido o AuthProvider antigo
-import { SessionProvider } from '@/components/auth/session-provider'; // Novo SessionProvider do NextAuth
+import { SessionProvider } from '@/components/auth/session-provider'; 
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css'; 
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Flortune - Seu Jardineiro Financeiro',
@@ -28,12 +28,14 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppSettingsProvider>
-          <SessionProvider> {/* Envolve com o novo SessionProvider */}
-            {children}
-            <Toaster />
-          </SessionProvider>
-        </AppSettingsProvider>
+        <Suspense fallback={<div>Carregando...</div>}>
+          <AppSettingsProvider>
+            <SessionProvider> 
+              {children}
+              <Toaster />
+            </SessionProvider>
+          </AppSettingsProvider>
+        </Suspense>
       </body>
     </html>
   );

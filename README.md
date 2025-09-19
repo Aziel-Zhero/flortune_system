@@ -235,22 +235,27 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
         // No início do arquivo src/app/(app)/analysis/page.tsx
         import { 
           PieChart as PieIconLucide, // Alias para o ícone
-          LineChart as LineIconLucide, // Alias para o ícone
-          // Outros ícones Lucide...
+          LineChart as LineIconLucideReal, // Alias para o ícone do LineChart dos dados reais
+          AreaChart as AreaIconLucide, 
+          BarChart3 as BarIconLucide, 
+          Radar as RadarIconLucide, 
+          Target as RadialIconLucide 
         } from "lucide-react";
         import {
-          LineChart, // Componente Recharts
+          LineChart, 
           Line,
           XAxis,
           YAxis,
           CartesianGrid,
           ResponsiveContainer,
-          PieChart, // Componente Recharts
+          PieChart, 
           Pie,
           Cell,
-          Tooltip as RechartsTooltip, // Alias para o tooltip do Recharts
+          Tooltip as RechartsTooltip, 
           Legend,
-          // Outros componentes Recharts...
+          AreaChart, Area, BarChart, Bar, LabelList,
+          RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, 
+          RadialBarChart, RadialBar, Brush
         } from "recharts";
         ```
 
