@@ -12,6 +12,11 @@ import type { Profile as AppProfile } from '@/types/database.types';
 
 export const runtime = 'nodejs'; // Explicitly set runtime to Node.js
 
+// --- Helper function for URL validation ---
+function isValidSupabaseUrl(url: string | undefined): url is string {
+  return !!url && url.startsWith('http') && !url.includes('<');
+}
+
 // --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -20,17 +25,12 @@ const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-// --- Helper function for URL validation ---
-function isValidSupabaseUrl(url: string | undefined): url is string {
-  return !!url && url.startsWith('http') && !url.includes('<');
-}
-
 // --- Log Environment Variable Status ---
 if (!isValidSupabaseUrl(supabaseUrl)) {
-  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or is a placeholder.");
+  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or is a placeholder. Supabase-related features (including manual login) will fail.");
 }
 if (!supabaseServiceRoleKey) {
-  console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set.");
+  console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set. Supabase-related features (including manual login) will fail.");
 }
 if (!nextAuthSecret) {
   console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
@@ -103,18 +103,8 @@ if (googleClientId && googleClientSecret) {
   console.warn("⚠️ GoogleProvider is not configured. Login with Google will fail.");
 }
 
-// Conditionally create the adapter
-const adapter =
-  isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey
-    ? SupabaseAdapter({
-        url: supabaseUrl,
-        secret: supabaseServiceRoleKey,
-      })
-    : undefined;
-
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
-  adapter,
   providers: providers,
   session: {
     strategy: 'jwt',
@@ -179,5 +169,15 @@ export const authConfig: NextAuthConfig = {
   },
   secret: nextAuthSecret, 
 };
+
+// Conditionally add the adapter only if Supabase environment variables are valid.
+if (isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
+  authConfig.adapter = SupabaseAdapter({
+    url: supabaseUrl,
+    secret: supabaseServiceRoleKey,
+  });
+} else {
+  console.warn("⚠️ SupabaseAdapter is not configured due to missing or invalid environment variables. Database-dependent auth features will not work.");
+}
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
