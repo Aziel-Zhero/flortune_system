@@ -90,6 +90,10 @@ GOOGLE_CLIENT_SECRET=SEU_GOOGLE_CLIENT_SECRET_DO_GOOGLE_CLOUD_CONSOLE
 # URL Base da Aplicação (para desenvolvimento local)
 NEXT_PUBLIC_BASE_URL=http://localhost:9003
 
+# Chaves de API para serviços externos
+OPENWEATHERMAP_API_KEY=SUA_CHAVE_API_DO_OPENWEATHERMAP
+EXCHANGERATE_API_KEY=SUA_CHAVE_API_DO_EXCHANGERATE
+
 # Opcional: Para Genkit (se usar IA do Google)
 # GOOGLE_API_KEY=<SUA_GOOGLE_AI_STUDIO_KEY>
 ```
@@ -104,7 +108,7 @@ Execute o script SQL de `docs/database_schema.sql` no Editor SQL do seu painel S
 3.  Copie e cole o conteúdo completo de `docs/database_schema.sql`.
 4.  Clique em **RUN**.
     Isso criará o schema `next_auth` (para o adapter), a tabela `public.profiles` (para detalhes do usuário e senha), e outras tabelas do app.
-5.  **Expor Schema `next_auth`:** No painel do Supabase, vá para **Project Settings** (ícone de engrenagem) > **API**. Na seção "Config" > "Exposed schemas" (ou "Select schemas for Data API..."), adicione `next_auth` à lista (além de `public`). Clique em "Save".
+5.  **Atenção:** A etapa de expor o schema `next_auth` nas configurações da API do Supabase foi removida pois não é mais necessária com a abordagem atual do `SupabaseAdapter`.
 
 ### 4. Configurar Google OAuth 2.0 (Para Login com Google)
 1.  Vá para o [Google Cloud Console](https://console.cloud.google.com/).
