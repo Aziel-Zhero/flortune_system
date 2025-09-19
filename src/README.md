@@ -88,8 +88,8 @@ SUPABASE_JWT_SECRET=SEU_SUPABASE_JWT_SECRET # Encontrado em Project Settings > A
 
 # NextAuth.js (Auth.js)
 AUTH_SECRET=GERAR_UM_SEGREDO_FORTE_E_LONGO # Use `openssl rand -base64 32` no terminal
-AUTH_URL=http://localhost:9003/api/auth # URL base para as rotas da API do NextAuth em desenvolvimento
-# NEXTAUTH_URL=http://localhost:9003 # Alternativa ou complemento para AUTH_URL. Prefira AUTH_URL.
+# A variável NEXTAUTH_URL é configurada automaticamente pelo Netlify/Vercel em produção.
+# Para desenvolvimento local, o Next.js a define como http://localhost:9003 por padrão.
 
 # Google Provider (OAuth)
 GOOGLE_CLIENT_ID=SEU_GOOGLE_CLIENT_ID_DO_GOOGLE_CLOUD_CONSOLE
@@ -98,12 +98,15 @@ GOOGLE_CLIENT_SECRET=SEU_GOOGLE_CLIENT_SECRET_DO_GOOGLE_CLOUD_CONSOLE
 # URL Base da Aplicação (para desenvolvimento local)
 NEXT_PUBLIC_BASE_URL=http://localhost:9003
 
+# Chaves de API para serviços externos
+OPENWEATHERMAP_API_KEY=SUA_CHAVE_API_DO_OPENWEATHERMAP
+EXCHANGERATE_API_KEY=SUA_CHAVE_API_DO_EXCHANGERATE
+
 # Opcional: Para Genkit (se usar IA do Google)
 # GOOGLE_API_KEY=<SUA_GOOGLE_AI_STUDIO_KEY>
 ```
 *   `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_JWT_SECRET`: Cruciais para o SupabaseAdapter e para a geração de tokens JWT para o Supabase. **Trate-os como senhas.**
 *   `AUTH_SECRET`: Um segredo forte e aleatório é essencial para a segurança do NextAuth.js.
-*   `AUTH_URL`: Em produção (Netlify), esta URL deve ser a URL do seu site implantado (ex: `https://seu-app.netlify.app/api/auth`).
 
 ### 3. Configurar o Banco de Dados Supabase
 Execute o script SQL de `docs/database_schema.sql` no Editor SQL do seu painel Supabase.
@@ -112,7 +115,7 @@ Execute o script SQL de `docs/database_schema.sql` no Editor SQL do seu painel S
 3.  Copie e cole o conteúdo completo de `docs/database_schema.sql`.
 4.  Clique em **RUN**.
     Isso criará o schema `next_auth` (para o adapter), a tabela `public.profiles` (para detalhes do usuário e senha), e outras tabelas do app.
-5.  **Expor Schema `next_auth`:** No painel do Supabase, vá para **Project Settings** (ícone de engrenagem) > **API**. Na seção "Config" > "Exposed schemas" (ou "Select schemas for Data API..."), adicione `next_auth` à lista (além de `public`). Clique em "Save".
+5.  **Atenção:** A etapa de expor o schema `next_auth` nas configurações da API do Supabase foi removida pois não é mais necessária com a abordagem atual do `SupabaseAdapter`.
 
 ### 4. Configurar Google OAuth 2.0 (Para Login com Google)
 1.  Vá para o [Google Cloud Console](https://console.cloud.google.com/).
@@ -139,9 +142,8 @@ npm run build
 ### 7. Deploy com Netlify
 1.  Conecte seu repositório ao Netlify.
 2.  **Configure as Variáveis de Ambiente no Netlify:** Vá para Site configuration -> Build & deploy -> Environment -> Environment variables. Adicione **todas** as variáveis de ambiente do seu arquivo `.env` local, usando os valores corretos para produção.
-    *   `AUTH_URL` deve ser `https://SEU-DOMINIO.netlify.app/api/auth`.
     *   `NEXT_PUBLIC_BASE_URL` deve ser `https://SEU-DOMINIO.netlify.app`.
-3.  O Netlify usará o `netlify.toml` e o plugin `@netlify/plugin-nextjs` para construir e implantar seu site.
+3.  O Netlify usará o `netlify.toml` e o plugin `@netlify/plugin-nextjs` para construir e implantar seu site. A variável `NEXTAUTH_URL` será configurada automaticamente por ele.
 
 ## 📂 Estrutura do Projeto
 *   `src/app/`: Rotas e páginas (Next.js App Router).
@@ -178,10 +180,9 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
             *   Para desenvolvimento local: `http://localhost:9003/api/auth/callback/google`
             *   Para produção (ex: Netlify): `https://SEU-DOMINIO.netlify.app/api/auth/callback/google` (substitua `SEU-DOMINIO.netlify.app` pelo seu URL real).
         *   Garanta que o protocolo (`http` vs `https`) e o caminho estejam corretos, sem barras extras no final. Salve as alterações.
-    2.  **Variável de Ambiente `AUTH_URL`:**
-        *   No seu arquivo `.env` (local) ou nas configurações de variáveis de ambiente do seu provedor de hospedagem (ex: Netlify), certifique-se de que `AUTH_URL` está definida corretamente:
-            *   Local: `AUTH_URL=http://localhost:9003/api/auth`
-            *   Produção: `AUTH_URL=https://SEU-DOMINIO.netlify.app/api/auth`
+    2.  **Variável de Ambiente `NEXTAUTH_URL`:**
+        *   Em ambientes de produção como Netlify e Vercel, esta variável geralmente é configurada automaticamente. Se o erro persistir, você pode configurá-la manualmente nas variáveis de ambiente do seu provedor de hospedagem para garantir:
+            *   Produção: `NEXTAUTH_URL=https://SEU-DOMINIO.netlify.app`
 
 ### 2. Cadastro Manual Falha com Erro de Chave Estrangeira (`violates foreign key constraint "profiles_id_fkey"`)
 
@@ -221,7 +222,7 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 *   **Causa:** Variáveis de ambiente críticas (como `AUTH_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_CLIENT_ID`, etc.) não estavam configuradas no ambiente de build do Netlify.
 *   **Solução:**
     *   Todas as variáveis de ambiente necessárias do arquivo `.env` local **DEVEM** ser configuradas nas "Environment variables" do seu site no Netlify (Site configuration -> Build & deploy -> Environment).
-    *   Lembre-se de usar os valores de produção corretos, especialmente para `AUTH_URL` (ex: `https://SEU-DOMINIO.netlify.app/api/auth`).
+    *   Lembre-se de usar os valores de produção corretos.
 
 ### 6. Build no Netlify Falha com Erro de "Node.js API is used ... not supported in the Edge Runtime"
 

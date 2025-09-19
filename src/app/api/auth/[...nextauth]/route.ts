@@ -19,19 +19,17 @@ const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-// A variável de ambiente NEXTAUTH_URL é automaticamente definida pela Vercel/Netlify em produção
-const nextAuthUrl = process.env.NEXTAUTH_URL; 
 
 // --- Helper function to check for valid URL ---
 function isValidSupabaseUrl(url: string | undefined): url is string {
   return !!url && url.startsWith('http') && !url.includes('<');
 }
 
-// --- Log Environment Variable Status ---
-if (!isValidSupabaseUrl(supabaseUrl)) console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or invalid.");
-if (!supabaseServiceRoleKey || supabaseServiceRoleKey.includes('<')) console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set or is a placeholder.");
-if (!nextAuthSecret) console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
-if (!nextAuthUrl) console.warn("⚠️ WARNING: NEXTAUTH_URL is not set. It should be automatically set in production.");
+// --- Log Environment Variable Status for easier debugging ---
+if (!isValidSupabaseUrl(supabaseUrl)) console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or is invalid. Supabase-related features will fail.");
+if (!supabaseServiceRoleKey || supabaseServiceRoleKey.includes('<')) console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set or is a placeholder. Supabase Adapter and DB operations will fail.");
+if (!nextAuthSecret) console.warn("⚠️ WARNING: AUTH_SECRET is not set. Authentication will fail.");
+if (!googleClientId || !googleClientSecret) console.warn("⚠️ WARNING: GoogleProvider credentials are not set. Login with Google will be unavailable.");
 
 
 // --- Provider Configuration ---
@@ -59,7 +57,11 @@ const providers: NextAuthConfig['providers'] = [
           console.error('[NextAuth Authorize Failed] Profile not found or DB error:', dbError?.message);
           return null;
         }
-        const passwordsMatch = await bcrypt.compare(password, profile.hashed_password || "");
+        if (!profile.hashed_password) {
+            console.error('[NextAuth Authorize Failed] User registered with OAuth has no password.');
+            return null;
+        }
+        const passwordsMatch = await bcrypt.compare(password, profile.hashed_password);
         if (passwordsMatch) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
@@ -81,18 +83,15 @@ if (googleClientId && googleClientSecret) {
       allowDangerousEmailAccountLinking: true, 
     })
   );
-} else {
-  console.warn("⚠️ GoogleProvider is not configured. Login with Google will fail.");
 }
-
-// Conditionally create the adapter only if Supabase credentials are valid
-const adapter = (isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey && !supabaseServiceRoleKey.includes('<')) 
-  ? SupabaseAdapter({ url: supabaseUrl, secret: supabaseServiceRoleKey })
-  : undefined;
 
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
-  providers: providers,
+  providers,
+  adapter: SupabaseAdapter({ 
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+      secret: process.env.SUPABASE_SERVICE_ROLE_KEY! 
+  }),
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, account }) {
@@ -137,10 +136,5 @@ export const authConfig: NextAuthConfig = {
   pages: { signIn: '/login', error: '/login' },
   secret: nextAuthSecret,
 };
-
-// Add adapter to config only if it's defined
-if (adapter) {
-  authConfig.adapter = adapter;
-}
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
