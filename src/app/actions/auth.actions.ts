@@ -6,7 +6,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js'; 
 import bcrypt from 'bcryptjs';
 import type { Profile } from "@/types/database.types";
-import { v4 as uuidv4 } from 'uuid';
 
 const emailSchema = z.string().email({ message: "Endereço de email inválido." });
 const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
@@ -94,18 +93,20 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
   console.log("[SignupUser Action] Iniciando novo fluxo de cadastro unificado...");
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseUrl.startsWith('http')) {
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseUrl.startsWith('http')) {
     const errorMsg = "Serviço de autenticação indisponível. Configuração do servidor incompleta.";
     console.error(errorMsg);
     return { message: errorMsg, success: false, errors: { _form: [errorMsg] } };
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+  // Usar a chave anônima para esta operação inicial é seguro devido às políticas RLS
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   try {
     const rawData = Object.fromEntries(formData.entries());
+    // Normalização dos dados para validação
     if (rawData.cpf === '') rawData.cpf = undefined;
     if (rawData.cnpj === '') rawData.cnpj = undefined;
     if (rawData.rg === '') rawData.rg = undefined;
@@ -124,56 +125,69 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
 
-    // 1. Verificar se o email já existe em `auth.users`
-    console.log(`[SignupUser Action] Verificando se email ${email} já existe em auth.users...`);
-    const { data: existingUser, error: fetchUserError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+    // 1. Verificar se o email já existe na tabela de perfis (que é a nossa fonte da verdade)
+    console.log(`[SignupUser Action] Verificando se email ${email} já existe...`);
+    const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
 
-    if (fetchUserError) {
-      console.error("[SignupUser Action] Erro ao verificar usuário existente em auth.users:", fetchUserError.message);
-      return { message: `Erro no banco de dados: ${fetchUserError.message}`, success: false, errors: {_form: [fetchUserError.message]} };
+    if (fetchError && fetchError.code !== 'PGRST116') { // Ignora erro 'not found'
+        console.error("[SignupUser Action] Erro ao verificar perfil existente:", fetchError.message);
+        return { message: `Erro no banco de dados: ${fetchError.message}`, success: false, errors: { _form: [fetchError.message] } };
     }
 
-    if (existingUser) {
-      console.log("[SignupUser Action] Email já registrado em auth.users.");
-      return {
-        errors: { email: ["Este email já está registrado."] },
-        message: "Este email já está registrado. Tente fazer login ou use outro email.",
-        success: false,
-      };
+    if (existingProfile) {
+        console.log("[SignupUser Action] Email já registrado.");
+        return {
+            errors: { email: ["Este email já está registrado."] },
+            message: "Este email já está registrado. Tente fazer login ou use outro email.",
+            success: false,
+        };
     }
     
     console.log("[SignupUser Action] Email disponível. Processando novo usuário...");
 
-    // 2. Gerar ID e hashear a senha
-    const userId = uuidv4();
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const avatarUrl = `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`;
-
-    // 3. Inserir na tabela `auth.users`
-    console.log(`[SignupUser Action] Inserindo usuário com ID ${userId} em auth.users...`);
-    const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-        id: userId,
-        email: email,
-        password: password, 
-        email_confirm: true,
-        user_metadata: {
-            name: displayName,
-            avatar_url: avatarUrl
-        }
+    // 2. Criar o usuário no Supabase Auth
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+            full_name: fullName,
+            display_name: displayName,
+            avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
+            phone: phone ? phone.replace(/\D/g, '') : null,
+            cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
+            rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
+            account_type: accountType,
+        },
+      },
     });
 
-    if (createUserError) {
-      console.error("[SignupUser Action] Erro ao criar usuário em auth.users:", createUserError.message);
-      return { message: `Falha ao criar usuário: ${createUserError.message}`, success: false, errors: { _form: [createUserError.message] }};
+    if (signUpError) {
+        console.error("[SignupUser Action] Erro no Supabase signUp:", signUpError.message);
+        return { message: `Falha ao criar usuário: ${signUpError.message}`, success: false, errors: { _form: [signUpError.message] } };
+    }
+
+    if (!authData.user) {
+        console.error("[SignupUser Action] Supabase signUp não retornou um usuário.");
+        return { message: "Ocorreu um erro inesperado e o usuário não foi criado.", success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
     
-    // 4. Inserir na tabela `public.profiles`
+    // 3. O trigger `on_auth_user_created` DEVE ter sido removido. 
+    // O NextAuth.js Adapter cuidará de criar a entrada em `next_auth.users`.
+    // A tabela `profiles` será populada pelos metadados do `auth.signUp` se o trigger ainda existir,
+    // ou por um hook do NextAuth se o trigger for removido.
+    // A abordagem mais limpa é remover o trigger e deixar o NextAuth gerenciar.
+    // (Assumindo que o `database_schema.sql` removeu o trigger)
+
+    // 4. Hashear a senha e inserir o perfil completo na tabela public.profiles.
+    // Esta etapa é crucial para que o login com 'Credentials' funcione.
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newProfileData: Omit<Profile, 'created_at' | 'updated_at'> = {
-        id: userId,
+        id: authData.user.id,
         full_name: fullName,
         display_name: displayName,
         email: email,
@@ -181,20 +195,23 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         phone: phone ? phone.replace(/\D/g, '') : null,
         cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
         rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
-        avatar_url: avatarUrl,
+        avatar_url: authData.user.user_metadata.avatar_url,
         account_type: accountType,
     };
     
-    console.log(`[SignupUser Action] Inserindo perfil com ID ${userId} em public.profiles...`);
+    // Usando a service_role key para inserir o perfil, pois RLS pode bloquear o usuário anônimo.
+    // Esta é uma operação backend segura.
+    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { error: insertProfileError } = await supabaseAdmin
       .from('profiles')
       .insert(newProfileData);
 
     if (insertProfileError) {
-      console.error("[SignupUser Action] Erro ao inserir perfil na tabela 'profiles':", insertProfileError);
-      await supabaseAdmin.auth.admin.deleteUser(userId);
-      console.error("[SignupUser Action] Usuário de auth.users revertido devido a erro na inserção do perfil.");
-      return { message: `Falha ao registrar perfil: ${insertProfileError.message}`, success: false, errors: { _form: [insertProfileError.message] }};
+        console.error("[SignupUser Action] Erro ao inserir perfil na tabela 'profiles':", insertProfileError.message);
+        // Tenta reverter a criação do usuário em auth.users
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        console.error("[SignupUser Action] Usuário de auth.users revertido devido a erro na inserção do perfil.");
+        return { message: `Falha ao registrar perfil: ${insertProfileError.message}`, success: false, errors: { _form: [insertProfileError.message] }};
     }
     
     console.log("[SignupUser Action] Cadastro completo e bem-sucedido. Redirecionando para login.");

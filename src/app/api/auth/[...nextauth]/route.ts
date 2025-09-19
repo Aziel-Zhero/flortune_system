@@ -20,12 +20,17 @@ const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-// --- Log Environment Variable Status ---
-if (!supabaseUrl) {
-  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set.");
+// --- Helper function to check for valid URL ---
+function isValidSupabaseUrl(url: string | undefined): url is string {
+  return !!url && url.startsWith('http') && !url.includes('<');
 }
-if (!supabaseServiceRoleKey) {
-  console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set.");
+
+// --- Log Environment Variable Status ---
+if (!isValidSupabaseUrl(supabaseUrl)) {
+  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or invalid.");
+}
+if (!supabaseServiceRoleKey || supabaseServiceRoleKey.includes('<')) {
+  console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set or is a placeholder.");
 }
 if (!nextAuthSecret) {
   console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
@@ -46,7 +51,7 @@ const providers: NextAuthConfig['providers'] = [
       const email = credentials.email as string;
       const password = credentials.password as string;
       
-      if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseUrl.startsWith('http')) {
+      if (!isValidSupabaseUrl(supabaseUrl) || !supabaseServiceRoleKey) {
           console.error('[NextAuth Authorize] Supabase credentials are not configured or invalid.');
           return null;
       }
@@ -98,18 +103,18 @@ if (googleClientId && googleClientSecret) {
   console.warn("⚠️ GoogleProvider is not configured. Login with Google will fail.");
 }
 
-// Conditionally create the adapter
-const adapter =
-  supabaseUrl && !supabaseUrl.includes('<') && supabaseServiceRoleKey && supabaseUrl.startsWith('http')
-    ? SupabaseAdapter({
-        url: supabaseUrl,
-        secret: supabaseServiceRoleKey,
-      })
-    : undefined;
+// Conditionally create the adapter only if Supabase credentials are valid
+const adapter = (
+  isValidSupabaseUrl(supabaseUrl) &&
+  supabaseServiceRoleKey && !supabaseServiceRoleKey.includes('<')
+) ? SupabaseAdapter({
+      url: supabaseUrl,
+      secret: supabaseServiceRoleKey,
+    })
+  : undefined;
 
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
-  adapter,
   providers: providers,
   session: {
     strategy: 'jwt',
@@ -123,7 +128,7 @@ export const authConfig: NextAuthConfig = {
           const { hashed_password, ...safeProfile } = user.profile;
           token.profile = safeProfile;
         } 
-        else if (account?.provider !== 'credentials' && supabaseUrl && supabaseServiceRoleKey) {
+        else if (account?.provider !== 'credentials' && isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
           const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
           const { data: dbProfile } = await supabaseAdmin
             .from('profiles')
@@ -174,5 +179,10 @@ export const authConfig: NextAuthConfig = {
   },
   secret: nextAuthSecret, 
 };
+
+// Add adapter to config only if it's defined
+if (adapter) {
+  authConfig.adapter = adapter;
+}
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
