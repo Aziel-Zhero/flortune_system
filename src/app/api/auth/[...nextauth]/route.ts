@@ -19,6 +19,8 @@ const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+// A variável de ambiente NEXTAUTH_URL é automaticamente definida pela Vercel/Netlify em produção
+const nextAuthUrl = process.env.NEXTAUTH_URL; 
 
 // --- Helper function to check for valid URL ---
 function isValidSupabaseUrl(url: string | undefined): url is string {
@@ -26,15 +28,11 @@ function isValidSupabaseUrl(url: string | undefined): url is string {
 }
 
 // --- Log Environment Variable Status ---
-if (!isValidSupabaseUrl(supabaseUrl)) {
-  console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or invalid.");
-}
-if (!supabaseServiceRoleKey || supabaseServiceRoleKey.includes('<')) {
-  console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set or is a placeholder.");
-}
-if (!nextAuthSecret) {
-  console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
-}
+if (!isValidSupabaseUrl(supabaseUrl)) console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or invalid.");
+if (!supabaseServiceRoleKey || supabaseServiceRoleKey.includes('<')) console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set or is a placeholder.");
+if (!nextAuthSecret) console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
+if (!nextAuthUrl) console.warn("⚠️ WARNING: NEXTAUTH_URL is not set. It should be automatically set in production.");
+
 
 // --- Provider Configuration ---
 const providers: NextAuthConfig['providers'] = [
@@ -45,9 +43,8 @@ const providers: NextAuthConfig['providers'] = [
       password: { label: 'Password', type: 'password' },
     },
     async authorize(credentials) {
-      if (!credentials?.email || !credentials?.password) {
-        return null;
-      }
+      if (!credentials?.email || !credentials?.password) return null;
+
       const email = credentials.email as string;
       const password = credentials.password as string;
       
@@ -55,33 +52,18 @@ const providers: NextAuthConfig['providers'] = [
           console.error('[NextAuth Authorize] Supabase credentials are not configured or invalid.');
           return null;
       }
-
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-
       try {
-        const { data: profile, error: dbError } = await supabaseAdmin
-          .from('profiles')
-          .select('*')
-          .eq('email', email)
-          .single();
-
+        const { data: profile, error: dbError } = await supabaseAdmin.from('profiles').select('*').eq('email', email).single();
         if (dbError || !profile) {
           console.error('[NextAuth Authorize Failed] Profile not found or DB error:', dbError?.message);
           return null;
         }
-        
         const passwordsMatch = await bcrypt.compare(password, profile.hashed_password || "");
-
         if (passwordsMatch) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
-          return {
-            id: userProfile.id,
-            email: userProfile.email,
-            name: userProfile.display_name || userProfile.full_name,
-            image: userProfile.avatar_url,
-            profile: userProfile,
-          };
+          return { id: userProfile.id, email: userProfile.email, name: userProfile.display_name || userProfile.full_name, image: userProfile.avatar_url, profile: userProfile };
         }
       } catch (e: any) {
         console.error('[NextAuth Authorize Exception]:', e.message);
@@ -104,21 +86,14 @@ if (googleClientId && googleClientSecret) {
 }
 
 // Conditionally create the adapter only if Supabase credentials are valid
-const adapter = (
-  isValidSupabaseUrl(supabaseUrl) &&
-  supabaseServiceRoleKey && !supabaseServiceRoleKey.includes('<')
-) ? SupabaseAdapter({
-      url: supabaseUrl,
-      secret: supabaseServiceRoleKey,
-    })
+const adapter = (isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey && !supabaseServiceRoleKey.includes('<')) 
+  ? SupabaseAdapter({ url: supabaseUrl, secret: supabaseServiceRoleKey })
   : undefined;
 
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
   providers: providers,
-  session: {
-    strategy: 'jwt',
-  },
+  session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, account }) {
       if (user) {
@@ -130,11 +105,7 @@ export const authConfig: NextAuthConfig = {
         } 
         else if (account?.provider !== 'credentials' && isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
           const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-          const { data: dbProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+          const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
           if (dbProfile) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hashed_password, ...safeProfile } = dbProfile;
@@ -145,25 +116,15 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
-      if (token.sub) {
-        session.user.id = token.sub;
-      }
-      
+      if (token.sub) session.user.id = token.sub;
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
         session.user.image = session.user.profile.avatar_url || session.user.image;
         session.user.email = session.user.profile.email || session.user.email;
       }
-
       if (supabaseJwtSecret && token.sub && token.email) {
-        const payload = {
-          aud: "authenticated",
-          exp: Math.floor(new Date(session.expires).getTime() / 1000), 
-          sub: token.sub,
-          email: token.email,
-          role: "authenticated", 
-        };
+        const payload = { aud: "authenticated", exp: Math.floor(new Date(session.expires).getTime() / 1000), sub: token.sub, email: token.email, role: "authenticated" };
         try {
           session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
         } catch (e: any) {
@@ -173,11 +134,8 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
   },
-  pages: {
-    signIn: '/login', 
-    error: '/login', 
-  },
-  secret: nextAuthSecret, 
+  pages: { signIn: '/login', error: '/login' },
+  secret: nextAuthSecret,
 };
 
 // Add adapter to config only if it's defined
