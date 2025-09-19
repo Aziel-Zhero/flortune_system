@@ -84,9 +84,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const setSelectedQuotes = (newQuotes: string[]) => {
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     setSelectedQuotesState(newQuotes);
-    loadQuotes(newQuotes); // Recarrega as cotações ao salvar
+    loadQuotes(newQuotes);
   };
-
+  
   const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) return;
     setIsLoadingWeather(true);
@@ -122,8 +122,36 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       }
   };
 
+  const applyTheme = useCallback((themeId: string) => {
+    const root = document.documentElement;
+    root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
+    
+    if (themeId !== 'default') {
+      root.classList.add(themeId);
+    }
+    localStorage.setItem('flortune-theme', themeId);
+    setCurrentTheme(themeId);
+  }, []);
+
+  const toggleDarkMode = useCallback(() => {
+    setIsDarkMode(prev => {
+      const newIsDark = !prev;
+      localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
+      document.documentElement.classList.toggle('dark', newIsDark);
+      return newIsDark;
+    });
+  }, []);
+  
+  const togglePrivateMode = useCallback(() => {
+    setIsPrivateMode(prev => {
+        const newMode = !prev;
+        localStorage.setItem('flortune-private-mode', JSON.stringify(newMode));
+        return newMode;
+    });
+  }, []);
+
+  // Effect to load settings from localStorage on client-side mount
   useEffect(() => {
-    // Carrega todas as configurações do localStorage na inicialização
     try {
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
@@ -131,9 +159,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedDarkMode = localStorage.getItem('flortune-dark-mode');
       const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(darkModeEnabled);
+      document.documentElement.classList.toggle('dark', darkModeEnabled);
       
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
-      setCurrentTheme(storedTheme);
+      applyTheme(storedTheme);
 
       const storedCity = localStorage.getItem('flortune-weather-city');
       if (storedCity) {
@@ -157,46 +186,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to access localStorage or parse settings:", error);
         setIsLoadingQuotes(false);
     }
-  }, [loadWeatherForCity, loadQuotes]);
+  }, [applyTheme, loadWeatherForCity, loadQuotes]);
 
   useEffect(() => {
     localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
   }, [showQuotes]);
-
-  const applyTheme = useCallback((themeId: string) => {
-    const root = document.documentElement;
-    root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
-    
-    if (themeId !== 'default') {
-      root.classList.add(themeId);
-    }
-    localStorage.setItem('flortune-theme', themeId);
-    setCurrentTheme(themeId);
-  }, []);
-
-  const toggleDarkMode = useCallback(() => {
-    setIsDarkMode(prev => {
-      const newIsDark = !prev;
-      localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
-      return newIsDark;
-    });
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
-  }, [isDarkMode]);
-
-  useEffect(() => {
-    applyTheme(currentTheme);
-  }, [currentTheme, applyTheme]);
-
-  const togglePrivateMode = useCallback(() => {
-    setIsPrivateMode(prev => {
-        const newMode = !prev;
-        localStorage.setItem('flortune-private-mode', JSON.stringify(newMode));
-        return newMode;
-    });
-  }, []);
 
   return (
     <AppSettingsContext.Provider value={{ 
