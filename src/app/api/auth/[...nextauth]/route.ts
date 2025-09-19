@@ -1,4 +1,3 @@
-
 // src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthConfig } from 'next-auth';
@@ -104,7 +103,7 @@ if (googleClientId && googleClientSecret) {
 }
 
 // --- Main NextAuth Configuration ---
-export const authConfig: NextAuthConfig = {
+const authConfig: NextAuthConfig = {
   providers: providers,
   session: {
     strategy: 'jwt',
