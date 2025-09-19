@@ -229,67 +229,6 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 *   **Solução:**
     *   Nas páginas de login (`src/app/login/page.tsx`) e cadastro (`src/app/signup/page.tsx`), os formulários foram envolvidos com `<Suspense>` e um componente de esqueleto como fallback.
 
-### 8. Erro `Uncaught ReferenceError: [NomeDoComponenteDeGrafico] is not defined` (Página de Análise)
-*   **Causa:** Conflito de nomes entre os ícones importados de `lucide-react` (ex: `LineChart`, `PieChart`) e os componentes de gráfico da biblioteca `recharts` com os mesmos nomes, ou importação incorreta dos componentes `recharts`.
-*   **Solução:**
-    *   Utilizar aliases ao importar os ícones de `lucide-react` para diferenciá-los dos componentes `recharts`. Ex: `import { LineChart as LineIconLucide, PieChart as PieIconLucide } from "lucide-react";`.
-    *   Garantir que todos os componentes `recharts` necessários (ex: `LineChart`, `PieChart`, `XAxis`, `YAxis`, `CartesianGrid`, `ResponsiveContainer`, `Tooltip as RechartsTooltip`, `Legend`, `Cell`, `Bar`, `Area`, `Radar`, `PolarGrid`, `PolarAngleAxis`, `PolarRadiusAxis`, `RadialBar`, `LabelList`, `Brush`) sejam explicitamente importados de `"recharts"` no arquivo da página de Análise.
-    *   Exemplo de importações corrigidas:
-        ```tsx
-        // No início do arquivo src/app/(app)/analysis/page.tsx
-        import { 
-          PieChart as PieIconLucide, // Alias para o ícone
-          LineChart as LineIconLucideReal, // Alias para o ícone do LineChart dos dados reais
-          AreaChart as AreaIconLucide, 
-          BarChart3 as BarIconLucide, 
-          Radar as RadarIconLucide, 
-          Target as RadialIconLucide 
-        } from "lucide-react";
-        import {
-          LineChart, 
-          Line,
-          XAxis,
-          YAxis,
-          CartesianGrid,
-          ResponsiveContainer,
-          PieChart, 
-          Pie,
-          Cell,
-          Tooltip as RechartsTooltip, 
-          Legend,
-          AreaChart, Area, BarChart, Bar, LabelList,
-          RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, 
-          RadialBarChart, RadialBar, Brush
-        } from "recharts";
-        ```
-
-### 9. Erro `Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string.`
-*   **Causa:** O componente `<SelectItem>` (usado em `Select` do ShadCN/Radix) não aceita `value=""`, `null`, ou `undefined`. Uma string vazia é reservada para limpar a seleção.
-*   **Solução:**
-    *   Para opções que representam "nenhum" ou "selecione", use uma constante string não vazia como valor. Exemplo em `src/lib/constants.ts`: `export const NO_ICON_VALUE = "__NO_ICON__";`.
-    *   No formulário (ex: `src/app/(app)/goals/goal-form.tsx`), ao definir o `value` do `Select` no `Controller` do `react-hook-form`, use um fallback para essa constante se o valor do campo for `null` ou `undefined`. Ex: `value={field.value ?? NO_ICON_VALUE}`.
-    *   O `<SelectItem>` correspondente deve ter `value={NO_ICON_VALUE}`.
-    *   Ao submeter os dados do formulário, converta o valor da constante de volta para `null` se for apropriado para o backend. Ex: `icon: data.icon === NO_ICON_VALUE ? null : data.icon`.
-
-### 10. Labels de Eixos de Gráficos "Saindo" do Card (Ex: Gráfico de Evolução Mensal)
-*   **Causa:** Espaço insuficiente calculado pelo Recharts para os eixos devido a margens inadequadas no componente de gráfico (`LineChart`, `BarChart`, etc.) ou altura do `XAxis` inadequada para labels rotacionados.
-*   **Solução:**
-    *   Ajustar as propriedades `margin` do componente de gráfico. Ex: `<LineChart data={...} margin={{ top: 10, right: 30, left: 30, bottom: 70 }}>`. Aumentar `bottom` é crucial para labels X rotacionados, e `left` para labels Y.
-    *   Para eixos X com labels rotacionados, aumentar a propriedade `height` do `XAxis` e usar `dy` para ajustar a posição vertical do texto. Ex: `<XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={80} dy={10} />`.
-    *   Para eixos Y, usar `dx` para ajustar a posição horizontal. Ex: `<YAxis tickFormatter={...} tick={{ fontSize: 10 }} dx={-5} />`.
-
-### 11. Erro 404 (Não Encontrado) para Novas Rotas (Ex: `/dev/systems`, `/transactions/new`)
-*   **Causa:** Ausência dos arquivos `page.tsx` (ou `page.js`) correspondentes para as rotas definidas no sistema de arquivos do Next.js App Router.
-*   **Solução:** Criar o arquivo `page.tsx` necessário dentro da pasta da respectiva rota. Por exemplo, para `/dev/systems`, criar `src/app/(app)/dev/systems/page.tsx`. Para `/transactions/new`, criar `src/app/(app)/transactions/new/page.tsx`.
-
-### 12. Scroll Horizontal Indesejado na Tela (Layout Geral)
-*   **Causa:** Um ou mais elementos no layout principal podem estar excedendo a largura da viewport, ou o gerenciamento de `overflow` não está correto.
-*   **Solução:** Aplicar a classe `overflow-hidden` ao contêiner raiz do layout principal da aplicação (ex: o `div` em `src/app/(app)/layout.tsx` que envolve `AppHeader` e o conteúdo `<main>`). Isso previne que o contêiner raiz seja rolável, delegando o scroll vertical para o elemento `<main>` interno (que geralmente tem `overflow-y-auto`).
-
-### 13. Calendário com Layout Quebrado ou Erro `getDay is not defined`
-*   **Causa:** A implementação de calendário anterior era customizada, com bugs, e não se adaptava bem ao contêiner flexível do layout principal, causando um visual "espremido". Além disso, uma chamada incorreta à função `getDay` (sem ser a partir de um objeto `Date`) causava um `ReferenceError` que impedia o carregamento da página.
-*   **Solução:** A página de calendário foi totalmente reconstruída usando a biblioteca **FullCalendar**, que é robusta e estável. Para corrigir o problema de layout, a classe `min-w-0` foi adicionada ao elemento `<main>` em `src/app/(app)/layout.tsx`, permitindo que componentes flexíveis como o FullCalendar se redimensionem corretamente sem estourar o layout.
-
 ## 🗺️ Roadmap
 *   [ ] Implementação completa de gestão de Assinaturas (Stripe).
 *   [ ] Testes unitários e de integração.
