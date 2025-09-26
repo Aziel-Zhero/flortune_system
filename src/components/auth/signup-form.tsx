@@ -70,14 +70,13 @@ export function SignupForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  const { pending: isPending } = useActionState(async (previousState: SignupFormState, formData: FormData) => {
-    const newState = await signupUser(previousState, formData);
-    return newState;
-  }, initialState);
-  
   const searchParams = useSearchParams();
 
+  // O useFormStatus não é mais necessário aqui pois estamos usando o estado do `useActionState`
+  const { pending: isPending } = useActionState(async (previousState, formData) => {
+    return signupUser(previousState, formData);
+  }, initialState);
+  
   useEffect(() => {
     if (state?.message && !state.success) { 
         const formWideError = state.errors?._form?.join(', ') || state.message;
@@ -261,7 +260,7 @@ export function SignupForm() {
           </div>
         )}
 
-        <SubmitButton pendingText="Criando Conta..." disabled={isGoogleLoading || isPending}>
+        <SubmitButton pendingText="Criando Conta..." disabled={isGoogleLoading}>
           Criar Conta <UserPlus className="ml-2 h-4 w-4" />
         </SubmitButton>
       </form>

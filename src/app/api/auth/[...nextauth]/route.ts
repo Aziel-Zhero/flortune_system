@@ -47,10 +47,15 @@ const providers: NextAuthConfig['providers'] = [
       }
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
       try {
+        // O login com credenciais agora busca o perfil na tabela `public.profiles`,
+        // que é a nossa fonte da verdade para dados de perfil, incluindo a senha.
         const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
         if (!profile || !profile.hashed_password) return null;
+        
         const passwordsMatch = await bcrypt.compare(credentials.password as string, profile.hashed_password);
+        
         if (passwordsMatch) {
+          // Retornamos o perfil completo para que o callback `jwt` possa usá-lo.
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
           return { id: userProfile.id, email: userProfile.email, name: userProfile.display_name, image: userProfile.avatar_url, profile: userProfile };
@@ -82,17 +87,20 @@ export const authConfig: NextAuthConfig = {
   }),
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      if (user) { // Na primeira vez que o usuário faz login (ou se cadastra)
         token.sub = user.id;
-        // Se o login foi via Credentials, o perfil já está no objeto user.
+
+        // Se o login foi via Credentials, o perfil completo já está no objeto user.
         if (user.profile) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...safeProfile } = user.profile;
           token.profile = safeProfile;
         } 
-        // Se foi via OAuth, buscamos o perfil. O adapter já deve ter criado o user.
-        else {
+        // Se foi via OAuth, o `SupabaseAdapter` já criou o usuário em `auth.users`.
+        // O trigger no banco de dados (`handle_new_user`) criou a entrada em `public.profiles`.
+        // Agora, buscamos esse perfil para adicioná-lo ao token JWT.
+        else if (account?.provider === 'google') {
            if (isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
               const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
               const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
@@ -107,6 +115,8 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
+      // A cada chamada de `useSession` ou `auth()`, esta função é executada,
+      // passando os dados do token JWT para o objeto de sessão do cliente.
       if (token.sub) session.user.id = token.sub;
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;

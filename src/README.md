@@ -1,3 +1,4 @@
+
 # Flortune 🌿💰
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -95,10 +96,7 @@ AUTH_SECRET=GERAR_UM_SEGREDO_FORTE_E_LONGO # Use `openssl rand -base64 32` no te
 GOOGLE_CLIENT_ID=SEU_GOOGLE_CLIENT_ID_DO_GOOGLE_CLOUD_CONSOLE
 GOOGLE_CLIENT_SECRET=SEU_GOOGLE_CLIENT_SECRET_DO_GOOGLE_CLOUD_CONSOLE
 
-# URL Base da Aplicação (para desenvolvimento local)
-NEXT_PUBLIC_BASE_URL=http://localhost:9003
-
-# Chaves de API para serviços externos
+# Chaves de API para serviços externos (Opcional)
 OPENWEATHERMAP_API_KEY=SUA_CHAVE_API_DO_OPENWEATHERMAP
 EXCHANGERATE_API_KEY=SUA_CHAVE_API_DO_EXCHANGERATE
 
@@ -114,8 +112,7 @@ Execute o script SQL de `docs/database_schema.sql` no Editor SQL do seu painel S
 2.  Vá para **SQL Editor** > **+ New query**.
 3.  Copie e cole o conteúdo completo de `docs/database_schema.sql`.
 4.  Clique em **RUN**.
-    Isso criará o schema `next_auth` (para o adapter), a tabela `public.profiles` (para detalhes do usuário e senha), e outras tabelas do app.
-5.  **Atenção:** A etapa de expor o schema `next_auth` nas configurações da API do Supabase foi removida pois não é mais necessária com a abordagem atual do `SupabaseAdapter`.
+    Isso criará o schema `next_auth` (para o adapter), a tabela `public.profiles` (para detalhes do usuário) e as outras tabelas da aplicação, junto com os triggers e políticas de segurança necessários.
 
 ### 4. Configurar Google OAuth 2.0 (Para Login com Google)
 1.  Vá para o [Google Cloud Console](https://console.cloud.google.com/).
@@ -142,7 +139,6 @@ npm run build
 ### 7. Deploy com Netlify
 1.  Conecte seu repositório ao Netlify.
 2.  **Configure as Variáveis de Ambiente no Netlify:** Vá para Site configuration -> Build & deploy -> Environment -> Environment variables. Adicione **todas** as variáveis de ambiente do seu arquivo `.env` local, usando os valores corretos para produção.
-    *   `NEXT_PUBLIC_BASE_URL` deve ser `https://SEU-DOMINIO.netlify.app`.
 3.  O Netlify usará o `netlify.toml` e o plugin `@netlify/plugin-nextjs` para construir e implantar seu site. A variável `NEXTAUTH_URL` será configurada automaticamente por ele.
 
 ## 📂 Estrutura do Projeto
@@ -181,120 +177,24 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
             *   Para produção (ex: Netlify): `https://SEU-DOMINIO.netlify.app/api/auth/callback/google` (substitua `SEU-DOMINIO.netlify.app` pelo seu URL real).
         *   Garanta que o protocolo (`http` vs `https`) e o caminho estejam corretos, sem barras extras no final. Salve as alterações.
     2.  **Variável de Ambiente `NEXTAUTH_URL`:**
-        *   Em ambientes de produção como Netlify e Vercel, esta variável geralmente é configurada automaticamente. Se o erro persistir, você pode configurá-la manualmente nas variáveis de ambiente do seu provedor de hospedagem para garantir:
-            *   Produção: `NEXTAUTH_URL=https://SEU-DOMINIO.netlify.app`
+        *   Em ambientes de produção como Netlify e Vercel, esta variável geralmente é configurada automaticamente. Se o erro persistir, você pode configurá-la manualmente nas variáveis de ambiente do seu provedor de hospedagem para garantir que ela aponte para a URL base do seu site (ex: `https://SEU-DOMINIO.netlify.app`).
 
-### 2. Cadastro Manual Falha com Erro de Chave Estrangeira (`violates foreign key constraint "profiles_id_fkey"`)
+### 2. Cadastro Manual Falha com Erro de Banco de Dados
 
-*   **Causa:** A tabela `public.profiles` tinha uma restrição de chave estrangeira direta (`profiles_id_fkey`) para `next_auth.users.id`. Durante o cadastro manual, o registro em `public.profiles` era criado *antes* do registro em `next_auth.users` (que é criado pelo SupabaseAdapter no primeiro login bem-sucedido), causando a violação da FK.
+*   **Causa:** Conflitos na criação de usuários entre a lógica da aplicação e os `triggers` do banco de dados, ou restrições de chave estrangeira incorretas.
 *   **Solução:**
-    *   A restrição de chave estrangeira `profiles_id_fkey` foi removida do script `docs/database_schema.sql`.
-    *   A ligação entre `public.profiles.id` e `next_auth.users.id` agora é feita por convenção (ambos usam o mesmo UUID para o mesmo usuário).
-    *   O trigger `public.handle_new_user_from_next_auth` (que dispara na criação de um usuário em `next_auth.users`) foi removido. A `Server Action` `signupUser` agora é responsável por criar o usuário no `Supabase Auth` e, em seguida, inserir o perfil completo em `public.profiles`, garantindo a consistência.
+    *   O fluxo de autenticação foi refatorado. A `Server Action` de cadastro (`signupUser`) agora cria o usuário diretamente no `Supabase Auth`.
+    *   Um `trigger` no banco de dados (`handle_new_user`) é acionado para criar um registro correspondente na tabela `public.profiles`, garantindo a sincronização.
+    *   As restrições de chave estrangeira conflitantes foram removidas do script `docs/database_schema.sql`.
+    *   **Se você encontrar erros, a primeira etapa é sempre re-executar o script `docs/database_schema.sql` completo no seu SQL Editor do Supabase para garantir que a estrutura mais recente e correta esteja em vigor.**
 
-### 3. Cadastro Manual Falha com Erro de Política RLS (`new row violates row-level security policy for table "profiles"`)
+### 3. Build no Netlify Falha
 
-*   **Causa:** A política de Row Level Security (RLS) na tabela `public.profiles` não permitia que a role `anon` (usada pela chave anônima do Supabase, que as Server Actions podem usar por padrão) inserisse novos registros.
-*   **Solução:**
-    *   Uma política RLS específica foi adicionada ao `docs/database_schema.sql` para permitir que a role `anon` insira em `public.profiles`:
-        ```sql
-        -- Permite que a action de signup (usando anon key) insira um novo perfil.
-        -- A verificação de email duplicado já é feita na server action.
-        DROP POLICY IF EXISTS "Allow anon to insert their own profile on signup" ON public.profiles;
-        CREATE POLICY "Allow anon to insert their own profile on signup"
-          ON public.profiles FOR INSERT
-          TO anon
-          WITH CHECK (true);
-        ```
-    *   A verificação de email duplicado e outros dados é feita na Server Action `signupUser` antes da tentativa de inserção.
-
-### 4. Erros de Sintaxe SQL ao Executar `database_schema.sql`
-
-*   **`ERROR: function public.uuid_generate_v4() does not exist`:**
-    *   **Solução:** Garantiu-se que a extensão `uuid-ossp` é criada no schema `extensions` (`CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;`) e todas as chamadas `DEFAULT uuid_generate_v4()` foram alteradas para `DEFAULT extensions.uuid_generate_v4()`.
-*   **`ERROR: policy "..." already exists` ou `ERROR: syntax error at or near "NOT" CREATE POLICY IF NOT EXISTS ...`:**
-    *   **Solução:** A sintaxe `CREATE POLICY IF NOT EXISTS ...` não é válida no PostgreSQL. Foi corrigido para usar o padrão `DROP POLICY IF EXISTS nome_da_politica ON nome_da_tabela; CREATE POLICY nome_da_politica ON nome_da_tabela ...;` para todas as políticas.
-*   **`ERROR: syntax error at or near "AS" ... AS $$` (para a função do trigger):**
-    *   **Solução:** A declaração `SET search_path` foi movida para dentro do corpo da função PL/pgSQL (`BEGIN SET LOCAL search_path = public, extensions; ... END;`) em vez de ser uma opção de `CREATE FUNCTION`.
-*   **`ERROR: there is no unique or exclusion constraint matching the ON CONFLICT specification`:**
-    *   **Causa:** O trigger `handle_new_user_from_next_auth` tentava usar `ON CONFLICT (id)`, mas a coluna `id` da tabela `public.profiles` não era uma chave primária ou única no momento da criação do trigger. Uma dependência circular causada por uma chave estrangeira incorreta (`profiles_id_fkey`) impedia a criação correta.
-    *   **Solução:** O script `docs/database_schema.sql` foi reestruturado: a tabela `public.profiles` agora é criada com `id` como `PRIMARY KEY` desde o início, e a `FOREIGN KEY` conflitante foi removida. Isso garante que a cláusula `ON CONFLICT` funcione corretamente.
-
-### 5. Build no Netlify Falha Devido a Variáveis de Ambiente Ausentes
-
-*   **Causa:** Variáveis de ambiente críticas (como `AUTH_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_CLIENT_ID`, etc.) não estavam configuradas no ambiente de build do Netlify.
-*   **Solução:**
-    *   Todas as variáveis de ambiente necessárias do arquivo `.env` local **DEVEM** ser configuradas nas "Environment variables" do seu site no Netlify (Site configuration -> Build & deploy -> Environment).
-    *   Lembre-se de usar os valores de produção corretos.
-
-### 6. Build no Netlify Falha com Erro de "Node.js API is used ... not supported in the Edge Runtime"
-
-*   **Causa:** Bibliotecas como `bcryptjs` e `jsonwebtoken`, usadas na rota de API do NextAuth (`src/app/api/auth/[...nextauth]/route.ts`), requerem o ambiente Node.js.
-*   **Solução:**
-    *   Adicionar `export const runtime = 'nodejs';` no início do arquivo `src/app/api/auth/[...nextauth]/route.ts` para forçar a execução desta rota no runtime Node.js.
-
-### 7. Build no Netlify Falha com Erro de `useSearchParams() should be wrapped in a suspense boundary`
-
-*   **Causa:** Componentes que usam o hook `useSearchParams` (como `LoginForm` e `SignupForm`) precisam ser envolvidos por `<Suspense fallback={...}>` quando renderizados em páginas que podem ser pré-renderizadas estaticamente.
-*   **Solução:**
-    *   Nas páginas de login (`src/app/login/page.tsx`) e cadastro (`src/app/signup/page.tsx`), os formulários foram envolvidos com `<Suspense>` e um componente de esqueleto como fallback.
-
-### 8. Erro `Uncaught ReferenceError: [NomeDoComponenteDeGrafico] is not defined` (Página de Análise)
-*   **Causa:** Conflito de nomes entre os ícones importados de `lucide-react` (ex: `LineChart`, `PieChart`) e os componentes de gráfico da biblioteca `recharts` com os mesmos nomes, ou importação incorreta dos componentes `recharts`.
-*   **Solução:**
-    *   Utilizar aliases ao importar os ícones de `lucide-react` para diferenciá-los dos componentes `recharts`. Ex: `import { LineChart as LineIconLucide, PieChart as PieIconLucide } from "lucide-react";`.
-    *   Garantir que todos os componentes `recharts` necessários (ex: `LineChart`, `PieChart`, `XAxis`, `YAxis`, `CartesianGrid`, `ResponsiveContainer`, `Tooltip as RechartsTooltip`, `Legend`, `Cell`, `Bar`, `Area`, `RadarChart`, `PolarGrid`, `PolarAngleAxis`, `PolarRadiusAxis`, `RadialBarChart`, `RadialBar`, `LabelList`, `Brush`) sejam explicitamente importados de `"recharts"` no arquivo da página de Análise.
-    *   Exemplo de importações corrigidas:
-        ```tsx
-        // No início do arquivo src/app/(app)/analysis/page.tsx
-        import { 
-          PieChart as PieIconLucide, // Alias para o ícone
-          LineChart as LineIconLucideReal, // Alias para o ícone do LineChart dos dados reais
-          AreaChart as AreaIconLucide, 
-          BarChart3 as BarIconLucide, 
-          Radar as RadarIconLucide, 
-          Target as RadialIconLucide 
-        } from "lucide-react";
-        import {
-          LineChart, 
-          Line,
-          XAxis,
-          YAxis,
-          CartesianGrid,
-          ResponsiveContainer,
-          PieChart, 
-          Pie,
-          Cell,
-          Tooltip as RechartsTooltip, 
-          Legend,
-          AreaChart, Area, BarChart, Bar, LabelList,
-          RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, 
-          RadialBarChart, RadialBar, Brush
-        } from "recharts";
-        ```
-
-### 9. Erro `Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string.`
-*   **Causa:** O componente `<SelectItem>` (usado em `Select` do ShadCN/Radix) não aceita `value=""`, `null`, ou `undefined`. Uma string vazia é reservada para limpar a seleção.
-*   **Solução:**
-    *   Para opções que representam "nenhum" ou "selecione", use uma constante string não vazia como valor. Exemplo em `src/lib/constants.ts`: `export const NO_ICON_VALUE = "__NO_ICON__";`.
-    *   No formulário (ex: `src/app/(app)/goals/goal-form.tsx`), ao definir o `value` do `Select` no `Controller` do `react-hook-form`, use um fallback para essa constante se o valor do campo for `null` ou `undefined`. Ex: `value={field.value ?? NO_ICON_VALUE}`.
-    *   O `<SelectItem>` correspondente deve ter `value={NO_ICON_VALUE}`.
-    *   Ao submeter os dados do formulário, converta o valor da constante de volta para `null` se for apropriado para o backend. Ex: `icon: data.icon === NO_ICON_VALUE ? null : data.icon`.
-
-### 10. Labels de Eixos de Gráficos "Saindo" do Card (Ex: Gráfico de Evolução Mensal)
-*   **Causa:** Espaço insuficiente calculado pelo Recharts para os eixos devido a margens inadequadas no componente de gráfico (`LineChart`, `BarChart`, etc.) ou altura do `XAxis` inadequada para labels rotacionados.
-*   **Solução:**
-    *   Ajustar as propriedades `margin` do componente de gráfico. Ex: `<LineChart data={...} margin={{ top: 10, right: 30, left: 30, bottom: 70 }}>`. Aumentar `bottom` é crucial para labels X rotacionados, e `left` para labels Y.
-    *   Para eixos X com labels rotacionados, aumentar a propriedade `height` do `XAxis` e usar `dy` para ajustar a posição vertical do texto. Ex: `<XAxis dataKey="month" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={80} dy={10} />`.
-    *   Para eixos Y, usar `dx` para ajustar a posição horizontal. Ex: `<YAxis tickFormatter={...} tick={{ fontSize: 10 }} dx={-5} />`.
-
-### 11. Erro 404 (Não Encontrado) para Novas Rotas (Ex: `/dev/systems`, `/transactions/new`)
-*   **Causa:** Ausência dos arquivos `page.tsx` (ou `page.js`) correspondentes para as rotas definidas no sistema de arquivos do Next.js App Router.
-*   **Solução:** Criar o arquivo `page.tsx` necessário dentro da pasta da respectiva rota. Por exemplo, para `/dev/systems`, criar `src/app/(app)/dev/systems/page.tsx`. Para `/transactions/new`, criar `src/app/(app)/transactions/new/page.tsx`.
-
-### 12. Scroll Horizontal Indesejado na Tela (Layout Geral)
-*   **Causa:** Um ou mais elementos no layout principal podem estar excedendo a largura da viewport, ou o gerenciamento de `overflow` não está correto.
-*   **Solução:** Aplicar a classe `overflow-hidden` ao contêiner raiz do layout principal da aplicação (ex: o `div` em `src/app/(app)/layout.tsx` que envolve `AppHeader` e o conteúdo `<main>`). Isso previne que o contêiner raiz seja rolável, delegando o scroll vertical para o elemento `<main>` interno (que geralmente tem `overflow-y-auto`).
+*   **Causas Comuns:** Variáveis de ambiente ausentes no Netlify, erros de runtime (Edge vs. Node.js), ou `useSearchParams()` sem um `<Suspense>`.
+*   **Soluções:**
+    1.  **Variáveis de Ambiente:** Configure **TODAS** as variáveis do seu `.env` local nas "Environment variables" do seu site no Netlify.
+    2.  **Runtime:** Adicione `export const runtime = 'nodejs';` no início do arquivo `src/app/api/auth/[...nextauth]/route.ts` para forçar a execução desta rota no runtime Node.js.
+    3.  **Suspense:** Em páginas como login e cadastro, envolva os componentes de formulário (que usam `useSearchParams`) com `<Suspense fallback={...}>`.
 
 ## 🗺️ Roadmap
 *   [ ] Implementação completa de gestão de Assinaturas (Stripe).
