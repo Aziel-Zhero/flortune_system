@@ -1,13 +1,20 @@
+-- ### FLORTUNE DATABASE SCHEMA ###
+-- Este script configura o banco de dados PostgreSQL para a aplicação Flortune no Supabase.
 
--- ### Gerenciador de Extensões ###
+-- === Configuração Inicial e Extensões ===
+-- Garante que o schema 'extensions' exista.
+CREATE SCHEMA IF NOT EXISTS extensions;
+
+-- Habilita a extensão 'uuid-ossp' para gerar UUIDs, se ainda não estiver habilitada.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
--- #################################################################
--- ### DEFINIÇÃO DO SCHEMA PARA O NEXT-AUTH (SupabaseAdapter)
--- #################################################################
-CREATE SCHEMA IF NOT EXISTS next_auth;
+-- Habilita a extensão 'moddatetime' para atualizar timestamps automaticamente.
+-- Esta extensão é crucial para os triggers de 'updated_at'.
+CREATE EXTENSION IF NOT EXISTS "moddatetime" WITH SCHEMA extensions;
 
--- Tabela de Usuários do NextAuth
+
+-- === Schema para NextAuth.js (Auth.js) ===
+-- O SupabaseAdapter do NextAuth.js requer este schema e as tabelas dentro dele.
 CREATE TABLE IF NOT EXISTS next_auth.users (
     id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     name text,
@@ -18,7 +25,6 @@ CREATE TABLE IF NOT EXISTS next_auth.users (
     CONSTRAINT users_email_key UNIQUE (email)
 );
 
--- Tabela de Contas OAuth do NextAuth
 CREATE TABLE IF NOT EXISTS next_auth.accounts (
     id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     type text NOT NULL,
@@ -37,30 +43,29 @@ CREATE TABLE IF NOT EXISTS next_auth.accounts (
     CONSTRAINT accounts_userId_fkey FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
 );
 
--- Tabela de Sessões do NextAuth
 CREATE TABLE IF NOT EXISTS next_auth.sessions (
     id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     expires timestamp with time zone NOT NULL,
     "sessionToken" text NOT NULL,
     "userId" uuid,
     CONSTRAINT sessions_pkey PRIMARY KEY (id),
-    CONSTRAINT sessions_sessionToken_key UNIQUE ("sessionToken"),
+    CONSTRAINT "sessions_sessionToken_key" UNIQUE ("sessionToken"),
     CONSTRAINT sessions_userId_fkey FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
 );
 
--- Tabela de Tokens de Verificação do NextAuth
 CREATE TABLE IF NOT EXISTS next_auth.verification_tokens (
-    token text,
     identifier text,
+    token text,
     expires timestamp with time zone NOT NULL,
-    CONSTRAINT "verification_tokens_token_identifier_key" UNIQUE (token, identifier)
+    CONSTRAINT "verification_tokens_token_key" UNIQUE (token),
+    CONSTRAINT verification_tokens_pkey PRIMARY KEY (identifier, token)
 );
 
--- #################################################################
--- ### DEFINIÇÃO DAS TABELAS PÚBLICAS DA APLICAÇÃO (FLORTUNE)
--- #################################################################
 
--- Tabela de Perfis de Usuário (Fonte da Verdade para a aplicação)
+-- === Schema Público da Aplicação ===
+
+-- Tabela de Perfis de Usuário
+-- Esta tabela armazena informações detalhadas dos usuários, estendendo 'next_auth.users'.
 CREATE TABLE IF NOT EXISTS public.profiles (
     id uuid NOT NULL,
     full_name text,
@@ -71,66 +76,32 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     cpf_cnpj text,
     rg text,
     avatar_url text,
-    account_type text,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    account_type text, -- 'pessoa' ou 'empresa'
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT profiles_pkey PRIMARY KEY (id),
     CONSTRAINT profiles_email_key UNIQUE (email),
     CONSTRAINT profiles_cpf_cnpj_key UNIQUE (cpf_cnpj),
-    -- A FK para `auth.users` não é mais necessária aqui; a ligação é feita pelo `id`.
-    -- A FK para `next_auth.users` também é removida para evitar dependências cruzadas complexas.
-    CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+    CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES next_auth.users(id) ON DELETE CASCADE
 );
-COMMENT ON TABLE public.profiles IS 'Stores all user profile information, including credentials for local login.';
-
--- Habilitar Row Level Security (RLS) para a tabela de perfis
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Limpar políticas antigas para garantir um estado limpo
-DROP POLICY IF EXISTS "Allow authenticated user to read/update their own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow users to read their own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow users to update their own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow anon to insert their own profile on signup" ON public.profiles;
-
--- Política de INSERT para a Server Action de signup (que usa a chave anônima)
-CREATE POLICY "Allow anon to insert their own profile on signup"
-  ON public.profiles FOR INSERT
-  TO anon
-  WITH CHECK (true);
-  
--- Política de SELECT/UPDATE para o usuário dono do perfil
-CREATE POLICY "Allow authenticated user to read/update their own profile"
-  ON public.profiles FOR ALL
-  TO authenticated
-  USING (auth.uid() = id);
-
--- Trigger para manter a data de atualização
-CREATE OR REPLACE TRIGGER on_profile_update
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION extensions.moddatetime(updated_at);
-
--- Tabela de Categorias
+-- Tabela de Categorias (para transações, orçamentos, etc.)
 CREATE TABLE IF NOT EXISTS public.categories (
     id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     user_id uuid,
     name text NOT NULL,
-    type text NOT NULL,
+    type text NOT NULL, -- 'income' ou 'expense'
     icon text,
     is_default boolean NOT NULL DEFAULT false,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT categories_pkey PRIMARY KEY (id),
     CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
 );
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow user to manage their own categories and see defaults" ON public.categories;
-CREATE POLICY "Allow user to manage their own categories and see defaults"
-  ON public.categories FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id OR is_default = true);
 
--- Tabela de Transações
+-- Tabela de Transações Financeiras
 CREATE TABLE IF NOT EXISTS public.transactions (
     id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     user_id uuid NOT NULL,
@@ -138,21 +109,16 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     description text NOT NULL,
     amount numeric(12, 2) NOT NULL,
     date date NOT NULL,
-    type text NOT NULL,
+    type text NOT NULL, -- 'income' ou 'expense'
     notes text,
     is_recurring boolean NOT NULL DEFAULT false,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT transactions_pkey PRIMARY KEY (id),
     CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
     CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL
 );
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow user to manage their own transactions" ON public.transactions;
-CREATE POLICY "Allow user to manage their own transactions"
-  ON public.transactions FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
 
 -- Tabela de Orçamentos
 CREATE TABLE IF NOT EXISTS public.budgets (
@@ -160,21 +126,16 @@ CREATE TABLE IF NOT EXISTS public.budgets (
     user_id uuid NOT NULL,
     category_id uuid NOT NULL,
     limit_amount numeric(12, 2) NOT NULL,
-    spent_amount numeric(12, 2) NOT NULL DEFAULT 0,
+    spent_amount numeric(12, 2) NOT NULL DEFAULT 0.00,
     period_start_date date NOT NULL,
     period_end_date date NOT NULL,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT budgets_pkey PRIMARY KEY (id),
     CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
     CONSTRAINT budgets_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE
 );
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow user to manage their own budgets" ON public.budgets;
-CREATE POLICY "Allow user to manage their own budgets"
-  ON public.budgets FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
 
 -- Tabela de Metas Financeiras
 CREATE TABLE IF NOT EXISTS public.financial_goals (
@@ -182,134 +143,149 @@ CREATE TABLE IF NOT EXISTS public.financial_goals (
     user_id uuid NOT NULL,
     name text NOT NULL,
     target_amount numeric(12, 2) NOT NULL,
-    current_amount numeric(12, 2) NOT NULL DEFAULT 0,
+    current_amount numeric(12, 2) NOT NULL DEFAULT 0.00,
     deadline_date date,
     icon text,
     notes text,
-    status text NOT NULL DEFAULT 'in_progress'::text,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    status text NOT NULL DEFAULT 'in_progress', -- 'in_progress', 'achieved', 'cancelled'
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT financial_goals_pkey PRIMARY KEY (id),
     CONSTRAINT financial_goals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
 );
 ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow user to manage their own financial goals" ON public.financial_goals;
-CREATE POLICY "Allow user to manage their own financial goals"
-  ON public.financial_goals FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
 
--- Tabela de Lista de Tarefas (Todos)
+-- Tabela de Tarefas (To-Do List)
 CREATE TABLE IF NOT EXISTS public.todos (
     id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
     user_id uuid NOT NULL,
     description text NOT NULL,
     is_completed boolean NOT NULL DEFAULT false,
     due_date date,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT todos_pkey PRIMARY KEY (id),
     CONSTRAINT todos_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
 );
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow user to manage their own todos" ON public.todos;
-CREATE POLICY "Allow user to manage their own todos"
-  ON public.todos FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id);
-  
 
--- #################################################################
--- ### TRIGGERS E FUNÇÕES AUTOMÁTICAS
--- #################################################################
+-- Tabela de Preços (para Planos/Assinaturas)
+CREATE TABLE IF NOT EXISTS public.prices (
+    id text NOT NULL, -- Price ID from Stripe
+    product_id text, -- Product ID from Stripe
+    active boolean,
+    currency text,
+    description text,
+    type text,
+    unit_amount bigint,
+    interval text,
+    interval_count integer,
+    trial_period_days integer,
+    metadata jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT prices_pkey PRIMARY KEY (id)
+);
+ALTER TABLE public.prices ENABLE ROW LEVEL SECURITY;
 
--- ATENÇÃO: O trigger `handle_new_user_from_next_auth` FOI REMOVIDO.
--- A sincronização de perfis para usuários OAuth agora é tratada
--- na lógica do callback `jwt` do `NextAuth.js` em `/api/auth/[...nextauth]/route.ts`.
--- Isso evita conflitos e condições de corrida entre o adapter e o banco.
-
--- Limpa o trigger e a função antigos se existirem, para evitar conflitos.
-DROP TRIGGER IF EXISTS on_next_auth_user_created ON next_auth.users;
-DROP FUNCTION IF EXISTS public.handle_new_user_from_next_auth();
-
--- Novo Trigger: Sincroniza atualizações do perfil público para a tabela `next_auth.users`
--- Isso mantém o `name` e `image` do NextAuth atualizados se o usuário mudar no perfil.
-CREATE OR REPLACE FUNCTION public.handle_profile_update_to_next_auth_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  UPDATE next_auth.users
-  SET
-    name = NEW.display_name,
-    image = NEW.avatar_url,
-    email = NEW.email
-  WHERE
-    id = NEW.id;
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS on_public_profile_update ON public.profiles;
-CREATE TRIGGER on_public_profile_update
-  AFTER UPDATE OF display_name, avatar_url, email ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_profile_update_to_next_auth_user();
+-- Tabela de Assinaturas dos Usuários
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+    id text NOT NULL, -- Subscription ID from Stripe
+    user_id uuid NOT NULL,
+    status text,
+    metadata jsonb,
+    price_id text,
+    quantity integer,
+    cancel_at_period_end boolean,
+    created timestamptz NOT NULL,
+    current_period_start timestamptz NOT NULL,
+    current_period_end timestamptz NOT NULL,
+    ended_at timestamptz,
+    cancel_at timestamptz,
+    canceled_at timestamptz,
+    trial_start timestamptz,
+    trial_end timestamptz,
+    CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
+    CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES next_auth.users(id) ON DELETE CASCADE,
+    CONSTRAINT subscriptions_price_id_fkey FOREIGN KEY (price_id) REFERENCES public.prices(id)
+);
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
 
--- Função para atualizar `spent_amount` em `budgets`
-CREATE OR REPLACE FUNCTION public.update_budget_spent_amount()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  -- Se uma nova transação for inserida ou uma existente for atualizada
-  IF (TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND NEW.amount <> OLD.amount)) AND NEW.type = 'expense' THEN
-    UPDATE budgets
-    SET spent_amount = spent_amount + (CASE WHEN TG_OP = 'INSERT' THEN NEW.amount ELSE NEW.amount - OLD.amount END)
-    WHERE user_id = NEW.user_id
-      AND category_id = NEW.category_id
-      AND NEW.date >= period_start_date AND NEW.date <= period_end_date;
-  -- Se uma transação for deletada
-  ELSIF (TG_OP = 'DELETE' AND OLD.type = 'expense') THEN
-    UPDATE budgets
-    SET spent_amount = spent_amount - OLD.amount
-    WHERE user_id = OLD.user_id
-      AND category_id = OLD.category_id
-      AND OLD.date >= period_start_date AND OLD.date <= period_end_date;
-  END IF;
-  
-  RETURN NULL; -- O resultado é ignorado para triggers AFTER
-END;
-$$;
+-- === Políticas de Segurança RLS (Row Level Security) ===
 
-DROP TRIGGER IF EXISTS on_transaction_change ON public.transactions;
-CREATE TRIGGER on_transaction_change
-  AFTER INSERT OR UPDATE OR DELETE ON public.transactions
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_budget_spent_amount();
+-- Perfis: Usuários podem ver e editar seu próprio perfil.
+DROP POLICY IF EXISTS "Allow individual read access" ON public.profiles;
+CREATE POLICY "Allow individual read access" ON public.profiles FOR SELECT USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Allow individual update access" ON public.profiles;
+CREATE POLICY "Allow individual update access" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Categorias: Usuários podem gerenciar suas próprias categorias e ver as padrão.
+DROP POLICY IF EXISTS "Allow individual access to categories" ON public.categories;
+CREATE POLICY "Allow individual access to categories" ON public.categories FOR ALL USING (auth.uid() = user_id OR is_default = true);
+
+-- Transações: Usuários podem gerenciar suas próprias transações.
+DROP POLICY IF EXISTS "Allow individual access to transactions" ON public.transactions;
+CREATE POLICY "Allow individual access to transactions" ON public.transactions FOR ALL USING (auth.uid() = user_id);
+
+-- Orçamentos: Usuários podem gerenciar seus próprios orçamentos.
+DROP POLICY IF EXISTS "Allow individual access to budgets" ON public.budgets;
+CREATE POLICY "Allow individual access to budgets" ON public.budgets FOR ALL USING (auth.uid() = user_id);
+
+-- Metas: Usuários podem gerenciar suas próprias metas.
+DROP POLICY IF EXISTS "Allow individual access to financial_goals" ON public.financial_goals;
+CREATE POLICY "Allow individual access to financial_goals" ON public.financial_goals FOR ALL USING (auth.uid() = user_id);
+
+-- Tarefas: Usuários podem gerenciar suas próprias tarefas.
+DROP POLICY IF EXISTS "Allow individual access to todos" ON public.todos;
+CREATE POLICY "Allow individual access to todos" ON public.todos FOR ALL USING (auth.uid() = user_id);
+
+-- Assinaturas: Usuários podem ver suas próprias assinaturas.
+DROP POLICY IF EXISTS "Allow individual read access on subscriptions" ON public.subscriptions;
+CREATE POLICY "Allow individual read access on subscriptions" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id);
 
 
--- #################################################################
--- ### DADOS INICIAIS (CATEGORIAS PADRÃO)
--- #################################################################
+-- === Triggers para Manter 'updated_at' Atualizado ===
+-- A função moddatetime() é fornecida pela extensão 'moddatetime'.
 
+DROP TRIGGER IF EXISTS on_public_profiles_updated_at ON public.profiles;
+CREATE TRIGGER on_public_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+
+DROP TRIGGER IF EXISTS on_public_categories_updated_at ON public.categories;
+CREATE TRIGGER on_public_categories_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+
+DROP TRIGGER IF EXISTS on_public_transactions_updated_at ON public.transactions;
+CREATE TRIGGER on_public_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+
+DROP TRIGGER IF EXISTS on_public_budgets_updated_at ON public.budgets;
+CREATE TRIGGER on_public_budgets_updated_at BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+
+DROP TRIGGER IF EXISTS on_public_financial_goals_updated_at ON public.financial_goals;
+CREATE TRIGGER on_public_financial_goals_updated_at BEFORE UPDATE ON public.financial_goals FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+
+DROP TRIGGER IF EXISTS on_public_todos_updated_at ON public.todos;
+CREATE TRIGGER on_public_todos_updated_at BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+
+DROP TRIGGER IF EXISTS on_public_prices_updated_at ON public.prices;
+CREATE TRIGGER on_public_prices_updated_at BEFORE UPDATE ON public.prices FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime('updated_at');
+
+
+-- === Dados Iniciais (Seed Data) ===
+
+-- Inserir categorias padrão se não existirem
+-- Usamos ON CONFLICT DO NOTHING para evitar duplicatas em execuções repetidas.
 INSERT INTO public.categories (name, type, icon, is_default) VALUES
-('Moradia', 'expense', 'Home', true),
-('Alimentação', 'expense', 'Utensils', true),
-('Transporte', 'expense', 'Car', true),
-('Lazer', 'expense', 'GlassWater', true),
-('Saúde', 'expense', 'HeartPulse', true),
-('Educação', 'expense', 'GraduationCap', true),
-('Vestuário', 'expense', 'Shirt', true),
-('Dívidas', 'expense', 'Landmark', true),
-('Impostos', 'expense', 'Percent', true),
-('Investimentos', 'expense', 'TrendingUp', true),
-('Outras Despesas', 'expense', 'MoreHorizontal', true),
-('Salário', 'income', 'DollarSign', true),
-('Freelance', 'income', 'Briefcase', true),
-('Rendimentos', 'income', 'PiggyBank', true),
-('Presentes', 'income', 'Gift', true),
-('Outras Receitas', 'income', 'MoreHorizontal', true)
-ON CONFLICT (name, type, is_default) DO NOTHING;
+    ('Salário', 'income', 'DollarSign', true),
+    ('Renda Extra', 'income', 'TrendingUp', true),
+    ('Moradia', 'expense', 'Home', true),
+    ('Alimentação', 'expense', 'Utensils', true),
+    ('Transporte', 'expense', 'Car', true),
+    ('Lazer', 'expense', 'Gamepad2', true),
+    ('Saúde', 'expense', 'HeartPulse', true),
+    ('Educação', 'expense', 'BookOpen', true),
+    ('Contas', 'expense', 'Receipt', true),
+    ('Investimentos', 'expense', 'PiggyBank', true),
+    ('Outros', 'expense', 'Tag', true)
+ON CONFLICT (name) WHERE is_default = true DO NOTHING;
+
+-- Fim do Script
