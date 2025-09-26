@@ -190,7 +190,7 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 *   **Solução:**
     *   A restrição de chave estrangeira `profiles_id_fkey` foi removida do script `docs/database_schema.sql`.
     *   A ligação entre `public.profiles.id` e `next_auth.users.id` agora é feita por convenção (ambos usam o mesmo UUID para o mesmo usuário).
-    *   O trigger `public.handle_new_user_from_next_auth` (que dispara na criação de um usuário em `next_auth.users`) é responsável por criar ou atualizar o registro correspondente em `public.profiles`, usando `ON CONFLICT (id) DO UPDATE` para sincronizar os dados. Isso permite que o perfil seja criado primeiro pela action `signupUser` e depois sincronizado/confirmado quando o NextAuth cria o usuário.
+    *   O trigger `public.handle_new_user_from_next_auth` (que dispara na criação de um usuário em `next_auth.users`) foi removido. A `Server Action` `signupUser` agora é responsável por criar o usuário no `Supabase Auth` e, em seguida, inserir o perfil completo em `public.profiles`, garantindo a consistência.
 
 ### 3. Cadastro Manual Falha com Erro de Política RLS (`new row violates row-level security policy for table "profiles"`)
 

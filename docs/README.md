@@ -12,7 +12,7 @@ Este diretório contém documentos de suporte e informações adicionais sobre o
 
 Este é o arquivo mais crítico para a configuração inicial do projeto. Ele contém todas as definições do banco de dados PostgreSQL no Supabase.
 
-**Importante:** Execute este script no **SQL Editor** do seu painel Supabase **antes** de tentar rodar a aplicação pela primeira vez.
+**Importante:** Execute este script no **SQL Editor** do seu painel Supabase **antes** de tentar rodar a aplicação pela primeira vez. Se você já executou uma versão anterior, executar este script novamente irá limpar e recriar as políticas e funções para garantir que a versão mais recente esteja em vigor, o que é crucial para corrigir problemas de autenticação.
 
 #### Passos para Execução:
 1.  Acesse seu projeto no painel do [Supabase](https://supabase.com/).
@@ -26,7 +26,7 @@ Isso irá configurar:
 - A tabela `public.profiles` para armazenar informações detalhadas dos usuários.
 - As tabelas principais da aplicação: `transactions`, `categories`, `budgets`, `financial_goals`.
 - As políticas de Row Level Security (RLS) que garantem que os usuários só possam acessar seus próprios dados.
-- Triggers e funções que automatizam tarefas, como criar um perfil público quando um novo usuário se autentica.
+- **Importante:** O trigger que criava perfis automaticamente foi removido para dar lugar a uma lógica mais segura e centralizada nas Server Actions da aplicação.
 
 **Aviso sobre Variáveis de Ambiente:**
 
