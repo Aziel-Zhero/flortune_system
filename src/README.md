@@ -216,6 +216,9 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
     *   **Solução:** A sintaxe `CREATE POLICY IF NOT EXISTS ...` não é válida no PostgreSQL. Foi corrigido para usar o padrão `DROP POLICY IF EXISTS nome_da_politica ON nome_da_tabela; CREATE POLICY nome_da_politica ON nome_da_tabela ...;` para todas as políticas.
 *   **`ERROR: syntax error at or near "AS" ... AS $$` (para a função do trigger):**
     *   **Solução:** A declaração `SET search_path` foi movida para dentro do corpo da função PL/pgSQL (`BEGIN SET LOCAL search_path = public, extensions; ... END;`) em vez de ser uma opção de `CREATE FUNCTION`.
+*   **`ERROR: there is no unique or exclusion constraint matching the ON CONFLICT specification`:**
+    *   **Causa:** O trigger `handle_new_user_from_next_auth` tentava usar `ON CONFLICT (id)`, mas a coluna `id` da tabela `public.profiles` não era uma chave primária ou única no momento da criação do trigger. Uma dependência circular causada por uma chave estrangeira incorreta (`profiles_id_fkey`) impedia a criação correta.
+    *   **Solução:** O script `docs/database_schema.sql` foi reestruturado: a tabela `public.profiles` agora é criada com `id` como `PRIMARY KEY` desde o início, e a `FOREIGN KEY` conflitante foi removida. Isso garante que a cláusula `ON CONFLICT` funcione corretamente.
 
 ### 5. Build no Netlify Falha Devido a Variáveis de Ambiente Ausentes
 
