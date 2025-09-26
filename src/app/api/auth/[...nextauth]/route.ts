@@ -1,4 +1,3 @@
-
 // src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthConfig } from 'next-auth';
@@ -10,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
-export const runtime = 'nodejs';
+export const runtime = 'nodejs'; // Explicitly set runtime to Node.js
 
 // --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,17 +18,17 @@ const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+// A variável NEXTAUTH_URL é injetada automaticamente por provedores como Vercel e Netlify.
+const nextAuthUrl = process.env.NEXTAUTH_URL;
 
-// --- Helper function to check for valid URL ---
-function isValidSupabaseUrl(url: string | undefined): url is string {
-  return !!url && url.startsWith('http') && !url.includes('<');
-}
 
 // --- Log Environment Variable Status ---
-if (!isValidSupabaseUrl(supabaseUrl)) console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or is invalid.");
-if (!supabaseServiceRoleKey || supabaseServiceRoleKey.includes('<')) console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set or is a placeholder.");
+if (!supabaseUrl || !supabaseUrl.startsWith('http')) console.warn("⚠️ WARNING: NEXT_PUBLIC_SUPABASE_URL is not set or is invalid.");
+if (!supabaseServiceRoleKey) console.warn("⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is not set.");
 if (!nextAuthSecret) console.warn("⚠️ WARNING: AUTH_SECRET is not set.");
 if (!googleClientId || !googleClientSecret) console.warn("⚠️ WARNING: GoogleProvider credentials are not set.");
+if (!nextAuthUrl) console.warn("⚠️ WARNING: NEXTAUTH_URL is not set. This may cause issues in production.");
+
 
 // --- Provider Configuration ---
 const providers: NextAuthConfig['providers'] = [
@@ -41,21 +40,20 @@ const providers: NextAuthConfig['providers'] = [
     },
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) return null;
-      if (!isValidSupabaseUrl(supabaseUrl) || !supabaseServiceRoleKey) {
+      if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseUrl.startsWith('http')) {
         console.error('[NextAuth Authorize] Supabase credentials are not configured or invalid.');
         return null;
       }
+      
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+
       try {
-        // O login com credenciais agora busca o perfil na tabela `public.profiles`,
-        // que é a nossa fonte da verdade para dados de perfil, incluindo a senha.
         const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
         if (!profile || !profile.hashed_password) return null;
         
         const passwordsMatch = await bcrypt.compare(credentials.password as string, profile.hashed_password);
         
         if (passwordsMatch) {
-          // Retornamos o perfil completo para que o callback `jwt` possa usá-lo.
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
           return { id: userProfile.id, email: userProfile.email, name: userProfile.display_name, image: userProfile.avatar_url, profile: userProfile };
@@ -81,42 +79,38 @@ if (googleClientId && googleClientSecret) {
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
   providers,
-  adapter: SupabaseAdapter({ 
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL!, 
-      secret: process.env.SUPABASE_SERVICE_ROLE_KEY! 
-  }),
+  adapter: (supabaseUrl && supabaseServiceRoleKey) ? SupabaseAdapter({ url: supabaseUrl, secret: supabaseServiceRoleKey }) : undefined,
   session: { strategy: 'jwt' },
+  // A adição da variável NEXTAUTH_URL aqui garante que o NextAuth a utilize para os callbacks.
+  // Em desenvolvimento, ela será undefined e o NextAuth usará o padrão (localhost).
+  // Em produção (Netlify/Vercel), ela será a URL do site.
+  trustHost: true, // Necessário para o NextAuth.js v5
+  basePath: '/api/auth', // Opcional, mas bom para clareza
+  ... (nextAuthUrl ? { logger: {
+      error(code, metadata) { console.error(`NextAuth Error - Code: ${code}`, metadata); },
+      warn(code) { console.warn(`NextAuth Warning - Code: ${code}`); },
+      debug(code, metadata) { console.debug(`NextAuth Debug - Code: ${code}`, metadata); }
+    }} : {}),
   callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) { // Na primeira vez que o usuário faz login (ou se cadastra)
+    async jwt({ token, user }) {
+      if (user) {
         token.sub = user.id;
-
-        // Se o login foi via Credentials, o perfil completo já está no objeto user.
-        if (user.profile) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { hashed_password, ...safeProfile } = user.profile;
-          token.profile = safeProfile;
-        } 
-        // Se foi via OAuth, o `SupabaseAdapter` já criou o usuário em `auth.users`.
-        // O trigger no banco de dados (`handle_new_user`) criou a entrada em `public.profiles`.
+        // Após um login/cadastro, o `SupabaseAdapter` garante que um usuário exista.
+        // O trigger no DB (`handle_new_user`) cria o perfil em `public.profiles`.
         // Agora, buscamos esse perfil para adicioná-lo ao token JWT.
-        else if (account?.provider === 'google') {
-           if (isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
-              const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-              const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
-              if (dbProfile) {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { hashed_password, ...safeProfile } = dbProfile;
-                token.profile = safeProfile;
-              }
-           }
+        if (supabaseUrl && supabaseServiceRoleKey) {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+          const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
+          if (dbProfile) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { hashed_password, ...safeProfile } = dbProfile;
+            token.profile = safeProfile;
+          }
         }
       }
       return token;
     },
     async session({ session, token }) {
-      // A cada chamada de `useSession` ou `auth()`, esta função é executada,
-      // passando os dados do token JWT para o objeto de sessão do cliente.
       if (token.sub) session.user.id = token.sub;
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
