@@ -100,12 +100,12 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     console.error(errorMsg);
     return { message: errorMsg, success: false, errors: { _form: [errorMsg] } };
   }
-
-  // Usar a chave anônima para esta operação inicial é seguro devido às políticas RLS
+  
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   try {
     const rawData = Object.fromEntries(formData.entries());
+    
     // Normalização dos dados para validação
     if (rawData.cpf === '') rawData.cpf = undefined;
     if (rawData.cnpj === '') rawData.cnpj = undefined;
@@ -149,19 +149,16 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     
     console.log("[SignupUser Action] Email disponível. Processando novo usuário...");
 
-    // 2. Criar o usuário no Supabase Auth
+    // 2. Criar o usuário no Supabase Auth. O NextAuth adapter irá então sincronizá-lo com as tabelas do next_auth.
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        // Metadados que o SupabaseAdapter pode usar para preencher a tabela `users`
         data: {
             full_name: fullName,
             display_name: displayName,
             avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-            phone: phone ? phone.replace(/\D/g, '') : null,
-            cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
-            rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
-            account_type: accountType,
         },
       },
     });
@@ -176,15 +173,8 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         return { message: "Ocorreu um erro inesperado e o usuário não foi criado.", success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
     
-    // 3. O trigger `on_auth_user_created` DEVE ter sido removido. 
-    // O NextAuth.js Adapter cuidará de criar a entrada em `next_auth.users`.
-    // A tabela `profiles` será populada pelos metadados do `auth.signUp` se o trigger ainda existir,
-    // ou por um hook do NextAuth se o trigger for removido.
-    // A abordagem mais limpa é remover o trigger e deixar o NextAuth gerenciar.
-    // (Assumindo que o `database_schema.sql` removeu o trigger)
-
-    // 4. Hashear a senha e inserir o perfil completo na tabela public.profiles.
-    // Esta etapa é crucial para que o login com 'Credentials' funcione.
+    // 3. Inserir o perfil completo na nossa tabela `public.profiles`.
+    // Esta etapa é crucial para que o login com 'Credentials' funcione e para ter todos os dados do usuário.
     const hashedPassword = await bcrypt.hash(password, 10);
     const newProfileData: Omit<Profile, 'created_at' | 'updated_at'> = {
         id: authData.user.id,
@@ -199,8 +189,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         account_type: accountType,
     };
     
-    // Usando a service_role key para inserir o perfil, pois RLS pode bloquear o usuário anônimo.
-    // Esta é uma operação backend segura.
+    // Usando a service_role key para inserir o perfil, pois a RLS do usuário ainda não está ativa.
     const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { error: insertProfileError } = await supabaseAdmin
       .from('profiles')
