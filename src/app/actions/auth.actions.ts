@@ -87,6 +87,24 @@ export type SignupFormState = {
   success?: boolean;
 };
 
+// SQL function para inserir no profile
+async function createProfileForUser(supabaseAdmin: any, userId: string, email: string, metadata: any) {
+  const { error } = await supabaseAdmin.from('profiles').insert({
+    id: userId,
+    email: email,
+    full_name: metadata.full_name,
+    display_name: metadata.display_name,
+    avatar_url: metadata.avatar_url,
+    phone: metadata.phone,
+    account_type: metadata.account_type,
+    cpf_cnpj: metadata.cpf_cnpj,
+    rg: metadata.rg,
+    hashed_password: metadata.hashed_password // Senha já hasheada
+  });
+  return { error };
+}
+
+
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -114,29 +132,19 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
 
-    // A verificação de email existente é feita pelo próprio `supabase.auth.signUp`.
-    // Não precisamos de uma verificação manual prévia.
-
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.signUp({
       email,
       password,
       options: {
-        // Estes dados serão usados pelo trigger no banco de dados para popular a tabela `profiles`.
+        // Reduzimos os metadados aqui, pois o perfil será criado separadamente
         data: {
-          full_name: fullName,
           display_name: displayName,
-          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-          phone: phone ? phone.replace(/\D/g, '') : null,
-          cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
-          rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
-          account_type: accountType,
-        },
-      },
+        }
+      }
     });
 
     if (signUpError) {
         console.error("[Signup Action] Supabase signUp error:", signUpError.message);
-        // Personaliza a mensagem de erro para o usuário.
         if (signUpError.message.includes("User already registered")) {
             return { message: "Este email já está cadastrado.", success: false, errors: { email: ["Este email já está em uso."] } };
         }
@@ -148,8 +156,29 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         console.error(`[Signup Action] Error: ${errorMsg}`);
         return { message: errorMsg, success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
+
+    // Agora, crie o perfil na tabela public.profiles
+    const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+        id: authData.user.id,
+        email: email,
+        full_name: fullName,
+        display_name: displayName,
+        phone: phone ? phone.replace(/\D/g, '') : null,
+        account_type: accountType,
+        cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
+        rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
+        avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
+        hashed_password: null // O hash da senha fica no Supabase Auth, não precisamos duplicar aqui.
+    });
+
+    if (profileError) {
+        console.error("[Signup Action] Failed to create profile:", profileError.message);
+        // Opcional: deletar o usuário do auth se a criação do perfil falhar para consistência
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return { message: `Falha ao salvar perfil: ${profileError.message}`, success: false, errors: { _form: ["Erro ao finalizar o cadastro."]}};
+    }
     
-    console.log("[Signup Action] User created successfully in Supabase Auth. Redirecting to login.");
+    console.log("[Signup Action] User and profile created successfully. Redirecting to login.");
     redirect('/login?signup=success');
 
   } catch (error: any) {

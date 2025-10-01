@@ -50,8 +50,14 @@ const providers: NextAuthConfig['providers'] = [
 
       try {
         const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
-        if (!profile || !profile.hashed_password) return null;
+        if (!profile) return null; // Usuário não encontrado na tabela de perfis
         
+        // Se o usuário só tem login social, ele não terá senha hash.
+        if (!profile.hashed_password) {
+            console.warn(`[NextAuth Authorize] Login attempt for user '${credentials.email}' without a password. Possibly an OAuth-only user.`);
+            return null;
+        }
+
         const passwordsMatch = await bcrypt.compare(credentials.password as string, profile.hashed_password);
         
         if (passwordsMatch) {
@@ -85,11 +91,16 @@ export const authConfig: NextAuthConfig = {
   trustHost: true,
   basePath: '/api/auth',
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
+    async jwt({ token, user, account }) {
+      if (user) { // Na primeira vez que o JWT é criado (após o login)
+        token.sub = user.id; // Garante que o ID do usuário está no token
         
-        if (supabaseUrl && supabaseServiceRoleKey) {
+        // Se a propriedade 'profile' veio do authorize, use-a.
+        if (user.profile) {
+            token.profile = user.profile;
+        } 
+        // Se não (ex: login com Google), busque o perfil no banco.
+        else if (supabaseUrl && supabaseServiceRoleKey) {
           const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
           const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
           if (dbProfile) {
@@ -103,6 +114,7 @@ export const authConfig: NextAuthConfig = {
     },
     async session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
+
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
