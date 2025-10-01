@@ -1,46 +1,68 @@
 
--- ### INÍCIO - Limpeza Completa do Ambiente ###
--- O Supabase não permite DROP SCHEMA next_auth, então limpamos as tabelas individualmente.
-DROP TABLE IF EXISTS "next_auth"."users" CASCADE;
-DROP TABLE IF EXISTS "next_auth"."accounts" CASCADE;
-DROP TABLE IF EXISTS "next_auth"."sessions" CASCADE;
-DROP TABLE IF EXISTS "next_auth"."verification_tokens" CASCADE;
+-- ### Limpeza Geral do Banco de Dados ###
+-- O código abaixo remove todas as tabelas, tipos e funções customizadas
+-- para garantir um ambiente limpo antes de criar a nova estrutura.
+-- É seguro executar isso mesmo que as tabelas não existam.
 
--- Limpa as tabelas da aplicação em ordem de dependência para evitar erros.
-DROP TABLE IF EXISTS "public"."todos" CASCADE;
-DROP TABLE IF EXISTS "public"."financial_goals" CASCADE;
-DROP TABLE IF EXISTS "public"."budgets" CASCADE;
-DROP TABLE IF EXISTS "public"."transactions" CASCADE;
-DROP TABLE IF EXISTS "public"."categories" CASCADE;
-DROP TABLE IF EXISTS "public"."clients" CASCADE;
-DROP TABLE IF EXISTS "public"."notes" CASCADE;
-DROP TABLE IF EXISTS "public"."weather_logs" CASCADE;
-DROP TABLE IF EXISTS "public"."api_cities" CASCADE;
-DROP TABLE IF EXISTS "public"."quote_logs" CASCADE;
-DROP TABLE IF EXISTS "public"."financial_assets" CASCADE;
-DROP TABLE IF EXISTS "public"."profiles" CASCADE;
-
--- Limpa os ENUMs personalizados.
-DROP TYPE IF EXISTS "public"."account_type_enum";
-DROP TYPE IF EXISTS "public"."transaction_type_enum";
-DROP TYPE IF EXISTS "public"."goal_status_enum";
-DROP TYPE IF EXISTS "public"."client_status_enum";
-DROP TYPE IF EXISTS "public"."client_priority_enum";
-DROP TYPE IF EXISTS "public"."asset_type_enum";
-
--- Remove a extensão pgcrypto se não for mais necessária (o trigger moddatetime a usa).
--- DROP EXTENSION IF EXISTS "pgcrypto";
--- ### FIM - Limpeza Completa do Ambiente ###
+-- Desabilita a confirmação de email para novos usuários (fluxo de cadastro mais simples)
+-- Nota: Usando um bloco anônimo para evitar erros se a configuração já estiver correta.
+DO $$
+BEGIN
+   IF EXISTS (SELECT 1 FROM pg_settings WHERE name = 'app.settings.allow_anonymous_users' AND setting = 't') THEN
+      UPDATE auth.settings SET confirm_email = false;
+      RAISE NOTICE 'Email confirmation disabled.';
+   ELSE
+      -- Em versões mais recentes do Supabase, a alteração é via API ou Dashboard.
+      -- Este comando pode falhar, mas não impede o resto do script.
+      -- A alternativa é desabilitar manualmente no Dashboard > Authentication > Providers > Email.
+      BEGIN
+         UPDATE auth.settings SET confirm_email = false;
+         RAISE NOTICE 'Attempted to disable email confirmation.';
+      EXCEPTION WHEN OTHERS THEN
+         RAISE NOTICE 'Could not disable email confirmation via SQL. Please check Supabase dashboard settings.';
+      END;
+   END IF;
+END $$;
 
 
--- ### ESTRUTURA --
--- Habilita a extensão para gerar UUIDs.
-CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+DROP TABLE IF EXISTS public.quote_logs CASCADE;
+DROP TABLE IF EXISTS public.financial_assets CASCADE;
+DROP TABLE IF EXISTS public.weather_logs CASCADE;
+DROP TABLE IF EXISTS public.api_cities CASCADE;
+DROP TABLE IF EXISTS public.todos CASCADE;
+DROP TABLE IF EXISTS public.notes CASCADE;
+DROP TABLE IF EXISTS public.financial_goals CASCADE;
+DROP TABLE IF EXISTS public.budgets CASCADE;
+DROP TABLE IF EXISTS public.transactions CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
 
--- ### Trigger para auto-atualizar 'updated_at' ###
--- Esta função será usada em várias tabelas.
-CREATE OR REPLACE FUNCTION public.handle_updated_at()
+DROP TYPE IF EXISTS public.account_type;
+DROP TYPE IF EXISTS public.transaction_type;
+DROP TYPE IF EXISTS public.goal_status;
+DROP TYPE IF EXISTS public.client_status;
+DROP TYPE IF EXISTS public.client_priority;
+DROP TYPE IF EXISTS public.asset_type;
+
+-- Remove a função e o trigger de `moddatetime` se existirem
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.profiles;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.categories;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.transactions;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.budgets;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.financial_goals;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.todos;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.notes;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.api_cities;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.weather_logs;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.financial_assets;
+DROP TRIGGER IF EXISTS on_public_tables_update ON public.quote_logs;
+
+DROP FUNCTION IF EXISTS public.moddatetime();
+
+-- ### Criação da Estrutura (Tabelas, Tipos e Funções) ###
+
+-- Função para auto-atualizar o campo `updated_at`
+CREATE OR REPLACE FUNCTION public.moddatetime()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = now();
@@ -48,269 +70,200 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Criação de Tipos (ENUMs)
+CREATE TYPE public.account_type AS ENUM ('pessoa', 'empresa');
+CREATE TYPE public.transaction_type AS ENUM ('income', 'expense');
+CREATE TYPE public.goal_status AS ENUM ('in_progress', 'achieved', 'cancelled');
+CREATE TYPE public.client_status AS ENUM ('planning', 'in_progress', 'delivered', 'on_hold', 'delayed');
+CREATE TYPE public.client_priority AS ENUM ('low', 'medium', 'high');
+CREATE TYPE public.asset_type AS ENUM ('currency', 'stock_index', 'commodity');
 
--- ### Definição dos ENUMs ###
-CREATE TYPE public.account_type_enum AS ENUM ('pessoa', 'empresa');
-CREATE TYPE public.transaction_type_enum AS ENUM ('income', 'expense');
-CREATE TYPE public.goal_status_enum AS ENUM ('in_progress', 'achieved', 'cancelled');
-CREATE TYPE public.client_status_enum AS ENUM ('planning', 'in_progress', 'delivered', 'on_hold', 'delayed');
-CREATE TYPE public.client_priority_enum AS ENUM ('low', 'medium', 'high');
-CREATE TYPE public.asset_type_enum AS ENUM ('currency', 'stock_index', 'commodity');
 
-
--- ### Criação das Tabelas do NextAuth.js ###
--- Este schema é gerenciado pelo SupabaseAdapter do NextAuth.js.
-CREATE SCHEMA IF NOT EXISTS next_auth;
-
--- Tabela de Usuários do NextAuth
-CREATE TABLE IF NOT EXISTS next_auth.users (
-    id uuid NOT NULL PRIMARY KEY,
-    name text,
-    email text,
-    "emailVerified" timestamp with time zone,
-    image text
+-- Tabela de Perfis de Usuário
+CREATE TABLE public.profiles (
+  id UUID NOT NULL PRIMARY KEY DEFAULT auth.uid(),
+  full_name TEXT,
+  display_name TEXT,
+  email TEXT NOT NULL UNIQUE,
+  hashed_password TEXT,
+  phone TEXT,
+  avatar_url TEXT,
+  account_type public.account_type,
+  cpf_cnpj TEXT UNIQUE,
+  rg TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT email_must_be_valid_email CHECK (email ~* '^[A-Za-z0-9._+%-]+@[A-Za-z0-9.-]+[.][A-Za-z]+$')
 );
+CREATE TRIGGER on_public_profiles_update BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE PROCEDURE public.moddatetime();
 
--- Tabela de Contas (OAuth)
-CREATE TABLE IF NOT EXISTS next_auth.accounts (
-    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
-    "userId" uuid NOT NULL REFERENCES next_auth.users(id) ON DELETE CASCADE,
-    type text NOT NULL,
-    provider text NOT NULL,
-    "providerAccountId" text NOT NULL,
-    refresh_token text,
-    access_token text,
-    expires_at bigint,
-    token_type text,
-    scope text,
-    id_token text,
-    session_state text,
-    CONSTRAINT accounts_provider_providerAccountId_key UNIQUE (provider, "providerAccountId")
+-- Tabela de Categorias
+CREATE TABLE public.categories (
+  id UUID NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type public.transaction_type NOT NULL,
+  icon TEXT,
+  is_default BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTamptz NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TRIGGER on_public_categories_update BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE PROCEDURE public.moddatetime();
+-- Garante que o nome de uma categoria customizada seja único para aquele usuário
+CREATE UNIQUE INDEX user_category_name_unique ON public.categories (user_id, name) WHERE user_id IS NOT NULL;
+-- Garante que o nome de uma categoria padrão seja único
+CREATE UNIQUE INDEX default_category_name_unique ON public.categories (name) WHERE is_default = true;
 
--- Tabela de Sessões
-CREATE TABLE IF NOT EXISTS next_auth.sessions (
-    id uuid NOT NULL DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
-    "sessionToken" text NOT NULL UNIQUE,
-    "userId" uuid NOT NULL REFERENCES next_auth.users(id) ON DELETE CASCADE,
-    expires timestamp with time zone NOT NULL
+
+-- Tabela de Transações
+CREATE TABLE public.transactions (
+  id UUID NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+  description TEXT NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL,
+  date DATE NOT NULL,
+  type public.transaction_type NOT NULL,
+  is_recurring BOOLEAN NOT NULL DEFAULT false,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TRIGGER on_public_transactions_update BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE PROCEDURE public.moddatetime();
 
--- Tabela de Tokens de Verificação (para login sem senha, se usado)
-CREATE TABLE IF NOT EXISTS next_auth.verification_tokens (
-    identifier text,
-    token text NOT NULL UNIQUE,
-    expires timestamp with time zone NOT NULL,
-    CONSTRAINT verification_tokens_identifier_token_key UNIQUE (identifier, token)
+-- Tabela de Orçamentos
+CREATE TABLE public.budgets (
+  id UUID NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
+  limit_amount NUMERIC(12, 2) NOT NULL,
+  spent_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  period_start_date DATE NOT NULL,
+  period_end_date DATE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT limit_must_be_positive CHECK (limit_amount > 0)
 );
+CREATE TRIGGER on_public_budgets_update BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE PROCEDURE public.moddatetime();
 
-
--- ### Criação das Tabelas da Aplicação ###
-
--- 1. Tabela de Perfis de Usuário (`profiles`)
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id uuid NOT NULL PRIMARY KEY DEFAULT auth.uid(),
-    full_name text,
-    display_name text,
-    email text NOT NULL UNIQUE,
-    hashed_password text,
-    phone text,
-    avatar_url text,
-    account_type public.account_type_enum,
-    cpf_cnpj text UNIQUE,
-    rg text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+-- Tabela de Metas Financeiras
+CREATE TABLE public.financial_goals (
+  id UUID NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  target_amount NUMERIC(12, 2) NOT NULL,
+  current_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  deadline_date DATE,
+  icon TEXT,
+  status public.goal_status NOT NULL DEFAULT 'in_progress',
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- Trigger para 'updated_at' em 'profiles'
-CREATE OR REPLACE TRIGGER on_profiles_updated
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
+CREATE TRIGGER on_public_financial_goals_update BEFORE UPDATE ON public.financial_goals FOR EACH ROW EXECUTE PROCEDURE public.moddatetime();
 
--- 2. Tabela de Categorias (`categories`)
-CREATE TABLE IF NOT EXISTS public.categories (
-    id uuid NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
-    name text NOT NULL,
-    type public.transaction_type_enum NOT NULL,
-    icon text,
-    is_default boolean NOT NULL DEFAULT false,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT categories_user_id_name_type_key UNIQUE (user_id, name, type)
+-- Tabela de Lista de Tarefas (Todos)
+CREATE TABLE public.todos (
+  id UUID NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  is_completed BOOLEAN NOT NULL DEFAULT false,
+  due_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- Índice único para categorias padrão
-CREATE UNIQUE INDEX IF NOT EXISTS categories_default_name_type_unique_idx
-ON public.categories(name, type)
-WHERE is_default = true;
--- Trigger para 'updated_at' em 'categories'
-CREATE OR REPLACE TRIGGER on_categories_updated
-  BEFORE UPDATE ON public.categories
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
+CREATE TRIGGER on_public_todos_update BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE PROCEDURE public.moddatetime();
 
--- 3. Tabela de Transações (`transactions`)
-CREATE TABLE IF NOT EXISTS public.transactions (
-    id uuid NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL,
-    description text NOT NULL,
-    amount numeric(12, 2) NOT NULL,
-    date date NOT NULL,
-    type public.transaction_type_enum NOT NULL,
-    is_recurring boolean NOT NULL DEFAULT false,
-    notes text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+-- Tabela de Anotações (Notepad)
+CREATE TABLE public.notes (
+    id UUID NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT,
+    color TEXT,
+    is_pinned BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- Trigger para 'updated_at' em 'transactions'
-CREATE OR REPLACE TRIGGER on_transactions_updated
-  BEFORE UPDATE ON public.transactions
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
+CREATE TRIGGER on_public_notes_update BEFORE UPDATE ON public.notes FOR EACH ROW EXECUTE PROCEDURE public.moddatetime();
 
--- 4. Tabela de Orçamentos (`budgets`)
-CREATE TABLE IF NOT EXISTS public.budgets (
-    id uuid NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    category_id uuid NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
-    limit_amount numeric(12, 2) NOT NULL,
-    spent_amount numeric(12, 2) NOT NULL DEFAULT 0,
-    period_start_date date NOT NULL,
-    period_end_date date NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
--- Trigger para 'updated_at' em 'budgets'
-CREATE OR REPLACE TRIGGER on_budgets_updated
-  BEFORE UPDATE ON public.budgets
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
 
--- 5. Tabela de Metas Financeiras (`financial_goals`)
-CREATE TABLE IF NOT EXISTS public.financial_goals (
-    id uuid NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    name text NOT NULL,
-    target_amount numeric(12, 2) NOT NULL,
-    current_amount numeric(12, 2) NOT NULL DEFAULT 0,
-    deadline_date date,
-    icon text,
-    status public.goal_status_enum NOT NULL DEFAULT 'in_progress',
-    notes text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
--- Trigger para 'updated_at' em 'financial_goals'
-CREATE OR REPLACE TRIGGER on_financial_goals_updated
-  BEFORE UPDATE ON public.financial_goals
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
+-- ### Novas Tabelas para APIs Externas ###
 
--- 6. Tabela de Tarefas (`todos`)
-CREATE TABLE IF NOT EXISTS public.todos (
-    id uuid NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    description text NOT NULL,
-    is_completed boolean NOT NULL DEFAULT false,
-    due_date date,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
--- Trigger para 'updated_at' em 'todos'
-CREATE OR REPLACE TRIGGER on_todos_updated
-  BEFORE UPDATE ON public.todos
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
-
--- 7. Tabela de Anotações (`notes`)
-CREATE TABLE IF NOT EXISTS public.notes (
-    id uuid NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    title text NOT NULL,
-    content text,
-    color text NOT NULL,
-    is_pinned boolean NOT NULL DEFAULT false,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
--- Trigger para 'updated_at' em 'notes'
-CREATE OR REPLACE TRIGGER on_notes_updated
-  BEFORE UPDATE ON public.notes
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
-
--- 8. Tabela de Clientes/Projetos (DEV) (`clients`)
-CREATE TABLE IF NOT EXISTS public.clients (
-    id uuid NOT NULL PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    name text NOT NULL,
-    "serviceType" text,
-    status public.client_status_enum NOT NULL DEFAULT 'planning',
-    priority public.client_priority_enum NOT NULL DEFAULT 'medium',
-    "startDate" date,
-    deadline date,
-    "totalPrice" numeric(12, 2),
-    tasks text,
-    notes text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
--- Trigger para 'updated_at' em 'clients'
-CREATE OR REPLACE TRIGGER on_clients_updated
-  BEFORE UPDATE ON public.clients
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.handle_updated_at();
-
--- 9. Tabela de Cidades da API de Clima (`api_cities`)
-CREATE TABLE IF NOT EXISTS public.api_cities (
-    id serial PRIMARY KEY,
-    name varchar(100) NOT NULL,
-    country varchar(10) NOT NULL,
-    latitude decimal(9, 6),
-    longitude decimal(9, 6),
+-- Tabela para Cidades (API de Clima)
+CREATE TABLE public.api_cities (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    country VARCHAR(5) NOT NULL,
+    latitude DECIMAL(9, 6),
+    longitude DECIMAL(9, 6),
     UNIQUE (name, country)
 );
 
--- 10. Tabela de Logs de Clima (`weather_logs`)
-CREATE TABLE IF NOT EXISTS public.weather_logs (
-    id bigserial PRIMARY KEY,
-    city_id integer NOT NULL REFERENCES public.api_cities(id) ON DELETE CASCADE,
-    temperature decimal(5, 2),
-    description varchar(255),
-    icon_code varchar(10),
-    humidity integer,
-    wind_speed decimal(5, 2),
-    recorded_at timestamptz NOT NULL DEFAULT now()
+-- Tabela para Histórico de Clima
+CREATE TABLE public.weather_logs (
+    id SERIAL PRIMARY KEY,
+    city_id INT NOT NULL REFERENCES public.api_cities(id) ON DELETE CASCADE,
+    temperature DECIMAL(5, 2),
+    description VARCHAR(255),
+    icon_code VARCHAR(10),
+    humidity INT,
+    wind_speed DECIMAL(5, 2),
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 11. Tabela de Ativos Financeiros (`financial_assets`)
-CREATE TABLE IF NOT EXISTS public.financial_assets (
-    id serial PRIMARY KEY,
-    code varchar(20) NOT NULL UNIQUE,
-    name varchar(100) NOT NULL,
-    asset_type public.asset_type_enum NOT NULL
+-- Tabela para Ativos Financeiros (API de Cotações)
+CREATE TABLE public.financial_assets (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    asset_type public.asset_type NOT NULL
 );
 
--- 12. Tabela de Logs de Cotações (`quote_logs`)
-CREATE TABLE IF NOT EXISTS public.quote_logs (
-    id bigserial PRIMARY KEY,
-    asset_id integer NOT NULL REFERENCES public.financial_assets(id) ON DELETE CASCADE,
-    bid_price decimal(18, 6),
-    ask_price decimal(18, 6),
-    pct_change decimal(10, 4),
-    high_price decimal(18, 6),
-    low_price decimal(18, 6),
-    recorded_at timestamptz NOT NULL
+-- Tabela para Histórico de Cotações
+CREATE TABLE public.quote_logs (
+    id SERIAL PRIMARY KEY,
+    asset_id INT NOT NULL REFERENCES public.financial_assets(id) ON DELETE CASCADE,
+    bid_price DECIMAL(18, 6),
+    ask_price DECIMAL(18, 6),
+    pct_change DECIMAL(10, 4),
+    high_price DECIMAL(18, 6),
+    low_price DECIMAL(18, 6),
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ### DADOS INICIAIS (SEED DATA) ###
--- Garante que o índice único para categorias padrão exista.
-CREATE UNIQUE INDEX IF NOT EXISTS categories_default_name_type_key ON public.categories (name, type) WHERE (is_default = true);
 
--- Insere categorias padrão, ignorando conflitos se já existirem.
+-- ### Gatilho para Sincronização de Usuários do Supabase Auth ###
+-- Este trigger garante que um perfil seja criado na tabela `public.profiles`
+-- sempre que um novo usuário se cadastra no `auth.users` do Supabase.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, email, full_name, display_name, avatar_url, account_type, cpf_cnpj, rg, phone)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        NEW.raw_user_meta_data->>'full_name',
+        NEW.raw_user_meta_data->>'display_name',
+        NEW.raw_user_meta_data->>'avatar_url',
+        (NEW.raw_user_meta_data->>'account_type')::public.account_type,
+        NEW.raw_user_meta_data->>'cpf_cnpj',
+        NEW.raw_user_meta_data->>'rg',
+        NEW.raw_user_meta_data->>'phone'
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Remove o trigger antigo se existir e cria o novo
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+
+-- ### Dados Iniciais (Seed Data) ###
+-- Insere categorias padrão que estarão disponíveis para todos os usuários.
 INSERT INTO public.categories (name, type, icon, is_default) VALUES
   ('Salário', 'income', 'DollarSign', true),
   ('Rendimentos', 'income', 'TrendingUp', true),
@@ -326,12 +279,12 @@ INSERT INTO public.categories (name, type, icon, is_default) VALUES
   ('Impostos', 'expense', 'Landmark', true),
   ('Serviços', 'expense', 'Wrench', true),
   ('Outras Despesas', 'expense', 'Receipt', true)
-ON CONFLICT (name, type) WHERE (is_default = true) DO NOTHING;
+ON CONFLICT (name) WHERE is_default = true DO NOTHING;
 
 
--- ### POLÍTICAS DE SEGURANÇA (ROW LEVEL SECURITY - RLS) ###
+-- ### Políticas de Segurança (Row Level Security - RLS) ###
 
--- Habilita RLS em todas as tabelas
+-- Habilitar RLS para todas as tabelas
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
@@ -339,7 +292,47 @@ ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
--- Tabelas de API podem ser públicas ou ter suas próprias regras, aqui deixamos públicas por padrão.
+-- As tabelas de API são de acesso público ou gerenciadas pelo servidor, RLS pode não ser necessária ou ter uma lógica diferente.
 ALTER TABLE public.api_cities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.weather_logs ENABLE ROW L
+ALTER TABLE public.weather_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.financial_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quote_logs ENABLE ROW LEVEL SECURITY;
+
+-- Remove políticas antigas antes de criar novas para evitar erros de "already exists"
+DROP POLICY IF EXISTS "Users can view their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Users can view default and their own categories." ON public.categories;
+DROP POLICY IF EXISTS "Users can manage their own categories." ON public.categories;
+DROP POLICY IF EXISTS "Users can manage their own transactions." ON public.transactions;
+DROP POLICY IF EXISTS "Users can manage their own budgets." ON public.budgets;
+DROP POLICY IF EXISTS "Users can manage their own financial goals." ON public.financial_goals;
+DROP POLICY IF EXISTS "Users can manage their own todos." ON public.todos;
+DROP POLICY IF EXISTS "Users can manage their own notes." ON public.notes;
+DROP POLICY IF EXISTS "API data tables are publicly readable." ON public.api_cities;
+DROP POLICY IF EXISTS "API data tables are publicly readable." ON public.weather_logs;
+DROP POLICY IF EXISTS "API data tables are publicly readable." ON public.financial_assets;
+DROP POLICY IF EXISTS "API data tables are publicly readable." ON public.quote_logs;
+
+
+-- Políticas para `profiles`
+CREATE POLICY "Users can view their own profile." ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+-- Políticas para `categories`
+CREATE POLICY "Users can view default and their own categories." ON public.categories FOR SELECT USING (is_default = true OR auth.uid() = user_id);
+CREATE POLICY "Users can manage their own categories." ON public.categories FOR ALL USING (auth.uid() = user_id);
+
+-- Políticas para `transactions`, `budgets`, `financial_goals`, `todos`, `notes`
+CREATE POLICY "Users can manage their own transactions." ON public.transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own budgets." ON public.budgets FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own financial goals." ON public.financial_goals FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own todos." ON public.todos FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own notes." ON public.notes FOR ALL USING (auth.uid() = user_id);
+
+-- Políticas para tabelas de API (Exemplo: permitir leitura para todos os usuários autenticados)
+CREATE POLICY "API data tables are publicly readable." ON public.api_cities FOR SELECT USING (true);
+CREATE POLICY "API data tables are publicly readable." ON public.weather_logs FOR SELECT USING (true);
+CREATE POLICY "API data tables are publicly readable." ON public.financial_assets FOR SELECT USING (true);
+CREATE POLICY "API data tables are publicly readable." ON public.quote_logs FOR SELECT USING (true);
+
+-- ### Fim do Script ###
