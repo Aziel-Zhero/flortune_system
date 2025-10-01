@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
+import { AlertTriangle, LogIn, KeyRound, Mail, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isDevLoading, setIsDevLoading] = useState(false);
 
   useEffect(() => {
     const signupStatus = searchParams.get('signup');
@@ -91,11 +92,6 @@ export function LoginForm() {
         setIsLoading(false);
         return;
     }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-        setError("Formato de email inválido.");
-        setIsLoading(false);
-        return;
-    }
 
     try {
       const result = await signIn('credentials', {
@@ -105,25 +101,14 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        console.error("LoginForm: NextAuth signIn error (Credentials):", result.error);
-        let friendlyError = "Falha no login. Verifique suas credenciais.";
-        if (result.error === "CredentialsSignin") {
-            friendlyError = "Email ou senha inválidos.";
-        }
-        setError(friendlyError);
-        toast({ title: "Erro de Login", description: friendlyError, variant: "destructive" });
-      } else if (result?.ok && !result.error) {
-        const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-        router.push(callbackUrl);
+        setError("Email ou senha inválidos.");
+        toast({ title: "Erro de Login", description: "Email ou senha inválidos.", variant: "destructive" });
+      } else if (result?.ok) {
+        router.push(searchParams.get('callbackUrl') || '/dashboard');
         toast({ title: "Login bem-sucedido!", description: "Redirecionando..."});
-      } else {
-        setError("Ocorreu um erro desconhecido durante o login.");
-        toast({ title: "Erro", description: "Ocorreu um erro desconhecido.", variant: "destructive" });
       }
     } catch (e) {
-      console.error("LoginForm: Exception during signIn (Credentials):", e);
       setError("Ocorreu um erro no servidor. Tente novamente.");
-      toast({ title: "Erro no Servidor", description: "Não foi possível processar seu login.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -133,23 +118,32 @@ export function LoginForm() {
     setIsGoogleLoading(true);
     setError(null);
     try {
-      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-      // Para OAuth, o NextAuth.js gerencia o redirecionamento.
-      // O `redirect: false` não é tipicamente usado aqui, a menos que você queira
-      // um controle muito específico do fluxo, o que é raro para OAuth.
-      await signIn('google', { callbackUrl }); 
-    } catch(e: any) {
-       console.error("LoginForm: Exception during signIn (Google):", e);
-       let friendlyError = "Falha ao iniciar login com Google.";
-       if (e.message?.includes("OAuthAccountNotLinked")) {
-          friendlyError = "Esta conta já existe com outro método de login. Tente usar email e senha ou o método original."
-       }
-       setError(friendlyError);
-       toast({ title: "Erro de Login com Google", description: friendlyError, variant: "destructive" });
-       setIsGoogleLoading(false); // Garantir que o loading pare em caso de erro síncrono
+      await signIn('google', { callbackUrl: searchParams.get('callbackUrl') || '/dashboard' }); 
+    } catch(e) {
+       setError("Falha ao iniciar login com Google.");
+       setIsGoogleLoading(false);
     }
-    // setIsLoading(false) não é necessário aqui se o signIn redirecionar,
-    // pois o componente será desmontado. Mas se houver um erro que não redireciona, ele deve ser setado.
+  };
+
+  const handleDevSignIn = async () => {
+    setIsDevLoading(true);
+    setError(null);
+    try {
+      const result = await signIn('dev', {
+        redirect: false,
+        email: 'dev@flortune.com',
+      });
+       if (result?.ok) {
+        router.push('/dashboard');
+        toast({ title: "Acesso de Desenvolvedor", description: "Login efetuado com sucesso."});
+      } else {
+        throw new Error(result?.error || "Falha no login de desenvolvedor");
+      }
+    } catch(e: any) {
+       setError("Falha ao usar Acesso DEV.");
+       toast({ title: "Erro no Acesso DEV", description: e.message, variant: "destructive" });
+       setIsDevLoading(false);
+    }
   };
 
   return (
@@ -167,15 +161,7 @@ export function LoginForm() {
           <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="nome@exemplo.com"
-              required
-              className="pl-10"
-              disabled={isLoading || isGoogleLoading}
-            />
+            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" required className="pl-10" disabled={isLoading || isGoogleLoading || isDevLoading}/>
           </div>
         </div>
         <div className="space-y-2">
@@ -187,27 +173,24 @@ export function LoginForm() {
           </div>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              className="pl-10"
-              disabled={isLoading || isGoogleLoading}
-            />
+            <Input id="password" name="password" type="password" required placeholder="••••••••" className="pl-10" disabled={isLoading || isGoogleLoading || isDevLoading} />
           </div>
         </div>
-        <SubmitButton pendingText="Entrando..." disabled={isLoading || isGoogleLoading}>
+        <SubmitButton pendingText="Entrando..." disabled={isLoading || isGoogleLoading || isDevLoading}>
           Entrar <LogIn className="ml-2 h-4 w-4" />
         </SubmitButton>
       </form>
       <Separator />
-      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-        {isGoogleLoading ? "Redirecionando..." : (<><GoogleIcon /> Entrar com Google</>)}
-      </Button>
+      <div className="space-y-2">
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading || isDevLoading}>
+          {isGoogleLoading ? "Redirecionando..." : (<><GoogleIcon /> Entrar com Google</>)}
+        </Button>
+        {process.env.NODE_ENV !== 'production' && (
+          <Button variant="secondary" className="w-full" onClick={handleDevSignIn} disabled={isLoading || isGoogleLoading || isDevLoading}>
+             {isDevLoading ? "Entrando..." : (<><TestTube className="mr-2 h-4 w-4"/> Acesso DEV</>)}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
-
-    

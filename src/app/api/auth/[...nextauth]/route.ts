@@ -18,7 +18,6 @@ const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-// A variável NEXTAUTH_URL é injetada automaticamente por provedores como Vercel e Netlify.
 const nextAuthUrl = process.env.NEXTAUTH_URL;
 
 
@@ -33,6 +32,34 @@ if (!nextAuthUrl) console.warn("⚠️ WARNING: NEXTAUTH_URL is not set. This ma
 // --- Provider Configuration ---
 const providers: NextAuthConfig['providers'] = [
   CredentialsProvider({
+    id: 'dev',
+    name: 'Development Access',
+    credentials: {
+      email: { label: 'Email', type: 'email', placeholder: 'dev@flortune.com' }
+    },
+    async authorize(credentials) {
+      if (process.env.NODE_ENV === 'production') {
+        return null; // Não permitir em produção
+      }
+      // Retorna um usuário mockado para desenvolvimento
+      const testUser = {
+        id: 'dev-user-uuid',
+        name: 'Dev User',
+        email: credentials.email || 'dev@flortune.com',
+        image: 'https://placehold.co/100x100.png?text=DEV',
+        profile: {
+          id: 'dev-user-uuid',
+          full_name: 'Developer User',
+          display_name: 'Dev User',
+          email: credentials.email || 'dev@flortune.com',
+          account_type: 'pessoa',
+        } as Omit<AppProfile, 'hashed_password' | 'created_at' | 'updated_at'>,
+      };
+      return testUser;
+    }
+  }),
+  CredentialsProvider({
+    id: 'credentials',
     name: 'Credentials',
     credentials: {
       email: { label: 'Email', type: 'email' },
@@ -40,7 +67,7 @@ const providers: NextAuthConfig['providers'] = [
     },
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) return null;
-      if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseUrl.startsWith('http')) {
+      if (!supabaseUrl || !supabaseServiceRoleKey) {
         console.error('[NextAuth Authorize] Supabase credentials are not configured or invalid.');
         return null;
       }
@@ -81,24 +108,19 @@ export const authConfig: NextAuthConfig = {
   providers,
   adapter: (supabaseUrl && supabaseServiceRoleKey) ? SupabaseAdapter({ url: supabaseUrl, secret: supabaseServiceRoleKey }) : undefined,
   session: { strategy: 'jwt' },
-  // A adição da variável NEXTAUTH_URL aqui garante que o NextAuth a utilize para os callbacks.
-  // Em desenvolvimento, ela será undefined e o NextAuth usará o padrão (localhost).
-  // Em produção (Netlify/Vercel), ela será a URL do site.
-  trustHost: true, // Necessário para o NextAuth.js v5
-  basePath: '/api/auth', // Opcional, mas bom para clareza
-  ... (nextAuthUrl ? { logger: {
-      error(code, metadata) { console.error(`NextAuth Error - Code: ${code}`, metadata); },
-      warn(code) { console.warn(`NextAuth Warning - Code: ${code}`); },
-      debug(code, metadata) { console.debug(`NextAuth Debug - Code: ${code}`, metadata); }
-    }} : {}),
+  trustHost: true,
+  basePath: '/api/auth',
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
-        // Após um login/cadastro, o `SupabaseAdapter` garante que um usuário exista.
-        // O trigger no DB (`handle_new_user`) cria o perfil em `public.profiles`.
-        // Agora, buscamos esse perfil para adicioná-lo ao token JWT.
-        if (supabaseUrl && supabaseServiceRoleKey) {
+        
+        // Se for o usuário de dev, injeta o perfil mockado
+        if (account?.provider === 'dev' && user.profile) {
+          token.profile = user.profile;
+        } 
+        // Para outros provedores, busca o perfil no banco
+        else if (supabaseUrl && supabaseServiceRoleKey) {
           const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
           const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
           if (dbProfile) {
@@ -118,7 +140,7 @@ export const authConfig: NextAuthConfig = {
         session.user.image = session.user.profile.avatar_url || session.user.image;
         session.user.email = session.user.profile.email || session.user.email;
       }
-      if (supabaseJwtSecret && token.sub && token.email) {
+      if (supabaseJwtSecret && token.sub && token.email && token.sub !== 'dev-user-uuid') {
         const payload = { aud: "authenticated", exp: Math.floor(new Date(session.expires).getTime() / 1000), sub: token.sub, email: token.email, role: "authenticated" };
         session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
       }
