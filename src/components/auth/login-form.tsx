@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { AlertTriangle, LogIn, KeyRound, Mail, TestTube } from "lucide-react";
+import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,6 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isDevLoading, setIsDevLoading] = useState(false);
 
   useEffect(() => {
     const signupStatus = searchParams.get('signup');
@@ -125,27 +124,6 @@ export function LoginForm() {
     }
   };
 
-  const handleDevSignIn = async () => {
-    setIsDevLoading(true);
-    setError(null);
-    try {
-      const result = await signIn('dev', {
-        redirect: false,
-        email: 'dev@flortune.com',
-      });
-       if (result?.ok) {
-        router.push('/dashboard');
-        toast({ title: "Acesso de Desenvolvedor", description: "Login efetuado com sucesso."});
-      } else {
-        throw new Error(result?.error || "Falha no login de desenvolvedor");
-      }
-    } catch(e: any) {
-       setError("Falha ao usar Acesso DEV.");
-       toast({ title: "Erro no Acesso DEV", description: e.message, variant: "destructive" });
-       setIsDevLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -161,7 +139,7 @@ export function LoginForm() {
           <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" required className="pl-10" disabled={isLoading || isGoogleLoading || isDevLoading}/>
+            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" required className="pl-10" disabled={isLoading || isGoogleLoading}/>
           </div>
         </div>
         <div className="space-y-2">
@@ -173,23 +151,18 @@ export function LoginForm() {
           </div>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="password" name="password" type="password" required placeholder="••••••••" className="pl-10" disabled={isLoading || isGoogleLoading || isDevLoading} />
+            <Input id="password" name="password" type="password" required placeholder="••••••••" className="pl-10" disabled={isLoading || isGoogleLoading} />
           </div>
         </div>
-        <SubmitButton pendingText="Entrando..." disabled={isLoading || isGoogleLoading || isDevLoading}>
+        <SubmitButton pendingText="Entrando..." disabled={isLoading || isGoogleLoading}>
           Entrar <LogIn className="ml-2 h-4 w-4" />
         </SubmitButton>
       </form>
       <Separator />
       <div className="space-y-2">
-        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading || isDevLoading}>
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
           {isGoogleLoading ? "Redirecionando..." : (<><GoogleIcon /> Entrar com Google</>)}
         </Button>
-        {process.env.NODE_ENV !== 'production' && (
-          <Button variant="secondary" className="w-full" onClick={handleDevSignIn} disabled={isLoading || isGoogleLoading || isDevLoading}>
-             {isDevLoading ? "Entrando..." : (<><TestTube className="mr-2 h-4 w-4"/> Acesso DEV</>)}
-          </Button>
-        )}
       </div>
     </div>
   );
