@@ -1,4 +1,3 @@
-
 // src/app/(app)/budgets/budget-form.tsx
 "use client";
 
@@ -52,7 +51,7 @@ interface BudgetFormProps {
 }
 
 export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const user = session?.user;
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -65,6 +64,7 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
     resolver: zodResolver(budgetFormSchema),
     defaultValues: initialData ? {
         ...initialData,
+        limit_amount: initialData.limit_amount,
         period_start_date: parseISO(initialData.period_start_date),
         period_end_date: parseISO(initialData.period_end_date),
     } : {
@@ -110,11 +110,11 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
     try {
       let result;
       if (isEditing) {
-        result = await updateBudget(initialData.id, user.id, budgetData);
+        result = await updateBudget(initialData.id, user.id, budgetData as UpdateBudgetData);
         if (result.error) throw result.error;
         toast({ title: "Orçamento Atualizado!", action: <CheckCircle className="text-green-500" /> });
       } else {
-        result = await addBudget(user.id, budgetData);
+        result = await addBudget(user.id, budgetData as NewBudgetData);
         if (result.error) throw result.error;
         toast({ title: "Orçamento Criado!", action: <CheckCircle className="text-green-500" /> });
       }

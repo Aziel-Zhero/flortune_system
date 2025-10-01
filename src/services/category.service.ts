@@ -1,4 +1,3 @@
-
 'use server';
 
 import { createSupabaseClientWithToken } from '@/lib/supabase/client';
@@ -26,7 +25,7 @@ export async function getCategories(userId: string | null): Promise<ServiceListR
     if (userId) {
       query = query.or(`user_id.eq.${userId},is_default.is.true`);
     } else {
-      query = query.is('is_default', true);
+      query = query.eq('is_default', true);
     }
     
     const { data, error, count } = await query;

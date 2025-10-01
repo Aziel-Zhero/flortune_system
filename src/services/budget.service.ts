@@ -1,13 +1,10 @@
-
 'use server';
 
 import { createSupabaseClientWithToken } from '@/lib/supabase/client';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
 import type { Budget, ServiceListResponse, ServiceResponse, Category } from '@/types/database.types';
 
-export type NewBudgetData = Omit<Budget, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'spent_amount' | 'category'> & {
-  category_id: string; 
-};
+export type NewBudgetData = Omit<Budget, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'spent_amount' | 'category'>;
 
 export type UpdateBudgetData = Partial<Pick<Budget, 'category_id' | 'limit_amount' | 'period_start_date' | 'period_end_date'>>;
 
@@ -29,16 +26,8 @@ export async function getBudgets(userId: string): Promise<ServiceListResponse<Bu
     const { data, error, count } = await supabaseClient
       .from('budgets')
       .select(`
-        id,
-        user_id,
-        category_id,
-        limit_amount,
-        spent_amount,
-        period_start_date,
-        period_end_date,
-        created_at,
-        updated_at,
-        category:categories (id, name, type, icon, is_default)
+        *,
+        category:categories (*)
       `)
       .eq('user_id', userId)
       .order('period_start_date', { ascending: false });
@@ -71,16 +60,8 @@ export async function addBudget(userId: string, budgetData: NewBudgetData): Prom
       .from('budgets')
       .insert([{ ...budgetData, user_id: userId, spent_amount: 0 }]) 
       .select(`
-        id,
-        user_id,
-        category_id,
-        limit_amount,
-        spent_amount,
-        period_start_date,
-        period_end_date,
-        created_at,
-        updated_at,
-        category:categories (id, name, type, icon, is_default)
+        *,
+        category:categories (*)
       `)
       .single();
 
@@ -114,16 +95,8 @@ export async function updateBudget(budgetId: string, userId: string, budgetData:
       .eq('id', budgetId)
       .eq('user_id', userId)
       .select(`
-        id,
-        user_id,
-        category_id,
-        limit_amount,
-        spent_amount,
-        period_start_date,
-        period_end_date,
-        created_at,
-        updated_at,
-        category:categories (id, name, type, icon, is_default)
+        *,
+        category:categories (*)
       `)
       .single();
     if (error) throw error;

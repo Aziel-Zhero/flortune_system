@@ -1,18 +1,14 @@
 'use server';
 
-// import { supabase } from '@/lib/supabase/client'; // Usaremos o cliente com token quando apropriado
 import { createSupabaseClientWithToken } from '@/lib/supabase/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route'; // Para obter a sessão no servidor
+import { auth } from '@/app/api/auth/[...nextauth]/route';
 import type { Transaction, ServiceListResponse, ServiceResponse, Category } from '@/types/database.types';
 
-export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'> & {
-  category_id: string;
-  is_recurring: boolean;
-};
+export type NewTransactionData = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>;
 export type UpdateTransactionData = Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'category'>>;
 
 async function getSupabaseClientForUser() {
-  const session = await auth(); // Obtém a sessão do NextAuth
+  const session = await auth();
   return createSupabaseClientWithToken(session);
 }
 
@@ -29,18 +25,8 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
     const { data, error, count } = await supabaseClient
       .from('transactions')
       .select(`
-        id, 
-        user_id,
-        category_id,
-        description,
-        amount,
-        date,
-        type,
-        notes,
-        is_recurring,
-        created_at,
-        updated_at,
-        category:categories (id, name, type, icon, is_default)
+        *,
+        category:categories (*)
       `)
       .eq('user_id', userId)
       .order('date', { ascending: false })
@@ -78,18 +64,8 @@ export async function addTransaction(userId: string, transactionData: NewTransac
         user_id: userId,
       }])
       .select(`
-        id,
-        user_id,
-        category_id,
-        description,
-        amount,
-        date,
-        type,
-        notes,
-        is_recurring,
-        created_at,
-        updated_at,
-        category:categories (id, name, type, icon, is_default)
+        *,
+        category:categories (*)
       `)
       .single();
     
@@ -117,7 +93,6 @@ export async function updateTransaction(transactionId: string, userId: string, t
     return { data: null, error };
   }
   try {
-    // Garantir que updated_at seja sempre atualizado
     const dataToUpdate = { ...transactionData, updated_at: new Date().toISOString() };
 
     const { data, error } = await supabaseClient
@@ -126,18 +101,8 @@ export async function updateTransaction(transactionId: string, userId: string, t
       .eq('id', transactionId)
       .eq('user_id', userId) 
       .select(`
-        id,
-        user_id,
-        category_id,
-        description,
-        amount,
-        date,
-        type,
-        notes,
-        is_recurring,
-        created_at,
-        updated_at,
-        category:categories (id, name, type, icon, is_default)
+        *,
+        category:categories (*)
       `)
       .single();
 
