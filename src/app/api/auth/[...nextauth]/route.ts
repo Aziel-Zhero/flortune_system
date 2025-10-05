@@ -51,8 +51,6 @@ const providers: NextAuthConfig['providers'] = [
       try {
         const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
 
-        // If no profile is found, or if the profile doesn't have a hashed password (e.g., created via OAuth),
-        // bcrypt.compare will safely fail.
         if (!profile) return null;
 
         const passwordsMatch = await bcrypt.compare(credentials.password as string, profile.hashed_password || "");
@@ -60,10 +58,11 @@ const providers: NextAuthConfig['providers'] = [
         if (passwordsMatch) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
+          // CORRECTED: Return the full profile object within the user object.
           return {
             id: userProfile.id,
             email: userProfile.email,
-            name: userProfile.display_name,
+            name: userProfile.display_name || userProfile.full_name,
             image: userProfile.avatar_url,
             profile: userProfile,
           };
