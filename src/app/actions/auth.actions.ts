@@ -25,6 +25,7 @@ const signupSchemaBase = z.object({
   rg: z.string().optional(),
 });
 
+// Esquema de validação final com refinamentos
 const signupSchema = signupSchemaBase.refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
@@ -115,7 +116,8 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
     
-    const { data: existingProfile, error: existingProfileError } = await supabaseAdmin
+    // 1. Verificar se o email já existe na tabela de perfis (medida de segurança extra)
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('email')
       .eq('email', email)
@@ -125,12 +127,20 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         return { message: "Este email já está cadastrado.", success: false, errors: { email: ["Este email já está em uso."] } };
     }
 
+    // 2. Criar o usuário no Supabase Auth. O trigger se encarregará de criar o perfil.
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.signUp({
       email,
       password,
       options: {
+        // Dados que serão usados pelo trigger `handle_new_user` no banco de dados.
         data: {
+          full_name: fullName,
           display_name: displayName,
+          phone: phone ? phone.replace(/\D/g, '') : null,
+          account_type: accountType,
+          cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
+          rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
+          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
         }
       }
     });
@@ -149,27 +159,9 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         return { message: errorMsg, success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
     
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert({
-        id: authData.user.id,
-        email: email,
-        full_name: fullName,
-        display_name: displayName,
-        phone: phone ? phone.replace(/\D/g, '') : null,
-        account_type: accountType,
-        cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
-        rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
-        avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-        // O campo hashed_password não é mais inserido aqui
-    });
-
-    if (profileError) {
-        console.error("[Signup Action] Failed to create profile:", profileError.message);
-        // Attempt to clean up the auth user if profile creation fails
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-        return { message: `Database error saving new user`, success: false, errors: { _form: ["Erro ao finalizar o cadastro no banco de dados."]}};
-    }
-    
-    console.log("[Signup Action] User and profile created successfully. Redirecting to login.");
+    // Se chegou aqui, o usuário foi criado no Auth e o trigger cuidou do perfil.
+    // Redireciona para a página de login com uma mensagem de sucesso.
+    console.log("[Signup Action] User created successfully. Redirecting to login for email confirmation.");
     redirect('/login?signup=success');
 
   } catch (error: any) {

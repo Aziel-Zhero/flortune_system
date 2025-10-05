@@ -35,11 +35,12 @@ export function LoginForm() {
 
     if (signupStatus === 'success') {
        toast({
-        title: "Cadastro realizado!",
-        description: "Sua conta foi criada com sucesso. Por favor, faça o login.",
+        title: "Cadastro realizado com sucesso!",
+        description: "Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada para ativar sua conta antes de fazer o login.",
         variant: "default",
-        duration: 7000,
+        duration: 10000,
       });
+      // Clean URL after showing toast
       const newPath = window.location.pathname;
       window.history.replaceState({...window.history.state, as: newPath, url: newPath }, '', newPath);
     }
@@ -58,7 +59,7 @@ export function LoginForm() {
     if (errorParam) {
       let friendlyError = "Falha no login. Verifique suas credenciais ou tente outra forma de login.";
       if (errorParam === "CredentialsSignin") {
-        friendlyError = "Email ou senha inválidos.";
+        friendlyError = "Email ou senha inválidos, ou a conta pode não estar verificada. Verifique seu e-mail.";
       } else if (errorParam === "OAuthAccountNotLinked") {
         friendlyError = "Esta conta de email já foi usada com outro provedor. Tente fazer login com o provedor original.";
       } else if (errorParam === "Callback") {
@@ -100,8 +101,8 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        setError("Email ou senha inválidos.");
-        toast({ title: "Erro de Login", description: "Email ou senha inválidos.", variant: "destructive" });
+        setError("Email ou senha inválidos, ou a conta não foi verificada.");
+        toast({ title: "Erro de Login", description: "Email ou senha inválidos. Verifique também se seu e-mail foi confirmado.", variant: "destructive" });
       } else if (result?.ok) {
         router.push(searchParams.get('callbackUrl') || '/dashboard');
         toast({ title: "Login bem-sucedido!", description: "Redirecionando..."});
