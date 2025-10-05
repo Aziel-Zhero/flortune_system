@@ -1,41 +1,48 @@
--- Simplified Schema based on user request to delete non-API tables.
+-- FLORTUNE - SCRIPT DE LIMPEZA DE BANCO DE DADOS (v3)
+-- Este script remove as tabelas de aplicação, mantendo apenas as tabelas relacionadas a APIs.
+-- Utiliza CASCADE para remover dependências automaticamente.
 
--- Drop dependent policies first
-DROP POLICY IF EXISTS "Allow anon to insert new profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Allow all users to read public profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Allow individual users to update their own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow individual users to delete their own profile" ON public.profiles;
+-- Apagar Triggers e Funções primeiro, se existirem
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.log_changes() CASCADE;
 
-DROP POLICY IF EXISTS "Allow all users to read default categories" ON public.categories;
-DROP POLICY IF EXISTS "Allow individual users to manage their own categories" ON public.categories;
+-- Apagar as tabelas em ordem de dependência ou usando CASCADE
+-- Tabelas de aplicação principal
+DROP TABLE IF EXISTS public.transactions CASCADE;
+DROP TABLE IF EXISTS public.budgets CASCADE;
+DROP TABLE IF EXISTS public.financial_goals CASCADE;
+DROP TABLE IF EXISTS public.todos CASCADE;
+DROP TABLE IF EXISTS public.notes CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
 
-DROP POLICY IF EXISTS "Allow individual users to manage their own transactions" ON public.transactions;
-DROP POLICY IF EXISTS "Allow individual users to manage their own budgets" ON public.budgets;
-DROP POLICY IF EXISTS "Allow individual users to manage their own goals" ON public.financial_goals;
-DROP POLICY IF EXISTS "Allow individual users to manage their own todos" ON public.todos;
-DROP POLICY IF EXISTS "Allow individual users to manage their own notes" ON public.notes;
-DROP POLICY IF EXISTS "Allow individual users to manage their own dev clients" ON public.dev_clients;
-DROP POLICY IF EXISTS "Allow individual users to manage their own financial assets" ON public.financial_assets;
+-- Tabelas de DEV
+DROP TABLE IF EXISTS public.dev_clients CASCADE;
 
+-- Tabela de perfis
+DROP TABLE IF EXISTS public.profiles CASCADE;
 
--- Drop tables
-DROP TABLE IF EXISTS public.budgets;
-DROP TABLE IF EXISTS public.financial_goals;
-DROP TABLE IF EXISTS public.todos;
-DROP TABLE IF EXISTS public.notes;
-DROP TABLE IF EXISTS public.dev_clients;
-DROP TABLE IF EXISTS public.financial_assets;
-DROP TABLE IF EXISTS public.transactions;
-DROP TABLE IF EXISTS public.categories;
-DROP TABLE IF EXISTS public.profiles;
+-- Tabelas de log associadas (se existirem)
+DROP TABLE IF EXISTS public.transactions_log CASCADE;
+DROP TABLE IF EXISTS public.budgets_log CASCADE;
+DROP TABLE IF EXISTS public.financial_goals_log CASCADE;
+DROP TABLE IF EXISTS public.todos_log CASCADE;
+DROP TABLE IF EXISTS public.notes_log CASCADE;
+DROP TABLE IF EXISTS public.categories_log CASCADE;
+DROP TABLE IF EXISTS public.dev_clients_log CASCADE;
+DROP TABLE IF EXISTS public.profiles_log CASCADE;
 
+-- Tabela de ativos financeiros que será removida
+DROP TABLE IF EXISTS public.financial_assets CASCADE;
 
--- Drop types if they exist
+-- Apagar Tipos ENUM, se não estiverem mais em uso por nenhuma tabela restante
 DROP TYPE IF EXISTS public.account_type_enum;
+DROP TYPE IF EXISTS public.transaction_type;
 DROP TYPE IF EXISTS public.goal_status_enum;
-DROP TYPE IF EXISTS public.transaction_type_enum;
-DROP TYPE IF EXISTS public.client_status_enum;
-DROP TYPE IF EXISTS public.client_priority_enum;
+DROP TYPE IF EXISTS public.dev_client_status;
+DROP TYPE IF EXISTS public.dev_client_priority;
 
--- The tables api_cities, quote_logs, and weather_logs are intentionally kept as requested.
--- The schema is now clean of the other application tables.
+
+-- Mensagem de sucesso no log do Supabase
+SELECT 'Script de limpeza concluído com sucesso. Tabelas da aplicação foram removidas.' as status;
+
+-- As tabelas public.api_cities, public.quote_logs, e public.weather_logs permanecem no banco de dados.
