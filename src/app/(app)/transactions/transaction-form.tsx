@@ -55,6 +55,11 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionFormSchema),
@@ -179,7 +184,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                             )}
                             >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                            {field.value && isClient ? format(field.value, "PPP", { locale: ptBR }) : field.value ? format(field.value, "yyyy-MM-dd") : <span>Escolha uma data</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">

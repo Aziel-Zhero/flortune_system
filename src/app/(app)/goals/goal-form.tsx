@@ -1,7 +1,7 @@
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +39,6 @@ const goalFormSchema = z.object({
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
 const availableIcons = [
-  // A opção "Nenhum" foi removida. O placeholder do Select cuidará disso.
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
@@ -66,6 +65,11 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
   const isAuthLoading = authStatus === "loading";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<GoalFormData>({
     resolver: zodResolver(goalFormSchema),
@@ -147,7 +151,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
               <PopoverTrigger asChild>
                 <Button id="goal-form-deadline_date-trigger" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting || isAuthLoading}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                  {field.value && isClient ? format(field.value, "PPP", { locale: ptBR }) : field.value ? format(field.value, "yyyy-MM-dd") : <span>Escolha uma data</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent>
