@@ -50,15 +50,9 @@ const providers: NextAuthConfig['providers'] = [
 
       try {
         const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
-        if (!profile) return null; // Usuário não encontrado na tabela de perfis
-        
-        // Se o usuário só tem login social, ele não terá senha hash.
-        if (!profile.hashed_password) {
-            console.warn(`[NextAuth Authorize] Login attempt for user '${credentials.email}' without a password. Possibly an OAuth-only user.`);
-            return null;
-        }
+        if (!profile) return null;
 
-        const passwordsMatch = await bcrypt.compare(credentials.password as string, profile.hashed_password);
+        const passwordsMatch = await bcrypt.compare(credentials.password as string, profile.hashed_password || "");
         
         if (passwordsMatch) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
