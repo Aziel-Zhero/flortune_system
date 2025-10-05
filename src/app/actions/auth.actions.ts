@@ -155,11 +155,11 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         full_name: fullName,
         display_name: displayName,
         phone: phone ? phone.replace(/\D/g, '') : null,
-        account_type: accountType, // The Supabase client should handle the enum type casting
+        account_type: accountType,
         cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
         rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
         avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-        hashed_password: null
+        // O campo hashed_password não é mais inserido aqui
     });
 
     if (profileError) {
