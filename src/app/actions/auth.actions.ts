@@ -115,7 +115,6 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
     
-    // **CORREÇÃO:** Verifica se o email já existe na tabela de perfis antes de criar no Auth.
     const { data: existingProfile, error: existingProfileError } = await supabaseAdmin
       .from('profiles')
       .select('email')
@@ -150,15 +149,13 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         return { message: errorMsg, success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
     
-    // A política RLS na tabela `profiles` agora permite que a role `anon` (usada implicitamente pela server action) insira novos registros.
-    // O trigger para criar o perfil foi removido, então a inserção é feita aqui.
     const { error: profileError } = await supabaseAdmin.from('profiles').insert({
         id: authData.user.id,
         email: email,
         full_name: fullName,
         display_name: displayName,
         phone: phone ? phone.replace(/\D/g, '') : null,
-        account_type: accountType,
+        account_type: accountType, // The Supabase client should handle the enum type casting
         cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
         rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
         avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
@@ -167,6 +164,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     if (profileError) {
         console.error("[Signup Action] Failed to create profile:", profileError.message);
+        // Attempt to clean up the auth user if profile creation fails
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
         return { message: `Database error saving new user`, success: false, errors: { _form: ["Erro ao finalizar o cadastro no banco de dados."]}};
     }
@@ -186,5 +184,3 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     };
   }
 }
-
-    
