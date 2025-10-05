@@ -50,6 +50,9 @@ const providers: NextAuthConfig['providers'] = [
 
       try {
         const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
+
+        // If no profile is found, or if the profile doesn't have a hashed password (e.g., created via OAuth),
+        // bcrypt.compare will safely fail.
         if (!profile) return null;
 
         const passwordsMatch = await bcrypt.compare(credentials.password as string, profile.hashed_password || "");
@@ -57,7 +60,13 @@ const providers: NextAuthConfig['providers'] = [
         if (passwordsMatch) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...userProfile } = profile;
-          return { id: userProfile.id, email: userProfile.email, name: userProfile.display_name, image: userProfile.avatar_url, profile: userProfile };
+          return {
+            id: userProfile.id,
+            email: userProfile.email,
+            name: userProfile.display_name,
+            image: userProfile.avatar_url,
+            profile: userProfile,
+          };
         }
       } catch (e: any) {
         console.error('[NextAuth Authorize Exception]:', e.message);
@@ -67,6 +76,7 @@ const providers: NextAuthConfig['providers'] = [
   }),
 ];
 
+// Adicionando o provedor do Google apenas se as credenciais estiverem disponíveis.
 if (googleClientId && googleClientSecret) {
   providers.push(
     GoogleProvider({
@@ -80,20 +90,24 @@ if (googleClientId && googleClientSecret) {
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
   providers,
+  // O Adapter é necessário para que o NextAuth crie automaticamente usuários em `next_auth.users`
+  // quando eles fizerem login via OAuth (Google). Isso dispara nosso trigger para criar o perfil.
   adapter: (supabaseUrl && supabaseServiceRoleKey) ? SupabaseAdapter({ url: supabaseUrl, secret: supabaseServiceRoleKey }) : undefined,
   session: { strategy: 'jwt' },
+  // O TrustHost é importante para ambientes de produção como o Netlify.
   trustHost: true,
   basePath: '/api/auth',
   callbacks: {
     async jwt({ token, user, account }) {
-      if (user) { // Na primeira vez que o JWT é criado (após o login)
+      // O 'user' só está presente no primeiro login.
+      if (user) {
         token.sub = user.id; // Garante que o ID do usuário está no token
         
-        // Se a propriedade 'profile' veio do authorize, use-a.
+        // Se o objeto `user` já tem o perfil (vindo do `authorize` do CredentialsProvider), use-o.
         if (user.profile) {
             token.profile = user.profile;
         } 
-        // Se não (ex: login com Google), busque o perfil no banco.
+        // Se não (login com Google), busca o perfil no banco.
         else if (supabaseUrl && supabaseServiceRoleKey) {
           const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
           const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
@@ -107,22 +121,36 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
-      if (token.sub) session.user.id = token.sub;
-
+      if (token.sub) {
+        session.user.id = token.sub;
+      }
+      
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
+        // Atualiza as informações da sessão com os dados do perfil
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
         session.user.image = session.user.profile.avatar_url || session.user.image;
         session.user.email = session.user.profile.email || session.user.email;
       }
+
+      // Gera o token de acesso do Supabase
       if (supabaseJwtSecret && token.sub) {
-        const payload = { aud: "authenticated", exp: Math.floor(new Date(session.expires).getTime() / 1000), sub: token.sub, email: token.email, role: "authenticated" };
+        const payload = {
+          aud: "authenticated",
+          exp: Math.floor(new Date(session.expires).getTime() / 1000),
+          sub: token.sub,
+          email: token.email,
+          role: "authenticated",
+        };
         session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
       }
       return session;
     },
   },
-  pages: { signIn: '/login', error: '/login' },
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
   secret: nextAuthSecret,
 };
 
