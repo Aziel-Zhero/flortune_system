@@ -116,18 +116,8 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
     
-    // 1. Verificar se o email já existe na tabela de perfis (medida de segurança extra)
-    const { data: existingProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('email')
-      .eq('email', email)
-      .single();
-
-    if (existingProfile) {
-        return { message: "Este email já está cadastrado.", success: false, errors: { email: ["Este email já está em uso."] } };
-    }
-
-    // 2. Criar o usuário no Supabase Auth. O trigger se encarregará de criar o perfil.
+    // O Supabase Auth já lida com a verificação de e-mail duplicado.
+    // A verificação manual foi removida para garantir que o signUp seja chamado.
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.signUp({
       email,
       password,
@@ -159,8 +149,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         return { message: errorMsg, success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
     
-    // Se chegou aqui, o usuário foi criado no Auth e o trigger cuidou do perfil.
-    // Redireciona para a página de login com uma mensagem de sucesso.
+    // Se chegou aqui, a chamada para o Supabase Auth foi bem-sucedida, e o e-mail de confirmação foi enviado.
     console.log("[Signup Action] User created successfully. Redirecting to login for email confirmation.");
     redirect('/login?signup=success');
 
