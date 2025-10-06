@@ -46,6 +46,6 @@ export const config = {
      * - favicon.ico
      * - Logo.png
      */
-    '/((?!api|_next/static|_next/image|assets|favicon.ico|Logo.png).*)',
+    '/((?!api|_next/static|_next/image|assets|favicon.ico|Logo.png|debug-auth).*)',
   ],
 };

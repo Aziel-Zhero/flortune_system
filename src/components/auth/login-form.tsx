@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from 'next/navigation'; // Import useRouter
+import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ const GoogleIcon = () => (
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const router = useRouter(); // Use a instância do router
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -74,30 +73,58 @@ export function LoginForm() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
+    console.log('📧 Tentando login com:', { email, passwordLength: password?.length });
+
     try {
       const result = await signIn('credentials', {
-        redirect: false, 
         email,
         password,
+        redirect: false,
       });
-      
+
+      console.log('🔐 Resultado completo do signIn:', result);
+
       if (result?.error) {
-        let errorMessage = "Email ou senha inválidos, ou a conta não foi verificada.";
-        if (result.error.includes('user not found')) {
-            errorMessage = "Usuário não encontrado. Verifique seu email.";
-        } else if (result.error.includes('password')) {
-            errorMessage = "Senha incorreta.";
+        console.error('❌ Erro do NextAuth:', result.error);
+        
+        let errorMessage = "Credenciais inválidas";
+        if (result.error.includes('user') || result.error.includes('not found')) {
+          errorMessage = "Usuário não encontrado";
+        } else if (result.error.includes('password') || result.error.includes('incorrect')) {
+          errorMessage = "Senha incorreta";
+        } else if (result.error.includes('credentials')) {
+          errorMessage = "Email ou senha inválidos";
         }
+        
         setError(errorMessage);
-        toast({ title: "Erro de Login", description: errorMessage, variant: "destructive" });
-      } else if (result?.ok) {
-        toast({ title: "Login bem-sucedido!", description: "Redirecionando..."});
-        const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-        router.push(callbackUrl); // Usando o router para o redirecionamento
+        toast({ 
+          title: "Falha no login", 
+          description: errorMessage, 
+          variant: "destructive" 
+        });
+      } 
+      
+      if (result?.ok && !result.error) {
+        console.log('✅ Login bem-sucedido! Redirecionando...');
+        toast({ 
+          title: "Sucesso!", 
+          description: "Login realizado com sucesso" 
+        });
+        
+        // Força um refresh completo para garantir que a sessão seja carregada
+        setTimeout(() => {
+          const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+          window.location.href = callbackUrl;
+        }, 1000);
       }
-    } catch (e) {
-      setError("Ocorreu um erro no servidor. Tente novamente.");
-      toast({ title: "Erro", description: "Falha na conexão com o servidor.", variant: "destructive" });
+    } catch (e: any) {
+      console.error('💥 Erro fatal no login:', e);
+      setError("Erro interno do servidor");
+      toast({ 
+        title: "Erro", 
+        description: "Falha na conexão", 
+        variant: "destructive" 
+      });
     } finally {
       setIsLoading(false);
     }
