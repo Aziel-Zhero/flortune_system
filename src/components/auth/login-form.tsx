@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation'; // Import useRouter
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ const GoogleIcon = () => (
 
 export function LoginForm() {
   const searchParams = useSearchParams();
+  const router = useRouter(); // Use a instância do router
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -80,10 +81,8 @@ export function LoginForm() {
         password,
       });
       
-      console.log('🔐 Resultado do login:', result);
-
       if (result?.error) {
-        let errorMessage = "Email ou senha inválidos.";
+        let errorMessage = "Email ou senha inválidos, ou a conta não foi verificada.";
         if (result.error.includes('user not found')) {
             errorMessage = "Usuário não encontrado. Verifique seu email.";
         } else if (result.error.includes('password')) {
@@ -92,13 +91,11 @@ export function LoginForm() {
         setError(errorMessage);
         toast({ title: "Erro de Login", description: errorMessage, variant: "destructive" });
       } else if (result?.ok) {
-        console.log('✅ Login bem-sucedido, redirecionando...');
         toast({ title: "Login bem-sucedido!", description: "Redirecionando..."});
         const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-        window.location.href = callbackUrl;
+        router.push(callbackUrl); // Usando o router para o redirecionamento
       }
     } catch (e) {
-      console.error('❌ Erro no login:', e);
       setError("Ocorreu um erro no servidor. Tente novamente.");
       toast({ title: "Erro", description: "Falha na conexão com o servidor.", variant: "destructive" });
     } finally {
