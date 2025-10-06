@@ -1,3 +1,4 @@
+
 // src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
@@ -12,21 +13,22 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
 
-  // Se o usuário está logado
+  // If the user is logged in
   if (token) {
-    // E tenta acessar uma página de autenticação, redireciona para o dashboard
+    // And tries to access an auth page, redirect to the dashboard
     if (isAuthPage) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
+    // Otherwise, allow the request
     return NextResponse.next();
   }
 
-  // Se o usuário não está logado
+  // If the user is not logged in
   if (!token) {
-    // E tenta acessar uma página protegida (e não é a landing page), redireciona para o login
+    // And tries to access a protected page (that is not the landing page), redirect to login
     if (!isAuthPage && pathname !== '/') {
       const loginUrl = new URL('/login', request.url);
-      // Mantém a URL de destino para redirecionamento após o login
+      // Keep the destination URL for redirection after login
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -45,6 +47,7 @@ export const config = {
      * - assets
      * - favicon.ico
      * - Logo.png
+     * - debug-auth (our debug route)
      */
     '/((?!api|_next/static|_next/image|assets|favicon.ico|Logo.png|debug-auth).*)',
   ],

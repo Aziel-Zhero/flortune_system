@@ -1,106 +1,161 @@
+
 // src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from 'next-auth';
+
+import NextAuth, { type NextAuthConfig } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from "next-auth/providers/google";
 import { createClient } from '@supabase/supabase-js'; 
 import bcrypt from 'bcryptjs';
+import type { Profile as AppProfile } from '@/types/database.types';
+import jwt from "jsonwebtoken";
 
-// Validação básica
+export const runtime = 'nodejs'; // Explicitly set runtime to Node.js
+
+// --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const nextAuthSecret = process.env.AUTH_SECRET;
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 
-if (!supabaseUrl || !supabaseServiceRoleKey || !nextAuthSecret) {
-  throw new Error('Variáveis de ambiente faltando');
+// --- Log Environment Variable Status ---
+if (!supabaseUrl || !supabaseUrl.startsWith('http')) {
+  console.error("⚠️ FATAL: NEXT_PUBLIC_SUPABASE_URL is not set or invalid.");
+}
+if (!supabaseServiceRoleKey) {
+  console.error("⚠️ FATAL: SUPABASE_SERVICE_ROLE_KEY is not set.");
+}
+if (!nextAuthSecret) {
+  console.error("⚠️ FATAL: AUTH_SECRET is not set.");
+}
+if (!supabaseJwtSecret) {
+    console.error("⚠️ FATAL: SUPABASE_JWT_SECRET is not set.");
 }
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+// --- Provider Configuration ---
+const providers: NextAuthConfig['providers'] = [
+  CredentialsProvider({
+    name: 'Credentials',
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+      password: { label: 'Password', type: 'password' },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials?.password) {
+        console.log('Auth Error: Email ou senha não fornecidos.');
+        return null;
+      }
+      if (!supabaseUrl || !supabaseServiceRoleKey) {
+          console.error('[NextAuth Authorize] Supabase credentials are not configured.');
+          return null;
+      }
 
-const authOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        try {
-          console.log('🔐 Tentando login para:', credentials?.email);
-          
-          if (!credentials?.email || !credentials?.password) {
-            console.log('❌ Credenciais incompletas');
-            return null;
-          }
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-          // Busca o usuário
-          const { data: user, error } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .eq('email', credentials.email.toLowerCase().trim())
-            .single();
+      try {
+        const { data: profile, error: dbError } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('email', credentials.email.toLowerCase().trim())
+          .single();
 
-          if (error || !user) {
-            console.log('❌ Usuário não encontrado:', error?.message);
-            return null;
-          }
-
-          console.log('👤 Usuário encontrado:', user.email);
-
-          // Verifica senha
-          if (!user.hashed_password) {
-            console.log('❌ Usuário não tem senha');
-            return null;
-          }
-
-          const isValidPassword = await bcrypt.compare(
-            credentials.password, 
-            user.hashed_password
-          );
-
-          if (!isValidPassword) {
-            console.log('❌ Senha incorreta');
-            return null;
-          }
-
-          console.log('✅ Login válido para:', user.email);
-          
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.display_name || user.full_name,
-            image: user.avatar_url,
-          };
-        } catch (error) {
-          console.error('❌ Erro no authorize:', error);
+        if (dbError || !profile) {
+          console.error('[NextAuth Authorize Failed] Profile not found or DB error:', dbError?.message);
           return null;
         }
-      },
-    }),
-  ],
+        
+        if (!profile.hashed_password) {
+             console.error('[NextAuth Authorize Failed] User profile does not have a password (maybe a social login?).');
+             return null;
+        }
+
+        const passwordsMatch = await bcrypt.compare(password, profile.hashed_password);
+
+        if (passwordsMatch) {
+          console.log(`[NextAuth Authorize Success] Login successful for ${profile.email}`);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { hashed_password, ...userProfile } = profile;
+          return {
+            id: userProfile.id,
+            email: userProfile.email,
+            name: userProfile.display_name || userProfile.full_name,
+            image: userProfile.avatar_url,
+            profile: userProfile,
+          };
+        } else {
+             console.error(`[NextAuth Authorize Failed] Incorrect password for ${credentials.email}`);
+             return null;
+        }
+      } catch (e: any) {
+        console.error('[NextAuth Authorize Exception]:', e.message);
+        return null;
+      }
+    },
+  }),
+];
+
+if (googleClientId && googleClientSecret) {
+  providers.push(
+    GoogleProvider({
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      allowDangerousEmailAccountLinking: true, 
+    })
+  );
+} else {
+  console.warn("⚠️ GoogleProvider is not configured. Login with Google will fail.");
+}
+
+// --- Main NextAuth Configuration ---
+export const authConfig: NextAuthConfig = {
+  providers: providers,
   session: {
-    strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60, // 30 dias
+    strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }: { token: any, user: any }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        if(user.profile) {
+            token.profile = user.profile;
+        }
       }
       return token;
     },
-    async session({ session, token }: { session: any, token: any }) {
-      if (token.id) {
-        session.user.id = token.id as string;
+    async session({ session, token }) {
+      if (token.sub) {
+        session.user.id = token.sub;
+      }
+      if (token.profile) {
+        session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
+        session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
+        session.user.image = session.user.profile.avatar_url || session.user.image;
+        session.user.email = session.user.profile.email || session.user.email;
+      }
+
+      if (supabaseJwtSecret && token.sub && session.user.email) {
+        const payload = {
+          aud: "authenticated",
+          exp: Math.floor(new Date(session.expires).getTime() / 1000), 
+          sub: token.sub,
+          email: session.user.email,
+          role: "authenticated", 
+        };
+        try {
+          session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
+        } catch (e: any) {
+          console.error("[NextAuth Session Callback] Error signing Supabase JWT:", e.message);
+        }
       }
       return session;
     },
   },
   pages: {
-    signIn: '/login',
-    error: '/login',
+    signIn: '/login', 
+    error: '/login', 
   },
-  secret: nextAuthSecret,
-  debug: process.env.NODE_ENV === 'development',
+  secret: nextAuthSecret, 
 };
 
-export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authOptions as any);
+export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
