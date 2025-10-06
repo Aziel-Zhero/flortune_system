@@ -1,31 +1,34 @@
 // src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { getToken } from 'next-auth/jwt';
 
 export async function middleware(request: NextRequest) {
-  const session = await auth();
+  const token = await getToken({
+    req: request,
+    secret: process.env.AUTH_SECRET,
+  });
+
   const { pathname } = request.nextUrl;
 
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
 
   // Se o usuário está logado
-  if (session) {
+  if (token) {
     // E tenta acessar uma página de autenticação, redireciona para o dashboard
     if (isAuthPage) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
-    // Caso contrário, permite o acesso
     return NextResponse.next();
   }
 
   // Se o usuário não está logado
-  if (!session) {
-    // E tenta acessar uma página protegida, redireciona para o login
+  if (!token) {
+    // E tenta acessar uma página protegida (e não é a landing page), redireciona para o login
     if (!isAuthPage && pathname !== '/') {
-        const loginUrl = new URL('/login', request.url);
-        // Mantém a URL de destino para redirecionamento após o login
-        loginUrl.searchParams.set('callbackUrl', request.nextUrl.href);
-        return NextResponse.redirect(loginUrl);
+      const loginUrl = new URL('/login', request.url);
+      // Mantém a URL de destino para redirecionamento após o login
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
 

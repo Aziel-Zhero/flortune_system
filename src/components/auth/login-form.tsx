@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +21,6 @@ const GoogleIcon = () => (
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -32,6 +30,8 @@ export function LoginForm() {
     const errorParam = searchParams.get('error'); 
     const logoutStatus = searchParams.get('logout');
 
+    const newUrl = '/login';
+
     if (signupStatus === 'success') {
        toast({
         title: "Cadastro realizado com sucesso!",
@@ -39,8 +39,7 @@ export function LoginForm() {
         variant: "default",
         duration: 15000,
       });
-      // Limpa a URL para evitar que o toast apareça novamente ao recarregar
-      router.replace('/login', {scroll: false});
+      window.history.replaceState(null, '', newUrl);
     }
     
     if (logoutStatus === 'success') {
@@ -50,7 +49,7 @@ export function LoginForm() {
         variant: "default",
         duration: 5000,
       });
-      router.replace('/login', {scroll: false});
+      window.history.replaceState(null, '', newUrl);
     }
     
     if (errorParam) {
@@ -61,9 +60,9 @@ export function LoginForm() {
         friendlyError = "Esta conta de email já foi usada com outro provedor. Tente fazer login com o provedor original.";
       }
       setError(friendlyError);
-      router.replace('/login', {scroll: false});
+      window.history.replaceState(null, '', newUrl);
     }
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   const handleCredentialsSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -80,18 +79,28 @@ export function LoginForm() {
         email,
         password,
       });
+      
+      console.log('🔐 Resultado do login:', result);
 
       if (result?.error) {
-        const errorMessage = "Email ou senha inválidos, ou a conta não foi verificada. Por favor, tente novamente.";
+        let errorMessage = "Email ou senha inválidos.";
+        if (result.error.includes('user not found')) {
+            errorMessage = "Usuário não encontrado. Verifique seu email.";
+        } else if (result.error.includes('password')) {
+            errorMessage = "Senha incorreta.";
+        }
         setError(errorMessage);
         toast({ title: "Erro de Login", description: errorMessage, variant: "destructive" });
-      } else if (result?.ok && result.url) {
+      } else if (result?.ok) {
+        console.log('✅ Login bem-sucedido, redirecionando...');
         toast({ title: "Login bem-sucedido!", description: "Redirecionando..."});
-        // O middleware cuidará do redirecionamento para o callbackUrl ou dashboard
-        router.push(searchParams.get('callbackUrl') || '/dashboard');
+        const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+        window.location.href = callbackUrl;
       }
     } catch (e) {
+      console.error('❌ Erro no login:', e);
       setError("Ocorreu um erro no servidor. Tente novamente.");
+      toast({ title: "Erro", description: "Falha na conexão com o servidor.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
