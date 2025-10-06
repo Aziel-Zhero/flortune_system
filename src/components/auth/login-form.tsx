@@ -10,11 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { SubmitButton } from "./submit-button";
 import { toast } from "@/hooks/use-toast";
 import { signIn } from "next-auth/react"; 
+import { SubmitButton } from "./submit-button";
 
-// Placeholder Google icon as SVG component
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" className="mr-2">
     <path fill="currentColor" d="M21.35 11.1h-9.17v2.73h5.22c-.46 2.07-2.13 3.42-4.09 3.42a5.34 5.34 0 0 1-5.34-5.34a5.34 5.34 0 0 1 5.34-5.34c1.41 0 2.42.52 3.2 1.26l1.96-1.96A8.74 8.74 0 0 0 12.18 2a9.34 9.34 0 0 0-9.34 9.34a9.34 9.34 0 0 0 9.34 9.34c5.04 0 8.92-3.76 8.92-8.92c0-.61-.05-1.11-.15-1.56Z"/>
@@ -36,13 +35,12 @@ export function LoginForm() {
     if (signupStatus === 'success') {
        toast({
         title: "Cadastro realizado com sucesso!",
-        description: "Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada para ativar sua conta antes de fazer o login.",
+        description: "Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada e spam para ativar sua conta.",
         variant: "default",
-        duration: 10000,
+        duration: 15000,
       });
-      // Clean URL after showing toast
-      const newPath = window.location.pathname;
-      window.history.replaceState({...window.history.state, as: newPath, url: newPath }, '', newPath);
+      // Limpa a URL para evitar que o toast apareça novamente ao recarregar
+      router.replace('/login', {scroll: false});
     }
     
     if (logoutStatus === 'success') {
@@ -52,33 +50,22 @@ export function LoginForm() {
         variant: "default",
         duration: 5000,
       });
-      const newPath = window.location.pathname;
-      window.history.replaceState({...window.history.state, as: newPath, url: newPath }, '', newPath);
+      router.replace('/login', {scroll: false});
     }
     
     if (errorParam) {
       let friendlyError = "Falha no login. Verifique suas credenciais ou tente outra forma de login.";
       if (errorParam === "CredentialsSignin") {
-        friendlyError = "Email ou senha inválidos, ou a conta pode não estar verificada. Verifique seu e-mail.";
+        friendlyError = "Email ou senha inválidos. Verifique também se seu e-mail foi confirmado.";
       } else if (errorParam === "OAuthAccountNotLinked") {
         friendlyError = "Esta conta de email já foi usada com outro provedor. Tente fazer login com o provedor original.";
-      } else if (errorParam === "Callback") {
-        friendlyError = "Erro ao processar o login com o provedor externo. Tente novamente."
-      } else if (errorParam === "OAuthSignin") {
-        friendlyError = "Erro ao tentar entrar com o Google. Tente novamente."
       }
       setError(friendlyError);
-      toast({
-        title: "Erro de Login",
-        description: friendlyError,
-        variant: "destructive",
-      });
-      const newPath = window.location.pathname;
-      window.history.replaceState({...window.history.state, as: newPath, url: newPath }, '', newPath);
+      router.replace('/login', {scroll: false});
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCredentialsSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -86,12 +73,6 @@ export function LoginForm() {
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-
-    if (!email || !password) {
-        setError("Email e senha são obrigatórios.");
-        setIsLoading(false);
-        return;
-    }
 
     try {
       const result = await signIn('credentials', {
@@ -101,11 +82,13 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        setError("Email ou senha inválidos, ou a conta não foi verificada.");
-        toast({ title: "Erro de Login", description: "Email ou senha inválidos. Verifique também se seu e-mail foi confirmado.", variant: "destructive" });
-      } else if (result?.ok) {
-        router.push(searchParams.get('callbackUrl') || '/dashboard');
+        const errorMessage = "Email ou senha inválidos, ou a conta não foi verificada. Por favor, tente novamente.";
+        setError(errorMessage);
+        toast({ title: "Erro de Login", description: errorMessage, variant: "destructive" });
+      } else if (result?.ok && result.url) {
         toast({ title: "Login bem-sucedido!", description: "Redirecionando..."});
+        // O middleware cuidará do redirecionamento para o callbackUrl ou dashboard
+        router.push(searchParams.get('callbackUrl') || '/dashboard');
       }
     } catch (e) {
       setError("Ocorreu um erro no servidor. Tente novamente.");
@@ -127,7 +110,7 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleCredentialsSubmit} className="space-y-4">
         {error && (
            <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />

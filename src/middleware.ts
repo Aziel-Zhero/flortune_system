@@ -1,29 +1,36 @@
 // src/middleware.ts
-import { auth } from '@/app/api/auth/[...nextauth]/route';
 import { NextResponse, type NextRequest } from 'next/server';
+import { auth } from '@/app/api/auth/[...nextauth]/route';
 
 export async function middleware(request: NextRequest) {
   const session = await auth();
   const { pathname } = request.nextUrl;
 
-  const authRoutes = ['/login', '/signup'];
-  const isPublicRoute = authRoutes.includes(pathname) || pathname === '/';
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
 
-  // If the user is logged in and tries to access login/signup, redirect to dashboard
-  if (session && isPublicRoute && pathname !== '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // Se o usuário está logado
+  if (session) {
+    // E tenta acessar uma página de autenticação, redireciona para o dashboard
+    if (isAuthPage) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    // Caso contrário, permite o acesso
+    return NextResponse.next();
   }
-  
-  // If the user is not logged in and tries to access a protected route
-  if (!session && !isPublicRoute) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
+
+  // Se o usuário não está logado
+  if (!session) {
+    // E tenta acessar uma página protegida, redireciona para o login
+    if (!isAuthPage && pathname !== '/') {
+        const loginUrl = new URL('/login', request.url);
+        // Mantém a URL de destino para redirecionamento após o login
+        loginUrl.searchParams.set('callbackUrl', request.nextUrl.href);
+        return NextResponse.redirect(loginUrl);
+    }
   }
 
   return NextResponse.next();
 }
-
 
 export const config = {
   matcher: [
@@ -34,7 +41,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - assets
      * - favicon.ico
+     * - Logo.png
      */
-    '/((?!api|_next/static|_next/image|assets|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|assets|favicon.ico|Logo.png).*)',
   ],
 };

@@ -1,4 +1,3 @@
-
 // src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthConfig } from 'next-auth';
@@ -62,19 +61,14 @@ const providers: NextAuthConfig['providers'] = [
           .eq('email', credentials.email.toLowerCase().trim())
           .single();
 
-        if (error) {
-          console.error('❌ Erro ao buscar usuário:', error);
-          return null;
-        }
-
-        if (!profile) {
-          console.log('❌ Usuário não encontrado:', credentials.email);
+        if (error || !profile) {
+          console.error('❌ Erro ao buscar usuário ou usuário não encontrado:', error);
           return null;
         }
 
         if (!profile.hashed_password) {
-          console.log('❌ Usuário não tem senha definida (login social?)');
-          return null;
+          console.log('❌ Usuário não tem senha definida (provavelmente login social)');
+          return null; // Retorna null se não houver senha, forçando login pelo provedor social.
         }
 
         const passwordsMatch = await bcrypt.compare(
@@ -100,7 +94,7 @@ const providers: NextAuthConfig['providers'] = [
           profile: userProfile,
         };
       } catch (error: any) {
-        console.error('❌ Erro no authorize:', error);
+        console.error('❌ Erro inesperado no authorize:', error);
         return null;
       }
     },
@@ -132,60 +126,38 @@ export const authConfig: NextAuthConfig = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 dias
   },
-  trustHost: true,
-  basePath: '/api/auth',
-  debug: process.env.NODE_ENV === 'development',
   callbacks: {
-    async jwt({ token, user, account, trigger, session }) {
-      // User está presente apenas no primeiro login
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session?.profile) {
+        console.log('🔄 Atualizando token JWT com novos dados de perfil.');
+        token.profile = session.profile;
+        token.name = session.profile.display_name || session.profile.full_name;
+        token.picture = session.profile.avatar_url;
+      }
       if (user) {
+        console.log('🚀 JWT callback - Usuário novo/logado, populando token.');
         token.id = user.id;
-        token.profile = user.profile;
-      }
-
-      // Atualizar sessão se solicitado
-      if (trigger === "update" && session) {
-        token = { ...token, ...session };
-      }
-
-      // Buscar perfil atualizado se não estiver no token
-      if (!token.profile && token.sub) {
-        try {
-          const { data: profile } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .eq('id', token.sub)
-            .single();
-          
-          if (profile) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { hashed_password, ...safeProfile } = profile;
-            token.profile = safeProfile;
-          }
-        } catch (error) {
-          console.error('Erro ao buscar perfil no JWT callback:', error);
+        if (user.profile) {
+            token.profile = user.profile;
         }
       }
-
       return token;
     },
 
     async session({ session, token }) {
+        console.log('📦 Session callback - Construindo objeto de sessão.');
       if (token.sub) {
         session.user.id = token.sub;
       }
 
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
-        session.user.name = session.user.profile.display_name || 
-                           session.user.profile.full_name || 
-                           session.user.name;
-        session.user.image = session.user.profile.avatar_url || session.user.image;
-        session.user.email = session.user.profile.email || session.user.email;
+        session.user.name = token.profile.display_name || token.profile.full_name || session.user.name;
+        session.user.image = token.profile.avatar_url || session.user.image;
+        session.user.email = token.profile.email || session.user.email;
       }
 
-      // Gerar token de acesso do Supabase
-      if (token.sub) {
+      if (token.sub && supabaseJwtSecret) {
         try {
           const payload = {
             aud: "authenticated",
@@ -193,37 +165,20 @@ export const authConfig: NextAuthConfig = {
             sub: token.sub,
             email: session.user.email,
             role: "authenticated",
-            app_metadata: {
-              provider: "email"
-            },
-            user_metadata: {},
           };
-          
           session.supabaseAccessToken = jwt.sign(payload, supabaseJwtSecret);
         } catch (error) {
-          console.error('Erro ao gerar token Supabase:', error);
+          console.error('❌ Erro ao gerar token Supabase na sessão:', error);
         }
       }
 
       return session;
     },
-
-    async redirect({ url, baseUrl }) {
-      // Permite URLs relativas
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Permite URLs do mesmo domínio
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
-    }
   },
   pages: {
     signIn: '/login',
-    signOut: '/',
-    error: '/login',
-    newUser: '/register'
   },
   secret: nextAuthSecret,
 };
 
-// Export handlers
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);

@@ -25,7 +25,6 @@ const signupSchemaBase = z.object({
   rg: z.string().optional(),
 });
 
-// Esquema de validação final com refinamentos
 const signupSchema = signupSchemaBase.refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
@@ -116,13 +115,10 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
 
     const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
     
-    // O Supabase Auth já lida com a verificação de e-mail duplicado.
-    // A verificação manual foi removida para garantir que o signUp seja chamado.
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.signUp({
       email,
       password,
       options: {
-        // Dados que serão usados pelo trigger `handle_new_user` no banco de dados.
         data: {
           full_name: fullName,
           display_name: displayName,
@@ -149,7 +145,6 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         return { message: errorMsg, success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
     
-    // Se chegou aqui, a chamada para o Supabase Auth foi bem-sucedida, e o e-mail de confirmação foi enviado.
     console.log("[Signup Action] User created successfully. Redirecting to login for email confirmation.");
     redirect('/login?signup=success');
 
