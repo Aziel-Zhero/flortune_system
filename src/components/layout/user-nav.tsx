@@ -1,3 +1,4 @@
+// src/components/layout/user-nav.tsx
 
 "use client";
 
@@ -14,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, LifeBuoy, BarChart3, Thermometer } from "lucide-react";
+import { LogOut, User, Settings, LifeBuoy, BarChart3, MapPin } from "lucide-react";
 import { QuoteSettingsDialog } from "@/components/settings/quote-dialog";
 import { WeatherSettingsDialog } from "@/components/settings/weather-dialog";
 import { toast } from "@/hooks/use-toast";
@@ -77,7 +78,7 @@ export function UserNav() {
                 <span>Configurar Cotações</span>
              </DropdownMenuItem>
              <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
-                <Thermometer className="mr-2 h-4 w-4" />
+                <MapPin className="mr-2 h-4 w-4" />
                 <span>Configurar Clima</span>
              </DropdownMenuItem>
              <DropdownMenuItem asChild>

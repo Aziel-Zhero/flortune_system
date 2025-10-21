@@ -1,4 +1,3 @@
-
 // src/app/(app)/settings/page.tsx
 "use client";
 
@@ -16,6 +15,7 @@ import { APP_NAME } from "@/lib/constants";
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { cn } from "@/lib/utils";
 import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
+import { WeatherSettingsDialog } from '@/components/settings/weather-dialog';
 import { useRouter } from 'next/navigation';
 
 interface ThemeOption {
@@ -38,21 +38,15 @@ const availableThemes: ThemeOption[] = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme, weatherCity, setWeatherCity, loadWeatherForCity } = useAppSettings();
+  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme } = useAppSettings();
 
-  const [localWeatherCity, setLocalWeatherCity] = useState(weatherCity || "");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   
   useEffect(() => {
     document.title = `Configurações - ${APP_NAME}`;
   }, []);
-
-   useEffect(() => {
-    if (weatherCity) {
-      setLocalWeatherCity(weatherCity);
-    }
-  }, [weatherCity]);
 
   const handleFeatureClick = (featureName: string, isPlaceholder: boolean = true) => {
     toast({ 
@@ -64,18 +58,6 @@ export default function SettingsPage() {
   const handleThemeChange = (themeId: string) => {
     applyTheme(themeId); 
     toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.`, action: <CheckSquare className="text-green-500"/> });
-  };
-
-  const handleWeatherSave = (e: FormEvent) => {
-    e.preventDefault();
-    const trimmedCity = localWeatherCity.trim();
-    setWeatherCity(trimmedCity);
-    if(trimmedCity) {
-      loadWeatherForCity(trimmedCity);
-      toast({ title: "Cidade do Clima Atualizada", description: `Buscando clima para ${trimmedCity}.` });
-    } else {
-      toast({ title: "Clima Desativado", description: "A exibição do clima foi removida." });
-    }
   };
   
   const handleLogout = () => {
@@ -98,34 +80,31 @@ export default function SettingsPage() {
             <CardDescription>Personalize o que você vê no seu painel e como o aplicativo se parece.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <form onSubmit={handleWeatherSave} className="space-y-4 p-4 border rounded-lg">
-             <h3 className="font-semibold">Clima</h3>
-             <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
-                <div className='space-y-1.5'>
-                    <Label htmlFor="weatherCity" className='text-xs'>Sua Cidade</Label>
-                    <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="weatherCity" placeholder="Ex: São Paulo, BR" value={localWeatherCity} onChange={(e) => setLocalWeatherCity(e.target.value)} className="pl-10"/>
-                    </div>
-                </div>
-                <Button type="submit">Salvar</Button>
-             </div>
-             <p className="text-xs text-muted-foreground">Insira sua cidade para ver o clima na barra lateral. Deixe em branco para desativar.</p>
-          </form>
+            
+            <div className="p-4 border rounded-lg flex items-center justify-between">
+                <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
+                <span className="font-semibold">Módulo de Clima</span>
+                <span className="font-normal leading-snug text-muted-foreground text-sm">
+                    Exibe a condição climática da sua cidade na barra lateral.
+                </span>
+                </Label>
+                <Button variant="outline" size="sm" onClick={() => setIsWeatherDialogOpen(true)}>
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Configurar Cidade
+                </Button>
+            </div>
 
-            <div className="p-4 border rounded-lg">
-                <div className="flex items-center justify-between">
-                    <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
-                    <span className="font-semibold">Cards de Cotações</span>
-                    <span className="font-normal leading-snug text-muted-foreground text-sm">
-                        Exibe cotações de mercado no seu painel principal.
-                    </span>
-                    </Label>
-                    <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    Configurar
-                    </Button>
-                </div>
+            <div className="p-4 border rounded-lg flex items-center justify-between">
+                <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
+                <span className="font-semibold">Cards de Cotações</span>
+                <span className="font-normal leading-snug text-muted-foreground text-sm">
+                    Exibe cotações de mercado no seu painel principal.
+                </span>
+                </Label>
+                <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Configurar Cotações
+                </Button>
             </div>
             
             <div className="flex items-center justify-between p-3 rounded-md border">
@@ -246,6 +225,7 @@ export default function SettingsPage() {
       </div>
       <ShareModuleDialog isOpen={isShareModalOpen} onOpenChange={setIsShareModalOpen} />
       <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
+      <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
     </>
   );
 }

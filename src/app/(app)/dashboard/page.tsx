@@ -1,3 +1,4 @@
+// src/app/(app)/dashboard/page.tsx
 
 "use client";
 
@@ -75,13 +76,6 @@ export default function DashboardPage() {
   const quoteCodesToRender = useMemo(() => {
     return selectedQuotes.filter(q => q && q.trim() !== '');
   }, [selectedQuotes]);
-  
-  // DEBUG
-  useEffect(() => {
-    console.log('Selected Quotes:', selectedQuotes);
-    console.log('Quote Codes to Render:', quoteCodesToRender);
-    console.log('Quotes loaded:', quotes);
-  }, [selectedQuotes, quoteCodesToRender, quotes]);
 
   const welcomeName = "Usuário";
 

@@ -1,3 +1,4 @@
+// src/contexts/app-settings-context.tsx
 
 "use client";
 
@@ -80,7 +81,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setIsLoadingQuotes(false);
       return;
     }
-
+  
     try {
       // Simula uma pequena demora de API
       await new Promise(resolve => setTimeout(resolve, 300));
