@@ -33,8 +33,6 @@ export interface AppSettingsProviderValue {
   loadWeatherForCity: (city: string) => Promise<void>;
   isLoadingWeather: boolean;
   
-  showQuotes: boolean;
-  setShowQuotes: Dispatch<SetStateAction<boolean>>;
   selectedQuotes: string[];
   setSelectedQuotes: (quotes: string[]) => void;
   quotes: QuoteData[];
@@ -64,7 +62,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
-  const [showQuotes, setShowQuotes] = useState(true);
   const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
@@ -76,49 +73,40 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     
     const validQuotes = quoteList.filter(q => q && q.trim() !== '');
     
-    if (!showQuotes || validQuotes.length === 0) {
+    if (validQuotes.length === 0) {
       setQuotes([]);
       setIsLoadingQuotes(false);
       return;
     }
   
     try {
-      // Simula uma pequena demora de API
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Filtra os mocks para incluir APENAS as cotações selecionadas
       const filteredMocks = mockQuotes.filter(mq => 
         validQuotes.includes(mq.code)
       );
       
-      // Garante que a ordem seja a mesma da seleção
       const orderedQuotes = validQuotes
         .map(code => filteredMocks.find(mq => mq.code === code))
         .filter((q): q is QuoteData => !!q);
       
       setQuotes(orderedQuotes);
       
-      if (orderedQuotes.length !== validQuotes.length) {
-        console.warn('Algumas cotações selecionadas não foram encontradas');
-      }
     } catch (error) {
       setQuotesError('Erro ao carregar cotações');
       console.error('Error loading quotes:', error);
     } finally {
       setIsLoadingQuotes(false);
     }
-  }, [showQuotes]);
+  }, []);
 
   const setSelectedQuotes = (newQuotes: string[]) => {
+    const finalQuotes = newQuotes.slice(0, 5);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
+      localStorage.setItem('flortune-selected-quotes', JSON.stringify(finalQuotes));
     }
-    setSelectedQuotesState(newQuotes);
-    
-    // Recarregar as cotações imediatamente após mudar a seleção
-    if (showQuotes) {
-      loadQuotes(newQuotes);
-    }
+    setSelectedQuotesState(finalQuotes);
+    loadQuotes(finalQuotes);
   };
   
   const loadWeatherForCity = useCallback(async (city: string) => {
@@ -195,7 +183,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  // Effect to load settings from localStorage on client-side mount
   useEffect(() => {
     try {
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
@@ -215,15 +202,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         loadWeatherForCity(storedCity);
       }
       
-      const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
-      const show = storedShowQuotes ? JSON.parse(storedShowQuotes) : true;
-      setShowQuotes(show);
-      
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
       const quotesToLoad = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
       
-      setSelectedQuotesState(quotesToLoad);
-      loadQuotes(quotesToLoad);
+      setSelectedQuotesState(quotesToLoad.slice(0, 5));
+      loadQuotes(quotesToLoad.slice(0, 5));
       
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
@@ -231,27 +214,13 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [applyTheme, loadWeatherForCity, loadQuotes]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
-      
-      if (showQuotes && selectedQuotes.length > 0) {
-        loadQuotes(selectedQuotes);
-      }
-      else if (!showQuotes) {
-        setQuotes([]);
-      }
-    }
-  }, [showQuotes, selectedQuotes, loadQuotes]);
-
-
   return (
     <AppSettingsContext.Provider value={{ 
       isPrivateMode, setIsPrivateMode, togglePrivateMode,
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
-      showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
+      selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
       loadQuotes,
     }}>
       {children}

@@ -97,7 +97,7 @@ export default function SettingsPage() {
                 <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
                 <span className="font-semibold">Cards de Cotações</span>
                 <span className="font-normal leading-snug text-muted-foreground text-sm">
-                    Escolha até 5 cotações para exibir no seu painel principal.
+                    Escolha as 5 cotações para exibir no seu painel principal.
                 </span>
                 </Label>
                 <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>

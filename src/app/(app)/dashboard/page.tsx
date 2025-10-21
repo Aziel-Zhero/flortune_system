@@ -67,15 +67,11 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DashboardPage() {
-  const { showQuotes, quotes, isLoadingQuotes, selectedQuotes } = useAppSettings();
+  const { quotes, isLoadingQuotes } = useAppSettings();
 
   useEffect(() => {
     document.title = `Painel - ${APP_NAME}`;
   }, []);
-  
-  const quoteCodesToRender = useMemo(() => {
-    return selectedQuotes.filter(q => q && q.trim() !== '');
-  }, [selectedQuotes]);
 
   const welcomeName = "Usuário";
 
@@ -135,69 +131,53 @@ export default function DashboardPage() {
         ))}
       </div>
       
-      {showQuotes && (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-          {isLoadingQuotes 
-            ? (
-                // Mostra skeletons baseado na quantidade selecionada
-                quoteCodesToRender.map((code, index) => (
-                  <motion.div key={`skel-quote-${code}-${index}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
-                    <Card className="shadow-sm h-full">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        {isLoadingQuotes 
+          ? (
+              Array(5).fill(0).map((_, index) => (
+                <motion.div key={`skel-quote-${index}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                  <Card className="shadow-sm h-full">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-12"/>
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-8 w-24" />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            )
+          : (
+              quotes.map((quote: QuoteData, index: number) => {
+                const pctChange = parseFloat(quote.pctChange);
+                const isPositive = pctChange >= 0;
+                const quoteName = quote.name.split('/')[0];
+                
+                return (
+                  <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                    <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-4 w-12"/>
+                        <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
+                          {quoteName}
+                        </CardTitle>
+                        <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
+                            {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                            {pctChange.toFixed(2)}%
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <Skeleton className="h-8 w-24" />
+                          <div className="text-2xl font-bold font-headline">
+                            <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
+                          </div>
                       </CardContent>
                     </Card>
                   </motion.div>
-                ))
-              )
-            : (
-                // Mostra as cotações carregadas
-                quotes.map((quote: QuoteData, index: number) => {
-                  const pctChange = parseFloat(quote.pctChange);
-                  const isPositive = pctChange >= 0;
-                  const quoteName = quote.name.split('/')[0];
-                  
-                  return (
-                    <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
-                      <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
-                            {quoteName}
-                          </CardTitle>
-                          <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
-                              {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                              {pctChange.toFixed(2)}%
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold font-headline">
-                              <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
-                            </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })
-              )
-          }
-          
-          {/* Mensagem se não há cotações */}
-          {!isLoadingQuotes && quotes.length === 0 && quoteCodesToRender.length > 0 && (
-            <div className="col-span-full text-center py-8 text-muted-foreground">
-              Não foi possível carregar as cotações selecionadas.
-            </div>
-          )}
-          {!isLoadingQuotes && quoteCodesToRender.length === 0 && (
-            <div className="col-span-full text-center py-8 text-muted-foreground">
-              Nenhuma cotação selecionada. Vá nas configurações para selecionar as cotações que deseja ver.
-            </div>
-          )}
-        </div>
-      )}
+                );
+              })
+            )
+        }
+      </div>
 
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
