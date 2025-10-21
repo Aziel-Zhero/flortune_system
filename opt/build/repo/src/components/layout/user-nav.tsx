@@ -15,36 +15,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, LifeBuoy, Thermometer, BarChart3 } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
 import { WeatherSettingsDialog } from "@/components/settings/weather-dialog";
 import { QuoteSettingsDialog } from "@/components/settings/quote-dialog";
+import { toast } from "@/hooks/use-toast";
+
+// Mock user data as authentication is disabled
+const mockUser = {
+  displayName: "Usuário",
+  userEmail: "usuario@exemplo.com",
+  fallbackInitial: "U",
+  avatarUrl: `https://placehold.co/100x100.png?text=U`,
+};
 
 export function UserNav() {
-  const { data: session, status } = useSession();
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/login?logout=success' });
+    toast({ title: "Logout simulado", description: "Em um app real, você seria desconectado."});
+    // Em um app real com auth, a linha abaixo seria usada:
+    // await signOut({ callbackUrl: '/login?logout=success' });
   };
-
-  if (status === "loading") {
-    return (
-      <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
-    );
-  }
-
-  if (status === "unauthenticated" || !session?.user) {
-    return  <div className="h-9 w-9 rounded-full bg-muted" />;
-  }
-
-  const userProfile = session.user.profile;
-  const displayName = userProfile?.display_name || session.user.name || "Usuário";
-  const userEmail = userProfile?.email || session.user.email || "Não disponível";
-  const fallbackInitial = (displayName === "Usuário" && session.user.name) 
-                          ? session.user.name.charAt(0).toUpperCase() 
-                          : displayName.charAt(0).toUpperCase() || "U";
-  const avatarUrl = userProfile?.avatar_url || session.user.image || `https://placehold.co/100x100.png?text=${fallbackInitial}`;
 
   return (
     <>
@@ -52,17 +43,17 @@ export function UserNav() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar" />
-              <AvatarFallback>{fallbackInitial}</AvatarFallback>
+              <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar" />
+              <AvatarFallback>{mockUser.fallbackInitial}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none font-headline">{displayName}</p>
+              <p className="text-sm font-medium leading-none font-headline">{mockUser.displayName}</p>
               <p className="text-xs leading-none text-muted-foreground">
-                {userEmail}
+                {mockUser.userEmail}
               </p>
             </div>
           </DropdownMenuLabel>
