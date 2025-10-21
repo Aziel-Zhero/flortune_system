@@ -3,6 +3,7 @@
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
 import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
@@ -82,6 +83,10 @@ export default function DashboardPage() {
     }),
   };
 
+  const quoteCodesToRender = useMemo(() => {
+    return selectedQuotes.filter(q => q && q.trim() !== '');
+  }, [selectedQuotes]);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -131,32 +136,47 @@ export default function DashboardPage() {
       
       {showQuotes && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-            {!isLoadingQuotes && quotes.map((quote: QuoteData, index: number) => {
-                const pctChange = parseFloat(quote.pctChange);
-                const isPositive = pctChange >= 0;
-                const quoteName = quote.name.split('/')[0];
-                
-                return (
-                  <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
-                    <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
+            {isLoadingQuotes 
+              ? (quoteCodesToRender.map((code, index) => (
+                  <motion.div key={`skel-quote-${code}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                    <Card className="shadow-sm h-full">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
-                          {quoteName}
-                        </CardTitle>
-                        <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
-                            {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                            {pctChange.toFixed(2)}%
-                        </div>
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-12"/>
                       </CardHeader>
                       <CardContent>
-                          <div className="text-2xl font-bold font-headline">
-                             <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
-                          </div>
+                        <Skeleton className="h-8 w-24" />
                       </CardContent>
                     </Card>
                   </motion.div>
-                )
-            })}
+                )))
+              : (quotes.map((quote: QuoteData, index: number) => {
+                  const pctChange = parseFloat(quote.pctChange);
+                  const isPositive = pctChange >= 0;
+                  const quoteName = quote.name.split('/')[0];
+                  
+                  return (
+                    <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                      <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
+                            {quoteName}
+                          </CardTitle>
+                          <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
+                              {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                              {pctChange.toFixed(2)}%
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold font-headline">
+                              <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
+                            </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )
+              }))
+            }
           </div>
       )}
 

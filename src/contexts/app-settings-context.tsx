@@ -4,7 +4,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { getQuotes, type QuoteData } from '@/services/quote.service';
+import type { QuoteData } from '@/services/quote.service';
 
 // Tipos para os dados do clima
 interface WeatherData {
@@ -46,9 +46,11 @@ const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(u
 
 // MOCK DATA PARA COTAÇÕES
 const mockQuotes: QuoteData[] = [
-  { code: "USD", codein: 'BRL', name: 'Dólar Comercial/Real Brasileiro', high: '5.45', low: '5.40', varBid: '0.01', pctChange: '0.18', bid: '5.42', ask: '5.42', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: "EUR", codein: 'BRL', name: 'Euro/Real Brasileiro', high: '5.85', low: '5.80', varBid: '0.02', pctChange: '0.34', bid: '5.83', ask: '5.83', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: "BTC", codein: 'BRL', name: 'Bitcoin/Real Brasileiro', high: '340000', low: '330000', varBid: '5000', pctChange: '1.5', bid: '335000', ask: '335100', timestamp: String(Date.now()), create_date: new Date().toISOString() }
+  { code: "USD-BRL", codein: 'BRL', name: 'Dólar Comercial', high: '5.45', low: '5.40', varBid: '0.01', pctChange: '0.18', bid: '5.42', ask: '5.42', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: "EUR-BRL", codein: 'BRL', name: 'Euro', high: '5.85', low: '5.80', varBid: '0.02', pctChange: '0.34', bid: '5.83', ask: '5.83', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: "BTC-BRL", codein: 'BRL', name: 'Bitcoin', high: '340000', low: '330000', varBid: '5000', pctChange: '1.50', bid: '335000', ask: '335100', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: "IBOV", codein: 'BRL', name: 'Ibovespa', high: '125000', low: '124000', varBid: '500', pctChange: '0.40', bid: '124500', ask: '124500', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: "NASDAQ", codein: 'BRL', name: 'Nasdaq', high: '18000', low: '17900', varBid: '100', pctChange: '0.55', bid: '17950', ask: '17950', timestamp: String(Date.now()), create_date: new Date().toISOString() }
 ];
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -68,10 +70,20 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
   const loadQuotes = useCallback(async (quoteList: string[]) => {
-    // Usando dados estáticos para evitar falhas de API durante a demonstração.
-    setQuotes(mockQuotes.slice(0, 5));
+    setIsLoadingQuotes(true);
+    const validQuotes = quoteList.filter(q => q && q !== '');
+    if (!showQuotes || validQuotes.length === 0) {
+      setQuotes([]);
+      setIsLoadingQuotes(false);
+      return;
+    }
+    // Simula uma pequena demora de API
+    await new Promise(resolve => setTimeout(resolve, 300));
+    // Filtra os mocks para corresponder aos selecionados
+    const filteredMocks = mockQuotes.filter(mq => validQuotes.includes(mq.code));
+    setQuotes(filteredMocks);
     setIsLoadingQuotes(false);
-  }, []);
+  }, [showQuotes]);
 
   const setSelectedQuotes = (newQuotes: string[]) => {
     if (typeof window !== 'undefined') {
@@ -81,7 +93,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const loadWeatherForCity = useCallback(async (city: string) => {
-    if (!city) return;
+    if (!city) {
+      setWeatherData(null);
+      setWeatherError(null);
+      return;
+    };
     setIsLoadingWeather(true);
     setWeatherError(null);
     try {
@@ -175,7 +191,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setShowQuotes(show);
       
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      const quotesToLoad = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL'];
+      const quotesToLoad = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
       setSelectedQuotesState(quotesToLoad);
       if (show) {
         loadQuotes(quotesToLoad);
