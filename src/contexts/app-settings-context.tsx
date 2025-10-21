@@ -79,8 +79,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
     // Simula uma pequena demora de API
     await new Promise(resolve => setTimeout(resolve, 300));
-    // Filtra os mocks para corresponder aos selecionados
-    const filteredMocks = mockQuotes.filter(mq => validQuotes.includes(mq.code));
+    // Filtra os mocks para corresponder exatamente aos selecionados
+    const filteredMocks = validQuotes.map(code => mockQuotes.find(mq => mq.code === code)).filter((q): q is QuoteData => !!q);
     setQuotes(filteredMocks);
     setIsLoadingQuotes(false);
   }, [showQuotes]);
