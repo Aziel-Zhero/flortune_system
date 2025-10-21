@@ -71,18 +71,41 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const loadQuotes = useCallback(async (quoteList: string[]) => {
     setIsLoadingQuotes(true);
-    const validQuotes = quoteList.filter(q => q && q !== '');
+    setQuotesError(null);
+    
+    const validQuotes = quoteList.filter(q => q && q.trim() !== '');
+    
     if (!showQuotes || validQuotes.length === 0) {
       setQuotes([]);
       setIsLoadingQuotes(false);
       return;
     }
-    // Simula uma pequena demora de API
-    await new Promise(resolve => setTimeout(resolve, 300));
-    // Filtra os mocks para corresponder exatamente aos selecionados
-    const filteredMocks = validQuotes.map(code => mockQuotes.find(mq => mq.code === code)).filter((q): q is QuoteData => !!q);
-    setQuotes(filteredMocks);
-    setIsLoadingQuotes(false);
+
+    try {
+      // Simula uma pequena demora de API
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Filtra os mocks para incluir APENAS as cotações selecionadas
+      const filteredMocks = mockQuotes.filter(mq => 
+        validQuotes.includes(mq.code)
+      );
+      
+      // Garante que a ordem seja a mesma da seleção
+      const orderedQuotes = validQuotes
+        .map(code => filteredMocks.find(mq => mq.code === code))
+        .filter((q): q is QuoteData => !!q);
+      
+      setQuotes(orderedQuotes);
+      
+      if (orderedQuotes.length !== validQuotes.length) {
+        console.warn('Algumas cotações selecionadas não foram encontradas nos dados de exemplo.');
+      }
+    } catch (error) {
+      setQuotesError('Erro ao carregar cotações');
+      console.error('Error loading quotes:', error);
+    } finally {
+      setIsLoadingQuotes(false);
+    }
   }, [showQuotes]);
 
   const setSelectedQuotes = (newQuotes: string[]) => {

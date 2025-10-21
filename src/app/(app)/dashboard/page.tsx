@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -71,6 +71,17 @@ export default function DashboardPage() {
   useEffect(() => {
     document.title = `Painel - ${APP_NAME}`;
   }, []);
+  
+  const quoteCodesToRender = useMemo(() => {
+    return selectedQuotes.filter(q => q && q.trim() !== '');
+  }, [selectedQuotes]);
+  
+  // DEBUG
+  useEffect(() => {
+    console.log('Selected Quotes:', selectedQuotes);
+    console.log('Quote Codes to Render:', quoteCodesToRender);
+    console.log('Quotes loaded:', quotes);
+  }, [selectedQuotes, quoteCodesToRender, quotes]);
 
   const welcomeName = "Usuário";
 
@@ -82,10 +93,6 @@ export default function DashboardPage() {
       transition: { delay: i * 0.1, type: "spring", stiffness: 100 },
     }),
   };
-
-  const quoteCodesToRender = useMemo(() => {
-    return selectedQuotes.filter(q => q && q.trim() !== '');
-  }, [selectedQuotes]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,7 +141,7 @@ export default function DashboardPage() {
         ))}
       </div>
       
-      {showQuotes && (
+      {showQuotes && quoteCodesToRender.length > 0 && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             {isLoadingQuotes 
               ? (quoteCodesToRender.map((code, index) => (
@@ -150,7 +157,7 @@ export default function DashboardPage() {
                     </Card>
                   </motion.div>
                 )))
-              : (quotes.map((quote: QuoteData, index: number) => {
+              : (quotes.length > 0 ? quotes.map((quote: QuoteData, index: number) => {
                   const pctChange = parseFloat(quote.pctChange);
                   const isPositive = pctChange >= 0;
                   const quoteName = quote.name.split('/')[0];
@@ -175,7 +182,11 @@ export default function DashboardPage() {
                       </Card>
                     </motion.div>
                   )
-              }))
+                }) : (
+                  <div className="col-span-full text-center py-4 text-muted-foreground flex items-center justify-center gap-2">
+                     <AlertTriangle className="h-4 w-4" /> Nenhuma cotação selecionada ou disponível.
+                  </div>
+                ))
             }
           </div>
       )}
