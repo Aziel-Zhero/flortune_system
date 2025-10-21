@@ -50,7 +50,7 @@ import {
   arrayMove,
   SortableContext,
   useSortable,
-  rectSortingStrategy, // Changed from verticalListSortingStrategy
+  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -87,7 +87,6 @@ export default function NotepadPage() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const sensors = useSensors(useSensor(PointerSensor, {
-    // Allows clicks on buttons inside the draggable item
     activationConstraint: {
       distance: 8,
     },
@@ -134,7 +133,12 @@ export default function NotepadPage() {
         isPinned: false,
         isPrivate: false,
       };
-      setNotes(prev => [newNote, ...prev]);
+      setNotes(prevNotes => {
+        const lastPinnedIndex = prevNotes.findLastIndex(note => note.isPinned);
+        const newNotes = [...prevNotes];
+        newNotes.splice(lastPinnedIndex + 1, 0, newNote);
+        return newNotes;
+      });
       toast({ title: "Nota criada", description: `“${data.title}” foi adicionada.` });
     }
     setEditingNote(null);
@@ -154,7 +158,24 @@ export default function NotepadPage() {
   };
 
   const togglePinNote = (id: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, isPinned: !n.isPinned } : n));
+    setNotes(prevNotes => {
+      const noteIndex = prevNotes.findIndex(n => n.id === id);
+      if (noteIndex === -1) return prevNotes;
+
+      const newNotes = [...prevNotes];
+      const noteToToggle = { ...newNotes[noteIndex], isPinned: !newNotes[noteIndex].isPinned };
+      
+      newNotes.splice(noteIndex, 1);
+
+      if (noteToToggle.isPinned) {
+        newNotes.unshift(noteToToggle);
+      } else {
+        const lastPinnedIndex = newNotes.findLastIndex(note => note.isPinned);
+        newNotes.splice(lastPinnedIndex + 1, 0, noteToToggle);
+      }
+      
+      return newNotes;
+    });
   };
 
   const togglePrivateNote = (id: string) => {
@@ -171,10 +192,6 @@ export default function NotepadPage() {
       });
     }
   };
-  
-  const sortedNotes = useMemo(() => {
-    return [...notes].sort((a, b) => Number(b.isPinned) - Number(a.isPinned));
-  }, [notes]);
 
   return (
     <div>
@@ -241,7 +258,7 @@ export default function NotepadPage() {
       </Card>
 
       {/* Lista de notas */}
-      {sortedNotes.length === 0 && !isInitialLoad && (
+      {notes.length === 0 && !isInitialLoad && (
         <div className="text-center py-10 text-muted-foreground">
           <NotebookPen className="h-16 w-16 mx-auto mb-4 opacity-30" />
           <p>Nenhuma anotação ainda. Crie sua primeira!</p>
@@ -249,10 +266,10 @@ export default function NotepadPage() {
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={sortedNotes.map(n => n.id)} strategy={rectSortingStrategy}>
+        <SortableContext items={notes.map(n => n.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <AnimatePresence>
-              {sortedNotes.map((note) => (
+              {notes.map((note) => (
                 <SortableNoteCard key={note.id} note={note}>
                   <Card className={cn("border-2 flex flex-col h-full", note.color, note.isPinned && "ring-2 ring-primary/80")}>
                     <CardHeader className="pb-3 flex-row justify-between items-start">
@@ -309,10 +326,9 @@ function SortableNoteCard({ note, children }: { note: Note; children: React.Reac
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.95 }}
       transition={{ duration: 0.3 }}
+      className="cursor-grab active:cursor-grabbing"
     >
       {children}
     </motion.div>
   );
 }
-
-    
