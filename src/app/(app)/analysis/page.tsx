@@ -1,3 +1,4 @@
+
 // src/app/(app)/analysis/page.tsx
 "use client";
 
@@ -25,9 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { APP_NAME } from "@/lib/constants";
-import { useSession } from "next-auth/react";
-import { getTransactions } from "@/services/transaction.service";
-import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
@@ -64,7 +62,6 @@ import {
   RadialBar,
   Brush
 } from "recharts";
-import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
   name: string;
@@ -95,6 +92,46 @@ const chartColors = [
   "hsl(var(--chart-1)/0.7)",
   "hsl(var(--chart-2)/0.7)",
 ];
+
+// --- MOCK DATA PARA GRÁFICOS PRINCIPAIS ---
+
+const mockSpendingByCategory: CategoryData[] = [
+  { name: "Moradia", value: 1850.55, fill: chartColors[0] },
+  { name: "Alimentação", value: 1230.70, fill: chartColors[1] },
+  { name: "Lazer", value: 680.00, fill: chartColors[2] },
+  { name: "Transporte", value: 430.50, fill: chartColors[3] },
+  { name: "Outros", value: 250.00, fill: chartColors[4] },
+];
+
+const mockIncomeBySource: CategoryData[] = [
+  { name: "Salário", value: 7500.00, fill: chartColors[0] },
+  { name: "Freelance", value: 2100.00, fill: chartColors[1] },
+  { name: "Rendimentos", value: 350.00, fill: chartColors[2] },
+];
+
+const mockTopExpenses: TopExpense[] = [
+  { id: '1', description: 'Aluguel & Condomínio', amount: 1800.00, date: '05/07/2024', categoryName: 'Moradia' },
+  { id: '2', description: 'Compras do Mês', amount: 850.20, date: '02/07/2024', categoryName: 'Alimentação' },
+  { id: '3', description: 'Show da Banda X', amount: 350.00, date: '15/07/2024', categoryName: 'Lazer' },
+  { id: '4', description: 'Combustível', amount: 250.00, date: '10/07/2024', categoryName: 'Transporte' },
+  { id: '5', description: 'Restaurante Y', amount: 220.50, date: '20/07/2024', categoryName: 'Alimentação' },
+];
+
+const mockMonthlyEvolution: MonthlyEvolutionData[] = [
+  { month: "Jan/24", Receitas: 6800, Despesas: 4500 },
+  { month: "Fev/24", Receitas: 7100, Despesas: 4800 },
+  { month: "Mar/24", Receitas: 7200, Despesas: 4700 },
+  { month: "Abr/24", Receitas: 6900, Despesas: 5100 },
+  { month: "Mai/24", Receitas: 7800, Despesas: 5500 },
+  { month: "Jun/24", Receitas: 8200, Despesas: 5300 },
+  { month: "Jul/24", Receitas: 9600, Despesas: 4500 },
+  { month: "Ago/24", Receitas: 0, Despesas: 0 },
+  { month: "Set/24", Receitas: 0, Despesas: 0 },
+  { month: "Out/24", Receitas: 0, Despesas: 0 },
+  { month: "Nov/24", Receitas: 0, Despesas: 0 },
+  { month: "Dez/24", Receitas: 0, Despesas: 0 },
+];
+// --- FIM DOS MOCK DATA ---
 
 const RealDataCustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -172,151 +209,24 @@ const genericChartConfig = {
 
 
 export default function AnalysisPage() {
-  const { data: session, status } = useSession();
-  const user = session?.user;
-  const authLoading = status === "loading";
-
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
-  const [isFetchingTransactions, setIsFetchingTransactions] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
   }, []);
 
-  useEffect(() => {
-    if (!user?.id || authLoading) {
-      setIsFetchingTransactions(authLoading);
-      if (!authLoading && !user?.id) setAllTransactions([]);
-      return;
-    }
-    const fetchAllTransactions = async () => {
-      setIsFetchingTransactions(true);
-      try {
-        const { data, error } = await getTransactions(user.id);
-        if (error) {
-          toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
-          setAllTransactions([]);
-        } else {
-          setAllTransactions(Array.isArray(data) ? data : []);
-        }
-      } catch (err) {
-        toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
-        setAllTransactions([]);
-      } finally {
-        setIsFetchingTransactions(false);
-      }
-    };
-    fetchAllTransactions();
-  }, [user?.id, authLoading]);
-
-  const filteredTransactionsForPeriod = useMemo(() => {
-    if (!Array.isArray(allTransactions) || allTransactions.length === 0) return [];
-    return allTransactions.filter(tx => {
-      if (timePeriod === "all") return true;
-      if (!tx || !tx.date || typeof tx.date !== 'string') return false;
-      try {
-        const txDate = new Date(tx.date + "T00:00:00Z");
-        if (isNaN(txDate.getTime())) return false;
-        const now = new Date();
-        if (timePeriod === "monthly") return txDate.getUTCMonth() === now.getUTCMonth() && txDate.getUTCFullYear() === now.getUTCFullYear();
-        if (timePeriod === "yearly") return txDate.getUTCFullYear() === now.getUTCFullYear();
-      } catch(e) { console.error("Error parsing transaction date:", tx.date, e); return false; }
-      return true;
-    });
-  }, [allTransactions, timePeriod]);
-
-  const spendingByCategory = useMemo((): CategoryData[] => {
-    if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
-    const spendingMap = new Map<string, number>();
-    filteredTransactionsForPeriod
-      .filter(tx => tx?.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0)
-      .forEach(tx => {
-        const categoryName = tx.category?.name || 'Outros';
-        spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
-      });
-    if (spendingMap.size === 0) return [];
-    return Array.from(spendingMap, ([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] })).sort((a,b) => b.value - a.value);
-  }, [filteredTransactionsForPeriod]);
-
-  const incomeBySource = useMemo((): CategoryData[] => {
-    if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
-    const incomeMap = new Map<string, number>();
-    filteredTransactionsForPeriod
-      .filter(tx => tx?.type === 'income' && typeof tx.amount === 'number' && tx.amount > 0)
-      .forEach(tx => {
-        const categoryName = tx.category?.name || 'Outras Receitas';
-        incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
-      });
-    if (incomeMap.size === 0) return [];
-    return Array.from(incomeMap, ([name, value], index) => ({ name, value, fill: chartColors[(index + 1) % chartColors.length] })).sort((a,b) => b.value - a.value);
-  }, [filteredTransactionsForPeriod]);
-
-  const monthlyEvolution = useMemo((): MonthlyEvolutionData[] => {
-    if (!Array.isArray(allTransactions) || allTransactions.length === 0) return [];
-    const monthlyData: { [key: string]: { income: number; expense: number } } = {};
-    const today = new Date();
-    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    for (let i = 11; i >= 0; i--) {
-        const date = new Date(today.getUTCFullYear(), today.getUTCMonth() - i, 1);
-        const monthKey = `${monthNames[date.getUTCMonth()]}/${date.getUTCFullYear().toString().slice(-2)}`;
-        monthlyData[monthKey] = { income: 0, expense: 0 };
-    }
-    allTransactions.forEach(tx => {
-      if (!tx?.date || typeof tx.date !== 'string' || typeof tx.amount !== 'number') return;
-      try {
-        const txDate = new Date(tx.date + "T00:00:00Z");
-        if (isNaN(txDate.getTime())) return;
-        const monthKey = `${monthNames[txDate.getUTCMonth()]}/${txDate.getUTCFullYear().toString().slice(-2)}`;
-        if (monthlyData[monthKey] !== undefined) {
-            if (tx.type === 'income' && tx.amount > 0) monthlyData[monthKey].income += tx.amount;
-            else if (tx.type === 'expense' && tx.amount > 0) monthlyData[monthKey].expense += tx.amount;
-        }
-      } catch(e) { console.error("Error processing tx for monthlyEvolution:", tx.date, e); }
-    });
-    return Object.entries(monthlyData).map(([month, data]) => ({ month, Receitas: data.income, Despesas: data.expense }));
-  }, [allTransactions]);
-
-  const topExpenses = useMemo((): TopExpense[] => {
-    if (!Array.isArray(filteredTransactionsForPeriod) || filteredTransactionsForPeriod.length === 0) return [];
-    return filteredTransactionsForPeriod
-        .filter(tx => tx?.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0)
-        .sort((a, b) => b.amount - a.amount)
-        .slice(0, 5)
-        .map(tx => ({
-            id: tx.id,
-            description: tx.description || "N/A",
-            amount: tx.amount,
-            date: tx.date ? new Date(tx.date + "T00:00:00Z").toLocaleDateString('pt-BR') : "N/A",
-            categoryName: tx.category?.name || "Sem Categoria"
-        }));
-  }, [filteredTransactionsForPeriod]);
+  const spendingByCategory = mockSpendingByCategory;
+  const incomeBySource = mockIncomeBySource;
+  const monthlyEvolution = mockMonthlyEvolution;
+  const topExpenses = mockTopExpenses;
+  const isFetchingTransactions = false; // Simula que o carregamento terminou
+  const noTransactionsAtAll = false; // Simula que há transações
 
   const realDataChartConfig = useMemo(() => ({
     Receitas: { label: "Receitas", color: "hsl(var(--chart-1))" },
     Despesas: { label: "Despesas", color: "hsl(var(--chart-2))" },
   }), []);
 
-  const isLoadingPage = authLoading || (isFetchingTransactions && status === 'authenticated' && !!user);
-
-  if (isLoadingPage) {
-    return (
-      <div className="space-y-8">
-        <PageHeader title="Análise Financeira" description="Carregando seus insights financeiros..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3].map(i => ( <Card key={`sk-card-pie-${i}`} className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card> ))}
-          <Card className="md:col-span-2 lg:col-span-3"><CardHeader><Skeleton className="h-6 w-1/2 mb-1"/><Skeleton className="h-4 w-3/4"/></CardHeader><CardContent><Skeleton className="h-96 w-full"/></CardContent></Card>
-        </div>
-         <PageHeader title="Galeria de Exemplos de Gráficos" description="Carregando demonstrações..." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           {[...Array(6)].map((_, i) => ( <Card key={`sk-gallery-${i}`}><CardHeader><Skeleton className="h-5 w-1/2" /><Skeleton className="h-3 w-3/4 mt-1" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>))}
-        </div>
-      </div>
-    );
-  }
-
-  const noTransactionsAtAll = !isFetchingTransactions && allTransactions.length === 0;
-  const noDataForSelectedPeriod = !isFetchingTransactions && (timePeriod === "monthly" || timePeriod === "yearly") && spendingByCategory.length === 0 && incomeBySource.length === 0 && topExpenses.length === 0;
 
   return (
     <div className="space-y-8">
@@ -335,69 +245,55 @@ export default function AnalysisPage() {
           </Select>
         }
       />
-      {noTransactionsAtAll ? (
-        <Card className="shadow-sm text-center py-12 col-span-full">
-            <CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" /><CardTitle className="mt-4">Nenhuma Transação Registrada</CardTitle></CardHeader>
-            <CardContent><CardDescription>Adicione transações para começar a ver suas análises financeiras.</CardDescription></CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {noDataForSelectedPeriod && timePeriod !== 'all' ? (
-                 <Card className="shadow-sm text-center py-12 md:col-span-2 lg:col-span-3">
-                    <CardHeader><AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground/50" /><CardTitle className="mt-4">Sem Dados para o Período</CardTitle></CardHeader>
-                    <CardContent><CardDescription>Não há transações no período selecionado. Tente um período diferente ou adicione novas transações.</CardDescription></CardContent>
-                </Card>
-            ) : (
-                <>
-                    <Card className="shadow-sm">
-                        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
-                        <CardContent className="h-[320px] sm:h-80">
-                            {spendingByCategory.length > 0 ? (
-                                <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                            <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
-                                                {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
-                                            </Pie>
-                                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </ChartContainer>
-                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de despesas.</p></div>}
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-sm">
-                        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
-                        <CardContent className="h-[320px] sm:h-80">
-                            {incomeBySource.length > 0 ? (
-                                <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                            <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
-                                                {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
-                                            </Pie>
-                                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </ChartContainer>
-                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de receitas.</p></div>}
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-sm">
-                        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
-                        <CardContent className="h-[320px] sm:h-80 overflow-y-auto">
-                            {topExpenses.length > 0 ? (
-                                <Table size="sm">
-                                    <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
-                                    <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
-                                </Table>
-                            ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem despesas para listar.</p></div>}
-                        </CardContent>
-                    </Card>
-                </>
-            )}
+      
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="shadow-sm">
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
+                <CardContent className="h-[320px] sm:h-80">
+                    {spendingByCategory.length > 0 ? (
+                        <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <RechartsTooltip content={<RealDataPieCustomTooltip />} />
+                                    <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                        {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
+                                    </Pie>
+                                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de despesas.</p></div>}
+                </CardContent>
+            </Card>
+            <Card className="shadow-sm">
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
+                <CardContent className="h-[320px] sm:h-80">
+                    {incomeBySource.length > 0 ? (
+                        <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <RechartsTooltip content={<RealDataPieCustomTooltip />} />
+                                    <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                        {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
+                                    </Pie>
+                                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de receitas.</p></div>}
+                </CardContent>
+            </Card>
+            <Card className="shadow-sm">
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
+                <CardContent className="h-[320px] sm:h-80 overflow-y-auto">
+                    {topExpenses.length > 0 ? (
+                        <Table size="sm">
+                            <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                            <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem despesas para listar.</p></div>}
+                </CardContent>
+            </Card>
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-80 sm:h-96 overflow-hidden">
@@ -456,8 +352,7 @@ export default function AnalysisPage() {
                     ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados suficientes para exibir a evolução.</p></div>}
                 </CardContent>
             </Card>
-        </div>
-      )}
+      </div>
 
       <PageHeader title="Galeria de Exemplos de Gráficos" description="Demonstração de diferentes tipos de gráficos." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -695,3 +590,5 @@ export default function AnalysisPage() {
     </div>
   );
 }
+
+    
