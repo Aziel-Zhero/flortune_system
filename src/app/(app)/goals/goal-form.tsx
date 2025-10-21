@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, Heart, Save, AlertTriangle, Loader2, GraduationCap, Rings, Laptop } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Trophy, Briefcase, Car, Plane, Home, ShoppingBag, Gift, Heart, Save, Loader2, GraduationCap, Gem, Laptop } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -38,7 +38,7 @@ const availableIcons = [
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
   { name: "Educação", value: "GraduationCap", icon: GraduationCap },
-  { name: "Casamento", value: "Rings", icon: Rings },
+  { name: "Casamento", value: "Gem", icon: Gem },
   { name: "Eletrônicos", value: "Laptop", icon: Laptop },
   { name: "Compras", value: "ShoppingBag", icon: ShoppingBag },
   { name: "Presente", value: "Gift", icon: Gift },
