@@ -14,10 +14,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, LifeBuoy, Thermometer, BarChart3 } from "lucide-react";
-import { WeatherSettingsDialog } from "@/components/settings/weather-dialog";
+import { LogOut, User, Settings, LifeBuoy, BarChart3 } from "lucide-react";
 import { QuoteSettingsDialog } from "@/components/settings/quote-dialog";
 import { toast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation';
 
 // Mock user data as authentication is disabled
 const mockUser = {
@@ -28,13 +28,12 @@ const mockUser = {
 };
 
 export function UserNav() {
-  const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
+  const router = useRouter();
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     toast({ title: "Logout simulado", description: "Em um app real, você seria desconectado."});
-    // Em um app real com auth, a linha abaixo seria usada:
-    // await signOut({ callbackUrl: '/login?logout=success' });
+    router.push('/login');
   };
 
   return (
@@ -75,10 +74,6 @@ export function UserNav() {
                 <BarChart3 className="mr-2 h-4 w-4" />
                 <span>Configurar Cotações</span>
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
-                <Thermometer className="mr-2 h-4 w-4" />
-                <span>Configurar Clima</span>
-             </DropdownMenuItem>
              <DropdownMenuItem asChild>
                 <Link href="/help">
                     <LifeBuoy className="mr-2 h-4 w-4" />
@@ -93,7 +88,6 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
       <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
     </>
   );

@@ -1,17 +1,17 @@
+
 // src/app/(app)/settings/page.tsx
 "use client";
 
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, MapPin, BarChart3 } from "lucide-react";
+import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, BarChart3 } from "lucide-react";
 import { useAppSettings } from '@/contexts/app-settings-context';
-import { toast } from '@/hooks/use-toast';
-import { APP_NAME } from '@/lib/constants';
+import { toast } from "@/hooks/use-toast";
+import { APP_NAME } from "@/lib/constants";
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { cn } from "@/lib/utils";
 import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
@@ -39,8 +39,6 @@ export default function SettingsPage() {
   const router = useRouter();
   const { isDarkMode, toggleDarkMode, currentTheme, applyTheme } = useAppSettings();
 
-  // A funcionalidade de clima foi desativada, então o estado relacionado foi removido.
-  // const [localWeatherCity, setLocalWeatherCity] = useState("");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   
@@ -95,8 +93,6 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </div>
-
-            {/* Weather form has been disabled */}
             
             <div className="flex items-center justify-between p-3 rounded-md border">
               <Label htmlFor="dark-mode" className="flex flex-col space-y-1 cursor-pointer flex-grow">

@@ -6,9 +6,6 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { toast } from '@/hooks/use-toast';
 import { getQuotes, type QuoteData } from '@/services/quote.service';
 
-// Tipos para os dados do clima (agora desativado)
-// interface WeatherData { ... }
-
 // Definindo o tipo para o valor do contexto de AppSettings
 export interface AppSettingsProviderValue {
   isPrivateMode: boolean;
@@ -60,6 +57,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       setQuotesError(err.message);
       setQuotes([]);
+      toast({
+        title: "Erro ao Carregar Cotações",
+        description: err.message,
+        variant: "destructive"
+      })
     } finally {
       setIsLoadingQuotes(false);
     }
@@ -70,7 +72,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     }
     setSelectedQuotesState(newQuotes);
-    loadQuotes(newQuotes);
   };
 
   const applyTheme = useCallback((themeId: string) => {
@@ -141,8 +142,13 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
+      if (showQuotes) {
+        loadQuotes(selectedQuotes);
+      } else {
+        setQuotes([]);
+      }
     }
-  }, [showQuotes]);
+  }, [showQuotes, selectedQuotes, loadQuotes]);
 
   return (
     <AppSettingsContext.Provider value={{ 
