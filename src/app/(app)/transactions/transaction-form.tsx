@@ -2,7 +2,7 @@
 // src/app/(app)/transactions/transaction-form.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,10 +20,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
-import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
-import { getCategories } from "@/services/category.service";
-import type { Category } from "@/types/database.types";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -48,13 +44,19 @@ interface TransactionFormProps {
   isModal?: boolean;
 }
 
+// Mock categories since we have no DB
+const mockCategories = [
+    { id: 'cat_1', name: 'Salário', type: 'income' },
+    { id: 'cat_2', name: 'Renda Extra', type: 'income' },
+    { id: 'cat_3', name: 'Moradia', type: 'expense' },
+    { id: 'cat_4', name: 'Alimentação', type: 'expense' },
+    { id: 'cat_5', name: 'Transporte', type: 'expense' },
+    { id: 'cat_6', name: 'Lazer', type: 'expense' },
+    { id: 'cat_7', name: 'Outros', type: 'expense' },
+];
+
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const user = session?.user;
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -73,73 +75,28 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
   });
 
   const transactionType = watch("type");
-
-  const fetchCategoriesData = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoadingCategories(true);
-    try {
-      const { data, error } = await getCategories(user.id);
-      if (error) {
-        toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
-        setCategories([]);
-      } else {
-        setCategories(data || []);
-      }
-    } catch (err) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar as categorias.", variant: "destructive" });
-    } finally {
-      setIsLoadingCategories(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id && status !== "loading") {
-      fetchCategoriesData();
-    }
-  }, [user, status, fetchCategoriesData]);
   
   const onSubmit: SubmitHandler<TransactionFormData> = async (data) => {
-    if (!user?.id) {
-      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
-      return;
-    }
     setIsSubmitting(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log("Mock Transaction Data:", data);
 
-    const newTxData: NewTransactionData = {
-      description: data.description,
-      amount: data.amount,
-      date: format(data.date, "yyyy-MM-dd"),
-      type: data.type,
-      category_id: data.category_id,
-      notes: data.notes,
-      is_recurring: data.is_recurring ?? false,
-    };
-
-    try {
-      const result = await addTransaction(user.id, newTxData);
-      if (result.error) {
-        throw result.error;
-      }
-      toast({
-        title: "Transação Adicionada!",
-        description: `A transação "${data.description}" foi adicionada com sucesso.`,
-        action: <CheckCircle className="text-green-500" />,
-      });
-      reset();
-      onTransactionCreated();
-      if (!isModal) router.push("/transactions");
-    } catch (error: any) {
-      toast({
-        title: "Erro ao Adicionar Transação",
-        description: error.message || "Não foi possível salvar a nova transação.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({
+      title: "Transação Adicionada (Simulação)!",
+      description: `A transação "${data.description}" foi adicionada com sucesso.`,
+      action: <CheckCircle className="text-green-500" />,
+    });
+    
+    reset();
+    onTransactionCreated();
+    if (!isModal) router.push("/transactions");
+    
+    setIsSubmitting(false);
   };
 
-  const filteredCategories = categories.filter(cat => cat.type === transactionType || cat.is_default);
+  const filteredCategories = mockCategories.filter(cat => cat.type === transactionType);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
@@ -235,9 +192,9 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 name="category_id"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger id="category_id">
-                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria de ${transactionType === 'income' ? 'receita' : 'despesa'}`} />
+                      <SelectValue placeholder={`Selecione uma categoria de ${transactionType === 'income' ? 'receita' : 'despesa'}`} />
                     </SelectTrigger>
                     <SelectContent>
                       {filteredCategories.map((category) => (
@@ -245,9 +202,6 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                           {category.name}
                         </SelectItem>
                       ))}
-                      {filteredCategories.length === 0 && !isLoadingCategories && (
-                        <div className="p-4 text-sm text-muted-foreground">Nenhuma categoria encontrada para este tipo.</div>
-                      )}
                     </SelectContent>
                   </Select>
                 )}
@@ -285,7 +239,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
 
         <DialogFooter className="pt-4">
             {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
-            <Button type="submit" disabled={isSubmitting || isLoadingCategories}>
+            <Button type="submit" disabled={isSubmitting}>
                 <Save className="mr-2 h-4 w-4" />
                 {isSubmitting ? "Salvando..." : "Salvar Transação"}
             </Button>
