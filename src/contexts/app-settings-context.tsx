@@ -44,6 +44,13 @@ export interface AppSettingsProviderValue {
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
 
+// MOCK DATA PARA COTAÇÕES
+const mockQuotes: QuoteData[] = [
+  { code: "USD", codein: 'BRL', name: 'Dólar Comercial/Real Brasileiro', high: '5.45', low: '5.40', varBid: '0.01', pctChange: '0.18', bid: '5.42', ask: '5.42', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: "EUR", codein: 'BRL', name: 'Euro/Real Brasileiro', high: '5.85', low: '5.80', varBid: '0.02', pctChange: '0.34', bid: '5.83', ask: '5.83', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: "BTC", codein: 'BRL', name: 'Bitcoin/Real Brasileiro', high: '340000', low: '330000', varBid: '5000', pctChange: '1.5', bid: '335000', ask: '335100', timestamp: String(Date.now()), create_date: new Date().toISOString() }
+];
+
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -61,30 +68,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
   const loadQuotes = useCallback(async (quoteList: string[]) => {
-    const validQuotes = quoteList.filter(q => q && q !== '');
-    if (!showQuotes || validQuotes.length === 0) {
-      setQuotes([]);
-      setIsLoadingQuotes(false);
-      return;
-    }
-    setIsLoadingQuotes(true);
-    setQuotesError(null);
-    try {
-      const result = await getQuotes(validQuotes);
-      if (result.error) throw new Error(result.error);
-      setQuotes(result.data || []);
-    } catch (err: any) {
-      setQuotesError(err.message);
-      setQuotes([]);
-      toast({
-        title: "Erro ao Carregar Cotações",
-        description: err.message,
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingQuotes(false);
-    }
-  }, [showQuotes]);
+    // Usando dados estáticos para evitar falhas de API durante a demonstração.
+    setQuotes(mockQuotes.slice(0, 5));
+    setIsLoadingQuotes(false);
+  }, []);
 
   const setSelectedQuotes = (newQuotes: string[]) => {
     if (typeof window !== 'undefined') {

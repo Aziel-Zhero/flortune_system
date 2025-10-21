@@ -1,4 +1,3 @@
-
 // src/app/api/weather/route.ts
 import { NextResponse } from 'next/server';
 
@@ -7,8 +6,9 @@ export async function GET(request: Request) {
   const city = searchParams.get('city');
   const apiKey = process.env.OPENWEATHERMAP_API_KEY;
 
-  if (!apiKey) {
-    return NextResponse.json({ error: 'Chave da API do OpenWeatherMap não configurada no servidor.' }, { status: 500 });
+  if (!apiKey || apiKey.trim() === '') {
+    console.error("OPENWEATHERMAP_API_KEY is not configured.");
+    return NextResponse.json({ error: 'Serviço de clima indisponível. A chave da API não foi configurada no servidor.' }, { status: 503 });
   }
 
   if (!city) {
@@ -22,13 +22,16 @@ export async function GET(request: Request) {
       next: { revalidate: 600 } // Cache de 10 minutos
     });
     
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      const errorMessage = errorData.message === 'city not found' ? 'Cidade não encontrada.' : `Erro da API de clima: ${errorData.message}`;
+      const errorMessage = data.message === 'city not found' 
+        ? 'Cidade não encontrada.' 
+        : data.message === 'Invalid API key. Please see https://openweathermap.org/faq#error401 for more info.'
+        ? 'Chave da API inválida.'
+        : `Erro da API de clima: ${data.message}`;
       return NextResponse.json({ error: errorMessage }, { status: response.status });
     }
-    
-    const data = await response.json();
 
     const weatherData = {
       city: data.name,
