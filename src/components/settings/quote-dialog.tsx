@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart3 } from "lucide-react";
@@ -28,7 +27,7 @@ interface QuoteSettingsDialogProps {
 }
 
 export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialogProps) {
-  const { selectedQuotes, setSelectedQuotes, loadQuotes, showQuotes, setShowQuotes } = useAppSettings();
+  const { selectedQuotes, setSelectedQuotes, loadQuotes } = useAppSettings();
   const [localSelectedCodes, setLocalSelectedCodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -77,45 +76,35 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
             Configurar Cotações do Painel
           </DialogTitle>
           <DialogDescription>
-            Ative e escolha até 5 cotações para exibir no seu dashboard.
+            Escolha até 5 cotações para exibir no seu dashboard.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4 space-y-6">
-            <div className="flex items-center space-x-2 rounded-lg border p-4">
-              <Switch id="show-quotes-switch" checked={showQuotes} onCheckedChange={setShowQuotes} />
-              <Label htmlFor="show-quotes-switch" className="flex flex-col cursor-pointer">
-                <span className="font-medium">Exibir Cotações no Painel</span>
-                <span className="text-xs text-muted-foreground">Ative para ver os cards de cotações de mercado.</span>
-              </Label>
-            </div>
-
-            <div className={cn("space-y-4 transition-opacity", !showQuotes && "opacity-50 pointer-events-none")}>
-              <Label>Cotações Disponíveis</Label>
-              <ScrollArea className="h-64 w-full rounded-md border p-4">
-                  <div className="space-y-2">
-                    {AVAILABLE_QUOTES.map(quote => {
-                        const isChecked = localSelectedCodes.has(quote.code);
-                        return (
-                           <div key={quote.code} className="flex items-center space-x-3 rounded-md p-2 hover:bg-muted/50">
-                             <Checkbox
-                               id={`quote-${quote.code}`}
-                               checked={isChecked}
-                               onCheckedChange={(checked) => handleCheckboxChange(quote.code, !!checked)}
-                               disabled={!isChecked && isAtLimit}
-                              />
-                             <Label htmlFor={`quote-${quote.code}`} className={cn("flex-1 cursor-pointer", !isChecked && isAtLimit && "text-muted-foreground/50")}>
-                               {quote.name} ({quote.code})
-                             </Label>
-                           </div>
-                        )
-                    })}
-                  </div>
-              </ScrollArea>
-              <p className="text-xs text-muted-foreground text-center">
-                Selecionadas: {localSelectedCodes.size} de 5
-              </p>
-            </div>
+        <div className="py-4 space-y-4">
+            <Label>Cotações Disponíveis</Label>
+            <ScrollArea className="h-64 w-full rounded-md border p-4">
+                <div className="space-y-2">
+                  {AVAILABLE_QUOTES.map(quote => {
+                      const isChecked = localSelectedCodes.has(quote.code);
+                      return (
+                         <div key={quote.code} className="flex items-center space-x-3 rounded-md p-2 hover:bg-muted/50">
+                           <Checkbox
+                             id={`quote-${quote.code}`}
+                             checked={isChecked}
+                             onCheckedChange={(checked) => handleCheckboxChange(quote.code, !!checked)}
+                             disabled={!isChecked && isAtLimit}
+                            />
+                           <Label htmlFor={`quote-${quote.code}`} className={cn("flex-1 cursor-pointer", !isChecked && isAtLimit && "text-muted-foreground/50")}>
+                             {quote.name} ({quote.code})
+                           </Label>
+                         </div>
+                      )
+                  })}
+                </div>
+            </ScrollArea>
+            <p className="text-xs text-muted-foreground text-center">
+              Selecionadas: {localSelectedCodes.size} de 5
+            </p>
         </div>
 
         <DialogFooter>

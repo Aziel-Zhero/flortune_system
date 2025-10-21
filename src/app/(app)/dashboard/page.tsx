@@ -67,7 +67,7 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DashboardPage() {
-  const { showQuotes, quotes, isLoadingQuotes, selectedQuotes } = useAppSettings();
+  const { quotes, isLoadingQuotes, selectedQuotes } = useAppSettings();
 
   useEffect(() => {
     document.title = `Painel - ${APP_NAME}`;
@@ -135,55 +135,53 @@ export default function DashboardPage() {
         ))}
       </div>
       
-      {showQuotes && quoteCodesToRender.length > 0 && (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-            {isLoadingQuotes 
-              ? (quoteCodesToRender.map((code, index) => (
-                  <motion.div key={`skel-quote-${code}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
-                    <Card className="shadow-sm h-full">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-4 w-12"/>
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-8 w-24" />
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                )))
-              : (quotes.length > 0 ? quotes.map((quote: QuoteData, index: number) => {
-                  const pctChange = parseFloat(quote.pctChange);
-                  const isPositive = pctChange >= 0;
-                  const quoteName = quote.name.split('/')[0];
-                  
-                  return (
-                    <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
-                      <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
-                            {quoteName}
-                          </CardTitle>
-                          <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
-                              {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                              {pctChange.toFixed(2)}%
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold font-headline">
-                              <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
-                            </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  )
-                }) : (
-                  <div className="col-span-full text-center py-4 text-muted-foreground flex items-center justify-center gap-2">
-                     <AlertTriangle className="h-4 w-4" /> Nenhuma cotação selecionada ou disponível.
-                  </div>
-                ))
-            }
-          </div>
-      )}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        {isLoadingQuotes 
+          ? (quoteCodesToRender.map((code, index) => (
+              <motion.div key={`skel-quote-${code}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                <Card className="shadow-sm h-full">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-12"/>
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-8 w-24" />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )))
+          : (quotes.length > 0 ? quotes.map((quote: QuoteData, index: number) => {
+              const pctChange = parseFloat(quote.pctChange);
+              const isPositive = pctChange >= 0;
+              const quoteName = quote.name.split('/')[0];
+              
+              return (
+                <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                  <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
+                        {quoteName}
+                      </CardTitle>
+                      <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
+                          {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                          {pctChange.toFixed(2)}%
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold font-headline">
+                          <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
+                        </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            }) : (
+              <div className="col-span-full text-center py-4 text-muted-foreground flex items-center justify-center gap-2">
+                 <AlertTriangle className="h-4 w-4" /> Nenhuma cotação selecionada ou disponível.
+              </div>
+            ))
+        }
+      </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <motion.div custom={10} variants={cardVariants} initial="hidden" animate="visible">

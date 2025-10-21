@@ -1,11 +1,10 @@
 // src/app/(app)/settings/page.tsx
 "use client";
 
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, BarChart3, MapPin } from "lucide-react";
@@ -98,7 +97,7 @@ export default function SettingsPage() {
                 <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
                 <span className="font-semibold">Cards de Cotações</span>
                 <span className="font-normal leading-snug text-muted-foreground text-sm">
-                    Exibe cotações de mercado no seu painel principal.
+                    Escolha até 5 cotações para exibir no seu painel principal.
                 </span>
                 </Label>
                 <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>
