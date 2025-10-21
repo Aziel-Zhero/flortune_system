@@ -33,17 +33,14 @@ export interface AppSettingsProviderValue {
   loadWeatherForCity: (city: string) => Promise<void>;
   isLoadingWeather: boolean;
   
-  selectedQuotes: string[];
-  setSelectedQuotes: (quotes: string[]) => void;
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
-  loadQuotes: (quoteList: string[]) => Promise<void>;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
 
-// MOCK DATA PARA COTAÇÕES
+// MOCK DATA PARA COTAÇÕES - agora com 5 itens
 const mockQuotes: QuoteData[] = [
   { code: "USD-BRL", codein: 'BRL', name: 'Dólar Comercial', high: '5.45', low: '5.40', varBid: '0.01', pctChange: '0.18', bid: '5.42', ask: '5.42', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "EUR-BRL", codein: 'BRL', name: 'Euro', high: '5.85', low: '5.80', varBid: '0.02', pctChange: '0.34', bid: '5.83', ask: '5.83', timestamp: String(Date.now()), create_date: new Date().toISOString() },
@@ -51,6 +48,8 @@ const mockQuotes: QuoteData[] = [
   { code: "IBOV", codein: 'BRL', name: 'Ibovespa', high: '125000', low: '124000', varBid: '500', pctChange: '0.40', bid: '124500', ask: '124500', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "NASDAQ", codein: 'BRL', name: 'Nasdaq', high: '18000', low: '17900', varBid: '100', pctChange: '0.55', bid: '17950', ask: '17950', timestamp: String(Date.now()), create_date: new Date().toISOString() }
 ];
+
+const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
@@ -62,36 +61,19 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
-  const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
-  const loadQuotes = useCallback(async (quoteList: string[]) => {
+  const loadQuotes = useCallback(async () => {
     setIsLoadingQuotes(true);
     setQuotesError(null);
-    
-    const validQuotes = quoteList.filter(q => q && q.trim() !== '');
-    
-    if (validQuotes.length === 0) {
-      setQuotes([]);
-      setIsLoadingQuotes(false);
-      return;
-    }
-  
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const filteredMocks = mockQuotes.filter(mq => 
-        validQuotes.includes(mq.code)
-      );
-      
-      const orderedQuotes = validQuotes
-        .map(code => filteredMocks.find(mq => mq.code === code))
+      const orderedQuotes = defaultQuotes
+        .map(code => mockQuotes.find(mq => mq.code === code))
         .filter((q): q is QuoteData => !!q);
-      
       setQuotes(orderedQuotes);
-      
     } catch (error) {
       setQuotesError('Erro ao carregar cotações');
       console.error('Error loading quotes:', error);
@@ -99,15 +81,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setIsLoadingQuotes(false);
     }
   }, []);
-
-  const setSelectedQuotes = (newQuotes: string[]) => {
-    const finalQuotes = newQuotes.slice(0, 5);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('flortune-selected-quotes', JSON.stringify(finalQuotes));
-    }
-    setSelectedQuotesState(finalQuotes);
-    loadQuotes(finalQuotes);
-  };
   
   const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) {
@@ -202,11 +175,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         loadWeatherForCity(storedCity);
       }
       
-      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      const quotesToLoad = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
-      
-      setSelectedQuotesState(quotesToLoad.slice(0, 5));
-      loadQuotes(quotesToLoad.slice(0, 5));
+      loadQuotes();
       
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
@@ -220,8 +189,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
-      selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
-      loadQuotes,
+      quotes, isLoadingQuotes, quotesError,
     }}>
       {children}
     </AppSettingsContext.Provider>

@@ -7,13 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, BarChart3, MapPin } from "lucide-react";
+import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, MapPin } from "lucide-react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from "@/hooks/use-toast";
 import { APP_NAME } from "@/lib/constants";
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { cn } from "@/lib/utils";
-import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
 import { WeatherSettingsDialog } from '@/components/settings/weather-dialog';
 import { useRouter } from 'next/navigation';
 
@@ -40,7 +39,6 @@ export default function SettingsPage() {
   const { isDarkMode, toggleDarkMode, currentTheme, applyTheme } = useAppSettings();
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   
   useEffect(() => {
@@ -90,19 +88,6 @@ export default function SettingsPage() {
                 <Button variant="outline" size="sm" onClick={() => setIsWeatherDialogOpen(true)}>
                     <MapPin className="mr-2 h-4 w-4" />
                     Configurar Cidade
-                </Button>
-            </div>
-
-            <div className="p-4 border rounded-lg flex items-center justify-between">
-                <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
-                <span className="font-semibold">Cards de Cotações</span>
-                <span className="font-normal leading-snug text-muted-foreground text-sm">
-                    Escolha as 5 cotações para exibir no seu painel principal.
-                </span>
-                </Label>
-                <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Configurar Cotações
                 </Button>
             </div>
             
@@ -223,7 +208,6 @@ export default function SettingsPage() {
         </div>
       </div>
       <ShareModuleDialog isOpen={isShareModalOpen} onOpenChange={setIsShareModalOpen} />
-      <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
       <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
     </>
   );
