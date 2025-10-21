@@ -1,3 +1,4 @@
+
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
@@ -151,7 +152,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
               <PopoverTrigger asChild>
                 <Button id="goal-form-deadline_date-trigger" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting || isAuthLoading}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {field.value && isClient ? format(field.value, "PPP", { locale: ptBR }) : field.value ? format(field.value, "yyyy-MM-dd") : <span>Escolha uma data</span>}
+                  {isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : field.value ? format(field.value, "yyyy-MM-dd") : <span>Escolha uma data</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent>

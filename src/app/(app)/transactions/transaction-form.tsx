@@ -1,3 +1,4 @@
+
 // src/app/(app)/transactions/transaction-form.tsx
 "use client";
 
@@ -184,7 +185,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                             )}
                             >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value && isClient ? format(field.value, "PPP", { locale: ptBR }) : field.value ? format(field.value, "yyyy-MM-dd") : <span>Escolha uma data</span>}
+                            {isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : field.value ? format(field.value, "yyyy-MM-dd") : <span>Escolha uma data</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
