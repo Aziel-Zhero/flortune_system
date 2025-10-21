@@ -4,20 +4,21 @@
 import NextAuth, { type NextAuthConfig } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from "next-auth/providers/google";
+import { SupabaseAdapter } from "@auth/supabase-adapter";
+import jwt from "jsonwebtoken";
 import { createClient } from '@supabase/supabase-js'; 
 import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
-import jwt from "jsonwebtoken";
 
 export const runtime = 'nodejs'; // Explicitly set runtime to Node.js
 
 // --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 const nextAuthSecret = process.env.AUTH_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
 
 // --- Log Environment Variable Status ---
 if (!supabaseUrl || !supabaseUrl.startsWith('http')) {
@@ -33,6 +34,7 @@ if (!supabaseJwtSecret) {
     console.error("⚠️ FATAL: SUPABASE_JWT_SECRET is not set.");
 }
 
+
 // --- Provider Configuration ---
 const providers: NextAuthConfig['providers'] = [
   CredentialsProvider({
@@ -46,11 +48,12 @@ const providers: NextAuthConfig['providers'] = [
         console.log('Auth Error: Email ou senha não fornecidos.');
         return null;
       }
+
       if (!supabaseUrl || !supabaseServiceRoleKey) {
           console.error('[NextAuth Authorize] Supabase credentials are not configured.');
           return null;
       }
-
+      
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
       try {
@@ -70,7 +73,7 @@ const providers: NextAuthConfig['providers'] = [
              return null;
         }
 
-        const passwordsMatch = await bcrypt.compare(password, profile.hashed_password);
+        const passwordsMatch = await bcrypt.compare(credentials.password, profile.hashed_password);
 
         if (passwordsMatch) {
           console.log(`[NextAuth Authorize Success] Login successful for ${profile.email}`);
@@ -107,18 +110,43 @@ if (googleClientId && googleClientSecret) {
   console.warn("⚠️ GoogleProvider is not configured. Login with Google will fail.");
 }
 
+// Conditionally create the adapter
+const adapter =
+  supabaseUrl && supabaseServiceRoleKey && supabaseJwtSecret
+    ? SupabaseAdapter({
+        url: supabaseUrl,
+        secret: supabaseServiceRoleKey,
+      })
+    : undefined;
+
 // --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
+  adapter: adapter,
   providers: providers,
   session: {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        if(user.profile) {
-            token.profile = user.profile;
+        token.sub = user.id;
+        if (user.profile) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { hashed_password, ...safeProfile } = user.profile;
+          token.profile = safeProfile;
+        } 
+        else if (account?.provider !== 'credentials' && supabaseUrl && supabaseServiceRoleKey) {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+          const { data: dbProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (dbProfile) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { hashed_password, ...safeProfile } = dbProfile;
+            token.profile = safeProfile;
+          }
         }
       }
       return token;
@@ -127,6 +155,7 @@ export const authConfig: NextAuthConfig = {
       if (token.sub) {
         session.user.id = token.sub;
       }
+      
       if (token.profile) {
         session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
