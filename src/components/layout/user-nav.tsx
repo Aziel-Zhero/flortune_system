@@ -14,8 +14,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, LifeBuoy, BarChart3 } from "lucide-react";
+import { LogOut, User, Settings, LifeBuoy, BarChart3, Thermometer } from "lucide-react";
 import { QuoteSettingsDialog } from "@/components/settings/quote-dialog";
+import { WeatherSettingsDialog } from "@/components/settings/weather-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 
@@ -30,6 +31,7 @@ const mockUser = {
 export function UserNav() {
   const router = useRouter();
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
 
   const handleLogout = () => {
     toast({ title: "Logout simulado", description: "Em um app real, você seria desconectado."});
@@ -74,6 +76,10 @@ export function UserNav() {
                 <BarChart3 className="mr-2 h-4 w-4" />
                 <span>Configurar Cotações</span>
              </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
+                <Thermometer className="mr-2 h-4 w-4" />
+                <span>Configurar Clima</span>
+             </DropdownMenuItem>
              <DropdownMenuItem asChild>
                 <Link href="/help">
                     <LifeBuoy className="mr-2 h-4 w-4" />
@@ -89,6 +95,7 @@ export function UserNav() {
         </DropdownMenuContent>
       </DropdownMenu>
       <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
+      <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
     </>
   );
 }

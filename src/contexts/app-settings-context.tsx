@@ -6,6 +6,14 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { toast } from '@/hooks/use-toast';
 import { getQuotes, type QuoteData } from '@/services/quote.service';
 
+// Tipos para os dados do clima
+interface WeatherData {
+  city: string;
+  temperature: number;
+  description: string;
+  icon: string;
+}
+
 // Definindo o tipo para o valor do contexto de AppSettings
 export interface AppSettingsProviderValue {
   isPrivateMode: boolean;
@@ -17,6 +25,12 @@ export interface AppSettingsProviderValue {
   currentTheme: string;
   setCurrentTheme: Dispatch<SetStateAction<string>>;
   applyTheme: (themeId: string) => void;
+  weatherCity: string | null;
+  setWeatherCity: (city: string | null) => void;
+  weatherData: WeatherData | null;
+  weatherError: string | null;
+  loadWeatherForCity: (city: string) => Promise<void>;
+  isLoadingWeather: boolean;
   
   showQuotes: boolean;
   setShowQuotes: Dispatch<SetStateAction<boolean>>;
@@ -35,6 +49,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
   
+  const [weatherCity, setWeatherCityState] = useState<string | null>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+
   const [showQuotes, setShowQuotes] = useState(true);
   const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
@@ -72,6 +91,43 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     }
     setSelectedQuotesState(newQuotes);
+  };
+  
+  const loadWeatherForCity = useCallback(async (city: string) => {
+    if (!city) return;
+    setIsLoadingWeather(true);
+    setWeatherError(null);
+    try {
+        const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Falha ao buscar dados do clima.');
+        setWeatherData({
+            city: data.city,
+            temperature: Math.round(data.temperature),
+            description: data.description,
+            icon: data.icon,
+        });
+    } catch (err: any) {
+        setWeatherError(err.message);
+        setWeatherData(null);
+        toast({ title: "Erro ao buscar clima", description: err.message, variant: "destructive" });
+    } finally {
+        setIsLoadingWeather(false);
+    }
+  }, []);
+
+  const setWeatherCity = (city: string | null) => {
+      if (typeof window !== 'undefined') {
+          if(city && city.trim() !== '') {
+              localStorage.setItem('flortune-weather-city', city);
+              setWeatherCityState(city);
+          } else {
+              localStorage.removeItem('flortune-weather-city');
+              setWeatherCityState(null);
+              setWeatherData(null);
+              setWeatherError(null);
+          }
+      }
   };
 
   const applyTheme = useCallback((themeId: string) => {
@@ -121,6 +177,12 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       applyTheme(storedTheme);
 
+      const storedCity = localStorage.getItem('flortune-weather-city');
+      if (storedCity) {
+        setWeatherCityState(storedCity);
+        loadWeatherForCity(storedCity);
+      }
+
       const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
       const show = storedShowQuotes ? JSON.parse(storedShowQuotes) : true;
       setShowQuotes(show);
@@ -137,7 +199,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to access localStorage or parse settings:", error);
         setIsLoadingQuotes(false);
     }
-  }, [applyTheme, loadQuotes]);
+  }, [applyTheme, loadWeatherForCity, loadQuotes]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -155,6 +217,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isPrivateMode, setIsPrivateMode, togglePrivateMode,
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
+      weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
       showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
       loadQuotes,
     }}>

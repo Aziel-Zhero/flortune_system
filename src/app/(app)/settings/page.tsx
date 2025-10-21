@@ -2,13 +2,14 @@
 // src/app/(app)/settings/page.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, BarChart3 } from "lucide-react";
+import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, BarChart3, MapPin } from "lucide-react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from "@/hooks/use-toast";
 import { APP_NAME } from "@/lib/constants";
@@ -37,14 +38,21 @@ const availableThemes: ThemeOption[] = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme } = useAppSettings();
+  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme, weatherCity, setWeatherCity, loadWeatherForCity } = useAppSettings();
 
+  const [localWeatherCity, setLocalWeatherCity] = useState(weatherCity || "");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   
   useEffect(() => {
     document.title = `Configurações - ${APP_NAME}`;
   }, []);
+
+   useEffect(() => {
+    if (weatherCity) {
+      setLocalWeatherCity(weatherCity);
+    }
+  }, [weatherCity]);
 
   const handleFeatureClick = (featureName: string, isPlaceholder: boolean = true) => {
     toast({ 
@@ -56,6 +64,18 @@ export default function SettingsPage() {
   const handleThemeChange = (themeId: string) => {
     applyTheme(themeId); 
     toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.`, action: <CheckSquare className="text-green-500"/> });
+  };
+
+  const handleWeatherSave = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmedCity = localWeatherCity.trim();
+    setWeatherCity(trimmedCity);
+    if(trimmedCity) {
+      loadWeatherForCity(trimmedCity);
+      toast({ title: "Cidade do Clima Atualizada", description: `Buscando clima para ${trimmedCity}.` });
+    } else {
+      toast({ title: "Clima Desativado", description: "A exibição do clima foi removida." });
+    }
   };
   
   const handleLogout = () => {
@@ -74,24 +94,38 @@ export default function SettingsPage() {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="font-headline flex items-center text-lg md:text-xl"><Palette className="mr-2 h-5 w-5 text-primary"/>Módulos e Aparência</CardTitle>
+            <CardTitle className="font-headline flex items-center text-lg md:text-xl"><Palette className="mr-2 h-5 w-5 text-primary"/>Aparência e Módulos</CardTitle>
             <CardDescription>Personalize o que você vê no seu painel e como o aplicativo se parece.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="p-4 border rounded-lg space-y-4">
-              <h3 className="font-semibold">Módulos do Dashboard</h3>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
-                  <span>Cards de Cotações</span>
-                  <span className="font-normal leading-snug text-muted-foreground text-sm">
-                    Exibe cotações de mercado no seu painel principal.
-                  </span>
-                </Label>
-                <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Configurar
-                </Button>
-              </div>
+            <form onSubmit={handleWeatherSave} className="space-y-4 p-4 border rounded-lg">
+             <h3 className="font-semibold">Clima</h3>
+             <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+                <div className='space-y-1.5'>
+                    <Label htmlFor="weatherCity" className='text-xs'>Sua Cidade</Label>
+                    <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input id="weatherCity" placeholder="Ex: São Paulo, BR" value={localWeatherCity} onChange={(e) => setLocalWeatherCity(e.target.value)} className="pl-10"/>
+                    </div>
+                </div>
+                <Button type="submit">Salvar</Button>
+             </div>
+             <p className="text-xs text-muted-foreground">Insira sua cidade para ver o clima na barra lateral. Deixe em branco para desativar.</p>
+          </form>
+
+            <div className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
+                    <span className="font-semibold">Cards de Cotações</span>
+                    <span className="font-normal leading-snug text-muted-foreground text-sm">
+                        Exibe cotações de mercado no seu painel principal.
+                    </span>
+                    </Label>
+                    <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Configurar
+                    </Button>
+                </div>
             </div>
             
             <div className="flex items-center justify-between p-3 rounded-md border">
