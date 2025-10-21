@@ -1,3 +1,4 @@
+
 // src/app/(app)/calendar/page.tsx
 "use client";
 
@@ -16,9 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useSession } from "next-auth/react";
-import { getTransactions } from "@/services/transaction.service";
-import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar as CalendarIconLucide,
@@ -60,10 +58,19 @@ const getEventTypeConfig = (typeValue: string) => {
   return eventTypes.find(t => t.value === typeValue) || eventTypes[0];
 };
 
+
+// --- MOCK DATA ---
+const sampleEvents: CalendarEvent[] = [
+    { id: 'tx-1', title: 'Salário', start: '2024-07-01', allDay: true, extendedProps: { type: 'recebimento', description: 'R$ 7.500,00 - Salário', source: 'transaction' }, backgroundColor: getEventTypeConfig('recebimento').color, borderColor: getEventTypeConfig('recebimento').color },
+    { id: 'tx-2', title: 'Aluguel', start: '2024-07-05', allDay: true, extendedProps: { type: 'pagamento', description: 'R$ 1.800,00 - Moradia', source: 'transaction' }, backgroundColor: getEventTypeConfig('pagamento').color, borderColor: getEventTypeConfig('pagamento').color },
+    { id: 'manual-1', title: 'Reunião de Equipe', start: '2024-07-10T14:00:00', end: '2024-07-10T15:00:00', allDay: false, extendedProps: { type: 'evento', description: 'Discussão do projeto X', source: 'manual' }, backgroundColor: getEventTypeConfig('evento').color, borderColor: getEventTypeConfig('evento').color },
+    { id: 'manual-2', title: 'Pagar fatura do cartão', start: '2024-07-15', allDay: true, extendedProps: { type: 'lembrete', description: 'Cartão final 1234', source: 'manual' }, backgroundColor: getEventTypeConfig('lembrete').color, borderColor: getEventTypeConfig('lembrete').color },
+];
+// --- END MOCK DATA ---
+
 export default function CalendarPage() {
-  const { data: session, status } = useSession();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents);
+  const [isLoading, setIsLoading] = useState(false); // Changed to false as we use mock data
   
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -72,46 +79,18 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   
-  const fetchCalendarData = useCallback(async () => {
-    if (!session?.user?.id) {
-        setIsLoading(false);
-        return;
-    }
-    setIsLoading(true);
-    try {
-        const { data: transactions, error } = await getTransactions(session.user.id);
-        if (error) throw error;
-        
-        const transactionEvents = (transactions || []).map((tx: Transaction): CalendarEvent => ({
-            id: `tx-${tx.id}`,
-            title: tx.description,
-            start: tx.date,
-            allDay: true,
-            extendedProps: {
-                type: tx.type === 'income' ? 'recebimento' : 'pagamento',
-                description: `R$ ${tx.amount.toFixed(2)} - ${tx.category?.name || 'Sem Categoria'}`,
-                source: 'transaction',
-            },
-            backgroundColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
-            borderColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
-        }));
-        
-        // Carregar eventos manuais do localStorage
-        const storedManualEvents = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
-        
-        setEvents([...transactionEvents, ...storedManualEvents]);
-    } catch(err: any) {
-        toast({ title: "Erro ao carregar dados", description: err.message, variant: "destructive" });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [session?.user?.id]);
-  
   useEffect(() => {
-    if (status === 'authenticated') {
-        fetchCalendarData();
+    // Carregar eventos manuais do localStorage se existirem
+    try {
+        const storedManualEvents = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
+        // Combina os mocks com os eventos salvos, evitando duplicatas
+        const combined = [...sampleEvents.filter(se => !storedManualEvents.some((me: CalendarEvent) => me.id === se.id)), ...storedManualEvents];
+        setEvents(combined);
+    } catch (e) {
+        console.error("Failed to load manual events from localStorage", e);
+        setEvents(sampleEvents); // Fallback to mock data
     }
-  }, [status, fetchCalendarData]);
+  }, []);
 
   useEffect(() => {
     document.title = `Calendário Financeiro - ${APP_NAME}`;
@@ -119,8 +98,9 @@ export default function CalendarPage() {
   
   const manualEvents = useMemo(() => events.filter(e => e.extendedProps.source === 'manual'), [events]);
   useEffect(() => {
-    if(!isLoading) localStorage.setItem('flortune-manual-events', JSON.stringify(manualEvents));
-  }, [manualEvents, isLoading]);
+    // Salva apenas os eventos manuais no localStorage
+    localStorage.setItem('flortune-manual-events', JSON.stringify(manualEvents));
+  }, [manualEvents]);
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     setSelectedEvent(clickInfo.event as unknown as CalendarEvent);
@@ -180,6 +160,7 @@ export default function CalendarPage() {
     
     return events
         .filter(e => {
+            if (!e.start) return false;
             const eventStart = parseISO(e.start as string);
             if (selectedDay) return isEqual(eventStart, selectedDay);
             return eventStart >= start && eventStart <= end;
@@ -242,7 +223,7 @@ export default function CalendarPage() {
                             <div>
                                 <p className="font-semibold text-sm">{event.title}</p>
                                 <p className="text-xs text-muted-foreground">{event.extendedProps.description}</p>
-                                <p className="text-xs text-muted-foreground/80">{format(parseISO(event.start as string), "dd/MM/yy")}</p>
+                                <p className="text-xs text-muted-foreground/80">{event.start ? format(parseISO(event.start as string), "dd/MM/yy") : 'Data indefinida'}</p>
                             </div>
                         </div>
                     );
@@ -279,7 +260,7 @@ export default function CalendarPage() {
                 <DialogTitle className="flex items-center gap-2"><Circle className="h-4 w-4" style={{color: selectedEvent.backgroundColor as string}}/>{selectedEvent.title}</DialogTitle>
                 <DialogDescription className="pt-2">
                   <p>{selectedEvent.extendedProps.description}</p>
-                  <p className="text-xs text-muted-foreground mt-2">{selectedEvent.allDay ? `Todo o dia em ${format(parseISO(selectedEvent.start as string), "PPP", {locale: ptBR})}` : `De ${format(parseISO(selectedEvent.start as string), "Pp", {locale: ptBR})} até ${selectedEvent.end ? format(parseISO(selectedEvent.end), "Pp", {locale: ptBR}) : ''}`}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{selectedEvent.allDay ? `Todo o dia em ${selectedEvent.start ? format(parseISO(selectedEvent.start as string), "PPP", {locale: ptBR}) : ''}` : `De ${selectedEvent.start ? format(parseISO(selectedEvent.start as string), "Pp", {locale: ptBR}) : ''} até ${selectedEvent.end ? format(parseISO(selectedEvent.end), "Pp", {locale: ptBR}) : ''}`}</p>
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>{selectedEvent.extendedProps.source === 'manual' && <Button type="button" variant="ghost" onClick={() => { setSelectedEvent(null); setFormData(selectedEvent); setIsFormOpen(true);}}>Editar</Button>} {selectedEvent.extendedProps.source === 'manual' && <Button type="button" variant="destructive" onClick={handleDeleteEvent}><Trash2 className="mr-2 h-4 w-4" /> Deletar</Button>} <DialogClose asChild><Button type="button" variant="outline">Fechar</Button></DialogClose></DialogFooter>
