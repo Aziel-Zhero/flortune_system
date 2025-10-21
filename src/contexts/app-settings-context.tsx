@@ -33,23 +33,25 @@ export interface AppSettingsProviderValue {
   loadWeatherForCity: (city: string) => Promise<void>;
   isLoadingWeather: boolean;
   
+  selectedQuotes: string[];
+  setSelectedQuotes: (quotes: string[]) => void;
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
+  loadQuotes: (quoteList: string[]) => Promise<void>;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
 
-// MOCK DATA PARA COTAÇÕES - agora com 5 itens
 const mockQuotes: QuoteData[] = [
   { code: "USD-BRL", codein: 'BRL', name: 'Dólar Comercial', high: '5.45', low: '5.40', varBid: '0.01', pctChange: '0.18', bid: '5.42', ask: '5.42', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "EUR-BRL", codein: 'BRL', name: 'Euro', high: '5.85', low: '5.80', varBid: '0.02', pctChange: '0.34', bid: '5.83', ask: '5.83', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "BTC-BRL", codein: 'BRL', name: 'Bitcoin', high: '340000', low: '330000', varBid: '5000', pctChange: '1.50', bid: '335000', ask: '335100', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "IBOV", codein: 'BRL', name: 'Ibovespa', high: '125000', low: '124000', varBid: '500', pctChange: '0.40', bid: '124500', ask: '124500', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: "NASDAQ", codein: 'BRL', name: 'Nasdaq', high: '18000', low: '17900', varBid: '100', pctChange: '0.55', bid: '17950', ask: '17950', timestamp: String(Date.now()), create_date: new Date().toISOString() }
+  { code: "NASDAQ", codein: 'BRL', name: 'Nasdaq', high: '18000', low: '17900', varBid: '100', pctChange: '0.55', bid: '17950', ask: '17950', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: 'GBP-BRL', name: 'Libra Esterlina', codein: 'BRL', high: '6.90', low: '6.85', varBid: '0.03', pctChange: '0.45', bid: '6.88', ask: '6.89', timestamp: String(Date.now()), create_date: new Date().toISOString() },
+  { code: 'ARS-BRL', name: 'Peso Argentino', codein: 'BRL', high: '0.006', low: '0.005', varBid: '-0.0001', pctChange: '-1.5', bid: '0.0058', ask: '0.0059', timestamp: String(Date.now()), create_date: new Date().toISOString() },
 ];
-
-const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
@@ -61,16 +63,23 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
+  const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
 
-  const loadQuotes = useCallback(async () => {
+  const loadQuotes = useCallback(async (quoteList: string[]) => {
     setIsLoadingQuotes(true);
     setQuotesError(null);
+    const validQuotes = quoteList.filter(q => q && q.trim() !== '');
+    if (validQuotes.length === 0) {
+      setQuotes([]);
+      setIsLoadingQuotes(false);
+      return;
+    }
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
-      const orderedQuotes = defaultQuotes
+      const orderedQuotes = validQuotes
         .map(code => mockQuotes.find(mq => mq.code === code))
         .filter((q): q is QuoteData => !!q);
       setQuotes(orderedQuotes);
@@ -81,13 +90,15 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setIsLoadingQuotes(false);
     }
   }, []);
+
+  const setSelectedQuotes = useCallback((newQuotes: string[]) => {
+    localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
+    setSelectedQuotesState(newQuotes);
+    loadQuotes(newQuotes);
+  }, [loadQuotes]);
   
   const loadWeatherForCity = useCallback(async (city: string) => {
-    if (!city) {
-      setWeatherData(null);
-      setWeatherError(null);
-      return;
-    };
+    if (!city) return;
     setIsLoadingWeather(true);
     setWeatherError(null);
     try {
@@ -110,21 +121,18 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const setWeatherCity = (city: string | null) => {
-      if (typeof window !== 'undefined') {
-          if(city && city.trim() !== '') {
-              localStorage.setItem('flortune-weather-city', city);
-              setWeatherCityState(city);
-          } else {
-              localStorage.removeItem('flortune-weather-city');
-              setWeatherCityState(null);
-              setWeatherData(null);
-              setWeatherError(null);
-          }
+      if(city && city.trim() !== '') {
+          localStorage.setItem('flortune-weather-city', city);
+          setWeatherCityState(city);
+      } else {
+          localStorage.removeItem('flortune-weather-city');
+          setWeatherCityState(null);
+          setWeatherData(null);
+          setWeatherError(null);
       }
   };
 
   const applyTheme = useCallback((themeId: string) => {
-    if (typeof window === 'undefined') return;
     const root = document.documentElement;
     root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
     
@@ -138,20 +146,19 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode(prev => {
       const newIsDark = !prev;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
-        document.documentElement.classList.toggle('dark', newIsDark);
-      }
+      localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
       return newIsDark;
     });
   }, []);
-  
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
+
   const togglePrivateMode = useCallback(() => {
     setIsPrivateMode(prev => {
         const newMode = !prev;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('flortune-private-mode', JSON.stringify(newMode));
-        }
+        localStorage.setItem('flortune-private-mode', JSON.stringify(newMode));
         return newMode;
     });
   }, []);
@@ -164,7 +171,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedDarkMode = localStorage.getItem('flortune-dark-mode');
       const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(darkModeEnabled);
-      document.documentElement.classList.toggle('dark', darkModeEnabled);
       
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       applyTheme(storedTheme);
@@ -175,11 +181,13 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         loadWeatherForCity(storedCity);
       }
       
-      loadQuotes();
+      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
+      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
+      setSelectedQuotesState(initialQuotes);
+      loadQuotes(initialQuotes);
       
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
-        setIsLoadingQuotes(false);
     }
   }, [applyTheme, loadWeatherForCity, loadQuotes]);
 
@@ -189,7 +197,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
-      quotes, isLoadingQuotes, quotesError,
+      selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
+      loadQuotes,
     }}>
       {children}
     </AppSettingsContext.Provider>

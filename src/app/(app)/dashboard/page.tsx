@@ -67,7 +67,7 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DashboardPage() {
-  const { quotes, isLoadingQuotes } = useAppSettings();
+  const { quotes, isLoadingQuotes, selectedQuotes } = useAppSettings();
 
   useEffect(() => {
     document.title = `Painel - ${APP_NAME}`;
@@ -83,6 +83,11 @@ export default function DashboardPage() {
       transition: { delay: i * 0.1, type: "spring", stiffness: 100 },
     }),
   };
+  
+  const quoteCodesToRender = useMemo(() => {
+    return selectedQuotes.filter(q => q && q.trim() !== '');
+  }, [selectedQuotes]);
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -132,8 +137,9 @@ export default function DashboardPage() {
       </div>
       
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-        {isLoadingQuotes 
+        {isLoadingQuotes
           ? (
+              // Mostra 5 esqueletos fixos
               Array(5).fill(0).map((_, index) => (
                 <motion.div key={`skel-quote-${index}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
                   <Card className="shadow-sm h-full">
@@ -149,6 +155,7 @@ export default function DashboardPage() {
               ))
             )
           : (
+              // Renderiza as cotações carregadas
               quotes.map((quote: QuoteData, index: number) => {
                 const pctChange = parseFloat(quote.pctChange);
                 const isPositive = pctChange >= 0;
@@ -177,8 +184,19 @@ export default function DashboardPage() {
               })
             )
         }
+        {/* Preenche os espaços vazios se houver menos de 5 cotações */}
+        {!isLoadingQuotes && quotes.length < 5 &&
+          Array(5 - quotes.length).fill(0).map((_, index) => (
+            <motion.div key={`placeholder-${index}`} custom={quotes.length + index + 5} variants={cardVariants} initial="hidden" animate="visible">
+              <Card className="shadow-sm h-full opacity-50 flex items-center justify-center">
+                 <CardContent className="p-0 text-center text-xs text-muted-foreground">
+                    <p>Vazio</p>
+                 </CardContent>
+              </Card>
+            </motion.div>
+          ))
+        }
       </div>
-
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <motion.div custom={10} variants={cardVariants} initial="hidden" animate="visible">
