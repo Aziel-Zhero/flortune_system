@@ -15,71 +15,41 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
-import { getBudgets, deleteBudget } from "@/services/budget.service";
 import type { Budget } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BudgetForm } from "./budget-form";
 
-export default function BudgetsPage() {
-  const { data: session, status } = useSession();
-  const authLoading = status === "loading";
-  const user = session?.user;
+// --- MOCK DATA ---
+const sampleBudgets: Budget[] = [
+    { id: '1', user_id: 'mock', category_id: 'cat-1', limit_amount: 1000, spent_amount: 750.50, period_start_date: '2024-07-01', period_end_date: '2024-07-31', created_at: '', updated_at: '', category: { id: 'cat-1', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+    { id: '2', user_id: 'mock', category_id: 'cat-2', limit_amount: 500, spent_amount: 550.00, period_start_date: '2024-07-01', period_end_date: '2024-07-31', created_at: '', updated_at: '', category: { id: 'cat-2', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+    { id: '3', user_id: 'mock', category_id: 'cat-3', limit_amount: 300, spent_amount: 150.00, period_start_date: '2024-07-01', period_end_date: '2024-07-31', created_at: '', updated_at: '', category: { id: 'cat-3', name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+];
+// --- END MOCK DATA ---
 
+export default function BudgetsPage() {
   const [currentBudgets, setCurrentBudgets] = useState<Budget[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; name: string } | null }>({ isOpen: false, item: null });
   const [editDialog, setEditDialog] = useState<{ isOpen: boolean; budget: Budget | null }>({ isOpen: false, budget: null });
 
-  const fetchBudgetsData = useCallback(async () => {
-    if (!user?.id) {
-      setIsLoadingData(false);
-      setCurrentBudgets([]);
-      return;
-    }
-    setIsLoadingData(true);
-    try {
-      const { data, error } = await getBudgets(user.id);
-      if (error) {
-        toast({ title: "Erro ao buscar orçamentos", description: error.message, variant: "destructive" });
-        setCurrentBudgets([]);
-      } else {
-        setCurrentBudgets(data || []);
-      }
-    } catch (err) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar os orçamentos.", variant: "destructive" });
-      setCurrentBudgets([]);
-    } finally {
-      setIsLoadingData(false);
-    }
-  }, [user?.id]);
-
   useEffect(() => {
     document.title = `Orçamentos - ${APP_NAME}`;
-    if (user?.id && !authLoading) {
-      fetchBudgetsData();
-    } else if (!authLoading && !user?.id) {
-      setIsLoadingData(false);
-      setCurrentBudgets([]);
-    }
-  }, [user, authLoading, fetchBudgetsData]);
+    // Simulate fetching data
+    setTimeout(() => {
+        setCurrentBudgets(sampleBudgets);
+        setIsLoadingData(false);
+    }, 500);
+  }, []);
 
   const handleDeleteClick = (budget: Budget) => {
     setDeleteDialog({ isOpen: true, item: { id: budget.id, name: budget.category?.name || 'desconhecido' }});
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item && user?.id) {
-      const originalBudgets = [...currentBudgets];
+    if (deleteDialog.item) {
       setCurrentBudgets(prevBudgets => prevBudgets.filter(b => b.id !== deleteDialog.item!.id));
-      
-      const { error } = await deleteBudget(deleteDialog.item.id, user.id);
-      if (error) {
-        toast({ title: "Erro ao Deletar", description: error.message || `Não foi possível deletar o orçamento "${deleteDialog.item.name}".`, variant: "destructive" });
-        setCurrentBudgets(originalBudgets);
-      } else {
-        toast({ title: "Orçamento Deletado", description: `O orçamento para "${deleteDialog.item.name}" foi deletado com sucesso.` });
-      }
+      toast({ title: "Orçamento Deletado (Simulação)", description: `O orçamento para "${deleteDialog.item.name}" foi deletado.` });
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
@@ -90,7 +60,8 @@ export default function BudgetsPage() {
 
   const handleFormSuccess = () => {
     setEditDialog({ isOpen: false, budget: null });
-    fetchBudgetsData();
+    toast({ title: "Sucesso!", description: "Sua lista de orçamentos será atualizada."});
+    // Em um app real, aqui você chamaria `fetchBudgetsData()` para recarregar.
   };
 
   const cardVariants = {
@@ -100,7 +71,7 @@ export default function BudgetsPage() {
     }),
   };
 
-  if (authLoading || (isLoadingData && !!user)) {
+  if (isLoadingData) {
     return (
       <div>
         <PageHeader title="Orçamentos" description="Defina e acompanhe seus limites de gastos para diferentes categorias." actions={<Skeleton className="h-10 w-40 rounded-md" />} />
@@ -121,14 +92,14 @@ export default function BudgetsPage() {
     <Dialog open={editDialog.isOpen} onOpenChange={(isOpen) => setEditDialog({ isOpen, budget: isOpen ? editDialog.budget : null })}>
       <div>
         <PageHeader title="Orçamentos" icon={<Target className="mr-2 h-6 w-6 text-primary"/>} description="Defina e acompanhe seus limites de gastos para diferentes categorias." actions={
-          <Button asChild disabled={authLoading || !user}><Link href="/budgets/new"><PlusCircle className="mr-2 h-4 w-4" />Criar Orçamento</Link></Button>
+          <Button asChild><Link href="/budgets/new"><PlusCircle className="mr-2 h-4 w-4" />Criar Orçamento</Link></Button>
         } />
         {currentBudgets.length === 0 && !isLoadingData && (
           <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
             <Target className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold font-headline mb-2">Nenhum Orçamento Criado Ainda</h3>
             <p className="text-muted-foreground mb-4 max-w-md">Orçamentos ajudam você a controlar seus gastos e alcançar suas metas. Que tal criar seu primeiro?</p>
-            <Button asChild size="lg" disabled={authLoading || !user}><Link href="/budgets/new"><PlusCircle className="mr-2 h-5 w-5" />Criar Meu Primeiro Orçamento</Link></Button>
+            <Button asChild size="lg"><Link href="/budgets/new"><PlusCircle className="mr-2 h-5 w-5" />Criar Meu Primeiro Orçamento</Link></Button>
           </Card>
         )}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

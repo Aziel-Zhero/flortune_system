@@ -1,4 +1,3 @@
-
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -9,115 +8,56 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { User, Smartphone, FileText, Fingerprint, Save } from "lucide-react";
 import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
-import { supabase } from '@/lib/supabase/client';
-import type { Profile } from '@/types/database.types';
-import { Skeleton } from "@/components/ui/skeleton";
+
+// Mock data since session is disabled
+const mockProfile = {
+  fullName: "Usuário Demonstração",
+  displayName: "Usuário Demo",
+  email: "demo@flortune.com",
+  phone: "(11) 98765-4321",
+  cpfCnpj: "123.456.789-00",
+  rg: "12.345.678-9",
+  avatarUrl: `https://placehold.co/100x100.png?text=D`,
+  avatarFallback: "D",
+  account_type: "pessoa"
+};
+
 
 export default function ProfilePage() {
-  const { data: session, status, update: updateSession } = useSession();
-
-  const isLoading = status === "loading";
-  const userFromSession = session?.user;
-  const profileFromSession = session?.user?.profile;
-
-  const [fullName, setFullName] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [cpfCnpj, setCpfCnpj] = useState("");
-  const [rg, setRg] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [avatarFallback, setAvatarFallback] = useState("U");
+  const [fullName, setFullName] = useState(mockProfile.fullName);
+  const [displayName, setDisplayName] = useState(mockProfile.displayName);
+  const [email, setEmail] = useState(mockProfile.email);
+  const [phone, setPhone] = useState(mockProfile.phone);
+  const [cpfCnpj, setCpfCnpj] = useState(mockProfile.cpfCnpj);
+  const [rg, setRg] = useState(mockProfile.rg);
+  const [avatarUrl, setAvatarUrl] = useState(mockProfile.avatarUrl);
+  const [avatarFallback, setAvatarFallback] = useState(mockProfile.avatarFallback);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   
   useEffect(() => {
     document.title = `Meu Perfil - ${APP_NAME}`;
   }, []);
 
-  useEffect(() => {
-    if (profileFromSession) {
-      setFullName(profileFromSession.full_name || "");
-      setDisplayName(profileFromSession.display_name || "");
-      setPhone(profileFromSession.phone || "");
-      setCpfCnpj(profileFromSession.cpf_cnpj || "");
-      setRg(profileFromSession.rg || "");
-      const currentAvatar = profileFromSession.avatar_url || session?.user?.image || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || 'U'}`;
-      setAvatarUrl(currentAvatar);
-      setAvatarFallback((profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || "U");
-    }
-    if (session?.user?.email) {
-      setEmail(session.user.email);
-    }
-  }, [profileFromSession, session?.user?.image, session?.user?.name, session?.user?.email]);
-
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
-    if (!userFromSession?.id) {
-      toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
-      return;
-    }
     setIsSavingProfile(true);
-    try {
-      const updatedProfileData: Partial<Omit<Profile, 'id' | 'created_at' | 'email' | 'hashed_password'>> & {updated_at: string} = {
-        full_name: fullName,
-        display_name: displayName,
-        phone,
-        cpf_cnpj: cpfCnpj,
-        rg,
-        updated_at: new Date().toISOString(),
-        account_type: profileFromSession?.account_type, 
-      };
-
-      const { data: updatedProfile, error } = await supabase
-        .from('profiles')
-        .update(updatedProfileData)
-        .eq('id', userFromSession.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (updatedProfile) {
-        await updateSession({
-          ...session, 
-          user: { 
-            ...session?.user,
-            name: updatedProfile.display_name || updatedProfile.full_name, 
-            profile: updatedProfile as Profile, 
-          }
-        });
-        toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
-      }
-    } catch (error: any) {
-      console.error("Error saving profile:", error);
-      toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar as alterações do perfil.", variant: "destructive" });
-    } finally {
-      setIsSavingProfile(false);
-    }
+    
+    // Simulate saving
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast({ title: "Perfil Atualizado (Simulação)", description: "Suas informações de perfil foram salvas com sucesso." });
+    
+    setIsSavingProfile(false);
   };
-  
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary"/>}/>
-        <Card>
-            <CardHeader><Skeleton className="h-6 w-1/3 mb-1" /><Skeleton className="h-4 w-2/3" /></CardHeader>
-            <CardContent className="space-y-6"><Skeleton className="h-64 w-full rounded-lg" /></CardContent>
-            <CardFooter><Skeleton className="h-10 w-24 ml-auto" /></CardFooter>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Meu Perfil"
-        description="Gerencie suas informações pessoais e de conta."
+        description="Gerencie suas informações pessoais e de conta (dados de exemplo)."
         icon={<User className="h-6 w-6 text-primary"/>}
       />
 
@@ -159,7 +99,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            {profileFromSession?.account_type === 'pessoa' && (
+            {mockProfile.account_type === 'pessoa' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="cpfCnpj">CPF</Label>
@@ -177,7 +117,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-            {profileFromSession?.account_type === 'empresa' && (
+             {mockProfile.account_type === 'empresa' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="cpfCnpj">CNPJ</Label>

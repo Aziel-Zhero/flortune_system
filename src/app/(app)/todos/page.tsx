@@ -14,10 +14,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ListChecks, PlusCircle, Trash2, CalendarIcon, AlertTriangle, Edit3 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
-import { useSession } from "next-auth/react";
 import { toast } from "@/hooks/use-toast";
 import type { Todo } from "@/types/database.types";
-import { getTodos, addTodo, updateTodo, deleteTodo, type NewTodoData, type UpdateTodoData } from "@/services/todo.service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
@@ -39,76 +37,64 @@ const todoFormSchema = z.object({
 });
 type TodoFormData = z.infer<typeof todoFormSchema>;
 
-export default function TodosPage() {
-  const { data: session, status: authStatus } = useSession();
-  const user = session?.user;
 
+// --- MOCK DATA ---
+const sampleTodos: Todo[] = [
+    { id: '1', user_id: 'mock', description: 'Pagar fatura do cartão de crédito', is_completed: false, due_date: '2024-07-25', created_at: '2024-07-20T10:00:00Z', updated_at: '' },
+    { id: '2', user_id: 'mock', description: 'Revisar orçamento mensal', is_completed: false, due_date: '2024-07-28', created_at: '2024-07-20T11:00:00Z', updated_at: '' },
+    { id: '3', user_id: 'mock', description: 'Declarar imposto de renda', is_completed: true, due_date: '2024-04-30', created_at: '2024-04-01T09:00:00Z', updated_at: '' },
+];
+// --- END MOCK DATA ---
+
+export default function TodosPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [itemToDelete, setItemToDelete] = useState<Todo | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<TodoFormData>({
     resolver: zodResolver(todoFormSchema),
     defaultValues: { description: "", due_date: null },
   });
 
-  const fetchTodos = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-    try {
-      const { data, error } = await getTodos(user.id);
-      if (error) throw error;
-      setTodos(data || []);
-    } catch (err: any) {
-      toast({ title: "Erro ao buscar tarefas", description: err.message, variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
-
   useEffect(() => {
     document.title = `Lista de Tarefas - ${APP_NAME}`;
-    if (user?.id && authStatus === "authenticated") {
-      fetchTodos();
-    } else if (authStatus === "unauthenticated") {
-      setIsLoading(false);
-    }
-  }, [user, authStatus, fetchTodos]);
+    // Simulate fetching data
+    setTimeout(() => {
+        const sortedTodos = sampleTodos.sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() );
+        setTodos(sortedTodos);
+        setIsLoading(false);
+    }, 500);
+  }, []);
 
   const onAddTodoSubmit: SubmitHandler<TodoFormData> = async (data) => {
-    if (!user?.id) return;
     setIsSubmitting(true);
-    const newTodoData: NewTodoData = {
+    const newTodo: Todo = {
+      id: `todo_${Date.now()}`,
+      user_id: 'mock-user',
       description: data.description,
-      due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : null,
+      is_completed: false,
+      due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : undefined,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
-    try {
-      const { data: newTodo, error } = await addTodo(user.id, newTodoData);
-      if (error) throw error;
-      if (newTodo) setTodos(prev => [newTodo, ...prev].sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
-      toast({ title: "Tarefa Adicionada!", description: `"${newTodo?.description}" foi adicionada.` });
-      reset();
-    } catch (err: any) {
-      toast({ title: "Erro ao adicionar tarefa", description: err.message, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 300));
+    setTodos(prev => [newTodo, ...prev].sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
+    toast({ title: "Tarefa Adicionada (Simulação)!", description: `"${newTodo.description}" foi adicionada.` });
+    reset();
+    setIsSubmitting(false);
   };
 
   const handleToggleComplete = async (todo: Todo) => {
-    if (!user?.id) return;
-    const originalTodos = [...todos];
     const updatedTodo = { ...todo, is_completed: !todo.is_completed };
-    
     setTodos(prev => prev.map(t => t.id === todo.id ? updatedTodo : t).sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
-
-    const updateData: UpdateTodoData = { is_completed: updatedTodo.is_completed };
-    const { error } = await updateTodo(todo.id, user.id, updateData);
-    if (error) {
-      toast({ title: "Erro ao atualizar tarefa", description: error.message, variant: "destructive" });
-      setTodos(originalTodos); // Reverte
-    }
   };
 
   const handleDeleteClick = (todo: Todo) => {
@@ -116,21 +102,13 @@ export default function TodosPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!itemToDelete || !user?.id) return;
-    const originalTodos = [...todos];
+    if (!itemToDelete) return;
     setTodos(prev => prev.filter(t => t.id !== itemToDelete.id));
-    
-    const { error } = await deleteTodo(itemToDelete.id, user.id);
-    if (error) {
-      toast({ title: "Erro ao deletar tarefa", description: error.message, variant: "destructive" });
-      setTodos(originalTodos); // Reverte
-    } else {
-      toast({ title: "Tarefa Deletada", description: `"${itemToDelete.description}" foi deletada.` });
-    }
+    toast({ title: "Tarefa Deletada (Simulação)", description: `"${itemToDelete.description}" foi deletada.` });
     setItemToDelete(null);
   };
   
-  if (authStatus === "loading" || (isLoading && authStatus === "authenticated")) {
+  if (isLoading) {
     return (
       <div>
         <PageHeader title="Lista de Tarefas" description="Organize suas pendências." icon={<ListChecks />} />
@@ -191,11 +169,11 @@ export default function TodosPage() {
                         className={cn("w-full sm:w-[280px] justify-start text-left font-normal", !field.value && "text-muted-foreground")}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Data de Vencimento (Opcional)</span>}
+                        {isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Data de Vencimento (Opcional)</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} />
+                      <Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus locale={ptBR} />
                     </PopoverContent>
                   </Popover>
                 )}
@@ -261,8 +239,8 @@ export default function TodosPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-primary"
-                      onClick={() => toast({ title: "Editar Tarefa", description: "Funcionalidade de edição em desenvolvimento."})} // Placeholder
-                      disabled // Feature em desenvolvimento
+                      onClick={() => toast({ title: "Editar Tarefa", description: "Funcionalidade de edição em desenvolvimento."})}
+                      disabled
                   >
                       <Edit3 className="h-4 w-4" />
                   </Button>

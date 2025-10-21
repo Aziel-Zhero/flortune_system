@@ -1,4 +1,3 @@
-
 // src/app/(app)/settings/page.tsx
 "use client";
 
@@ -10,14 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, MapPin, BarChart3 } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
+import { useRouter } from 'next/navigation';
 
 interface ThemeOption {
   name: string;
@@ -38,12 +36,11 @@ const availableThemes: ThemeOption[] = [
 
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
-  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme, weatherCity, setWeatherCity, loadWeatherForCity } = useAppSettings();
+  const router = useRouter();
+  const { isDarkMode, toggleDarkMode, currentTheme, applyTheme } = useAppSettings();
 
-  const isLoading = status === "loading";
-  
-  const [localWeatherCity, setLocalWeatherCity] = useState(weatherCity || "");
+  // A funcionalidade de clima foi desativada, então o estado relacionado foi removido.
+  // const [localWeatherCity, setLocalWeatherCity] = useState("");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   
@@ -51,14 +48,7 @@ export default function SettingsPage() {
     document.title = `Configurações - ${APP_NAME}`;
   }, []);
 
-  useEffect(() => {
-    if (weatherCity) {
-      setLocalWeatherCity(weatherCity);
-    }
-  }, [weatherCity]);
-
   const handleFeatureClick = (featureName: string, isPlaceholder: boolean = true) => {
-    console.log(`${featureName} clicado.`);
     toast({ 
       title: `Ação: ${featureName}`, 
       description: isPlaceholder ? `Funcionalidade "${featureName}" (placeholder).` : `${featureName} foi ativado/desativado.`
@@ -69,39 +59,11 @@ export default function SettingsPage() {
     applyTheme(themeId); 
     toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.`, action: <CheckSquare className="text-green-500"/> });
   };
-
-  const handleWeatherSave = (e: FormEvent) => {
-    e.preventDefault();
-    const trimmedCity = localWeatherCity.trim();
-    setWeatherCity(trimmedCity);
-    if(trimmedCity) {
-      loadWeatherForCity(trimmedCity);
-      toast({ title: "Cidade do Clima Atualizada", description: `Buscando clima para ${trimmedCity}.` });
-    } else {
-      toast({ title: "Clima Desativado", description: "A exibição do clima foi removida." });
-    }
-  };
   
-  const handleLogout = async () => {
-    toast({ title: "Saindo...", description: "Você está sendo desconectado." });
-    await signOut({ callbackUrl: '/login?logout=success' }); 
+  const handleLogout = () => {
+    toast({ title: "Saindo...", description: "Você está sendo desconectado (simulação)." });
+    router.push('/login');
   };
-
-
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <PageHeader title="Configurações" description="Gerencie sua conta, preferências e configurações do aplicativo." icon={<Settings2 className="h-6 w-6 text-primary"/>}/>
-        <Skeleton className="h-64 w-full rounded-lg" />
-        <Skeleton className="h-48 w-full rounded-lg" />
-        <Skeleton className="h-32 w-full rounded-lg" />
-      </div>
-    );
-  }
-  
-  if (!session) { 
-    return <p>Redirecionando para o login...</p>; 
-  }
 
   return (
     <>
@@ -134,20 +96,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <form onSubmit={handleWeatherSave} className="space-y-4 p-4 border rounded-lg">
-              <Label className="font-semibold">Clima na Barra Lateral</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
-                  <div className='space-y-1.5'>
-                      <Label htmlFor="weatherCity" className='text-xs'>Sua Cidade</Label>
-                      <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input id="weatherCity" placeholder="Ex: São Paulo, BR" value={localWeatherCity} onChange={(e) => setLocalWeatherCity(e.target.value)} className="pl-10"/>
-                      </div>
-                  </div>
-                  <Button type="submit">Salvar Cidade</Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Insira sua cidade para ver o clima na barra lateral. Deixe em branco para desativar.</p>
-            </form>
+            {/* Weather form has been disabled */}
             
             <div className="flex items-center justify-between p-3 rounded-md border">
               <Label htmlFor="dark-mode" className="flex flex-col space-y-1 cursor-pointer flex-grow">

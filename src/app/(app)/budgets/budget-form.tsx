@@ -1,7 +1,7 @@
 // src/app/(app)/budgets/budget-form.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,14 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Save, Settings2, PlusCircle, Loader2 } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Save, Settings2, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
-import { addBudget, updateBudget, type NewBudgetData, type UpdateBudgetData } from "@/services/budget.service";
-import { getCategories, addCategory } from "@/services/category.service";
 import type { Category, Budget } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
@@ -50,13 +47,23 @@ interface BudgetFormProps {
   isModal?: boolean;
 }
 
-export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
-  const { data: session } = useSession();
-  const user = session?.user;
+// Mock categories for demo
+const mockExpenseCategories: Category[] = [
+    { id: 'cat-1', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-2', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-3', name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-4', name: 'Moradia', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+];
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
+  const [categories, setCategories] = useState<Category[]>(mockExpenseCategories);
+  const [isLoading, setIsLoading] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const isEditing = !!initialData;
 
@@ -78,68 +85,25 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
     resolver: zodResolver(newCategorySchema),
   });
 
-  const fetchCategories = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-    try {
-      const { data, error } = await getCategories(user.id);
-      if (error) throw error;
-      setCategories(data?.filter(c => c.type === 'expense') || []);
-    } catch (err: any) {
-      toast({ title: "Erro ao buscar categorias", description: err.message, variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id) fetchCategories();
-  }, [user, fetchCategories]);
-
   const onBudgetSubmit: SubmitHandler<BudgetFormData> = async (data) => {
-    if (!user?.id) { toast({ title: "Erro de Autenticação", variant: "destructive" }); return; }
     setIsLoading(true);
-
-    const budgetData = {
-      category_id: data.category_id,
-      limit_amount: data.limit_amount,
-      period_start_date: format(data.period_start_date, "yyyy-MM-dd"),
-      period_end_date: format(data.period_end_date, "yyyy-MM-dd"),
-    };
-
-    try {
-      let result;
-      if (isEditing) {
-        result = await updateBudget(initialData.id, user.id, budgetData as UpdateBudgetData);
-        if (result.error) throw result.error;
-        toast({ title: "Orçamento Atualizado!", action: <CheckCircle className="text-green-500" /> });
-      } else {
-        result = await addBudget(user.id, budgetData as NewBudgetData);
-        if (result.error) throw result.error;
-        toast({ title: "Orçamento Criado!", action: <CheckCircle className="text-green-500" /> });
-      }
-      reset();
-      onFormSuccess();
-    } catch (error: any) {
-      toast({ title: isEditing ? "Erro ao Atualizar" : "Erro ao Criar", description: error.message, variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log("Budget Form Data (Mock):", data);
+    toast({ title: isEditing ? "Orçamento Atualizado (Simulação)!" : "Orçamento Criado (Simulação)!", action: <CheckCircle className="text-green-500" /> });
+    reset();
+    onFormSuccess();
+    setIsLoading(false);
   };
 
   const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
-     if (!user?.id) { toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" }); return; }
-    try {
-      const result = await addCategory(user.id, { name: data.name, type: 'expense', icon: data.icon });
-      if (result.error) throw result.error;
-      toast({ title: "Categoria Criada!", description: `Categoria "${result.data?.name}" criada.` });
-      await fetchCategories();
-      if (result.data?.id) setValue("category_id", result.data.id);
-      resetCategoryForm();
-      setIsCategoryModalOpen(false);
-    } catch (error: any) {
-      toast({ title: "Erro ao Criar Categoria", description: error.message, variant: "destructive" });
-    }
+     // Simulate API call
+     const newCategory = { id: `cat-${Date.now()}`, name: data.name, type: 'expense', is_default: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+     setCategories(prev => [...prev, newCategory]);
+     setValue("category_id", newCategory.id);
+     toast({ title: "Categoria Criada (Simulação)!", description: `Categoria "${data.name}" criada.` });
+     resetCategoryForm();
+     setIsCategoryModalOpen(false);
   };
 
   return (
@@ -148,7 +112,7 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
         <Label htmlFor="category_id">Categoria</Label>
         <div className="flex items-center gap-2">
           <Controller name="category_id" control={control} render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}><SelectTrigger id="category_id" className="flex-grow"><SelectValue placeholder={isLoading ? "Carregando..." : "Selecione uma categoria"} /></SelectTrigger><SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
+            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}><SelectTrigger id="category_id" className="flex-grow"><SelectValue placeholder={"Selecione uma categoria"} /></SelectTrigger><SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
           )} />
           <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}><DialogTrigger asChild><Button type="button" variant="outline" size="icon"><PlusCircle className="h-4 w-4" /></Button></DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -164,8 +128,8 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
       </div>
       <div className="space-y-2"><Label htmlFor="limit_amount">Valor Limite (R$)</Label><div className="relative"><DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="limit_amount" type="number" step="0.01" {...register("limit_amount")} className="pl-10" /></div>{errors.limit_amount && <p className="text-sm text-destructive mt-1">{errors.limit_amount.message}</p>}</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2"><Label>Data de Início</Label><Controller name="period_start_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_start_date && <p className="text-sm text-destructive mt-1">{errors.period_start_date.message}</p>}</div>
-        <div className="space-y-2"><Label>Data de Término</Label><Controller name="period_end_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_end_date && <p className="text-sm text-destructive mt-1">{errors.period_end_date.message}</p>}</div>
+        <div className="space-y-2"><Label>Data de Início</Label><Controller name="period_start_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_start_date && <p className="text-sm text-destructive mt-1">{errors.period_start_date.message}</p>}</div>
+        <div className="space-y-2"><Label>Data de Término</Label><Controller name="period_end_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_end_date && <p className="text-sm text-destructive mt-1">{errors.period_end_date.message}</p>}</div>
       </div>
       {errors.root && <p className="text-sm text-destructive mt-1">{errors.root.message}</p>}
       <CardFooter className="flex justify-end gap-2 px-0 pt-4">
