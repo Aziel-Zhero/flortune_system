@@ -1,17 +1,16 @@
-
 // src/app/(app)/goals/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle, Loader2, GraduationCap, Rings } from "lucide-react";
+import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME, NO_ICON_VALUE } from "@/lib/constants"; // Import NO_ICON_VALUE
+import { APP_NAME, NO_ICON_VALUE } from "@/lib/constants";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,12 +30,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
-import { getFinancialGoals, deleteFinancialGoal } from "@/services/goal.service";
 import type { FinancialGoal } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import * as LucideIcons from "lucide-react";
 import { FinancialGoalForm } from "./goal-form"; 
+
+// --- MOCK DATA ---
+const sampleGoals: FinancialGoal[] = [
+    { id: '1', user_id: 'mock', name: 'Viagem para a Praia', target_amount: 5000, current_amount: 3250, deadline_date: '2024-12-20', status: 'in_progress', icon: 'Plane', created_at: '', updated_at: ''},
+    { id: '2', user_id: 'mock', name: 'Novo Notebook', target_amount: 8000, current_amount: 8000, deadline_date: '2024-06-30', status: 'achieved', icon: 'Laptop', created_at: '', updated_at: ''},
+    { id: '3', user_id: 'mock', name: 'Reserva de Emergência', target_amount: 15000, current_amount: 7500, deadline_date: null, status: 'in_progress', icon: 'ShieldCheck', created_at: '', updated_at: ''},
+];
+// --- END MOCK DATA ---
 
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
   if (!iconName || iconName === NO_ICON_VALUE) return Trophy; 
@@ -45,71 +50,30 @@ const getLucideIcon = (iconName?: string | null): React.ElementType => {
 };
 
 export default function GoalsPage() {
-  const { data: session, status: authStatus } = useSession();
-  const authLoading = authStatus === "loading";
-  const user = session?.user;
-
   const [currentGoals, setCurrentGoals] = useState<FinancialGoal[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; name: string } | null }>({ isOpen: false, item: null });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const fetchGoalsData = useCallback(async () => {
-    if (!user?.id) {
-        setIsLoadingData(false);
-        setCurrentGoals([]);
-        return;
-    }
-    setIsLoadingData(true);
-    try {
-      const { data, error } = await getFinancialGoals(user.id);
-      if (error) {
-        toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
-        setCurrentGoals([]);
-      } else {
-        setCurrentGoals(Array.isArray(data) ? data : []);
-      }
-    } catch (err) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar as metas.", variant: "destructive" });
-      setCurrentGoals([]);
-    } finally {
-      setIsLoadingData(false);
-    }
-  }, [user?.id]);
-
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
-    if (user?.id && authStatus === "authenticated") {
-      fetchGoalsData();
-    } else if (authStatus === "unauthenticated") {
+    setTimeout(() => {
+      setCurrentGoals(sampleGoals);
       setIsLoadingData(false);
-      setCurrentGoals([]);
-    }
-  }, [user?.id, authStatus, fetchGoalsData]);
+    }, 500);
+  }, []);
 
   const handleDeleteClick = (goalId: string, goalName: string) => {
     setDeleteDialog({ isOpen: true, item: { id: goalId, name: goalName } });
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item && user?.id) {
-      const originalGoals = [...currentGoals];
+    if (deleteDialog.item) {
       setCurrentGoals(prevGoals => prevGoals.filter(g => g.id !== deleteDialog.item!.id));
-      
-      const { error } = await deleteFinancialGoal(deleteDialog.item.id, user.id);
-      if (error) {
-        toast({
-          title: "Erro ao Deletar",
-          description: error.message || `Não foi possível deletar a meta "${deleteDialog.item.name}".`,
-          variant: "destructive",
-        });
-        setCurrentGoals(originalGoals);
-      } else {
-        toast({
-          title: "Meta Deletada",
-          description: `A meta "${deleteDialog.item.name}" foi deletada com sucesso.`,
-        });
-      }
+      toast({
+        title: "Meta Deletada (Simulação)",
+        description: `A meta "${deleteDialog.item.name}" foi deletada com sucesso.`,
+      });
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
@@ -123,7 +87,8 @@ export default function GoalsPage() {
 
   const handleGoalCreated = () => {
     setIsCreateModalOpen(false);
-    fetchGoalsData(); 
+    toast({ title: "Sucesso!", description: "Sua lista de metas será atualizada."});
+    // Em um app real, aqui você chamaria uma função para recarregar os dados
   };
 
   const cardVariants = {
@@ -139,7 +104,7 @@ export default function GoalsPage() {
     }),
   };
   
-  if (authLoading || (isLoadingData && !!user)) {
+  if (isLoadingData) {
     return (
       <div>
         <PageHeader
@@ -193,14 +158,14 @@ export default function GoalsPage() {
           icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={
             <DialogTrigger asChild>
-              <Button disabled={authLoading || !user}> 
+              <Button> 
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Definir Nova Meta
               </Button>
             </DialogTrigger>
           }
         />
-        {currentGoals.length === 0 && !isLoadingData && !authLoading && (
+        {currentGoals.length === 0 && !isLoadingData && (
           <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
               <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-xl font-semibold font-headline mb-2">Nenhuma Meta Definida Ainda</h3>
@@ -208,7 +173,7 @@ export default function GoalsPage() {
                 Metas financeiras são o mapa para seus sonhos. Comece definindo sua primeira meta e veja seu progresso florescer!
               </p>
               <DialogTrigger asChild>
-                  <Button size="lg" disabled={authLoading || !user}>
+                  <Button size="lg">
                     <PlusCircle className="mr-2 h-5 w-5" />
                     Definir Minha Primeira Meta
                   </Button>
@@ -293,11 +258,11 @@ export default function GoalsPage() {
               </motion.div>
             );
           })}
-           {currentGoals.length > 0 && !isLoadingData && !authLoading && (
+           {currentGoals.length > 0 && !isLoadingData && (
               <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
                   <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
                      <DialogTrigger asChild>
-                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none" disabled={authLoading || !user}> 
+                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none"> 
                           <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
                           <p className="font-semibold">Definir Nova Meta Financeira</p>
                        </button>
@@ -332,15 +297,7 @@ export default function GoalsPage() {
             Defina um novo objetivo para suas finanças e acompanhe seu progresso.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && authStatus === "authenticated" && (
-          <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />
-        )}
-         {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
-            <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
-                <p className="text-muted-foreground">Carregando formulário...</p>
-            </div>
-        )}
+        {isCreateModalOpen && <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />}
       </DialogContent>
     </Dialog>
   );
