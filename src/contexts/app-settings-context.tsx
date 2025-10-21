@@ -6,13 +6,8 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { toast } from '@/hooks/use-toast';
 import { getQuotes, type QuoteData } from '@/services/quote.service';
 
-// Tipos para os dados do clima
-interface WeatherData {
-  city: string;
-  temperature: number;
-  description: string;
-  icon: string;
-}
+// Tipos para os dados do clima (agora desativado)
+// interface WeatherData { ... }
 
 // Definindo o tipo para o valor do contexto de AppSettings
 export interface AppSettingsProviderValue {
@@ -25,12 +20,6 @@ export interface AppSettingsProviderValue {
   currentTheme: string;
   setCurrentTheme: Dispatch<SetStateAction<string>>;
   applyTheme: (themeId: string) => void;
-  weatherCity: string | null;
-  setWeatherCity: (city: string | null) => void;
-  weatherData: WeatherData | null;
-  weatherError: string | null;
-  loadWeatherForCity: (city: string) => Promise<void>;
-  isLoadingWeather: boolean;
   
   showQuotes: boolean;
   setShowQuotes: Dispatch<SetStateAction<boolean>>;
@@ -49,11 +38,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
   
-  const [weatherCity, setWeatherCityState] = useState<string | null>(null);
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
-
   const [showQuotes, setShowQuotes] = useState(true);
   const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
@@ -82,47 +66,15 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [showQuotes]);
 
   const setSelectedQuotes = (newQuotes: string[]) => {
-    localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
+    }
     setSelectedQuotesState(newQuotes);
     loadQuotes(newQuotes);
   };
-  
-  const loadWeatherForCity = useCallback(async (city: string) => {
-    if (!city) return;
-    setIsLoadingWeather(true);
-    setWeatherError(null);
-    try {
-        const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Falha ao buscar dados do clima.');
-        setWeatherData({
-            city: data.city,
-            temperature: Math.round(data.temperature),
-            description: data.description,
-            icon: data.icon,
-        });
-    } catch (err: any) {
-        setWeatherError(err.message);
-        setWeatherData(null);
-        toast({ title: "Erro ao buscar clima", description: err.message, variant: "destructive" });
-    } finally {
-        setIsLoadingWeather(false);
-    }
-  }, []);
-
-  const setWeatherCity = (city: string | null) => {
-      if(city && city.trim() !== '') {
-          localStorage.setItem('flortune-weather-city', city);
-          setWeatherCityState(city);
-      } else {
-          localStorage.removeItem('flortune-weather-city');
-          setWeatherCityState(null);
-          setWeatherData(null);
-          setWeatherError(null);
-      }
-  };
 
   const applyTheme = useCallback((themeId: string) => {
+    if (typeof window === 'undefined') return;
     const root = document.documentElement;
     root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
     
@@ -136,8 +88,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode(prev => {
       const newIsDark = !prev;
-      localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
-      document.documentElement.classList.toggle('dark', newIsDark);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
+        document.documentElement.classList.toggle('dark', newIsDark);
+      }
       return newIsDark;
     });
   }, []);
@@ -145,7 +99,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const togglePrivateMode = useCallback(() => {
     setIsPrivateMode(prev => {
         const newMode = !prev;
-        localStorage.setItem('flortune-private-mode', JSON.stringify(newMode));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('flortune-private-mode', JSON.stringify(newMode));
+        }
         return newMode;
     });
   }, []);
@@ -164,12 +120,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       applyTheme(storedTheme);
 
-      const storedCity = localStorage.getItem('flortune-weather-city');
-      if (storedCity) {
-        setWeatherCityState(storedCity);
-        loadWeatherForCity(storedCity);
-      }
-
       const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
       const show = storedShowQuotes ? JSON.parse(storedShowQuotes) : true;
       setShowQuotes(show);
@@ -186,10 +136,12 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to access localStorage or parse settings:", error);
         setIsLoadingQuotes(false);
     }
-  }, [applyTheme, loadWeatherForCity, loadQuotes]);
+  }, [applyTheme, loadQuotes]);
 
   useEffect(() => {
-    localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
+    }
   }, [showQuotes]);
 
   return (
@@ -197,7 +149,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       isPrivateMode, setIsPrivateMode, togglePrivateMode,
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
-      weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
       showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
       loadQuotes,
     }}>
