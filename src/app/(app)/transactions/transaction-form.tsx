@@ -19,9 +19,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
-import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
-import { getCategories, addCategory, type NewCategoryData as NewCategoryServiceData } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,13 +49,21 @@ interface TransactionFormProps {
   isModal?: boolean;
 }
 
+const mockCategories: Category[] = [
+    { id: 'cat-income-1', name: 'Salário', type: 'income', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-income-2', name: 'Renda Extra', type: 'income', is_default: false, created_at: '', updated_at: '' },
+    { id: 'cat-expense-1', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-expense-2', name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-expense-3', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-expense-4', name: 'Moradia', type: 'expense', is_default: false, created_at: '', updated_at: '' },
+];
+
+
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const user = session?.user;
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
@@ -77,85 +82,40 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
   });
 
   const transactionType = watch("type");
-
-  const fetchCategoriesData = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoadingCategories(true);
-    try {
-      const { data, error } = await getCategories(user.id);
-      if (error) {
-        toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
-        setCategories([]);
-      } else {
-        setCategories(data || []);
-      }
-    } catch (err) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar as categorias.", variant: "destructive" });
-    } finally {
-      setIsLoadingCategories(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id && status !== "loading") {
-      fetchCategoriesData();
-    } else if (status !== "loading" && !user?.id) {
-      // Handle no user case if necessary, maybe load default/mock categories
-      setIsLoadingCategories(false);
-    }
-  }, [user, status, fetchCategoriesData]);
   
   const onTransactionSubmit: SubmitHandler<TransactionFormData> = async (data) => {
-    if (!user?.id) {
-      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado.", variant: "destructive" });
-      return;
-    }
     setIsSubmitting(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log("Mock Transaction Data:", data);
 
-    const newTxData: NewTransactionData = {
-      description: data.description,
-      amount: data.amount,
-      date: format(data.date, "yyyy-MM-dd"),
-      type: data.type,
-      category_id: data.category_id,
-      notes: data.notes,
-      is_recurring: data.is_recurring ?? false,
-    };
-
-    try {
-      const result = await addTransaction(user.id, newTxData);
-      if (result.error) throw result.error;
-      
-      toast({ title: "Transação Adicionada!", description: `A transação "${data.description}" foi adicionada.`, action: <CheckCircle className="text-green-500" />, });
-      reset();
-      onTransactionCreated();
-      if (!isModal) router.push("/transactions");
-    } catch (error: any) {
-      toast({ title: "Erro ao Adicionar Transação", description: error.message || "Não foi possível salvar a nova transação.", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({
+      title: "Transação Adicionada (Simulação)!",
+      description: `A transação "${data.description}" foi adicionada.`,
+      action: <CheckCircle className="text-green-500" />,
+    });
+    reset();
+    onTransactionCreated();
+    if (!isModal) router.push("/transactions");
+    setIsSubmitting(false);
   };
 
   const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
-    if (!user?.id) {
-      toast({ title: "Usuário não autenticado", variant: "destructive" });
-      return;
-    }
-    const categoryData: Omit<NewCategoryServiceData, 'user_id'> = { name: data.name, type: transactionType };
-    
-    const result = await addCategory(user.id, categoryData);
-
-    if (result.error) {
-      toast({ title: "Erro ao criar categoria", description: result.error.message, variant: "destructive" });
-    } else if (result.data) {
-      const newCategory = result.data;
-      setCategories(prev => [...prev, newCategory]);
-      setValue('category_id', newCategory.id, { shouldValidate: true });
-      toast({ title: "Categoria Criada!", description: `Categoria "${data.name}" criada.` });
-      resetCategoryForm();
-      setIsCategoryModalOpen(false);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const newCategory: Category = {
+        id: `cat_${Date.now()}`,
+        name: data.name,
+        type: transactionType,
+        is_default: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+    setCategories(prev => [...prev, newCategory]);
+    setValue('category_id', newCategory.id, { shouldValidate: true });
+    toast({ title: "Categoria Criada! (Simulação)", description: `Categoria "${data.name}" criada.` });
+    resetCategoryForm();
+    setIsCategoryModalOpen(false);
   };
 
 
