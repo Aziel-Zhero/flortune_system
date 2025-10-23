@@ -16,9 +16,6 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
-import { getCategories, addCategory, type NewCategoryData as NewCategoryServiceData } from "@/services/category.service";
-import { addBudget, updateBudget, type NewBudgetData } from "@/services/budget.service";
 import type { Category, Budget } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
@@ -49,11 +46,16 @@ interface BudgetFormProps {
   isModal?: boolean;
 }
 
+const mockCategories: Category[] = [
+    { id: 'cat-1', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-2', name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+    { id: 'cat-3', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' },
+];
+
+
 export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
-  const { data: session } = useSession();
-  const user = session?.user;
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -82,65 +84,22 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
     resolver: zodResolver(newCategorySchema),
   });
 
-  const fetchCategories = useCallback(async () => {
-    if (!user?.id) return;
-    setIsLoadingCategories(true);
-    const { data, error } = await getCategories(user.id);
-    if (error) {
-      toast({ title: "Erro ao buscar categorias", variant: "destructive" });
-    } else {
-      setCategories(data?.filter(c => c.type === 'expense') || []);
-    }
-    setIsLoadingCategories(false);
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
   const onBudgetSubmit: SubmitHandler<BudgetFormData> = async (data) => {
-    if (!user?.id) {
-      toast({ title: "Usuário não autenticado", variant: "destructive" });
-      return;
-    }
     setIsSubmitting(true);
-    const budgetData = {
-      ...data,
-      period_start_date: format(data.period_start_date, 'yyyy-MM-dd'),
-      period_end_date: format(data.period_end_date, 'yyyy-MM-dd'),
-    };
-
-    const result = isEditing
-      ? await updateBudget(initialData.id, user.id, budgetData)
-      : await addBudget(user.id, budgetData as NewBudgetData);
-
-    if (result.error) {
-      toast({ title: isEditing ? "Erro ao Atualizar" : "Erro ao Criar", description: result.error.message, variant: "destructive" });
-    } else {
-      toast({ title: isEditing ? "Orçamento Atualizado!" : "Orçamento Criado!", action: <CheckCircle className="text-green-500" /> });
-      onFormSuccess();
-    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+    toast({ title: isEditing ? "Orçamento Atualizado! (Simulação)" : "Orçamento Criado! (Simulação)", action: <CheckCircle className="text-green-500" /> });
+    onFormSuccess();
     setIsSubmitting(false);
   };
 
   const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
-    if (!user?.id) {
-       toast({ title: "Usuário não autenticado", variant: "destructive" });
-       return;
-    }
-     const categoryData: Omit<NewCategoryServiceData, 'user_id'> = { name: data.name, type: 'expense' };
-
-    const result = await addCategory(user.id, categoryData);
-    if (result.error) {
-        toast({ title: "Erro ao criar categoria", description: result.error.message, variant: "destructive"});
-    } else if (result.data) {
-        const newCategory = result.data;
-        setCategories(prev => [...prev, newCategory]);
-        setValue("category_id", newCategory.id, { shouldValidate: true });
-        toast({ title: "Categoria Criada!", description: `Categoria "${data.name}" criada.` });
-        resetCategoryForm();
-        setIsCategoryModalOpen(false);
-    }
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const newCategory: Category = { id: `cat_${Date.now()}`, name: data.name, type: 'expense', is_default: false, created_at: '', updated_at: '' };
+    setCategories(prev => [...prev, newCategory]);
+    setValue("category_id", newCategory.id, { shouldValidate: true });
+    toast({ title: "Categoria Criada! (Simulação)", description: `Categoria "${data.name}" criada.` });
+    resetCategoryForm();
+    setIsCategoryModalOpen(false);
   };
 
   return (

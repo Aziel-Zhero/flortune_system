@@ -134,7 +134,7 @@ export default function LandingPage() {
             <p ref={heroParagraphRef} className="text-lg md:text-xl text-white/80 mb-10 max-w-3xl mx-auto opacity-0">{APP_NAME} é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
               <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
-              <Link href="/login" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-white border-white/50 hover:bg-white/10 hover:text-white")}>Já Tenho Conta</Link>
+              <Link href="/dashboard" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-white border-white/50 hover:bg-white/10 hover:text-white")}>Acessar Painel (Demo)</Link>
             </div>
             <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0"><Image src="https://placehold.co/800x450.png" alt="Flortune App Mockup" width={800} height={450} className="rounded-lg shadow-2xl border-4 border-white/20" data-ai-hint="app dashboard" priority /></div>
           </section>
@@ -165,7 +165,7 @@ export default function LandingPage() {
                   return (
                     <Card key={tier.id} className={cn("flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:shadow-primary/20 pricing-card", tier.featured ? "border-primary ring-2 ring-primary" : "")}>
                       <CardHeader className="pb-4">
-                        <div className="flex items-center gap-3 mb-2"><div className={cn("flex h-12 w-12 items-center justify-center rounded-lg", tier.featured ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><TierIcon className="h-6 w-6" /></div><CardTitle className={cn("font-headline text-xl", tier.featured ? "text-primary" : "text-foreground")}>{tier.name}</CardTitle></div>
+                        <div className="flex items-center gap-3 mb-2"><div className={cn("flex h-12 w-12 items-center justify-center rounded-lg", tier.featured ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><TierIcon className="h-6 h-6" /></div><CardTitle className={cn("font-headline text-xl", tier.featured ? "text-primary" : "text-foreground")}>{tier.name}</CardTitle></div>
                         <div className="flex flex-wrap items-baseline gap-x-1"><span className={cn("text-4xl font-bold tracking-tight", tier.featured ? "text-primary" : "text-foreground")}>{tier.priceMonthly}</span>{tier.priceMonthly !== 'Grátis' && tier.priceAnnotation && (<span className="text-sm font-normal text-muted-foreground">{tier.priceAnnotation}</span>)}{tier.priceMonthly !== 'Grátis' && !tier.priceAnnotation && (<span className="text-sm font-normal text-muted-foreground">/mês</span>)}</div>
                         <CardDescription className="pt-2 text-sm min-h-[60px]">{tier.description}</CardDescription>
                       </CardHeader>
