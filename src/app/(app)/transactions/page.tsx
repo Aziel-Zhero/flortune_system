@@ -1,7 +1,7 @@
 // src/app/(app)/transactions/page.tsx
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Repeat } from "lucide-react";
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,19 +39,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
+import { getTransactions, deleteTransaction } from "@/services/transaction.service";
 import type { Transaction } from "@/types/database.types";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionForm } from "./transaction-form"; 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// --- MOCK DATA ---
-const sampleTransactions: Transaction[] = [
-    { id: '1', user_id: 'mock-user', description: 'Salário Mensal', date: '2024-07-01', amount: 7500.00, type: 'income', is_recurring: true, created_at: '', updated_at: '', category: { id: 'cat-1', name: 'Salário', type: 'income', is_default: true, created_at: '', updated_at: '' } },
-    { id: '2', user_id: 'mock-user', description: 'Aluguel & Condomínio', date: '2024-07-05', amount: 1800.00, type: 'expense', is_recurring: true, created_at: '', updated_at: '', category: { id: 'cat-2', name: 'Moradia', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-    { id: '3', user_id: 'mock-user', description: 'Compras de Supermercado', date: '2024-07-03', amount: 850.50, type: 'expense', is_recurring: false, created_at: '', updated_at: '', category: { id: 'cat-3', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-    { id: '4', user_id: 'mock-user', description: 'Projeto Freelance X', date: '2024-07-02', amount: 1200.00, type: 'income', is_recurring: false, created_at: '', updated_at: '', category: { id: 'cat-4', name: 'Renda Extra', type: 'income', is_default: true, created_at: '', updated_at: '' } },
-    { id: '5', user_id: 'mock-user', description: 'Cinema', date: '2024-07-10', amount: 80.00, type: 'expense', is_recurring: false, created_at: '', updated_at: '', category: { id: 'cat-5', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-];
-// --- END MOCK DATA ---
 
 const categoryTypeColors: { [key: string]: string } = {
   income: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-800/30 dark:text-emerald-300 dark:border-emerald-700",
@@ -66,44 +60,93 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
 };
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions);
+  const { data: session, status: authStatus } = useSession(); 
+  const authLoading = authStatus === "loading";
+  const user = session?.user; 
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; description: string } | null }>({ isOpen: false, item: null });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const fetchPageData = useCallback(async () => {
+    if (!user?.id) {
+        setIsLoading(false);
+        setTransactions([]);
+        return;
+    }
+    setIsLoading(true);
+    try {
+      const transactionsRes = await getTransactions(user.id);
+
+      if (transactionsRes.error) {
+        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
+        setTransactions([]);
+      } else {
+        setTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
+      }
+    } catch (error) {
+      toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados da página.", variant: "destructive" });
+      setTransactions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    document.title = `Transações - ${APP_NAME}`;
+    if (user?.id && authStatus === "authenticated") { 
+      fetchPageData();
+    } else if (authStatus === "unauthenticated") {
+      setIsLoading(false);
+      setTransactions([]);
+    }
+  }, [user?.id, authStatus, fetchPageData]);
 
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setDeleteDialog({ isOpen: true, item: { id: transactionId, description: transactionDescription } });
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item) { 
-      // Simula a exclusão no estado local
+    if (deleteDialog.item && user?.id) { 
+      const originalTransactions = [...transactions];
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
-      toast({
-        title: "Transação Deletada (Simulação)",
-        description: `A transação "${deleteDialog.item.description}" foi removida.`,
-      });
+
+      const { error } = await deleteTransaction(deleteDialog.item.id, user.id);
+      if (error) {
+        toast({
+          title: "Erro ao Deletar",
+          description: error.message || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
+          variant: "destructive",
+        });
+        setTransactions(originalTransactions); 
+      } else {
+        toast({
+          title: "Transação Deletada",
+          description: `A transação "${deleteDialog.item.description}" foi deletada com sucesso.`,
+        });
+      }
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
 
   const handleEditClick = (transactionId: string, transactionDescription: string) => {
     toast({
-      title: "Editar Transação (Simulação)",
+      title: "Editar Transação",
       description: `Funcionalidade de edição para "${transactionDescription}" (placeholder).`,
     });
   };
   
   const handleExportClick = () => {
     toast({
-      title: "Exportar Dados (Simulação)",
+      title: "Exportar Dados",
       description: "Funcionalidade de exportação de transações (placeholder)."
     });
   };
 
   const handleTransactionCreated = () => {
     setIsCreateModalOpen(false);
-    toast({ title: "Nova Transação Adicionada!", description: "Sua lista de transações será atualizada."});
-    // Em um app real, aqui você chamaria `fetchPageData()` para recarregar os dados.
+    fetchPageData(); 
   };
   
   const rowVariants = {
@@ -120,6 +163,61 @@ export default function TransactionsPage() {
     exit: { opacity: 0, x: 20 }
   };
 
+  const formatDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  if (authLoading || (isLoading && !!user)) {
+    return (
+      <div className="w-full">
+        <PageHeader
+          title="Transações"
+          icon={<List className="h-6 w-6 text-primary"/>}
+          description="Gerencie e revise todas as suas transações financeiras."
+          actions={
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Skeleton className="h-10 w-full sm:w-28 rounded-md" />
+              <Skeleton className="h-10 w-full sm:w-44 rounded-md" />
+            </div>
+          }
+        />
+        <Card className="shadow-sm">
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2 mb-1"/>
+            <Skeleton className="h-4 w-3/4"/>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px] sm:w-[120px]"><Skeleton className="h-5 w-16"/></TableHead>
+                    <TableHead className="min-w-[150px] sm:min-w-[200px]"><Skeleton className="h-5 w-32"/></TableHead>
+                    <TableHead className="w-[120px] sm:w-[150px]"><Skeleton className="h-5 w-20"/></TableHead>
+                    <TableHead className="text-right w-[100px] sm:w-[120px]"><Skeleton className="h-5 w-16 ml-auto"/></TableHead>
+                    <TableHead className="w-[50px]"><span className="sr-only">Ações</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array(5).fill(0).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell><Skeleton className="h-4 w-full"/></TableCell>
+                      <TableCell><Skeleton className="h-4 w-full"/></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20 rounded-full"/></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto"/></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-8 rounded-sm"/></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   return (
     <TooltipProvider>
     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
@@ -139,7 +237,7 @@ export default function TransactionsPage() {
                 Exportar
               </Button>
               <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto"> 
+                  <Button className="w-full sm:w-auto" disabled={authLoading || !user}> 
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Adicionar Transação
                   </Button>
@@ -150,7 +248,7 @@ export default function TransactionsPage() {
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline text-xl md:text-2xl">Todas as Transações</CardTitle>
-            <CardDescription>Uma lista detalhada de suas receitas e despesas (dados de exemplo).</CardDescription>
+            <CardDescription>Uma lista detalhada de suas receitas e despesas.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -183,7 +281,7 @@ export default function TransactionsPage() {
                       className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                     >
                       <TableCell className="text-muted-foreground text-xs md:text-sm">
-                        {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
+                        {formatDate(transaction.date)}
                       </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
@@ -235,14 +333,14 @@ export default function TransactionsPage() {
                       </TableCell>
                     </motion.tr>
                   ))}
-                  {transactions.length === 0 && (
+                  {transactions.length === 0 && !isLoading && !authLoading && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                          <div className="flex flex-col items-center gap-2">
                           <AlertTriangle className="h-10 w-10 text-muted-foreground/50" />
                           <span>Nenhuma transação encontrada.</span>
                           <DialogTrigger asChild>
-                              <Button size="sm" className="mt-2">Adicionar Primeira Transação</Button>
+                              <Button size="sm" className="mt-2" disabled={authLoading || !user}>Adicionar Primeira Transação</Button>
                           </DialogTrigger>
                         </div>
                       </TableCell>
@@ -278,7 +376,13 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />
+        {isCreateModalOpen && session?.user && authStatus === "authenticated" && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
+             <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
+                <p className="text-muted-foreground">Carregando formulário...</p>
+            </div>
+        )}
       </DialogContent>
     </Dialog>
     </TooltipProvider>

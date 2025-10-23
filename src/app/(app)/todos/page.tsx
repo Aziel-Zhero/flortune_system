@@ -57,6 +57,11 @@ export default function TodosPage() {
     setIsClient(true);
   }, []);
 
+  const formatDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<TodoFormData>({
     resolver: zodResolver(todoFormSchema),
     defaultValues: { description: "", due_date: null },
@@ -231,7 +236,7 @@ export default function TodosPage() {
                         "text-xs text-muted-foreground",
                         todo.is_completed && "line-through"
                       )}>
-                        Vence em: {format(parseISO(todo.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                        Vence em: {formatDate(todo.due_date)}
                       </p>
                     )}
                   </div>
