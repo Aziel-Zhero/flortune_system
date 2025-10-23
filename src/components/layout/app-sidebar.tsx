@@ -16,10 +16,13 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   useSidebar,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
+import { useAppSettings } from "@/contexts/app-settings-context";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;
@@ -33,6 +36,53 @@ const mockUser = {
     avatarUrl: `https://placehold.co/40x40.png?text=U`,
     avatarFallback: "U",
 }
+
+function WeatherDisplay() {
+  const { weatherData, isLoadingWeather, weatherError } = useAppSettings();
+
+  if (isLoadingWeather) {
+    return (
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-5 w-5 animate-spin text-sidebar-foreground/70" />
+        <span className="text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+          Carregando clima...
+        </span>
+      </div>
+    );
+  }
+
+  if (weatherError) {
+    return (
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="h-5 w-5 text-destructive" />
+        <span className="text-xs text-destructive group-data-[collapsible=icon]:hidden">
+          Erro no clima
+        </span>
+      </div>
+    );
+  }
+
+  if (!weatherData) {
+    return null; // Não exibe nada se não houver dados
+  }
+
+  return (
+    <div className="flex items-center gap-2 overflow-hidden">
+      <Image 
+        src={`https://openweathermap.org/img/wn/${weatherData.icon}.png`}
+        alt={weatherData.description}
+        width={32}
+        height={32}
+        className="shrink-0"
+      />
+      <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+        <span className="text-sm font-semibold text-sidebar-foreground">{weatherData.temperature}°C</span>
+        <span className="text-xs text-sidebar-foreground/80 truncate">{weatherData.city}</span>
+      </div>
+    </div>
+  );
+}
+
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -77,7 +127,7 @@ export function AppSidebar() {
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
-          <Link href="/settings" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
+          <Link href="/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
             <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
                 <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar"/>
                 <AvatarFallback>{mockUser.avatarFallback}</AvatarFallback>
@@ -128,6 +178,11 @@ export function AppSidebar() {
                 })}
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter className="mt-auto p-2 border-t border-sidebar-border/50 group-data-[collapsible=icon]:border-none">
+          <div className="p-2 flex items-center justify-center group-data-[collapsible=icon]:p-0">
+             <WeatherDisplay />
+          </div>
+        </SidebarFooter>
     </Sidebar>
   );
 }

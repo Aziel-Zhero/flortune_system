@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, MapPin } from "lucide-react";
+import { Bell, ShieldCheck, Palette, Briefcase, LogOut, UploadCloud, DownloadCloud, Share2, CheckSquare, Settings2, Mountain, Wind, Sun, Zap, Droplets, Sparkles, MapPin, BarChart3 } from "lucide-react";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { toast } from "@/hooks/use-toast";
 import { APP_NAME } from "@/lib/constants";
 import { ShareModuleDialog } from '@/components/settings/share-module-dialog';
 import { cn } from "@/lib/utils";
 import { WeatherSettingsDialog } from '@/components/settings/weather-dialog';
+import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
 import { useRouter } from 'next/navigation';
 
 interface ThemeOption {
@@ -40,6 +41,7 @@ export default function SettingsPage() {
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   
   useEffect(() => {
     document.title = `Configurações - ${APP_NAME}`;
@@ -78,17 +80,31 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             
-            <div className="p-4 border rounded-lg flex items-center justify-between">
+            <div className="p-4 border rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="flex items-center justify-between">
                 <Label htmlFor="show-quotes" className="flex flex-col space-y-1 cursor-pointer flex-grow">
+                <span className="font-semibold">Módulo de Cotações</span>
+                <span className="font-normal leading-snug text-muted-foreground text-sm">
+                    Exibe cotações de moedas e ações no painel.
+                </span>
+                </Label>
+                <Button variant="outline" size="sm" onClick={() => setIsQuoteDialogOpen(true)}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Configurar Cotações
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="show-weather" className="flex flex-col space-y-1 cursor-pointer flex-grow">
                 <span className="font-semibold">Módulo de Clima</span>
                 <span className="font-normal leading-snug text-muted-foreground text-sm">
-                    Exibe a condição climática da sua cidade na barra lateral.
+                    Exibe o clima da sua cidade na barra lateral.
                 </span>
                 </Label>
                 <Button variant="outline" size="sm" onClick={() => setIsWeatherDialogOpen(true)}>
                     <MapPin className="mr-2 h-4 w-4" />
                     Configurar Cidade
                 </Button>
+              </div>
             </div>
             
             <div className="flex items-center justify-between p-3 rounded-md border">
@@ -209,6 +225,7 @@ export default function SettingsPage() {
       </div>
       <ShareModuleDialog isOpen={isShareModalOpen} onOpenChange={setIsShareModalOpen} />
       <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
+      <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
     </>
   );
 }

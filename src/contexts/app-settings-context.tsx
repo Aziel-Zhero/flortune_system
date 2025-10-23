@@ -49,8 +49,6 @@ const mockQuotes: QuoteData[] = [
   { code: "BTC-BRL", codein: 'BRL', name: 'Bitcoin', high: '340000', low: '330000', varBid: '5000', pctChange: '1.50', bid: '335000', ask: '335100', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "IBOV", codein: 'BRL', name: 'Ibovespa', high: '125000', low: '124000', varBid: '500', pctChange: '0.40', bid: '124500', ask: '124500', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "NASDAQ", codein: 'BRL', name: 'Nasdaq', high: '18000', low: '17900', varBid: '100', pctChange: '0.55', bid: '17950', ask: '17950', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: 'GBP-BRL', name: 'Libra Esterlina', codein: 'BRL', high: '6.90', low: '6.85', varBid: '0.03', pctChange: '0.45', bid: '6.88', ask: '6.89', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: 'ARS-BRL', name: 'Peso Argentino', codein: 'BRL', high: '0.006', low: '0.005', varBid: '-0.0001', pctChange: '-1.5', bid: '0.0058', ask: '0.0059', timestamp: String(Date.now()), create_date: new Date().toISOString() },
 ];
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -78,7 +76,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate API delay
       const orderedQuotes = validQuotes
         .map(code => mockQuotes.find(mq => mq.code === code))
         .filter((q): q is QuoteData => !!q);

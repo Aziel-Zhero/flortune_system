@@ -1,4 +1,3 @@
-
 // src/components/layout/user-nav.tsx
 
 "use client";
@@ -36,7 +35,7 @@ export function UserNav() {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
 
   const handleLogout = () => {
-    toast({ title: "Logout simulado", description: "Em um app real, você seria desconectado."});
+    toast({ title: "Logout simulado", description: "Você será redirecionado para a página de login."});
     router.push('/login');
   };
 
