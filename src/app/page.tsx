@@ -7,7 +7,6 @@ import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Ch
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
-import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
@@ -17,7 +16,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import anime from 'animejs';
 import React, { useRef, useEffect, type FC } from 'react';
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -81,9 +79,6 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
 };
 
 export default function LandingPage() {
-  const { data: session, status } = useSession();
-  const isLoading = status === "loading";
-
   const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255];
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -96,8 +91,6 @@ export default function LandingPage() {
   const finalCtaSectionRef = useRef<HTMLElement>(null);
 
   useGSAP(() => {
-    if (isLoading) return;
-
     const tlHero = gsap.timeline({ defaults: { ease: "power3.out" } });
     tlHero
       .fromTo(heroTitleRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1 })
@@ -115,23 +108,9 @@ export default function LandingPage() {
       gsap.fromTo(pricingSectionRef.current.querySelector(".pricing-header"), { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: pricingSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
       gsap.fromTo(pricingSectionRef.current.querySelectorAll(".pricing-card"), { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.2, ease: "power2.out", scrollTrigger: { trigger: pricingSectionRef.current, start: "top 70%", toggleActions: "play none none none" }});
     }
-    if (finalCtaSectionRef.current && (!session && !isLoading)) gsap.fromTo(finalCtaSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: finalCtaSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
+    if (finalCtaSectionRef.current) gsap.fromTo(finalCtaSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: finalCtaSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
   
-  }, { scope: mainContainerRef, dependencies: [isLoading, session] });
-
-  let headerActions = null;
-  let heroActions = null;
-
-  if (isLoading) {
-    headerActions = (<><Skeleton className="h-10 w-24 bg-muted/50 rounded-md" /><Skeleton className="h-10 w-32 bg-muted/50 rounded-md" /></>);
-    heroActions = (<div className="flex flex-col sm:flex-row gap-4 justify-center" ref={heroButtonsRef}><Skeleton className="h-12 w-48 bg-muted/50 rounded-md" /><Skeleton className="h-12 w-40 bg-muted/50 rounded-md" /></div>);
-  } else if (session) {
-    headerActions = (<Link href="/dashboard" className={cn(buttonVariants({ variant: 'default' }), "text-white hover:bg-white/10 hover:text-white")}>Acessar Painel</Link>);
-    heroActions = (<div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}><Link href="/dashboard" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Ir para o Painel</Link></div>);
-  } else {
-    headerActions = (<><Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-white hover:bg-white/10 hover:text-white")}>Login</Link><Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Conta Grátis</Link></>);
-    heroActions = (<div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}><Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link><Link href="/login" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-white border-white/50 hover:bg-white/10 hover:text-white")}>Já Tenho Conta</Link></div>);
-  }
+  }, { scope: mainContainerRef });
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden text-white" ref={mainContainerRef}>
@@ -143,14 +122,20 @@ export default function LandingPage() {
               <Image src="/Logo.png" alt="Flortune Logo" width={32} height={32} />
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>
-            <nav className="flex items-center gap-2">{headerActions}</nav>
+            <nav className="flex items-center gap-2">
+              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-white hover:bg-white/10 hover:text-white")}>Login</Link>
+              <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Conta Grátis</Link>
+            </nav>
           </div>
         </header>
         <main className="container mx-auto px-4 md:px-8">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
             <h1 ref={heroTitleRef} className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0">Cultive Suas Finanças e <span className='text-accent'>Projetos</span> com Inteligência.</h1>
             <p ref={heroParagraphRef} className="text-lg md:text-xl text-white/80 mb-10 max-w-3xl mx-auto opacity-0">{APP_NAME} é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.</p>
-            {heroActions}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
+              <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
+              <Link href="/login" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-white border-white/50 hover:bg-white/10 hover:text-white")}>Já Tenho Conta</Link>
+            </div>
             <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0"><Image src="https://placehold.co/800x450.png" alt="Flortune App Mockup" width={800} height={450} className="rounded-lg shadow-2xl border-4 border-white/20" data-ai-hint="app dashboard" priority /></div>
           </section>
 
@@ -196,15 +181,13 @@ export default function LandingPage() {
               </div>
           </section>
 
-          {!session && !isLoading && (
-            <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
-                 <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro?</h2>
-                    <p className="text-white/80 mb-8">Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o {APP_NAME}. É rápido, fácil e gratuito para começar.</p>
-                    <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Minha Conta Grátis</Link>
-                 </div>
-            </section>
-          )}
+          <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
+              <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
+                <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro?</h2>
+                <p className="text-white/80 mb-8">Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o {APP_NAME}. É rápido, fácil e gratuito para começar.</p>
+                <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Minha Conta Grátis</Link>
+              </div>
+          </section>
         </main>
         <footer className="py-8 border-t border-white/10 mt-16">
           <div className="container mx-auto text-center text-sm text-white/60">
