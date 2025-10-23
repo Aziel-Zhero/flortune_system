@@ -1,4 +1,3 @@
-
 // src/app/(app)/analysis/page.tsx
 "use client";
 
@@ -590,5 +589,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-
-    

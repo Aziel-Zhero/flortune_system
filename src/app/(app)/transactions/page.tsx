@@ -39,8 +39,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
-import { getTransactions, deleteTransaction } from "@/services/transaction.service";
 import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionForm } from "./transaction-form"; 
@@ -59,73 +57,45 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
   return categoryTypeColors.default;
 };
 
-export default function TransactionsPage() {
-  const { data: session, status: authStatus } = useSession(); 
-  const authLoading = authStatus === "loading";
-  const user = session?.user; 
+// --- MOCK DATA ---
+const sampleTransactions: Transaction[] = [
+    { id: '1', user_id: 'mock', category_id: 'cat-income', description: 'Salário de Julho', amount: 7500, date: '2024-07-01', type: 'income', is_recurring: true, created_at: '', updated_at: '', notes: '', category: { id: 'cat-income', name: 'Salário', type: 'income', is_default: true, created_at: '', updated_at: '' } },
+    { id: '2', user_id: 'mock', category_id: 'cat-expense', description: 'Aluguel & Condomínio', amount: 1800, date: '2024-07-05', type: 'expense', is_recurring: true, created_at: '', updated_at: '', notes: '', category: { id: 'cat-expense', name: 'Moradia', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+    { id: '3', user_id: 'mock', category_id: 'cat-expense', description: 'Compras no Supermercado Pão de Açúcar', amount: 850.50, date: '2024-07-10', type: 'expense', is_recurring: false, created_at: '', updated_at: '', notes: '', category: { id: 'cat-expense', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+];
+// --- END MOCK DATA ---
 
+
+export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; description: string } | null }>({ isOpen: false, item: null });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchPageData = useCallback(async () => {
-    if (!user?.id) {
-        setIsLoading(false);
-        setTransactions([]);
-        return;
-    }
     setIsLoading(true);
-    try {
-      const transactionsRes = await getTransactions(user.id);
-
-      if (transactionsRes.error) {
-        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
-        setTransactions([]);
-      } else {
-        setTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
-      }
-    } catch (error) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados da página.", variant: "destructive" });
-      setTransactions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
+    // Simulate fetching data
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setTransactions(sampleTransactions);
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user?.id && authStatus === "authenticated") { 
-      fetchPageData();
-    } else if (authStatus === "unauthenticated") {
-      setIsLoading(false);
-      setTransactions([]);
-    }
-  }, [user?.id, authStatus, fetchPageData]);
+    fetchPageData();
+  }, [fetchPageData]);
 
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setDeleteDialog({ isOpen: true, item: { id: transactionId, description: transactionDescription } });
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item && user?.id) { 
-      const originalTransactions = [...transactions];
+    if (deleteDialog.item) { 
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
-
-      const { error } = await deleteTransaction(deleteDialog.item.id, user.id);
-      if (error) {
-        toast({
-          title: "Erro ao Deletar",
-          description: error.message || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
-          variant: "destructive",
-        });
-        setTransactions(originalTransactions); 
-      } else {
-        toast({
-          title: "Transação Deletada",
-          description: `A transação "${deleteDialog.item.description}" foi deletada com sucesso.`,
-        });
-      }
+      toast({
+        title: "Transação Deletada (Simulação)",
+        description: `A transação "${deleteDialog.item.description}" foi deletada.`,
+      });
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
@@ -168,7 +138,7 @@ export default function TransactionsPage() {
     return `${day}/${month}/${year}`;
   };
 
-  if (authLoading || (isLoading && !!user)) {
+  if (isLoading) {
     return (
       <div className="w-full">
         <PageHeader
@@ -237,7 +207,7 @@ export default function TransactionsPage() {
                 Exportar
               </Button>
               <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto" disabled={authLoading || !user}> 
+                  <Button className="w-full sm:w-auto"> 
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Adicionar Transação
                   </Button>
@@ -333,14 +303,14 @@ export default function TransactionsPage() {
                       </TableCell>
                     </motion.tr>
                   ))}
-                  {transactions.length === 0 && !isLoading && !authLoading && (
+                  {transactions.length === 0 && !isLoading && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                          <div className="flex flex-col items-center gap-2">
                           <AlertTriangle className="h-10 w-10 text-muted-foreground/50" />
                           <span>Nenhuma transação encontrada.</span>
                           <DialogTrigger asChild>
-                              <Button size="sm" className="mt-2" disabled={authLoading || !user}>Adicionar Primeira Transação</Button>
+                              <Button size="sm" className="mt-2">Adicionar Primeira Transação</Button>
                           </DialogTrigger>
                         </div>
                       </TableCell>
@@ -376,13 +346,7 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && authStatus === "authenticated" && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
-        {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
-             <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
-                <p className="text-muted-foreground">Carregando formulário...</p>
-            </div>
-        )}
+        {isCreateModalOpen && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
       </DialogContent>
     </Dialog>
     </TooltipProvider>
