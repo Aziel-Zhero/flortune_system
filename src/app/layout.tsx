@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
 import { Toaster } from "@/components/ui/toaster";
+import { SessionProvider } from '@/components/auth/session-provider'; // Importado
 import './globals.css'; 
 import { Suspense } from 'react';
 
@@ -28,10 +29,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <Suspense fallback={<div>Carregando...</div>}>
-          <AppSettingsProvider>
-            {children}
-            <Toaster />
-          </AppSettingsProvider>
+          <SessionProvider>
+            <AppSettingsProvider>
+              {children}
+              <Toaster />
+            </AppSettingsProvider>
+          </SessionProvider>
         </Suspense>
       </body>
     </html>
