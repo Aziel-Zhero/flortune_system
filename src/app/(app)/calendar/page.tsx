@@ -69,7 +69,7 @@ const sampleEvents: CalendarEvent[] = [
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents);
-  const [isLoading, setIsLoading] = useState(false); // Changed to false as we use mock data
+  const [isLoading, setIsLoading] = useState(false);
   
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -79,15 +79,13 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   
   useEffect(() => {
-    // Carregar eventos manuais do localStorage se existirem
     try {
         const storedManualEvents = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
-        // Combina os mocks com os eventos salvos, evitando duplicatas
         const combined = [...sampleEvents.filter(se => !storedManualEvents.some((me: CalendarEvent) => me.id === se.id)), ...storedManualEvents];
         setEvents(combined);
     } catch (e) {
         console.error("Failed to load manual events from localStorage", e);
-        setEvents(sampleEvents); // Fallback to mock data
+        setEvents(sampleEvents);
     }
   }, []);
 
@@ -97,7 +95,6 @@ export default function CalendarPage() {
   
   const manualEvents = useMemo(() => events.filter(e => e.extendedProps.source === 'manual'), [events]);
   useEffect(() => {
-    // Salva apenas os eventos manuais no localStorage
     localStorage.setItem('flortune-manual-events', JSON.stringify(manualEvents));
   }, [manualEvents]);
 
@@ -168,14 +165,14 @@ export default function CalendarPage() {
   }, [events, currentDate, selectedDay]);
 
   return (
-    <div className="flex flex-col md:flex-row h-full gap-6">
-      <div className="flex-1 flex flex-col min-h-[70vh] md:min-h-0">
-        <PageHeader
-          title="Calendário Financeiro"
-          description="Visualize e gerencie seus eventos de forma interativa."
-          icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
-        />
-        <div className="flex-1 p-1 -m-1 bg-card border rounded-lg shadow-sm overflow-hidden">
+    <div className="flex h-full flex-col">
+      <PageHeader
+        title="Calendário Financeiro"
+        description="Visualize e gerencie seus eventos de forma interativa."
+        icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
+      />
+      <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_384px]">
+        <div className="flex-1 p-1 -m-1 bg-card border rounded-lg shadow-sm overflow-hidden min-w-0">
             {isLoading ? (
                 <div className="p-4 space-y-4">
                     <Skeleton className="h-10 w-1/2" />
@@ -203,39 +200,39 @@ export default function CalendarPage() {
                 />
             )}
         </div>
+        <Card className="hidden lg:flex lg:flex-col shadow-sm">
+          <CardHeader>
+              <CardTitle className="font-headline text-lg">
+                  {selectedDay ? `Eventos de ${format(selectedDay, "d 'de' MMMM", {locale: ptBR})}` : `Eventos de ${format(currentDate, "MMMM", {locale: ptBR})}`}
+              </CardTitle>
+              {selectedDay && <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setSelectedDay(null)}>Ver mês inteiro</Button>}
+          </CardHeader>
+          <CardContent className="flex-grow overflow-hidden">
+              <ScrollArea className="h-full pr-4">
+                  <div className="space-y-4">
+                  {eventsForSidebar.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento neste período.</p> : eventsForSidebar.map(event => {
+                      const eventConfig = getEventTypeConfig(event.extendedProps.type);
+                      return(
+                          <div key={event.id} className="flex items-start gap-3 p-2 rounded-md border-l-4" style={{borderColor: eventConfig.color}}>
+                              <div className="mt-1"><eventConfig.icon className="h-4 w-4" style={{color: eventConfig.color}}/></div>
+                              <div>
+                                  <p className="font-semibold text-sm">{event.title}</p>
+                                  <p className="text-xs text-muted-foreground">{event.extendedProps.description}</p>
+                                  <p className="text-xs text-muted-foreground/80">{event.start ? format(parseISO(event.start as string), "dd/MM/yy") : 'Data indefinida'}</p>
+                              </div>
+                          </div>
+                      );
+                  })}
+                  </div>
+              </ScrollArea>
+          </CardContent>
+          <CardFooter>
+              <Button className="w-full" onClick={() => { setFormData({ start: new Date().toISOString().split('T')[0], allDay: true, extendedProps: { type: 'evento', source: 'manual' } }); setIsFormOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" /> Novo Evento Manual
+              </Button>
+          </CardFooter>
+        </Card>
       </div>
-      <Card className="w-full md:w-80 lg:w-96 flex flex-col shadow-sm">
-        <CardHeader>
-            <CardTitle className="font-headline text-lg">
-                {selectedDay ? `Eventos de ${format(selectedDay, "d 'de' MMMM", {locale: ptBR})}` : `Eventos de ${format(currentDate, "MMMM", {locale: ptBR})}`}
-            </CardTitle>
-            {selectedDay && <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setSelectedDay(null)}>Ver mês inteiro</Button>}
-        </CardHeader>
-        <CardContent className="flex-grow overflow-hidden">
-            <ScrollArea className="h-full pr-4">
-                <div className="space-y-4">
-                {eventsForSidebar.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento neste período.</p> : eventsForSidebar.map(event => {
-                    const eventConfig = getEventTypeConfig(event.extendedProps.type);
-                    return(
-                        <div key={event.id} className="flex items-start gap-3 p-2 rounded-md border-l-4" style={{borderColor: eventConfig.color}}>
-                            <div className="mt-1"><eventConfig.icon className="h-4 w-4" style={{color: eventConfig.color}}/></div>
-                            <div>
-                                <p className="font-semibold text-sm">{event.title}</p>
-                                <p className="text-xs text-muted-foreground">{event.extendedProps.description}</p>
-                                <p className="text-xs text-muted-foreground/80">{event.start ? format(parseISO(event.start as string), "dd/MM/yy") : 'Data indefinida'}</p>
-                            </div>
-                        </div>
-                    );
-                })}
-                </div>
-            </ScrollArea>
-        </CardContent>
-        <CardFooter>
-            <Button className="w-full" onClick={() => { setFormData({ start: new Date().toISOString().split('T')[0], allDay: true, extendedProps: { type: 'evento', source: 'manual' } }); setIsFormOpen(true); }}>
-                <Plus className="mr-2 h-4 w-4" /> Novo Evento Manual
-            </Button>
-        </CardFooter>
-      </Card>
       
        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
