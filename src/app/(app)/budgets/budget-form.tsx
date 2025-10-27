@@ -1,7 +1,7 @@
 // src/app/(app)/budgets/budget-form.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -129,10 +129,10 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
         <div className="space-y-2"><Label>Data de Término</Label><Controller name="period_end_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_end_date && <p className="text-sm text-destructive mt-1">{errors.period_end_date.message}</p>}</div>
       </div>
       {errors.root && <p className="text-sm text-destructive mt-1">{errors.root.message}</p>}
-      <DialogFooter className="flex justify-end gap-2 px-0 pt-4">
+      <div className="flex justify-end gap-2 pt-4">
         {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
         <Button type="submit" disabled={isSubmitting || isLoadingCategories}><Save className="mr-2 h-4 w-4"/>{isSubmitting ? "Salvando..." : (isEditing ? "Salvar Alterações" : "Criar Orçamento")}</Button>
-      </DialogFooter>
+      </div>
     </form>
   );
 }
