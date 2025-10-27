@@ -25,6 +25,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { APP_NAME } from "@/lib/constants";
+import { useSession } from "next-auth/react";
+import { getTransactions } from "@/services/transaction.service";
+import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
@@ -61,6 +64,7 @@ import {
   RadialBar,
   Brush
 } from "recharts";
+import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
   name: string;
@@ -208,12 +212,48 @@ const genericChartConfig = {
 
 
 export default function AnalysisPage() {
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const authLoading = status === "loading";
+
+  // A busca de dados reais foi desativada temporariamente para debug
+  // const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  // const [isFetchingTransactions, setIsFetchingTransactions] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
   }, []);
 
+  // --- LÓGICA DE BUSCA DE DADOS COMENTADA ---
+  // useEffect(() => {
+  //   if (!user?.id || authLoading) {
+  //     setIsFetchingTransactions(authLoading);
+  //     if (!authLoading && !user?.id) setAllTransactions([]);
+  //     return;
+  //   }
+  //   const fetchAllTransactions = async () => {
+  //     setIsFetchingTransactions(true);
+  //     try {
+  //       const { data, error } = await getTransactions(user.id);
+  //       if (error) {
+  //         toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
+  //         setAllTransactions([]);
+  //       } else {
+  //         setAllTransactions(Array.isArray(data) ? data : []);
+  //       }
+  //     } catch (err) {
+  //       toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
+  //       setAllTransactions([]);
+  //     } finally {
+  //       setIsFetchingTransactions(false);
+  //     }
+  //   };
+  //   fetchAllTransactions();
+  // }, [user?.id, authLoading]);
+
+
+  // --- DADOS DOS GRÁFICOS AGORA USAM MOCKS ---
   const spendingByCategory = mockSpendingByCategory;
   const incomeBySource = mockIncomeBySource;
   const monthlyEvolution = mockMonthlyEvolution;
@@ -226,6 +266,21 @@ export default function AnalysisPage() {
     Despesas: { label: "Despesas", color: "hsl(var(--chart-2))" },
   }), []);
 
+  if (authLoading) {
+    return (
+      <div className="space-y-8">
+        <PageHeader title="Análise Financeira" description="Carregando seus insights financeiros..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1,2,3].map(i => ( <Card key={`sk-card-pie-${i}`} className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card> ))}
+          <Card className="md:col-span-2 lg:col-span-3"><CardHeader><Skeleton className="h-6 w-1/2 mb-1"/><Skeleton className="h-4 w-3/4"/></CardHeader><CardContent><Skeleton className="h-96 w-full"/></CardContent></Card>
+        </div>
+         <PageHeader title="Galeria de Exemplos de Gráficos" description="Carregando demonstrações..." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           {[...Array(6)].map((_, i) => ( <Card key={`sk-gallery-${i}`}><CardHeader><Skeleton className="h-5 w-1/2" /><Skeleton className="h-3 w-3/4 mt-1" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -435,33 +490,6 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <LineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
-                <YAxis tickMargin={8} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line"/>} />
-                <Line dataKey="desktop" type="natural" stroke="var(--color-desktop)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
-                <Line dataKey="mobile" type="natural" stroke="var(--color-mobile)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
-                <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={15} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
-          <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
-                <Pie data={mockPieData} dataKey="value" nameKey="name" />
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Label (Mock)</CardTitle><CardDescription>Gráfico de Pizza com rótulos.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
             <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
@@ -469,21 +497,6 @@ export default function AnalysisPage() {
                 <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
                 <Pie data={mockPieData} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={{stroke: "hsl(var(--muted-foreground))"}} />
               </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Circle (Mock)</CardTitle><CardDescription>Grid circular com área preenchida.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <RadarChart data={mockRadarData}>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <PolarGrid gridType="circle" />
-                <PolarAngleAxis dataKey="subject" />
-                <PolarRadiusAxis angle={30} domain={[0, 150]} />
-                <Radar name="Série A" dataKey="A" stroke="var(--color-serieA)" fill="var(--color-serieA)" fillOpacity={0.6} />
-                <ChartLegend content={<ChartLegendContent />} />
-              </RadarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -533,7 +546,7 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-3">
           <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Multiple (Mock)</CardTitle><CardDescription>Múltiplas barras radiais.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
              <ChartContainer config={genericChartConfig} className="w-full max-w-[300px] aspect-square">
@@ -549,39 +562,6 @@ export default function AnalysisPage() {
                 <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
                 <ChartLegend content={<ChartLegendContent nameKey="name" verticalAlign="bottom"/>} />
               </RadialBarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Interactive (Mock)</CardTitle><CardDescription>Com brush e tooltip customizado.</CardDescription></CardHeader>
-          <CardContent className="h-80">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <BarChart accessibilityLayer data={mockBarData}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
-                <YAxis tickMargin={8}/>
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      indicator="dashed"
-                      nameKey="name"
-                      hideLabel
-                      formatter={(value, name, item) => (
-                        <div className="flex flex-col gap-0.5">
-                           <span className="font-medium capitalize" style={{color: item.color}}>{name}</span>
-                           <span className="text-muted-foreground text-xs">Mês: {item.payload.month}</span>
-                           <span className="text-foreground font-bold">Valor: {value}</span>
-                        </div>
-                      )}
-                    />
-                  }
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-                <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
-                <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={20} />
-              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
