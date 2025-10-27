@@ -25,9 +25,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { APP_NAME } from "@/lib/constants";
-import { useSession } from "next-auth/react";
-import { getTransactions } from "@/services/transaction.service";
-import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
@@ -64,7 +61,6 @@ import {
   RadialBar,
   Brush
 } from "recharts";
-import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
   name: string;
@@ -212,48 +208,16 @@ const genericChartConfig = {
 
 
 export default function AnalysisPage() {
-  const { data: session, status } = useSession();
-  const user = session?.user;
-  const authLoading = status === "loading";
-
-  // A busca de dados reais foi desativada temporariamente para debug
-  // const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
-  // const [isFetchingTransactions, setIsFetchingTransactions] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
+    // Simulate loading
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
   }, []);
 
-  // --- LÓGICA DE BUSCA DE DADOS COMENTADA ---
-  // useEffect(() => {
-  //   if (!user?.id || authLoading) {
-  //     setIsFetchingTransactions(authLoading);
-  //     if (!authLoading && !user?.id) setAllTransactions([]);
-  //     return;
-  //   }
-  //   const fetchAllTransactions = async () => {
-  //     setIsFetchingTransactions(true);
-  //     try {
-  //       const { data, error } = await getTransactions(user.id);
-  //       if (error) {
-  //         toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
-  //         setAllTransactions([]);
-  //       } else {
-  //         setAllTransactions(Array.isArray(data) ? data : []);
-  //       }
-  //     } catch (err) {
-  //       toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
-  //       setAllTransactions([]);
-  //     } finally {
-  //       setIsFetchingTransactions(false);
-  //     }
-  //   };
-  //   fetchAllTransactions();
-  // }, [user?.id, authLoading]);
-
-
-  // --- DADOS DOS GRÁFICOS AGORA USAM MOCKS ---
   const spendingByCategory = mockSpendingByCategory;
   const incomeBySource = mockIncomeBySource;
   const monthlyEvolution = mockMonthlyEvolution;
@@ -266,7 +230,7 @@ export default function AnalysisPage() {
     Despesas: { label: "Despesas", color: "hsl(var(--chart-2))" },
   }), []);
 
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <PageHeader title="Análise Financeira" description="Carregando seus insights financeiros..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
