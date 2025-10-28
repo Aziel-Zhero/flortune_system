@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow, AlertTriangle, DollarSign, Puzzle } from "lucide-react";
+import { AreaChart, BarChart, ListTodo, MoveRight, Workflow, AlertTriangle, DollarSign, Puzzle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
@@ -27,23 +27,22 @@ interface Column {
 
 // --- MOCK DATA ---
 const mockCumulativeFlowData = [
-    // Semana, Pronto (base), Revisao (Pronto + Revisao), Implementacao (Pronto + Revisao + Impl), Especificacao (Total)
-    { week: "1", Pronto: 5, Revisão: 12, Implementação: 25, Especificação: 35 },
-    { week: "2", Pronto: 10, Revisão: 20, Implementação: 35, Especificação: 42 },
-    { week: "3", Pronto: 15, Revisão: 28, Implementação: 45, Especificação: 55 },
-    { week: "4", Pronto: 22, Revisão: 35, Implementação: 52, Especificação: 60 },
-    { week: "5", Pronto: 28, Revisão: 42, Implementação: 60, Especificação: 68 },
-    { week: "6", Pronto: 35, Revisão: 50, Implementação: 68, Especificação: 75 },
-    { week: "7", Pronto: 45, Revisão: 60, Implementação: 75, Especificação: 85 },
-    { week: "8", Pronto: 55, Revisão: 70, Implementação: 82, Especificação: 95 },
-    { week: "9", Pronto: 68, Revisão: 80, Implementação: 90, Especificação: 105 },
-    { week: "10", Pronto: 85, Revisão: 95, Implementação: 105, Especificação: 120 },
+    { week: "1", Especificação: 35, Implementação: 25, Revisão: 12, Pronto: 5 },
+    { week: "2", Especificação: 42, Implementação: 35, Revisão: 20, Pronto: 10 },
+    { week: "3", Especificação: 55, Implementação: 45, Revisão: 28, Pronto: 15 },
+    { week: "4", Especificação: 60, Implementação: 52, Revisão: 35, Pronto: 22 },
+    { week: "5", Especificação: 68, Implementação: 60, Revisão: 42, Pronto: 28 },
+    { week: "6", Especificação: 75, Implementação: 68, Revisão: 50, Pronto: 35 },
+    { week: "7", Especificação: 85, Implementação: 75, Revisão: 60, Pronto: 45 },
+    { week: "8", Especificação: 95, Implementação: 82, Revisão: 70, Pronto: 55 },
+    { week: "9", Especificação: 105, Implementação: 90, Revisão: 80, Pronto: 68 },
+    { week: "10", Especificação: 120, Implementação: 105, Revisão: 95, Pronto: 85 },
 ];
 const cfdChartConfig = {
-    Pronto: { label: "Pronto", color: "hsl(var(--chart-4))" },
-    Revisão: { label: "Revisão", color: "hsl(var(--chart-5))" },
-    Implementação: { label: "Implementação", color: "hsl(var(--chart-2))" },
-    Especificação: { label: "Especificação", color: "hsl(var(--chart-1))" },
+    Pronto: { label: "Pronto", color: "hsl(var(--chart-2))" }, // Verde
+    Revisão: { label: "Revisão", color: "hsl(var(--chart-3))" }, // Amarelo
+    Implementação: { label: "Implementação", color: "hsl(var(--chart-1))" }, // Azul
+    Especificação: { label: "Especificação", color: "hsl(var(--chart-5))" }, // Roxo
 } satisfies ChartConfig;
 
 
@@ -229,8 +228,8 @@ export default function KanbanAnalyticsPage() {
                     <PieChart>
                       <RechartsTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
                       <Pie data={analyticsData.distribution} dataKey="points" nameKey="name" innerRadius={60} strokeWidth={5}>
-                         {analyticsData.distribution.map((entry) => (
-                          <Sector key={`cell-${entry.name}`} fill={`var(--color-${entry.name})`} />
+                         {analyticsData.distribution.map((entry, index) => (
+                          <Sector key={`cell-${entry.name}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
                         ))}
                       </Pie>
                     </PieChart>
@@ -258,15 +257,15 @@ export default function KanbanAnalyticsPage() {
                       <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
                       <ChartLegend content={<ChartLegendContent />} />
                       <defs>
-                        <linearGradient id="fillEspecificacao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Especificação)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Especificação)" stopOpacity={0.1}/></linearGradient>
-                        <linearGradient id="fillImplementacao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Implementação)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Implementação)" stopOpacity={0.1}/></linearGradient>
-                        <linearGradient id="fillRevisao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Revisão)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Revisão)" stopOpacity={0.1}/></linearGradient>
-                         <linearGradient id="fillPronto" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Pronto)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Pronto)" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillEspecificacao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-5))" stopOpacity={0.8}/><stop offset="95%" stopColor="hsl(var(--chart-5))" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillImplementacao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8}/><stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillRevisao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.8}/><stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillPronto" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8}/><stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1}/></linearGradient>
                       </defs>
-                      <AreaRecharts dataKey="Especificação" type="natural" fill="url(#fillEspecificacao)" stroke="var(--color-Especificação)" stackId="a" />
-                      <AreaRecharts dataKey="Implementação" type="natural" fill="url(#fillImplementacao)" stroke="var(--color-Implementação)" stackId="a" />
-                      <AreaRecharts dataKey="Revisão" type="natural" fill="url(#fillRevisao)" stroke="var(--color-Revisão)" stackId="a" />
-                      <AreaRecharts dataKey="Pronto" type="natural" fill="url(#fillPronto)" stroke="var(--color-Pronto)" stackId="a" />
+                      <AreaRecharts dataKey="Especificação" type="natural" fill="url(#fillEspecificacao)" stroke="hsl(var(--chart-5))" stackId="a" />
+                      <AreaRecharts dataKey="Implementação" type="natural" fill="url(#fillImplementacao)" stroke="hsl(var(--chart-1))" stackId="a" />
+                      <AreaRecharts dataKey="Revisão" type="natural" fill="url(#fillRevisao)" stroke="hsl(var(--chart-3))" stackId="a" />
+                      <AreaRecharts dataKey="Pronto" type="natural" fill="url(#fillPronto)" stroke="hsl(var(--chart-2))" stackId="a" />
                   </AreaChartRecharts>
               </ChartContainer>
             </CardContent>
