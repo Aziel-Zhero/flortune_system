@@ -1,4 +1,3 @@
-
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
@@ -149,8 +148,13 @@ const KanbanCard: React.FC<{ task: Task; tags: Tag[] }> = ({ task, tags }) => {
 const SortableKanbanCard: React.FC<{ task: Task, tags: Tag[] }> = ({ task, tags }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, data: { type: 'Task', task }});
     const style = { transform: CSS.Transform.toString(transform), transition };
+    
+    if (isDragging) {
+        return <div ref={setNodeRef} style={style} className="bg-card rounded-md shadow-sm border p-3 mb-2 opacity-50 h-[100px]"></div>;
+    }
+
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={cn(isDragging && "opacity-50")}>
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
             <KanbanCard task={task} tags={tags} />
         </div>
     );
@@ -194,6 +198,11 @@ export default function DevKanbanPage() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [tags, setTags] = useState<Tag[]>(initialTags);
   const [activeElement, setActiveElement] = useState<Task | Column | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // --- Modal States ---
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -222,10 +231,13 @@ export default function DevKanbanPage() {
     const isOverAColumn = over.data.current?.type === "Column";
 
     if (isActiveATask && isOverAColumn) {
-      setTasks((tasks) => {
-        const activeIndex = tasks.findIndex((t) => t.id === active.id);
-        tasks[activeIndex].columnId = over.id as string;
-        return arrayMove(tasks, activeIndex, activeIndex);
+      setTasks((currentTasks) => {
+        const activeIndex = currentTasks.findIndex((t) => t.id === active.id);
+        if (currentTasks[activeIndex].columnId !== over.id) {
+            currentTasks[activeIndex].columnId = over.id as string;
+            return arrayMove(currentTasks, activeIndex, activeIndex);
+        }
+        return currentTasks;
       });
     }
   }
@@ -309,21 +321,23 @@ export default function DevKanbanPage() {
           description="Visualize e gerencie o fluxo de trabalho. Arraste e solte tarefas e colunas." 
           icon={<KanbanSquare />}
           actions={<>
-            <Button variant="outline" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Tarefa</Button>
-            <Button variant="outline" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="mr-2 h-4 w-4"/>Nova Coluna</Button>
-            <Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>
+            <DialogTrigger asChild><Button variant="outline" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Tarefa</Button></DialogTrigger>
+            <DialogTrigger asChild><Button variant="outline" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="mr-2 h-4 w-4"/>Nova Coluna</Button></DialogTrigger>
+            <DialogTrigger asChild><Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button></DialogTrigger>
           </>}
         />
-        <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} collisionDetection={closestCorners}>
-          <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
-              <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
-                {columns.map(col => (
-                  <KanbanColumn key={col.id} column={col} tags={tags} tasks={tasks.filter(t => t.columnId === col.id)} onEdit={() => handleOpenColumnModal(col)} onDelete={() => handleRemoveColumn(col.id)} />
-                ))}
-              </SortableContext>
-          </div>
-          <DragOverlay>{activeElement ? (activeElement.hasOwnProperty('columnId') ? <KanbanCard task={activeElement as Task} tags={tags} /> : <KanbanColumn column={activeElement as Column} tasks={tasks.filter(t => t.columnId === activeElement.id)} tags={tags} onEdit={() => {}} onDelete={() => {}} />) : null}</DragOverlay>
-        </DndContext>
+        {isClient && (
+          <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} collisionDetection={closestCorners}>
+            <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
+                <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+                  {columns.map(col => (
+                    <KanbanColumn key={col.id} column={col} tags={tags} tasks={tasks.filter(t => t.columnId === col.id)} onEdit={() => handleOpenColumnModal(col)} onDelete={() => handleRemoveColumn(col.id)} />
+                  ))}
+                </SortableContext>
+            </div>
+            <DragOverlay>{activeElement ? (activeElement.hasOwnProperty('columnId') ? <KanbanCard task={activeElement as Task} tags={tags} /> : <KanbanColumn column={activeElement as Column} tasks={tasks.filter(t => t.columnId === activeElement.id)} tags={tags} onEdit={() => {}} onDelete={() => {}} />) : null}</DragOverlay>
+          </DndContext>
+        )}
       </div>
 
       <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
@@ -336,7 +350,7 @@ export default function DevKanbanPage() {
                   <div><Label htmlFor="tagId">Tag/Tipo</Label>
                     <div className="flex gap-2">
                       <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
-                      <Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button>
+                      <DialogTrigger asChild><Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button></DialogTrigger>
                     </div>
                   </div>
                 </div>
