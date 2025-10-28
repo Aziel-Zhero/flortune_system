@@ -217,20 +217,16 @@ export default function DevKanbanPage() {
   function onDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    
-    const isActiveTask = active.data.current?.type === 'Task';
-    if (!isActiveTask) return;
 
-    const isOverColumn = over.data.current?.type === 'Column';
-    if(isOverColumn) {
-        setTasks(currentTasks => {
-            const activeIndex = currentTasks.findIndex(t => t.id === active.id);
-            if (currentTasks[activeIndex].columnId !== over.id) {
-                 currentTasks[activeIndex].columnId = over.id as string;
-                 return arrayMove(currentTasks, activeIndex, activeIndex);
-            }
-            return currentTasks;
-        })
+    const isActiveATask = active.data.current?.type === "Task";
+    const isOverAColumn = over.data.current?.type === "Column";
+
+    if (isActiveATask && isOverAColumn) {
+      setTasks((tasks) => {
+        const activeIndex = tasks.findIndex((t) => t.id === active.id);
+        tasks[activeIndex].columnId = over.id as string;
+        return arrayMove(tasks, activeIndex, activeIndex);
+      });
     }
   }
 
@@ -239,7 +235,8 @@ export default function DevKanbanPage() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    if (active.data.current?.type === 'Column') {
+    const isActiveAColumn = active.data.current?.type === "Column";
+    if (isActiveAColumn) {
       setColumns(currentCols => {
         const oldIndex = currentCols.findIndex(c => c.id === active.id);
         const newIndex = currentCols.findIndex(c => c.id === over.id);
@@ -248,7 +245,8 @@ export default function DevKanbanPage() {
       return;
     }
     
-    if (active.data.current?.type === 'Task') {
+    const isActiveATask = active.data.current?.type === "Task";
+    if (isActiveATask) {
         setTasks(currentTasks => {
             const activeIndex = currentTasks.findIndex(t => t.id === active.id);
             const overIndex = currentTasks.findIndex(t => t.id === over.id);
@@ -310,7 +308,11 @@ export default function DevKanbanPage() {
           title="Quadro Kanban" 
           description="Visualize e gerencie o fluxo de trabalho. Arraste e solte tarefas e colunas." 
           icon={<KanbanSquare />}
-          actions={<Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>}
+          actions={<>
+            <Button variant="outline" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Tarefa</Button>
+            <Button variant="outline" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="mr-2 h-4 w-4"/>Nova Coluna</Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>
+          </>}
         />
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} collisionDetection={closestCorners}>
           <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
@@ -319,10 +321,6 @@ export default function DevKanbanPage() {
                   <KanbanColumn key={col.id} column={col} tags={tags} tasks={tasks.filter(t => t.columnId === col.id)} onEdit={() => handleOpenColumnModal(col)} onDelete={() => handleRemoveColumn(col.id)} />
                 ))}
               </SortableContext>
-            <div className="w-72 flex-shrink-0 space-y-2">
-               <Button variant="outline" className="w-full h-12" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Tarefa</Button>
-               <Button variant="outline" className="w-full h-12" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Nova Coluna</Button>
-            </div>
           </div>
           <DragOverlay>{activeElement ? (activeElement.hasOwnProperty('columnId') ? <KanbanCard task={activeElement as Task} tags={tags} /> : <KanbanColumn column={activeElement as Column} tasks={tasks.filter(t => t.columnId === activeElement.id)} tags={tags} onEdit={() => {}} onDelete={() => {}} />) : null}</DragOverlay>
         </DndContext>
