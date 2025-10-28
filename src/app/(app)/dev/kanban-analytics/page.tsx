@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow, AlertTriangle, DollarSign, Puzzle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import { PrivateValue } from "@/components/shared/private-value";
 
@@ -137,37 +137,49 @@ export default function KanbanAnalyticsPage() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Distribuição por Coluna</CardTitle>
-              <CardDescription>Visão geral de onde o trabalho, valor e esforço se concentram no seu fluxo.</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Distribuição de Tarefas</CardTitle>
+              <CardDescription>Nº de tarefas em cada coluna.</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <div className="xl:col-span-1">
-                    <h4 className="text-center font-semibold mb-2">Nº de Tarefas</h4>
-                    <ChartContainer config={distributionChartConfig} className="w-full h-72">
-                        <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="tasks" fill="var(--color-tasks)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
-                    </ChartContainer>
-                </div>
-                 <div className="xl:col-span-1">
-                    <h4 className="text-center font-semibold mb-2">Valor Agregado (R$)</h4>
-                    <ChartContainer config={valueChartConfig} className="w-full h-72">
-                        <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value as number)} cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="value" fill="var(--color-value)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
-                    </ChartContainer>
-                </div>
-                 <div className="xl:col-span-1">
-                    <h4 className="text-center font-semibold mb-2">Story Points</h4>
-                    <ChartContainer config={pointsChartConfig} className="w-full h-72">
-                        <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="points" fill="var(--color-points)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
-                    </ChartContainer>
-                </div>
+            <CardContent>
+              <ChartContainer config={distributionChartConfig} className="w-full h-72">
+                  <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="tasks" fill="var(--color-tasks)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+              </ChartContainer>
             </CardContent>
           </Card>
         </motion.div>
-        
-        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-1">
+        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center gap-2"><DollarSign /> Distribuição de Valor</CardTitle>
+              <CardDescription>Valor agregado (R$) em cada coluna.</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <ChartContainer config={valueChartConfig} className="w-full h-72">
+                  <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value as number)} cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="value" fill="var(--color-value)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center gap-2"><Puzzle /> Distribuição de Esforço</CardTitle>
+              <CardDescription>Story Points em cada coluna.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ChartContainer config={pointsChartConfig} className="w-full h-72">
+                    <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="points" fill="var(--color-points)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+                </ChartContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+       <motion.div custom={7} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><Workflow /> Diagrama de Fluxo Cumulativo (CFD)</CardTitle>
@@ -181,7 +193,6 @@ export default function KanbanAnalyticsPage() {
           </Card>
         </motion.div>
 
-      </div>
     </div>
   );
 }
