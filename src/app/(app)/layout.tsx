@@ -1,4 +1,3 @@
-// src/app/(app)/layout.tsx
 
 "use client";
 
@@ -6,14 +5,12 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 
-// A verificação de sessão foi removida para permitir acesso sem autenticação.
-// O layout agora renderiza diretamente os componentes filhos.
-
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen flex-col bg-background overflow-hidden">

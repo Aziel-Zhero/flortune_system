@@ -454,6 +454,33 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         <Card>
+          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
+          <CardContent className="h-72">
+            <ChartContainer config={genericChartConfig} className="w-full h-full">
+              <LineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
+                <YAxis tickMargin={8} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line"/>} />
+                <Line dataKey="desktop" type="natural" stroke="var(--color-desktop)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
+                <Line dataKey="mobile" type="natural" stroke="var(--color-mobile)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
+                <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={15} />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
+          <CardContent className="h-72 flex items-center justify-center">
+            <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
+              <PieChart>
+                <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
+                <Pie data={mockPieData} dataKey="value" nameKey="name" />
+              </PieChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Label (Mock)</CardTitle><CardDescription>Gráfico de Pizza com rótulos.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
             <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
@@ -461,6 +488,21 @@ export default function AnalysisPage() {
                 <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
                 <Pie data={mockPieData} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={{stroke: "hsl(var(--muted-foreground))"}} />
               </PieChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Circle (Mock)</CardTitle><CardDescription>Grid circular com área preenchida.</CardDescription></CardHeader>
+          <CardContent className="h-72">
+            <ChartContainer config={genericChartConfig} className="w-full h-full">
+              <RadarChart data={mockRadarData}>
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <PolarGrid gridType="circle" />
+                <PolarAngleAxis dataKey="subject" />
+                <PolarRadiusAxis angle={30} domain={[0, 150]} />
+                <Radar name="Série A" dataKey="A" stroke="var(--color-serieA)" fill="var(--color-serieA)" fillOpacity={0.6} />
+                <ChartLegend content={<ChartLegendContent />} />
+              </RadarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -510,7 +552,7 @@ export default function AnalysisPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-3">
+        <Card className="lg:col-span-1">
           <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Multiple (Mock)</CardTitle><CardDescription>Múltiplas barras radiais.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
              <ChartContainer config={genericChartConfig} className="w-full max-w-[300px] aspect-square">
@@ -526,6 +568,39 @@ export default function AnalysisPage() {
                 <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
                 <ChartLegend content={<ChartLegendContent nameKey="name" verticalAlign="bottom"/>} />
               </RadialBarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Interactive (Mock)</CardTitle><CardDescription>Com brush e tooltip customizado.</CardDescription></CardHeader>
+          <CardContent className="h-80">
+            <ChartContainer config={genericChartConfig} className="w-full h-full">
+              <BarChart accessibilityLayer data={mockBarData}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
+                <YAxis tickMargin={8}/>
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      indicator="dashed"
+                      nameKey="name"
+                      hideLabel
+                      formatter={(value, name, item) => (
+                        <div className="flex flex-col gap-0.5">
+                           <span className="font-medium capitalize" style={{color: item.color}}>{name}</span>
+                           <span className="text-muted-foreground text-xs">Mês: {item.payload.month}</span>
+                           <span className="text-foreground font-bold">Valor: {value}</span>
+                        </div>
+                      )}
+                    />
+                  }
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
+                <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
+                <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={20} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>

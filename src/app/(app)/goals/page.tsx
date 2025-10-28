@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { getFinancialGoals, deleteFinancialGoal } from "@/services/goal.service";
 import type { FinancialGoal } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import * as LucideIcons from "lucide-react";
@@ -41,30 +42,29 @@ const getLucideIcon = (iconName?: string | null): React.ElementType => {
   return IconComponent || Trophy;
 };
 
-// MOCK DATA
-const mockGoals: FinancialGoal[] = [
-    { id: 'goal-1', user_id: 'mock', name: 'Viagem para o Japão', target_amount: 25000, current_amount: 17500, deadline_date: '2025-10-01', status: 'in_progress', icon: 'Plane', created_at: '', updated_at: '' },
-    { id: 'goal-2', user_id: 'mock', name: 'Reserva de Emergência', target_amount: 15000, current_amount: 15000, deadline_date: '2024-12-31', status: 'achieved', icon: 'ShieldCheck', created_at: '', updated_at: '' },
-    { id: 'goal-3', user_id: 'mock', name: 'Novo Computador', target_amount: 8000, current_amount: 2500, deadline_date: '2024-09-30', status: 'in_progress', icon: 'Laptop', created_at: '', updated_at: '' },
-];
-
-
 export default function GoalsPage() {
   const [currentGoals, setCurrentGoals] = useState<FinancialGoal[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; name: string } | null }>({ isOpen: false, item: null });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
   const fetchGoalsData = useCallback(async () => {
+    const mockUserId = "mock-user-id";
     setIsLoadingData(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate fetch
-    setCurrentGoals(mockGoals);
-    setIsLoadingData(false);
+    try {
+      const { data, error } = await getFinancialGoals(mockUserId);
+      if (error) {
+        toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
+        setCurrentGoals([]);
+      } else {
+        setCurrentGoals(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      toast({ title: "Erro inesperado", description: "Não foi possível carregar as metas.", variant: "destructive" });
+      setCurrentGoals([]);
+    } finally {
+      setIsLoadingData(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -77,12 +77,25 @@ export default function GoalsPage() {
   };
 
   const handleConfirmDelete = async () => {
+    const mockUserId = "mock-user-id";
     if (deleteDialog.item) {
+      const originalGoals = [...currentGoals];
       setCurrentGoals(prevGoals => prevGoals.filter(g => g.id !== deleteDialog.item!.id));
-      toast({
-        title: "Meta Deletada (Simulação)",
-        description: `A meta "${deleteDialog.item.name}" foi deletada com sucesso.`,
-      });
+      
+      const { error } = await deleteFinancialGoal(deleteDialog.item.id, mockUserId);
+      if (error) {
+        toast({
+          title: "Erro ao Deletar",
+          description: error.message || `Não foi possível deletar a meta "${deleteDialog.item.name}".`,
+          variant: "destructive",
+        });
+        setCurrentGoals(originalGoals);
+      } else {
+        toast({
+          title: "Meta Deletada",
+          description: `A meta "${deleteDialog.item.name}" foi deletada com sucesso.`,
+        });
+      }
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
@@ -220,7 +233,7 @@ export default function GoalsPage() {
                                 </CardTitle>
                                 {goal.deadline_date && (
                                   <CardDescription className="flex items-center text-xs text-muted-foreground">
-                                      <CalendarClock className="mr-1 h-3 w-3"/> Prazo: {formatDate(goal.deadline_date)}
+                                      <CalendarClock className="mr-1 h-3 w-3"/> Prazo: {new Date(goal.deadline_date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
                                   </CardDescription>
                                 )}
                             </div>

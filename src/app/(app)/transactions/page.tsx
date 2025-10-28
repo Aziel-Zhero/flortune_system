@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
+import { getTransactions, deleteTransaction } from "@/services/transaction.service";
 import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionForm } from "./transaction-form"; 
@@ -57,15 +58,6 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
   return categoryTypeColors.default;
 };
 
-// --- MOCK DATA ---
-const sampleTransactions: Transaction[] = [
-    { id: '1', user_id: 'mock', category_id: 'cat-income', description: 'Salário de Julho', amount: 7500, date: '2024-07-01', type: 'income', is_recurring: true, created_at: '', updated_at: '', notes: '', category: { id: 'cat-income', name: 'Salário', type: 'income', is_default: true, created_at: '', updated_at: '' } },
-    { id: '2', user_id: 'mock', category_id: 'cat-expense', description: 'Aluguel & Condomínio', amount: 1800, date: '2024-07-05', type: 'expense', is_recurring: true, created_at: '', updated_at: '', notes: '', category: { id: 'cat-expense', name: 'Moradia', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-    { id: '3', user_id: 'mock', category_id: 'cat-expense', description: 'Compras no Supermercado Pão de Açúcar', amount: 850.50, date: '2024-07-10', type: 'expense', is_recurring: false, created_at: '', updated_at: '', notes: '', category: { id: 'cat-expense', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-];
-// --- END MOCK DATA ---
-
-
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,11 +65,23 @@ export default function TransactionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchPageData = useCallback(async () => {
+    const mockUserId = "mock-user-id";
     setIsLoading(true);
-    // Simulate fetching data
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setTransactions(sampleTransactions);
-    setIsLoading(false);
+    try {
+      const transactionsRes = await getTransactions(mockUserId);
+
+      if (transactionsRes.error) {
+        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
+        setTransactions([]);
+      } else {
+        setTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
+      }
+    } catch (error) {
+      toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados da página.", variant: "destructive" });
+      setTransactions([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -90,12 +94,25 @@ export default function TransactionsPage() {
   };
 
   const handleConfirmDelete = async () => {
+    const mockUserId = "mock-user-id";
     if (deleteDialog.item) { 
+      const originalTransactions = [...transactions];
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
-      toast({
-        title: "Transação Deletada (Simulação)",
-        description: `A transação "${deleteDialog.item.description}" foi deletada.`,
-      });
+
+      const { error } = await deleteTransaction(deleteDialog.item.id, mockUserId);
+      if (error) {
+        toast({
+          title: "Erro ao Deletar",
+          description: error.message || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
+          variant: "destructive",
+        });
+        setTransactions(originalTransactions); 
+      } else {
+        toast({
+          title: "Transação Deletada",
+          description: `A transação "${deleteDialog.item.description}" foi deletada com sucesso.`,
+        });
+      }
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
@@ -131,11 +148,6 @@ export default function TransactionsPage() {
       },
     }),
     exit: { opacity: 0, x: 20 }
-  };
-
-  const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-');
-    return `${day}/${month}/${year}`;
   };
 
   if (isLoading) {
@@ -251,7 +263,7 @@ export default function TransactionsPage() {
                       className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                     >
                       <TableCell className="text-muted-foreground text-xs md:text-sm">
-                        {formatDate(transaction.date)}
+                        {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">

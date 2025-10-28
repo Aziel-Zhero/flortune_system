@@ -1,7 +1,7 @@
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,12 +13,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Trophy, Briefcase, Car, Plane, Home, ShoppingBag, Gift, Heart, Save, Loader2, GraduationCap, Gem, Laptop } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Trophy, Briefcase, Car, Plane, Home, ShoppingBag, Gift, Heart, Save, AlertTriangle, Loader2 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { NO_ICON_VALUE } from "@/lib/constants";
 
 const goalFormSchema = z.object({
   name: z.string().min(3, "O nome da meta deve ter pelo menos 3 caracteres."),
@@ -34,18 +38,24 @@ const goalFormSchema = z.object({
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
 const availableIcons = [
+  { name: "Nenhum", value: NO_ICON_VALUE, icon: Trophy },
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
-  { name: "Educação", value: "GraduationCap", icon: GraduationCap },
-  { name: "Casamento", value: "Gem", icon: Gem },
-  { name: "Eletrônicos", value: "Laptop", icon: Laptop },
+  { name: "Educação", value: "BookOpen", icon: LucideIcons.BookOpen },
+  { name: "Eletrônicos", value: "Laptop", icon: LucideIcons.Laptop },
   { name: "Compras", value: "ShoppingBag", icon: ShoppingBag },
   { name: "Presente", value: "Gift", icon: Gift },
   { name: "Saúde", value: "Heart", icon: Heart },
   { name: "Negócios", value: "Briefcase", icon: Briefcase },
   { name: "Conquista", value: "Trophy", icon: Trophy },
 ];
+
+const getLucideIcon = (iconName?: string | null): React.ElementType => {
+  if (!iconName || iconName === NO_ICON_VALUE) return Trophy;
+  const IconComponent = (LucideIcons as any)[iconName];
+  return IconComponent || Trophy;
+};
 
 interface FinancialGoalFormProps {
   onGoalCreated: () => void;
@@ -56,29 +66,50 @@ interface FinancialGoalFormProps {
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<GoalFormData>({
     resolver: zodResolver(goalFormSchema),
-    defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: undefined, notes: "" },
+    defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" },
   });
 
-  const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
-    setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    console.log("Mock Goal Data:", data);
+  useEffect(() => {
+    // Simulate loading session data
+    setTimeout(() => setIsLoading(false), 300);
+  }, []);
 
-    toast({ title: "Meta Criada (Simulação)!", description: `Sua meta "${data.name}" foi criada com sucesso.`, action: <CheckCircle className="text-green-500" />, });
-    reset({ name: "", target_amount: 0, deadline_date: null, icon: undefined, notes: "" }); 
-    onGoalCreated(); 
-    if (!isModal) router.push("/goals");
-    setIsSubmitting(false);
+  const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
+    const mockUserId = "mock-user-id";
+    setIsSubmitting(true);
+    const newGoalData: NewFinancialGoalData = {
+      name: data.name, 
+      target_amount: data.target_amount, 
+      deadline_date: data.deadline_date ? format(data.deadline_date, "yyyy-MM-dd") : null, 
+      icon: data.icon === NO_ICON_VALUE ? null : data.icon,
+      notes: data.notes,
+    };
+    try {
+      const result = await addFinancialGoal(mockUserId, newGoalData);
+      if (result.error) throw result.error;
+      toast({ title: "Meta Criada!", description: `Sua meta "${data.name}" foi criada com sucesso.`, action: <CheckCircle className="text-green-500" />, });
+      reset({ name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" }); 
+      onGoalCreated(); 
+      if (!isModal) router.push("/goals");
+    } catch (error: any) {
+      toast({ title: "Erro ao Criar Meta", description: error.message || "Não foi possível salvar a nova meta.", variant: "destructive", });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) { 
+    return (
+      <div className="space-y-4 py-4 flex flex-col items-center justify-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando formulário...</p>
+      </div>
+    );
+  }
   
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
@@ -105,7 +136,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
               <PopoverTrigger asChild>
                 <Button id="goal-form-deadline_date-trigger" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : field.value ? format(field.value, "yyyy-MM-dd") : <span>Escolha uma data</span>}
+                  {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent>
@@ -115,17 +146,21 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         </div>
         <div className="space-y-2">
           <Label htmlFor="goal-form-icon">Ícone (Opcional)</Label>
-          <Controller
-            name="icon"
-            control={control}
-            render={({ field }) => (
+          <Controller name="icon" control={control} render={({ field }) => {
+            const CurrentSelectedIconComponent = getLucideIcon(field.value); 
+            return (
               <Select
                 onValueChange={field.onChange}
-                value={field.value || ""} // Usar string vazia para resetar e mostrar placeholder
+                value={field.value ?? NO_ICON_VALUE}
                 disabled={isSubmitting}
               >
                 <SelectTrigger id="goal-form-icon">
-                  <SelectValue placeholder="Selecione um ícone" />
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                        <CurrentSelectedIconComponent className="h-4 w-4 text-muted-foreground" />
+                        <span>{availableIcons.find(opt => opt.value === (field.value ?? NO_ICON_VALUE))?.name || "Selecione um ícone"}</span>
+                    </div>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {availableIcons.map((iconOpt) => {
@@ -138,8 +173,8 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
                   })}
                 </SelectContent>
               </Select>
-            )}
-          />
+            );
+          }} />
           {errors.icon && <p className="text-sm text-destructive mt-1">{errors.icon.message}</p>}
         </div>
       </div>

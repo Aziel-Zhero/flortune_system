@@ -1,3 +1,4 @@
+
 // src/app/(app)/budgets/budget-form.tsx
 "use client";
 
@@ -19,7 +20,6 @@ import { toast } from "@/hooks/use-toast";
 import type { Category, Budget } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { getCategories, addCategory } from "@/services/category.service";
-import { useSession } from "next-auth/react";
 
 
 const budgetFormSchema = z.object({
@@ -50,10 +50,6 @@ interface BudgetFormProps {
 }
 
 export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
-  const { data: session, status } = useSession();
-  const user = session?.user;
-  const isAuthLoading = status === "loading";
-
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,24 +81,21 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   });
   
   const fetchCategories = useCallback(async () => {
-    if (!user?.id) return;
+    const mockUserId = "mock-user-id"; // Placeholder
     setIsLoadingCategories(true);
-    const { data, error } = await getCategories(user.id);
+    const { data, error } = await getCategories(mockUserId);
     if (error) {
       toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
     } else {
-      // Filtra apenas categorias de despesa, pois orçamentos são para gastos
       const expenseCategories = (data || []).filter(c => c.type === 'expense');
       setCategories(expenseCategories);
     }
     setIsLoadingCategories(false);
-  }, [user?.id]);
+  }, []);
   
   useEffect(() => {
-    if (status === 'authenticated' && user?.id) {
       fetchCategories();
-    }
-  }, [status, user?.id, fetchCategories]);
+  }, [fetchCategories]);
 
 
   const onBudgetSubmit: SubmitHandler<BudgetFormData> = async (data) => {
@@ -115,11 +108,8 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   };
 
   const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
-    if (!user?.id) {
-        toast({title: "Usuário não autenticado.", variant: "destructive"});
-        return;
-    }
-    const { data: newCategory, error } = await addCategory(user.id, { name: data.name, type: 'expense' });
+    const mockUserId = "mock-user-id";
+    const { data: newCategory, error } = await addCategory(mockUserId, { name: data.name, type: 'expense' });
 
     if (error) {
         toast({ title: "Erro ao criar categoria", description: error.message, variant: "destructive" });
@@ -151,7 +141,7 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
             </Select>
           )} />
           <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
-            <DialogTrigger asChild><Button type="button" variant="outline" size="icon" disabled={isAuthLoading}><PlusCircle className="h-4 w-4" /></Button></DialogTrigger>
+            <DialogTrigger asChild><Button type="button" variant="outline" size="icon"><PlusCircle className="h-4 w-4" /></Button></DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader><DialogTitle className="font-headline flex items-center"><Settings2 className="mr-2 h-5 w-5 text-primary"/>Nova Categoria de Despesa</DialogTitle><DialogDescription>Crie uma nova categoria para seus orçamentos e transações.</DialogDescription></DialogHeader>
               <form onSubmit={handleCategorySubmit(onCategorySubmit)} className="space-y-4 py-2">
@@ -171,7 +161,7 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
       {errors.root && <p className="text-sm text-destructive mt-1">{errors.root.message}</p>}
       <div className="flex justify-end gap-2 pt-4">
         {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
-        <Button type="submit" disabled={isSubmitting || isLoadingCategories || isAuthLoading}><Save className="mr-2 h-4 w-4"/>{isSubmitting ? "Salvando..." : (isEditing ? "Salvar Alterações" : "Criar Orçamento")}</Button>
+        <Button type="submit" disabled={isSubmitting || isLoadingCategories}><Save className="mr-2 h-4 w-4"/>{isSubmitting ? "Salvando..." : (isEditing ? "Salvar Alterações" : "Criar Orçamento")}</Button>
       </div>
     </form>
   );

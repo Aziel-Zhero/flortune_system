@@ -14,13 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat, Settings2, PlusCircle, Loader2 } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
+import { getCategories } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const transactionFormSchema = z.object({
@@ -35,13 +37,8 @@ const transactionFormSchema = z.object({
   notes: z.string().optional(),
   is_recurring: z.boolean().optional().default(false),
 });
+
 type TransactionFormData = z.infer<typeof transactionFormSchema>;
-
-const newCategorySchema = z.object({
-  name: z.string().min(2, "Nome da categoria deve ter no mínimo 2 caracteres.").max(50, "Nome da categoria muito longo."),
-});
-type NewCategoryFormData = z.infer<typeof newCategorySchema>;
-
 
 interface TransactionFormProps {
   onTransactionCreated: () => void;
@@ -49,25 +46,13 @@ interface TransactionFormProps {
   isModal?: boolean;
 }
 
-const mockCategories: Category[] = [
-    { id: 'cat-income-1', name: 'Salário', type: 'income', is_default: true, created_at: '', updated_at: '' },
-    { id: 'cat-income-2', name: 'Renda Extra', type: 'income', is_default: false, created_at: '', updated_at: '' },
-    { id: 'cat-expense-1', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: 'cat-expense-2', name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: 'cat-expense-3', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: 'cat-expense-4', name: 'Moradia', type: 'expense', is_default: false, created_at: '', updated_at: '' },
-];
-
-
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  const { control, handleSubmit, register, formState: { errors }, reset, watch, setValue } = useForm<TransactionFormData>({
+  const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionFormSchema),
     defaultValues: initialData || {
       type: "expense",
@@ -77,86 +62,219 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     },
   });
 
-  const { register: categoryRegister, handleSubmit: handleCategorySubmit, reset: resetCategoryForm, formState: { errors: categoryErrors } } = useForm<NewCategoryFormData>({
-    resolver: zodResolver(newCategorySchema),
-  });
-
   const transactionType = watch("type");
+
+  const fetchCategoriesData = useCallback(async () => {
+    const mockUserId = "mock-user-id";
+    setIsLoadingCategories(true);
+    try {
+      const { data, error } = await getCategories(mockUserId);
+      if (error) {
+        toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
+        setCategories([]);
+      } else {
+        setCategories(data || []);
+      }
+    } catch (err) {
+      toast({ title: "Erro inesperado", description: "Não foi possível carregar as categorias.", variant: "destructive" });
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategoriesData();
+  }, [fetchCategoriesData]);
   
-  const onTransactionSubmit: SubmitHandler<TransactionFormData> = async (data) => {
+  const onSubmit: SubmitHandler<TransactionFormData> = async (data) => {
+    const mockUserId = "mock-user-id";
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    console.log("Mock Transaction Data:", data);
 
-    toast({
-      title: "Transação Adicionada (Simulação)!",
-      description: `A transação "${data.description}" foi adicionada.`,
-      action: <CheckCircle className="text-green-500" />,
-    });
-    reset();
-    onTransactionCreated();
-    if (!isModal) router.push("/transactions");
-    setIsSubmitting(false);
-  };
-
-  const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const newCategory: Category = {
-        id: `cat_${Date.now()}`,
-        name: data.name,
-        type: transactionType,
-        is_default: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+    const newTxData: NewTransactionData = {
+      description: data.description,
+      amount: data.amount,
+      date: format(data.date, "yyyy-MM-dd"),
+      type: data.type,
+      category_id: data.category_id,
+      notes: data.notes,
+      is_recurring: data.is_recurring ?? false,
     };
-    setCategories(prev => [...prev, newCategory]);
-    setValue('category_id', newCategory.id, { shouldValidate: true });
-    toast({ title: "Categoria Criada! (Simulação)", description: `Categoria "${data.name}" criada.` });
-    resetCategoryForm();
-    setIsCategoryModalOpen(false);
-  };
 
+    try {
+      const result = await addTransaction(mockUserId, newTxData);
+      if (result.error) {
+        throw result.error;
+      }
+      toast({
+        title: "Transação Adicionada!",
+        description: `A transação "${data.description}" foi adicionada com sucesso.`,
+        action: <CheckCircle className="text-green-500" />,
+      });
+      reset();
+      onTransactionCreated();
+      if (!isModal) router.push("/transactions");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao Adicionar Transação",
+        description: error.message || "Não foi possível salvar a nova transação.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredCategories = categories.filter(cat => cat.type === transactionType || cat.is_default);
 
   return (
-    <form onSubmit={handleSubmit(onTransactionSubmit)} className="space-y-6 py-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
         <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
-            <Input id="description" placeholder="Ex: Salário, Compras no Supermercado" {...register("description")} />
+            <Input
+            id="description"
+            placeholder="Ex: Salário, Compras no Supermercado"
+            {...register("description")}
+            />
             {errors.description && <p className="text-sm text-destructive mt-1">{errors.description.message}</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label htmlFor="amount">Valor (R$)</Label><div className="relative"><DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="amount" type="number" step="0.01" placeholder="Ex: 150,00" {...register("amount")} className="pl-10" /></div>{errors.amount && <p className="text-sm text-destructive mt-1">{errors.amount.message}</p>}</div>
-            <div className="space-y-2"><Label htmlFor="date">Data</Label><Controller name="date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.date && <p className="text-sm text-destructive mt-1">{errors.date.message}</p>}</div>
+            <div className="space-y-2">
+                <Label htmlFor="amount">Valor (R$)</Label>
+                <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 150,00"
+                    {...register("amount")}
+                    className="pl-10"
+                    />
+                </div>
+                {errors.amount && <p className="text-sm text-destructive mt-1">{errors.amount.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="date">Data</Label>
+                 <Controller
+                    name="date"
+                    control={control}
+                    render={({ field }) => (
+                        <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            locale={ptBR}
+                            />
+                        </PopoverContent>
+                        </Popover>
+                    )}
+                />
+                {errors.date && <p className="text-sm text-destructive mt-1">{errors.date.message}</p>}
+            </div>
         </div>
 
-        <div className="space-y-2"><Label>Tipo de Transação</Label><Controller name="type" control={control} render={({ field }) => (<RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4"><div className="flex items-center space-x-2"><RadioGroupItem value="income" id="income" /><Label htmlFor="income" className="font-normal">Receita</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="expense" id="expense" /><Label htmlFor="expense" className="font-normal">Despesa</Label></div></RadioGroup>)} />{errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}</div>
+        <div className="space-y-2">
+            <Label>Tipo de Transação</Label>
+            <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                    <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex space-x-4"
+                    >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="income" id="income" />
+                        <Label htmlFor="income" className="font-normal">Receita</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="expense" id="expense" />
+                        <Label htmlFor="expense" className="font-normal">Despesa</Label>
+                    </div>
+                    </RadioGroup>
+                )}
+            />
+            {errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}
+        </div>
 
-        <div className="space-y-2"><Label htmlFor="category_id">Categoria</Label>
-            <div className="flex items-center gap-2">
-                <Controller name="category_id" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}><SelectTrigger id="category_id" className="flex-grow"><SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria`} /></SelectTrigger><SelectContent>{filteredCategories.map((category) => (<SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>))}{filteredCategories.length === 0 && !isLoadingCategories && (<div className="p-4 text-sm text-muted-foreground">Nenhuma categoria encontrada.</div>)}</SelectContent></Select>)} />
-                 <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
-                    <DialogTrigger asChild><Button type="button" variant="outline" size="icon"><PlusCircle className="h-4 w-4" /></Button></DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader><DialogTitle className="font-headline flex items-center"><Settings2 className="mr-2 h-5 w-5 text-primary"/>Nova Categoria</DialogTitle><DialogDescription>Crie uma nova categoria de {transactionType === 'income' ? 'receita' : 'despesa'}.</DialogDescription></DialogHeader>
-                        <form onSubmit={handleCategorySubmit(onCategorySubmit)} className="space-y-4 py-2">
-                            <div><Label htmlFor="new_cat_name">Nome</Label><Input id="new_cat_name" {...categoryRegister("name")} autoFocus />{categoryErrors.name && <p className="text-sm text-destructive mt-1">{categoryErrors.name.message}</p>}</div>
-                            <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar Categoria</Button></DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-            </div>
-        {errors.category_id && <p className="text-sm text-destructive mt-1">{errors.category_id.message}</p>}</div>
+        <div className="space-y-2">
+            <Label htmlFor="category_id">Categoria</Label>
+            <Controller
+                name="category_id"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
+                    <SelectTrigger id="category_id">
+                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria de ${transactionType === 'income' ? 'receita' : 'despesa'}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                      {filteredCategories.length === 0 && !isLoadingCategories && (
+                        <div className="p-4 text-sm text-muted-foreground">Nenhuma categoria encontrada para este tipo.</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+            />
+            {errors.category_id && <p className="text-sm text-destructive mt-1">{errors.category_id.message}</p>}
+        </div>
 
-        <div className="flex items-center space-x-2"><Controller name="is_recurring" control={control} render={({ field }) => (<Checkbox id="is_recurring" checked={field.value} onCheckedChange={field.onChange} />)} /><Label htmlFor="is_recurring" className="font-normal text-sm text-muted-foreground flex items-center gap-1.5"><Repeat className="h-3 w-3" />Marcar como transação recorrente.</Label></div>
+        <div className="flex items-center space-x-2">
+            <Controller
+                name="is_recurring"
+                control={control}
+                render={({ field }) => (
+                    <Checkbox
+                        id="is_recurring"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                )}
+            />
+            <Label htmlFor="is_recurring" className="font-normal text-sm text-muted-foreground flex items-center gap-1.5">
+                <Repeat className="h-3 w-3" />
+                Marcar como transação recorrente.
+            </Label>
+        </div>
         
-        <div className="space-y-2"><Label htmlFor="notes">Notas (Opcional)</Label><Textarea id="notes" placeholder="Detalhes adicionais sobre a transação..." {...register("notes")} rows={3} /></div>
+        <div className="space-y-2">
+            <Label htmlFor="notes">Notas (Opcional)</Label>
+            <Textarea 
+                id="notes"
+                placeholder="Detalhes adicionais sobre a transação..."
+                {...register("notes")}
+                rows={3}
+            />
+        </div>
 
-        <DialogFooter className="pt-4">{isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}<Button type="submit" disabled={isSubmitting || isLoadingCategories}>{isSubmitting ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}{isSubmitting ? "Salvando..." : "Salvar Transação"}</Button></DialogFooter>
+        <DialogFooter className="pt-4">
+            {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
+            <Button type="submit" disabled={isSubmitting || isLoadingCategories}>
+                <Save className="mr-2 h-4 w-4" />
+                {isSubmitting ? "Salvando..." : "Salvar Transação"}
+            </Button>
+        </DialogFooter>
     </form>
   );
 }

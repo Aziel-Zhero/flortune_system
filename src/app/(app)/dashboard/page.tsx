@@ -1,18 +1,21 @@
-// src/app/(app)/dashboard/page.tsx
+
 
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
-import { useEffect, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getTransactions } from "@/services/transaction.service";
+import { getFinancialGoals } from "@/services/goal.service";
+import type { Transaction, FinancialGoal } from "@/types/database.types";
 import { motion } from "framer-motion";
 import {
   ChartContainer,
@@ -23,34 +26,29 @@ import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import type { QuoteData } from "@/services/quote.service";
 
-// --- MOCK DATA ---
-const summaryValues = [
-    { title: "Saldo (Exemplo)", value: 5420.75, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
-    { title: "Receitas Este Mês", value: 7500.00, icon: TrendingUp, trend: "+5.2% vs. mês passado", trendColor: "text-emerald-500", isLoading: false },
-    { title: "Despesas Este Mês", value: 2079.25, icon: CreditCard, trend: "-10.1% vs. mês passado", trendColor: "text-red-500", isLoading: false },
-    { title: "Balanço Recorrente", value: 1250.00, icon: Repeat, trend: "Saldo Positivo", trendColor: "text-emerald-500", isLoading: false },
-    { title: "Meta Principal", value: 65, icon: PiggyBank, unit: "%", trend: 'Meta: "Viagem para a Praia"', trendColor: "text-emerald-500", isLoading: false },
-];
+interface SummaryData {
+  title: string;
+  value: number | null;
+  icon: React.ElementType;
+  trend?: string | null;
+  trendColor?: string;
+  unit?: string;
+  isLoading: boolean;
+}
 
-const recentTransactions = [
-    { id: '1', description: 'Salário Mensal', date: '01/07/2024', category: { name: 'Salário' }, amount: 7500.00, type: 'income' },
-    { id: '2', description: 'Aluguel & Condomínio', date: '05/07/2024', category: { name: 'Moradia' }, amount: 1800.00, type: 'expense' },
-    { id: '3', description: 'Compras de Supermercado', date: '03/07/2024', category: { name: 'Alimentação' }, amount: 850.50, type: 'expense' },
-    { id: '4', description: 'Projeto Freelance X', date: '02/07/2024', category: { name: 'Renda Extra' }, amount: 1200.00, type: 'income' },
-];
+interface SpendingCategoryChartData {
+  name: string;
+  value: number;
+  fill: string;
+}
 
 const chartColors = [
-  "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
 ];
-
-const monthlySpendingByCategory = [
-    { name: 'Moradia', value: 1800.00, fill: chartColors[0] },
-    { name: 'Alimentação', value: 850.50, fill: chartColors[1] },
-    { name: 'Transporte', value: 320.75, fill: chartColors[2] },
-    { name: 'Lazer', value: 250.00, fill: chartColors[3] },
-    { name: 'Outros', value: 150.00, fill: chartColors[4] },
-];
-// --- END MOCK DATA ---
 
 const PieCustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length && payload[0] && payload[0].payload) {
@@ -67,13 +65,134 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DashboardPage() {
-  const { quotes, isLoadingQuotes, selectedQuotes } = useAppSettings();
+  const { quotes, isLoadingQuotes } = useAppSettings();
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
+    { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: true },
+    { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
+    { title: "Despesas Este Mês", value: null, icon: CreditCard, trend: null, trendColor: "text-red-500", isLoading: true },
+    { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
+    { title: "Meta Principal", value: null, icon: PiggyBank, unit: "%", trend: "Nenhuma meta ativa", trendColor: "text-emerald-500", isLoading: true },
+  ]);
+
+  const fetchDashboardData = useCallback(async () => {
+    const mockUserId = "mock-user-id";
+    setTransactionsLoading(true);
+    setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: true })));
+
+    try {
+      const [transactionsRes, goalsRes] = await Promise.all([
+        getTransactions(mockUserId),
+        getFinancialGoals(mockUserId)
+      ]);
+      
+      if (transactionsRes.error) {
+        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
+        setAllTransactions([]);
+      } else {
+        setAllTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
+      }
+      
+      let totalIncome = 0;
+      let totalExpenses = 0;
+      let recurringIncome = 0;
+      let recurringExpenses = 0;
+      const currentMonth = new Date().getUTCMonth();
+      const currentYear = new Date().getUTCFullYear();
+
+      (Array.isArray(transactionsRes.data) ? transactionsRes.data : []).forEach(tx => {
+        if (!tx.date || typeof tx.date !== 'string') return;
+        try {
+            const txDate = new Date(tx.date + 'T00:00:00Z');
+            if (isNaN(txDate.getTime())) return;
+
+            if (tx.is_recurring) {
+              if (tx.type === 'income') recurringIncome += tx.amount;
+              else if (tx.type === 'expense') recurringExpenses += tx.amount;
+            }
+
+            if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+              if (tx.type === 'income' && typeof tx.amount === 'number') totalIncome += tx.amount;
+              else if (tx.type === 'expense' && typeof tx.amount === 'number') totalExpenses += tx.amount;
+            }
+        } catch(e) {
+            console.error("Error processing transaction for summary: ", tx, e);
+        }
+      });
+      
+      const recurringBalance = recurringIncome - recurringExpenses;
+
+      let primaryGoalProgress: number | null = null;
+      let primaryGoalTrend: string | null = "Nenhuma meta ativa";
+      if (!goalsRes.error && goalsRes.data && goalsRes.data.length > 0) {
+        const inProgressGoals = goalsRes.data.filter(g => g.status === 'in_progress');
+        if (inProgressGoals.length > 0) {
+            const primaryGoal = inProgressGoals.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]; 
+            if (primaryGoal.target_amount > 0) {
+                 primaryGoalProgress = Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100);
+                 primaryGoalTrend = `Meta: "${primaryGoal.name}"`;
+            }
+        }
+      }
+      
+      setSummaryValues([
+        { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
+        { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
+        { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
+        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringBalance > 0 ? "Saldo Positivo" : (recurringBalance < 0 ? "Saldo Negativo" : "Saldo Neutro"), trendColor: recurringBalance > 0 ? "text-emerald-500" : (recurringBalance < 0 ? "text-destructive" : "text-muted-foreground"), isLoading: false },
+        { title: "Meta Principal", value: primaryGoalProgress, icon: PiggyBank, unit: "%", trend: primaryGoalTrend, trendColor: "text-emerald-500", isLoading: false },
+      ]);
+
+    } catch (error) {
+      console.error("Failed to fetch dashboard data", error);
+      toast({ title: "Erro de Dados", description: "Não foi possível carregar todos os dados do painel.", variant: "destructive" });
+    } finally {
+      setTransactionsLoading(false);
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     document.title = `Painel - ${APP_NAME}`;
-  }, []);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  const welcomeName = "Usuário";
+  const recentTransactions = useMemo(() => {
+    if (!Array.isArray(allTransactions)) return [];
+    return allTransactions.slice(0, 4);
+  }, [allTransactions]);
+
+  const monthlySpendingByCategory = useMemo((): SpendingCategoryChartData[] => {
+    if (transactionsLoading || !Array.isArray(allTransactions) || allTransactions.length === 0) return [];
+    const spendingMap = new Map<string, number>();
+    const currentMonth = new Date().getUTCMonth();
+    const currentYear = new Date().getUTCFullYear();
+
+    allTransactions.forEach(tx => {
+      if (!tx.date || typeof tx.date !== 'string') return;
+      try {
+        const txDate = new Date(tx.date + 'T00:00:00Z');
+        if (isNaN(txDate.getTime())) return;
+
+        if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+          if (tx.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0 && tx.category) {
+            const categoryName = tx.category.name;
+            spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
+          }
+        }
+      } catch (e) {
+        console.error("Error processing transaction for chart:", tx, e);
+      }
+    });
+    return Array.from(spendingMap, ([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] }))
+           .sort((a,b) => b.value - a.value);
+  }, [allTransactions, transactionsLoading]);
+
+
+  const welcomeName = "Usuário"; // Placeholder
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -84,10 +203,60 @@ export default function DashboardPage() {
     }),
   };
   
-  const quoteCodesToRender = useMemo(() => {
-    return selectedQuotes.filter(q => q && q.trim() !== '');
-  }, [selectedQuotes]);
-
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title={`Bem-vindo(a) de volta!`}
+          description="Aqui está seu resumo financeiro para este mês."
+           actions={<Skeleton className="h-10 w-36 rounded-md" />}
+        />
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          {Array(5).fill(0).map((_, index) => (
+            <Card key={index} className="shadow-sm h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-1/2 mb-1" />
+                <Skeleton className="h-3 w-1/4" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-1"/>
+              <Skeleton className="h-4 w-3/4"/>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {Array(3).fill(0).map((_, index) => (
+                <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-b-0">
+                  <div>
+                    <Skeleton className="h-5 w-32 mb-1" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-5 w-20" />
+                </div>
+              ))}
+               <Skeleton className="h-10 w-full mt-4" />
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-1"/>
+              <Skeleton className="h-4 w-3/4"/>
+            </CardHeader>
+            <CardContent className="h-64 flex items-center justify-center">
+              <Skeleton className="w-full h-[200px] md:w-[300px]" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,19 +285,28 @@ export default function DashboardPage() {
                 <item.icon className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold font-headline">
-                  {item.value === null || item.value === undefined ? (
-                    item.unit === "%" ? "N/A %" : "N/A"
-                  ) : item.unit === "%" ? (
-                    <span><PrivateValue value={String(item.value.toFixed(0))} />%</span>
-                  ) : (
-                    <span>R$<PrivateValue value={item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
-                  )}
-                </div>
-                {item.trend && (
-                  <p className={cn("text-xs text-muted-foreground mt-1 truncate", item.trendColor)}>
-                    {item.trend}
-                  </p>
+                {item.isLoading ? (
+                  <>
+                    <Skeleton className="h-8 w-3/5 mb-1" />
+                    <Skeleton className="h-3 w-2/5" />
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold font-headline">
+                      {item.value === null || item.value === undefined ? (
+                        item.unit === "%" ? "N/A %" : "N/A"
+                      ) : item.unit === "%" ? (
+                        <span><PrivateValue value={String(item.value.toFixed(0))} />%</span>
+                      ) : (
+                        <span>R$<PrivateValue value={item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
+                      )}
+                    </div>
+                    {item.trend && (
+                      <p className={cn("text-xs text-muted-foreground mt-1 truncate", item.trendColor)}>
+                        {item.trend}
+                      </p>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -137,65 +315,36 @@ export default function DashboardPage() {
       </div>
       
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-        {isLoadingQuotes
-          ? (
-              // Mostra 5 esqueletos fixos
-              Array(5).fill(0).map((_, index) => (
-                <motion.div key={`skel-quote-${index}`} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
-                  <Card className="shadow-sm h-full">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <Skeleton className="h-4 w-16" />
-                      <Skeleton className="h-4 w-12"/>
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-8 w-24" />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))
+         {(isLoadingQuotes ? Array(5).fill(0) : quotes).map((quote: QuoteData | 0, index: number) => {
+            const isLoading = quote === 0;
+            const pctChange = !isLoading ? parseFloat(quote.pctChange) : 0;
+            const isPositive = pctChange >= 0;
+            
+            return (
+              <motion.div key={isLoading ? `skel-quote-${index}` : quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                       {isLoading ? <Skeleton className="h-4 w-16" /> : quote.name.split('/')[0]}
+                    </CardTitle>
+                     <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
+                       {isLoading ? <Skeleton className="h-4 w-12"/> : (
+                         <>
+                           {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                           {pctChange.toFixed(2)}%
+                         </>
+                       )}
+                     </div>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="text-2xl font-bold font-headline">
+                         {isLoading ? <Skeleton className="h-8 w-24" /> : <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span> }
+                      </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )
-          : (
-              // Renderiza as cotações carregadas
-              quotes.map((quote: QuoteData, index: number) => {
-                const pctChange = parseFloat(quote.pctChange);
-                const isPositive = pctChange >= 0;
-                const quoteName = quote.name.split('/')[0];
-                
-                return (
-                  <motion.div key={quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
-                    <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground truncate" title={quoteName}>
-                          {quoteName}
-                        </CardTitle>
-                        <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
-                            {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                            {pctChange.toFixed(2)}%
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold font-headline">
-                            <span>R$<PrivateValue value={parseFloat(quote.bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
-                          </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })
-            )
-        }
-        {/* Preenche os espaços vazios se houver menos de 5 cotações */}
-        {!isLoadingQuotes && quotes.length < 5 &&
-          Array(5 - quotes.length).fill(0).map((_, index) => (
-            <motion.div key={`placeholder-${index}`} custom={quotes.length + index + 5} variants={cardVariants} initial="hidden" animate="visible">
-              <Card className="shadow-sm h-full opacity-50 flex items-center justify-center">
-                 <CardContent className="p-0 text-center text-xs text-muted-foreground">
-                    <p>Vazio</p>
-                 </CardContent>
-              </Card>
-            </motion.div>
-          ))
-        }
+         })}
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
@@ -203,23 +352,37 @@ export default function DashboardPage() {
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline">Transações Recentes</CardTitle>
-            <CardDescription>Suas últimas atividades financeiras (dados de exemplo).</CardDescription>
+            <CardDescription>Suas últimas atividades financeiras.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1">
-              {recentTransactions.map((tx) => (
-                <li key={tx.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors">
+            {transactionsLoading ? (
+               Array(4).fill(0).map((_, index) => (
+                <div key={index} className="flex items-center justify-between py-3 border-b border-border/50 last:border-b-0">
                   <div>
-                    <p className="font-medium text-sm">{tx.description}</p>
-                    <p className="text-xs text-muted-foreground">{tx.date} - {tx.category?.name || "Sem Categoria"}</p>
+                    <Skeleton className="h-5 w-32 mb-1" />
+                    <Skeleton className="h-3 w-24" />
                   </div>
-                  <PrivateValue 
-                    value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
-                    className={cn("font-medium text-sm", tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
-                  />
-                </li>
-              ))}
-            </ul>
+                  <Skeleton className="h-5 w-20" />
+                </div>
+              ))
+            ) : recentTransactions.length > 0 ? (
+              <ul className="space-y-1">
+                {recentTransactions.map((tx) => (
+                  <li key={tx.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors">
+                    <div>
+                      <p className="font-medium text-sm">{tx.description}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(tx.date + 'T00:00:00Z').toLocaleDateString('pt-BR')} - {tx.category?.name || "Sem Categoria"}</p>
+                    </div>
+                    <PrivateValue 
+                      value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                      className={cn("font-medium text-sm", tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma transação recente encontrada.</p>
+            )}
             <Button variant="outline" className="mt-4 w-full" asChild>
               <Link href="/transactions">Ver Todas as Transações</Link>
             </Button>
@@ -231,20 +394,26 @@ export default function DashboardPage() {
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Visão Geral de Gastos (Este Mês)</CardTitle>
-            <CardDescription>Suas principais categorias de despesas (dados de exemplo).</CardDescription>
+            <CardDescription>Suas principais categorias de despesas.</CardDescription>
           </CardHeader>
           <CardContent className="min-h-[250px] flex items-center justify-center">
-             <ChartContainer config={{}} className="min-h-[200px] w-full h-64">
-               <PieChart>
-                 <RechartsTooltip content={<PieCustomTooltip />} />
-                 <Pie data={monthlySpendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} labelLine={false} label={({ name, percent }) => (name && percent ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
-                   {monthlySpendingByCategory.map((entry, index) => (
-                     <Cell key={`cell-${entry.name}-${index}`} fill={entry.fill} />
-                   ))}
-                 </Pie>
-                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-               </PieChart>
-             </ChartContainer>
+             {transactionsLoading ? (
+                <Skeleton className="w-full h-[200px]" />
+             ): monthlySpendingByCategory.length > 0 ? (
+                <ChartContainer config={{}} className="min-h-[200px] w-full h-64">
+                  <PieChart>
+                    <RechartsTooltip content={<PieCustomTooltip />} />
+                    <Pie data={monthlySpendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} labelLine={false} label={({ name, percent }) => (name && percent ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                      {monthlySpendingByCategory.map((entry, index) => (
+                        <Cell key={`cell-${entry.name}-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                  </PieChart>
+                </ChartContainer>
+             ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">Sem dados de gastos para exibir o gráfico.</p>
+             )}
           </CardContent>
         </Card>
         </motion.div>
