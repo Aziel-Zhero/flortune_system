@@ -2,7 +2,7 @@
 // src/app/(app)/dev/clients/page.tsx
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, type FC } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -73,8 +73,8 @@ const clientSchema = z.object({
   startDate: z.string().refine(v => v, { message: "Data de início é obrigatória." }),
   deadline: z.string().refine(v => v, { message: "Data de entrega é obrigatória." }),
   priority: z.enum(['low', 'medium', 'high']),
-  notes: z.string().optional().default(""),
-  tasks: z.string().optional().default(""),
+  notes: z.string().max(5000, "Máximo de 5000 caracteres.").optional().default(""),
+  tasks: z.string().max(5000, "Máximo de 5000 caracteres.").optional().default(""),
   totalPrice: z.coerce.number().optional().nullable(),
 }).refine(data => new Date(data.deadline) >= new Date(data.startDate), {
   message: "A data de entrega não pode ser anterior à data de início.",
@@ -108,7 +108,9 @@ export default function DevClientsPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ClientFormData>({ resolver: zodResolver(clientSchema), });
+  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<ClientFormData>({ resolver: zodResolver(clientSchema), });
+  const watchedTasks = watch("tasks", "");
+  const watchedNotes = watch("notes", "");
   
   useEffect(() => {
     document.title = `Clientes & Projetos (DEV) - ${APP_NAME}`;
@@ -243,24 +245,36 @@ export default function DevClientsPage() {
           )}</div>}
       </div>
 
-      <DialogContent className="sm:max-w-4xl flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
             <DialogTitle className="font-headline">{editingClient ? "Editar" : "Adicionar"} Cliente/Projeto</DialogTitle>
             <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex flex-col overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-4 overflow-y-auto pr-2 flex-grow">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} autoFocus />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
                 <div><Label htmlFor="serviceType">Serviço</Label><Input id="serviceType" {...register("serviceType")} />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div>
                 <div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div>
                 <div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div>
-                <div className="md:col-span-2"><Label htmlFor="totalPrice">Preço do Projeto (R$)</Label><Input id="totalPrice" type="number" step="0.01" {...register("totalPrice")} />{errors.totalPrice && <p className="text-sm text-destructive mt-1">{errors.totalPrice.message}</p>}</div>
                 <div><Label>Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
                 <div><Label>Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
-                <div className="md:col-span-2"><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} rows={4}/></div>
-                <div className="md:col-span-2"><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} rows={4}/></div>
+                <div className="md:col-span-1"><Label htmlFor="totalPrice">Preço do Projeto (R$)</Label><Input id="totalPrice" type="number" step="0.01" {...register("totalPrice")} />{errors.totalPrice && <p className="text-sm text-destructive mt-1">{errors.totalPrice.message}</p>}</div>
             </div>
-            <DialogFooter className="sticky bottom-0 bg-background/90 backdrop-blur-sm pt-4 border-t -mx-6 px-6 pb-6 mt-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="tasks">Lista de Tarefas</Label>
+                    <Textarea id="tasks" {...register("tasks")} rows={4} maxLength={5000} />
+                    <p className="text-xs text-muted-foreground text-right mt-1">{watchedTasks.length} / 5000</p>
+                    {errors.tasks && <p className="text-sm text-destructive mt-1">{errors.tasks.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor="notes">Anotações</Label>
+                    <Textarea id="notes" {...register("notes")} rows={4} maxLength={5000} />
+                    <p className="text-xs text-muted-foreground text-right mt-1">{watchedNotes.length} / 5000</p>
+                    {errors.notes && <p className="text-sm text-destructive mt-1">{errors.notes.message}</p>}
+                </div>
+            </div>
+            <DialogFooter className="pt-4">
                 <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>
                 <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isSubmitting ? "Salvando..." : "Salvar"}</Button>
             </DialogFooter>
