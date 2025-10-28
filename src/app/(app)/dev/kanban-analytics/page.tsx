@@ -110,33 +110,35 @@ export default function KanbanAnalyticsPage() {
         icon={<AreaChart className="h-6 w-6 text-primary" />}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
          <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Work in Progress (WIP)</CardTitle><CardDescription>Tarefas atualmente em andamento.</CardDescription></CardHeader>
-                <CardContent className="space-y-2">
-                    <div className="flex items-center gap-4"><ListTodo className="h-8 w-8 text-primary"/><p className="text-3xl font-bold">{analyticsData.wipCount} <span className="text-lg font-medium text-muted-foreground">tarefas</span></p></div>
-                    <div className="flex items-center gap-4"><DollarSign className="h-8 w-8 text-green-500"/><p className="text-2xl font-bold"><PrivateValue value={analyticsData.wipValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/> <span className="text-base font-medium text-muted-foreground">em valor</span></p></div>
-                    <div className="flex items-center gap-4"><Puzzle className="h-8 w-8 text-yellow-500"/><p className="text-2xl font-bold">{analyticsData.wipPoints} <span className="text-base font-medium text-muted-foreground">story points</span></p></div>
-                </CardContent>
+                <CardHeader><CardTitle className="font-headline text-lg">Tarefas em Andamento (WIP)</CardTitle></CardHeader>
+                <CardContent className="flex items-center gap-4"><ListTodo className="h-10 w-10 text-primary"/><p className="text-4xl font-bold">{analyticsData.wipCount}</p></CardContent>
             </Card>
         </motion.div>
         <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Throughput (Vazão)</CardTitle><CardDescription>Total de tarefas concluídas.</CardDescription></CardHeader>
-                <CardContent className="flex items-center gap-4"><MoveRight className="h-10 w-10 text-green-500"/><p className="text-4xl font-bold">{analyticsData.throughput}</p></CardContent>
+                <CardHeader><CardTitle className="font-headline text-lg">Valor em Andamento (R$)</CardTitle></CardHeader>
+                <CardContent className="flex items-center gap-4"><DollarSign className="h-10 w-10 text-green-500"/><p className="text-3xl font-bold"><PrivateValue value={analyticsData.wipValue.toLocaleString('pt-BR')} /></p></CardContent>
             </Card>
         </motion.div>
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Cycle Time Médio</CardTitle><CardDescription>(Em desenvolvimento)</CardDescription></CardHeader>
-                <CardContent className="flex items-center gap-4"><Clock className="h-10 w-10 text-yellow-500"/><p className="text-4xl font-bold">N/A</p></CardContent>
+                <CardHeader><CardTitle className="font-headline text-lg">Pontos em Andamento</CardTitle></CardHeader>
+                <CardContent className="flex items-center gap-4"><Puzzle className="h-10 w-10 text-yellow-500"/><p className="text-4xl font-bold">{analyticsData.wipPoints}</p></CardContent>
+            </Card>
+        </motion.div>
+        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
+            <Card>
+                <CardHeader><CardTitle className="font-headline text-lg">Throughput (Vazão)</CardTitle></CardHeader>
+                <CardContent className="flex items-center gap-4"><MoveRight className="h-10 w-10 text-blue-500"/><p className="text-4xl font-bold">{analyticsData.throughput}</p></CardContent>
             </Card>
         </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
+        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Distribuição por Coluna</CardTitle>
@@ -165,7 +167,7 @@ export default function KanbanAnalyticsPage() {
           </Card>
         </motion.div>
         
-        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-1">
+        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><Workflow /> Diagrama de Fluxo Cumulativo (CFD)</CardTitle>
