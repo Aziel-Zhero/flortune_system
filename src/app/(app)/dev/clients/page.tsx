@@ -243,30 +243,22 @@ export default function DevClientsPage() {
           )}</div>}
       </div>
 
-      <DialogContent className="sm:max-w-xl flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-4xl flex flex-col max-h-[90vh]">
         <DialogHeader>
             <DialogTitle className="font-headline">{editingClient ? "Editar" : "Adicionar"} Cliente/Projeto</DialogTitle>
             <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex flex-col overflow-hidden">
-            <div className="space-y-4 pt-4 overflow-y-auto pr-2 flex-grow">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} autoFocus />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
-                    <div><Label htmlFor="serviceType">Serviço</Label><Input id="serviceType" {...register("serviceType")} />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div>
-                    <div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div>
-                </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><Label htmlFor="totalPrice">Preço do Projeto (R$)</Label><Input id="totalPrice" type="number" step="0.01" {...register("totalPrice")} />{errors.totalPrice && <p className="text-sm text-destructive mt-1">{errors.totalPrice.message}</p>}</div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><Label>Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
-                    <div><Label>Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
-                </div>
-                <div><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} rows={4}/></div>
-                <div><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} rows={4}/></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-4 overflow-y-auto pr-2 flex-grow">
+                <div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} autoFocus />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
+                <div><Label htmlFor="serviceType">Serviço</Label><Input id="serviceType" {...register("serviceType")} />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div>
+                <div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div>
+                <div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div>
+                <div className="md:col-span-2"><Label htmlFor="totalPrice">Preço do Projeto (R$)</Label><Input id="totalPrice" type="number" step="0.01" {...register("totalPrice")} />{errors.totalPrice && <p className="text-sm text-destructive mt-1">{errors.totalPrice.message}</p>}</div>
+                <div><Label>Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
+                <div><Label>Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
+                <div className="md:col-span-2"><Label htmlFor="tasks">Lista de Tarefas</Label><Textarea id="tasks" {...register("tasks")} rows={4}/></div>
+                <div className="md:col-span-2"><Label htmlFor="notes">Anotações</Label><Textarea id="notes" {...register("notes")} rows={4}/></div>
             </div>
             <DialogFooter className="sticky bottom-0 bg-background/90 backdrop-blur-sm pt-4 border-t -mx-6 px-6 pb-6 mt-auto">
                 <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>
