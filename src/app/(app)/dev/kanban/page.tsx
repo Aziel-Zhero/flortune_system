@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
@@ -282,43 +283,46 @@ export default function DevKanbanPage() {
                 ))}
               </SortableContext>
             <div className="w-72 flex-shrink-0 space-y-2">
-               <DialogTrigger asChild><Button variant="outline" className="w-full h-12" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Tarefa</Button></DialogTrigger>
-               <Button variant="outline" className="w-full h-12" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Nova Coluna</Button>
+              <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full h-12"><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Tarefa</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Nova Tarefa</DialogTitle><DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription></DialogHeader>
+                  <form onSubmit={handleSubmit(handleAddTask)} className="space-y-4">
+                      <div><Label htmlFor="title">Título da Tarefa</Label><Input id="title" {...register("title")} />{errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}</div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div><Label htmlFor="points">Story Points</Label><Input id="points" type="number" {...register("points")} /></div>
+                          <div><Label htmlFor="tag">Tag/Tipo</Label><Controller name="tag" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{Object.keys(tagConfig).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>)}/></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div><Label htmlFor="value">Valor do Projeto (R$)</Label><Input id="value" type="number" step="0.01" {...register("value")} /></div>
+                          <div><Label htmlFor="delayCost">Custo do Atraso (R$/semana)</Label><Input id="delayCost" type="number" step="0.01" {...register("delayCost")} /></div>
+                        </div>
+                        <div><Label htmlFor="assignedTo">Atribuído a (nomes separados por vírgula)</Label><Input id="assignedTo" {...register("assignedTo")} placeholder="Ex: João, Maria" /></div>
+                      <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Adicionar Tarefa</Button></DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full h-12"><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Nova Coluna</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader><DialogTitle>{editingColumn ? 'Editar' : 'Adicionar'} Coluna</DialogTitle></DialogHeader>
+                    <form onSubmit={handleColumnSubmit(handleColumnAction)} className="space-y-4 py-2">
+                        <div><Label htmlFor="col-name">Nome da Coluna</Label><Input id="col-name" {...columnRegister("name")} autoFocus />{columnErrors.name && <p className="text-sm text-destructive mt-1">{columnErrors.name.message}</p>}</div>
+                        <div><Label htmlFor="col-wip">Limite WIP (Opcional)</Label><Input id="col-wip" type="number" placeholder="Deixe em branco para sem limite" {...columnRegister("wipLimit")} />{columnErrors.wipLimit && <p className="text-sm text-destructive mt-1">{columnErrors.wipLimit.message}</p>}</div>
+                        <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
+                    </form>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           <DragOverlay>{activeElement ? (activeElement.hasOwnProperty('columnId') ? <KanbanCard task={activeElement as Task} /> : <KanbanColumn column={activeElement as Column} tasks={tasks.filter(t => t.columnId === activeElement.id)} onEdit={() => {}} onDelete={() => {}} />) : null}</DragOverlay>
         </DndContext>
       </div>
-
-       <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nova Tarefa</DialogTitle><DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription></DialogHeader>
-          <form onSubmit={handleSubmit(handleAddTask)} className="space-y-4">
-              <div><Label htmlFor="title">Título da Tarefa</Label><Input id="title" {...register("title")} />{errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label htmlFor="points">Story Points</Label><Input id="points" type="number" {...register("points")} /></div>
-                  <div><Label htmlFor="tag">Tag/Tipo</Label><Controller name="tag" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{Object.keys(tagConfig).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>)}/></div>
-                </div>
-                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label htmlFor="value">Valor do Projeto (R$)</Label><Input id="value" type="number" step="0.01" {...register("value")} /></div>
-                  <div><Label htmlFor="delayCost">Custo do Atraso (R$/semana)</Label><Input id="delayCost" type="number" step="0.01" {...register("delayCost")} /></div>
-                </div>
-                <div><Label htmlFor="assignedTo">Atribuído a (nomes separados por vírgula)</Label><Input id="assignedTo" {...register("assignedTo")} placeholder="Ex: João, Maria" /></div>
-              <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Adicionar Tarefa</Button></DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
-        <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>{editingColumn ? 'Editar' : 'Adicionar'} Coluna</DialogTitle></DialogHeader>
-            <form onSubmit={handleColumnSubmit(handleColumnAction)} className="space-y-4 py-2">
-                <div><Label htmlFor="col-name">Nome da Coluna</Label><Input id="col-name" {...columnRegister("name")} autoFocus />{columnErrors.name && <p className="text-sm text-destructive mt-1">{columnErrors.name.message}</p>}</div>
-                <div><Label htmlFor="col-wip">Limite WIP (Opcional)</Label><Input id="col-wip" type="number" placeholder="Deixe em branco para sem limite" {...columnRegister("wipLimit")} />{columnErrors.wipLimit && <p className="text-sm text-destructive mt-1">{columnErrors.wipLimit.message}</p>}</div>
-                <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
-            </form>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
