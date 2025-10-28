@@ -1,97 +1,88 @@
-// src/app/(app)/dev/scrum-analytics/page.tsx
+// src/app/(app)/dev/kanban-analytics/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart, LineChart, PieChart as PieChartIcon, Flag, Clock, CheckCircle } from "lucide-react";
+import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, Line, Area, AreaChart as AreaChartRecharts, Pie, PieChart as PieChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
+import { Bar, BarChart as BarChartRecharts, Line, Area as AreaRecharts, AreaChart as AreaChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
 
-// Mock Data
-const velocityData = [
-  { sprint: "Sprint 1", points: 25 },
-  { sprint: "Sprint 2", points: 30 },
-  { sprint: "Sprint 3", points: 28 },
-  { sprint: "Sprint 4", points: 35 },
-  { sprint: "Sprint 5", points: 32 },
+// Mock Data para Métricas Kanban
+const throughputData = [
+  { week: "Semana 26", tasks: 5 },
+  { week: "Semana 27", tasks: 7 },
+  { week: "Semana 28", tasks: 6 },
+  { week: "Semana 29", tasks: 8 },
+  { week: "Semana 30", tasks: 7 },
 ];
-const velocityChartConfig = { points: { label: "Story Points", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
+const throughputChartConfig = { tasks: { label: "Tarefas Concluídas", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
 
-const burndownData = [
-    { day: "Dia 1", ideal: 50, real: 50 },
-    { day: "Dia 2", ideal: 45, real: 48 },
-    { day: "Dia 3", ideal: 40, real: 42 },
-    { day: "Dia 4", ideal: 35, real: 38 },
-    { day: "Dia 5", ideal: 30, real: 30 },
-    { day: "Dia 6", ideal: 25, real: 28 },
-    { day: "Dia 7", ideal: 20, real: 22 },
-    { day: "Dia 8", ideal: 15, real: 15 },
-    { day: "Dia 9", ideal: 10, real: 8 },
-    { day: "Dia 10", ideal: 5, real: 3 },
-    { day: "Dia 11", ideal: 0, real: 0 },
+const cycleTimeData = [
+    { task: "Task-101", "Cycle Time": 2, "Lead Time": 3 },
+    { task: "Task-102", "Cycle Time": 3, "Lead Time": 4 },
+    { task: "Task-103", "Cycle Time": 1, "Lead Time": 2 },
+    { task: "Task-104", "Cycle Time": 4, "Lead Time": 5 },
+    { task: "Task-105", "Cycle Time": 2.5, "Lead Time": 3.5 },
 ];
-const burndownChartConfig = {
-    ideal: { label: "Ideal", color: "hsl(var(--muted-foreground) / 0.5)" },
-    real: { label: "Real", color: "hsl(var(--chart-2))" }
+const cycleTimeChartConfig = {
+    "Cycle Time": { label: "Cycle Time (dias)", color: "hsl(var(--chart-2))" },
+    "Lead Time": { label: "Lead Time (dias)", color: "hsl(var(--chart-3))" }
 } satisfies ChartConfig;
 
-const participationData = [
-  { name: 'Alice (PO)', tasks: 5, fill: "hsl(var(--chart-1))" },
-  { name: 'Bruno (SM)', tasks: 3, fill: "hsl(var(--chart-2))" },
-  { name: 'Carla (Dev)', tasks: 12, fill: "hsl(var(--chart-3))" },
-  { name: 'Daniel (Dev)', tasks: 10, fill: "hsl(var(--chart-4))" },
+const cumulativeFlowData = [
+    { date: "01/07", Backlog: 15, "Em Andamento": 3, "Concluído": 20 },
+    { date: "02/07", Backlog: 12, "Em Andamento": 5, "Concluído": 21 },
+    { date: "03/07", Backlog: 10, "Em Andamento": 6, "Concluído": 22 },
+    { date: "04/07", Backlog: 10, "Em Andamento": 5, "Concluído": 23 },
+    { date: "05/07", Backlog: 8, "Em Andamento": 4, "Concluído": 26 },
+    { date: "08/07", Backlog: 6, "Em Andamento": 5, "Concluído": 27 },
 ];
-const participationChartConfig = { tasks: { label: "Tarefas" } } satisfies ChartConfig;
+const cfdChartConfig = {
+    Backlog: { label: "Backlog", color: "hsl(var(--chart-5))" },
+    "Em Andamento": { label: "Em Andamento", color: "hsl(var(--chart-2))" },
+    Concluído: { label: "Concluído", color: "hsl(var(--chart-1))" },
+} satisfies ChartConfig;
 
-const impediments = [
-    { id: 1, description: "API de pagamentos externa está indisponível.", task: "Implementar checkout", priority: "Alta" },
-    { id: 2, description: "Acesso ao ambiente de produção pendente.", task: "Deploy da v1", priority: "Média" },
-    { id: 3, description: "Dúvida sobre a regra de negócio do cálculo de frete.", task: "Desenvolver módulo de frete", priority: "Baixa" }
-];
-
-
-export default function ScrumAnalyticsPage() {
+export default function KanbanAnalyticsPage() {
   useEffect(() => {
-    document.title = `Análise Scrum (DEV) - ${APP_NAME}`;
+    document.title = `Análise Kanban (DEV) - ${APP_NAME}`;
   }, []);
   
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: { delay: i * 0.1, type: "spring", stiffness: 100 },
+      opacity: 1, y: 0, transition: { delay: i * 0.1, type: "spring", stiffness: 100 },
     }),
   };
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Scrum Analytics (DEV)"
-        description="Métricas e insights visuais sobre o desempenho e progresso dos seus projetos Scrum."
-        icon={<PieChartIcon className="h-6 w-6 text-primary" />}
+        title="Análise Kanban (DEV)"
+        description="Métricas e insights visuais para otimizar seu fluxo de trabalho contínuo."
+        icon={<AreaChart className="h-6 w-6 text-primary" />}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
          <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Dias Restantes</CardTitle></CardHeader>
-                <CardContent className="flex items-center gap-4"><Clock className="h-10 w-10 text-primary"/><p className="text-4xl font-bold">10</p></CardContent>
+                <CardHeader><CardTitle className="font-headline text-lg">Work in Progress (WIP)</CardTitle></CardHeader>
+                <CardContent className="flex items-center gap-4"><ListTodo className="h-10 w-10 text-primary"/><p className="text-4xl font-bold">5</p></CardContent>
             </Card>
         </motion.div>
         <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Tarefas Concluídas</CardTitle></CardHeader>
-                <CardContent className="flex items-center gap-4"><CheckCircle className="h-10 w-10 text-emerald-500"/><p className="text-4xl font-bold">8 / 12</p></CardContent>
+                <CardHeader><CardTitle className="font-headline text-lg">Cycle Time Médio</CardTitle></CardHeader>
+                <CardContent className="flex items-center gap-4"><Clock className="h-10 w-10 text-yellow-500"/><p className="text-4xl font-bold">2.5 dias</p></CardContent>
             </Card>
         </motion.div>
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Impedimentos Ativos</CardTitle></CardHeader>
-                <CardContent className="flex items-center gap-4"><Flag className="h-10 w-10 text-destructive"/><p className="text-4xl font-bold">{impediments.length}</p></CardContent>
+                <CardHeader><CardTitle className="font-headline text-lg">Lead Time Médio</CardTitle></CardHeader>
+                <CardContent className="flex items-center gap-4"><MoveRight className="h-10 w-10 text-green-500"/><p className="text-4xl font-bold">3.5 dias</p></CardContent>
             </Card>
         </motion.div>
       </div>
@@ -100,17 +91,17 @@ export default function ScrumAnalyticsPage() {
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Velocity Chart</CardTitle>
-              <CardDescription>Story Points concluídos por Sprint.</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Throughput (Vazão)</CardTitle>
+              <CardDescription>Tarefas concluídas por semana.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={velocityChartConfig} className="w-full h-64">
-                <BarChartRecharts accessibilityLayer data={velocityData}>
+              <ChartContainer config={throughputChartConfig} className="w-full h-64">
+                <BarChartRecharts accessibilityLayer data={throughputData}>
                    <CartesianGrid vertical={false} />
-                   <XAxis dataKey="sprint" tickLine={false} tickMargin={10} axisLine={false} />
+                   <XAxis dataKey="week" tickLine={false} tickMargin={10} axisLine={false} />
                    <YAxis />
                    <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
-                   <Bar dataKey="points" fill="var(--color-points)" radius={4} />
+                   <Bar dataKey="tasks" fill="var(--color-tasks)" radius={4} />
                 </BarChartRecharts>
               </ChartContainer>
             </CardContent>
@@ -120,59 +111,44 @@ export default function ScrumAnalyticsPage() {
         <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><LineChart /> Burndown Chart (Sprint Atual)</CardTitle>
-              <CardDescription>Progresso do trabalho restante vs. ideal.</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2"><Clock /> Cycle Time vs. Lead Time</CardTitle>
+              <CardDescription>Tempo de trabalho ativo vs. tempo total de espera.</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={burndownChartConfig} className="w-full h-64">
-                    <AreaChartRecharts accessibilityLayer data={burndownData}>
+                <ChartContainer config={cycleTimeChartConfig} className="w-full h-64">
+                    <BarChartRecharts accessibilityLayer data={cycleTimeData}>
                          <CartesianGrid vertical={false} />
-                         <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={10} />
-                         <YAxis label={{ value: 'Pontos', angle: -90, position: 'insideLeft' }}/>
+                         <XAxis dataKey="task" tickLine={false} axisLine={false} tickMargin={10} />
+                         <YAxis label={{ value: 'Dias', angle: -90, position: 'insideLeft' }}/>
                          <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
                          <ChartLegend content={<ChartLegendContent />} />
-                         <Area dataKey="ideal" type="monotone" fill="var(--color-ideal)" fillOpacity={0.2} stroke="var(--color-ideal)" strokeDasharray="5 5" stackId="a" />
-                         <Area dataKey="real" type="monotone" fill="var(--color-real)" fillOpacity={0.4} stroke="var(--color-real)" stackId="b" />
-                    </AreaChartRecharts>
+                         <Bar dataKey="Lead Time" fill="var(--color-Lead-Time)" radius={4} />
+                         <Bar dataKey="Cycle Time" fill="var(--color-Cycle-Time)" radius={4} />
+                    </BarChartRecharts>
                 </ChartContainer>
             </CardContent>
           </Card>
         </motion.div>
 
-        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
+        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><PieChartIcon /> Participação do Time</CardTitle>
-              <CardDescription>Distribuição de tarefas concluídas na sprint.</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2"><Workflow /> Diagrama de Fluxo Cumulativo (CFD)</CardTitle>
+              <CardDescription>Visualização do trabalho em cada etapa ao longo do tempo.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={participationChartConfig} className="w-full h-64">
-                  <PieChartRecharts accessibilityLayer>
-                      <RechartsTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
-                      <Pie data={participationData} dataKey="tasks" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                        {participationData.map((entry) => (
-                            <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                  </PieChartRecharts>
+              <ChartContainer config={cfdChartConfig} className="w-full h-80">
+                  <AreaChartRecharts accessibilityLayer data={cumulativeFlowData}>
+                      <CartesianGrid vertical={false} />
+                      <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={10}/>
+                      <YAxis label={{ value: 'Nº de Tarefas', angle: -90, position: 'insideLeft' }}/>
+                      <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <AreaRecharts dataKey="Backlog" type="monotone" fill="var(--color-Backlog)" fillOpacity={0.6} stroke="var(--color-Backlog)" stackId="a" />
+                      <AreaRecharts dataKey="Em Andamento" type="monotone" fill="var(--color-Em-Andamento)" fillOpacity={0.6} stroke="var(--color-Em-Andamento)" stackId="a" />
+                      <AreaRecharts dataKey="Concluído" type="monotone" fill="var(--color-Concluído)" fillOpacity={0.6} stroke="var(--color-Concluído)" stackId="a" />
+                  </AreaChartRecharts>
               </ChartContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><Flag /> Impedimentos Ativos</CardTitle>
-              <CardDescription>Bloqueios que precisam de atenção imediata.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {impediments.map(imp => (
-                <div key={imp.id} className="p-2 border-l-4 rounded-r-md bg-muted/50" style={{ borderLeftColor: imp.priority === "Alta" ? "hsl(var(--destructive))" : imp.priority === "Média" ? "hsl(var(--chart-2))" : "hsl(var(--muted-foreground))" }}>
-                    <p className="font-medium text-sm">{imp.description}</p>
-                    <p className="text-xs text-muted-foreground">Tarefa: {imp.task}</p>
-                </div>
-              ))}
             </CardContent>
           </Card>
         </motion.div>
