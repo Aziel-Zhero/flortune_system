@@ -2,7 +2,7 @@
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners, type DragStartEvent, type DragOverEvent, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -25,11 +25,6 @@ import { toast } from "@/hooks/use-toast";
 import { PrivateValue } from '@/components/shared/private-value';
 
 // --- Tipos ---
-interface Assignee {
-  name: string;
-  avatarUrl?: string | null;
-}
-
 interface Tag {
   id: string;
   name: string;
@@ -168,8 +163,8 @@ const KanbanColumn: React.FC<{ column: Column; tasks: Task[]; tags: Tag[]; onEdi
     const isWipExceeded = column.wipLimit !== undefined && tasksCount > column.wipLimit;
 
     return (
-      <div ref={setNodeRef} style={style} {...attributes} className={cn("w-80 rounded-lg flex flex-col flex-shrink-0 max-h-[calc(100vh-16rem)]", column.colorClass || 'bg-muted/50', isDragging && "opacity-30")}>
-        <div {...listeners} className={cn("flex justify-between items-center mb-3 px-3 pt-3 pb-1 cursor-grab active:cursor-grabbing", isWipExceeded && "bg-red-500/40 rounded-t-lg")}>
+      <div ref={setNodeRef} style={style} className={cn("w-80 rounded-lg flex flex-col flex-shrink-0 max-h-[calc(100vh-16rem)]", column.colorClass || 'bg-muted/50', isDragging && "opacity-30")}>
+        <div {...attributes} {...listeners} className={cn("flex justify-between items-center mb-3 px-3 pt-3 pb-1 cursor-grab active:cursor-grabbing", isWipExceeded && "bg-red-500/40 rounded-t-lg")}>
           <h2 className="text-lg font-bold font-headline text-foreground">{column.name}</h2>
           <div className="flex items-center gap-2">
             <span className={cn("text-sm font-medium text-muted-foreground bg-background px-2 py-1 rounded-md", isWipExceeded && "bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-100 font-bold")}>
@@ -184,11 +179,11 @@ const KanbanColumn: React.FC<{ column: Column; tasks: Task[]; tags: Tag[]; onEdi
             </DropdownMenu>
           </div>
         </div>
-        <div className="flex-1 space-y-2 p-3 pt-0 rounded-md overflow-y-auto">
-            <SortableContext items={tasks.map(t => t.id)}>
-                {tasks.map(task => <SortableKanbanCard key={task.id} task={task} tags={tags} />)}
-            </SortableContext>
-        </div>
+        <SortableContext items={tasks.map(t => t.id)}>
+          <div className="flex-1 space-y-2 p-3 pt-0 rounded-md overflow-y-auto">
+              {tasks.map(task => <SortableKanbanCard key={task.id} task={task} tags={tags} />)}
+          </div>
+        </SortableContext>
       </div>
     );
 }
@@ -211,8 +206,7 @@ export default function DevKanbanPage() {
   
   // --- Tag Modal ---
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
-  const { register: tagRegister, handleSubmit: handleTagSubmit, reset: resetTagForm, formState: { errors: tagErrors } } = useForm<NewTagFormData>({ resolver: zodResolver(newTagSchema) });
-
+  const { register: tagRegister, handleSubmit: handleTagSubmit, reset: resetTagForm, control: tagControl, formState: { errors: tagErrors } } = useForm<NewTagFormData>({ resolver: zodResolver(newTagSchema) });
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
 
@@ -322,8 +316,8 @@ export default function DevKanbanPage() {
                 ))}
               </SortableContext>
             <div className="w-72 flex-shrink-0 space-y-2">
-                <Button variant="outline" className="w-full h-12" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Tarefa</Button>
-                <Button variant="outline" className="w-full h-12" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Nova Coluna</Button>
+               <Button variant="outline" className="w-full h-12" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Tarefa</Button>
+               <Button variant="outline" className="w-full h-12" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="h-5 w-5 mr-2"/>Adicionar Nova Coluna</Button>
             </div>
           </div>
           <DragOverlay>{activeElement ? (activeElement.hasOwnProperty('columnId') ? <KanbanCard task={activeElement as Task} tags={tags} /> : <KanbanColumn column={activeElement as Column} tasks={tasks.filter(t => t.columnId === activeElement.id)} tags={tags} onEdit={() => {}} onDelete={() => {}} />) : null}</DragOverlay>
@@ -340,7 +334,9 @@ export default function DevKanbanPage() {
                   <div><Label htmlFor="tagId">Tag/Tipo</Label>
                     <div className="flex gap-2">
                       <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
-                      <Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button>
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button>
+                      </DialogTrigger>
                     </div>
                   </div>
                 </div>
@@ -379,7 +375,7 @@ export default function DevKanbanPage() {
       </Dialog>
       
       <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
-          <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
               <DialogHeader><DialogTitle>Criar Nova Tag</DialogTitle></DialogHeader>
               <form onSubmit={handleTagSubmit(handleAddTag)} className="space-y-4">
                   <div><Label htmlFor="tag-name">Nome da Tag</Label><Input id="tag-name" {...tagRegister("name")} />{tagErrors.name && <p className="text-sm text-destructive mt-1">{tagErrors.name.message}</p>}</div>
