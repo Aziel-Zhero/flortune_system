@@ -4,20 +4,24 @@
 import { useEffect, useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow, AlertTriangle } from "lucide-react";
+import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow, AlertTriangle, DollarSign, Puzzle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, Area as AreaRecharts, AreaChart as AreaChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer } from "recharts";
+import { PrivateValue } from "@/components/shared/private-value";
 
 interface Task {
   id: string;
   columnId: string;
+  value?: number;
+  points?: number;
 }
 
 interface Column {
   id: string;
   name: string;
+  wipLimit?: number;
 }
 
 export default function KanbanAnalyticsPage() {
@@ -26,7 +30,7 @@ export default function KanbanAnalyticsPage() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    document.title = `Análise Kanban (DEV) - ${APP_NAME}`;
+    document.title = `Análise Kanban - ${APP_NAME}`;
     setIsClient(true);
     try {
       const storedTasks = localStorage.getItem('kanban-tasks');
@@ -43,22 +47,28 @@ export default function KanbanAnalyticsPage() {
         const columnTasks = tasks.filter(task => task.columnId === column.id);
         return {
             name: column.name,
-            tasks: columnTasks.length
+            tasks: columnTasks.length,
+            value: columnTasks.reduce((sum, task) => sum + (task.value || 0), 0),
+            points: columnTasks.reduce((sum, task) => sum + (task.points || 0), 0),
         };
     });
 
     const wipColumns = ['doing', 'in_progress', 'review', 'test'];
-    const wipTasksCount = tasks.filter(task => wipColumns.includes(task.columnId)).length;
-    const doneTasksCount = tasks.filter(task => task.columnId === 'done').length;
+    const wipTasks = tasks.filter(task => wipColumns.includes(task.columnId));
+    const doneTasks = tasks.filter(task => task.columnId === 'done');
 
     return {
         distribution: dataByColumn,
-        wipCount: wipTasksCount,
-        throughput: doneTasksCount,
+        wipCount: wipTasks.length,
+        wipValue: wipTasks.reduce((sum, task) => sum + (task.value || 0), 0),
+        wipPoints: wipTasks.reduce((sum, task) => sum + (task.points || 0), 0),
+        throughput: doneTasks.length,
     };
   }, [tasks, columns]);
   
   const distributionChartConfig = { tasks: { label: "Nº de Tarefas", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
+  const valueChartConfig = { value: { label: "Valor (R$)", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
+  const pointsChartConfig = { points: { label: "Story Points", color: "hsl(var(--chart-3))" } } satisfies ChartConfig;
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -104,7 +114,11 @@ export default function KanbanAnalyticsPage() {
          <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
                 <CardHeader><CardTitle className="font-headline text-lg">Work in Progress (WIP)</CardTitle><CardDescription>Tarefas atualmente em andamento.</CardDescription></CardHeader>
-                <CardContent className="flex items-center gap-4"><ListTodo className="h-10 w-10 text-primary"/><p className="text-4xl font-bold">{analyticsData.wipCount}</p></CardContent>
+                <CardContent className="space-y-2">
+                    <div className="flex items-center gap-4"><ListTodo className="h-8 w-8 text-primary"/><p className="text-3xl font-bold">{analyticsData.wipCount} <span className="text-lg font-medium text-muted-foreground">tarefas</span></p></div>
+                    <div className="flex items-center gap-4"><DollarSign className="h-8 w-8 text-green-500"/><p className="text-2xl font-bold"><PrivateValue value={analyticsData.wipValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/> <span className="text-base font-medium text-muted-foreground">em valor</span></p></div>
+                    <div className="flex items-center gap-4"><Puzzle className="h-8 w-8 text-yellow-500"/><p className="text-2xl font-bold">{analyticsData.wipPoints} <span className="text-base font-medium text-muted-foreground">story points</span></p></div>
+                </CardContent>
             </Card>
         </motion.div>
         <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
@@ -121,28 +135,37 @@ export default function KanbanAnalyticsPage() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Distribuição de Tarefas por Coluna</CardTitle>
-              <CardDescription>Visão geral de onde o trabalho se concentra no seu fluxo.</CardDescription>
+              <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Distribuição por Coluna</CardTitle>
+              <CardDescription>Visão geral de onde o trabalho, valor e esforço se concentram no seu fluxo.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ChartContainer config={distributionChartConfig} className="w-full h-72">
-                <BarChartRecharts accessibilityLayer data={analyticsData.distribution}>
-                   <CartesianGrid vertical={false} />
-                   <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
-                   <YAxis />
-                   <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
-                   <Bar dataKey="tasks" fill="var(--color-tasks)" radius={4} />
-                </BarChartRecharts>
-              </ChartContainer>
+            <CardContent className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div className="xl:col-span-1">
+                    <h4 className="text-center font-semibold mb-2">Nº de Tarefas</h4>
+                    <ChartContainer config={distributionChartConfig} className="w-full h-72">
+                        <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="tasks" fill="var(--color-tasks)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+                    </ChartContainer>
+                </div>
+                 <div className="xl:col-span-1">
+                    <h4 className="text-center font-semibold mb-2">Valor Agregado (R$)</h4>
+                    <ChartContainer config={valueChartConfig} className="w-full h-72">
+                        <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value as number)} cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="value" fill="var(--color-value)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+                    </ChartContainer>
+                </div>
+                 <div className="xl:col-span-1">
+                    <h4 className="text-center font-semibold mb-2">Story Points</h4>
+                    <ChartContainer config={pointsChartConfig} className="w-full h-72">
+                        <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="points" fill="var(--color-points)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+                    </ChartContainer>
+                </div>
             </CardContent>
           </Card>
         </motion.div>
         
-        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
+        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><Workflow /> Diagrama de Fluxo Cumulativo (CFD)</CardTitle>

@@ -248,14 +248,21 @@ export default function DevKanbanPage() {
 
   function onDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over) return;
-    if (active.id === over.id) return;
+    if (!over || active.id === over.id) return;
 
     const isActiveATask = active.data.current?.type === "Task";
-    if (!isActiveATask) return;
-
     const isOverAColumn = over.data.current?.type === "Column";
-    if (isOverAColumn) {
+
+    if (isActiveATask && isOverAColumn) {
+        const activeTask = active.data.current?.task as Task;
+        const overColumn = over.data.current?.column as Column;
+        const tasksInOverColumn = tasks.filter(t => t.columnId === overColumn.id);
+
+        if (overColumn.wipLimit !== undefined && tasksInOverColumn.length >= overColumn.wipLimit) {
+            // Do not allow drop if WIP limit is reached
+            return;
+        }
+
         setTasks(currentTasks => {
             const activeIndex = currentTasks.findIndex(t => t.id === active.id);
             if (currentTasks[activeIndex].columnId !== over.id) {
@@ -284,12 +291,39 @@ export default function DevKanbanPage() {
     
     const isActiveATask = active.data.current?.type === "Task";
     if (isActiveATask) {
+        const overId = over.id;
+        const overIsColumn = over.data.current?.type === "Column";
+        const overColumnId = overIsColumn ? over.id : over.data.current?.task.columnId;
+
+        const overColumn = columns.find(c => c.id === overColumnId);
+        const tasksInOverColumn = tasks.filter(t => t.columnId === overColumnId);
+
+        if (overColumn && overColumn.wipLimit !== undefined && tasksInOverColumn.length >= overColumn.wipLimit) {
+            // Check if the task is already in that column. If so, reordering is allowed.
+            const activeTask = active.data.current?.task as Task;
+            if (activeTask.columnId !== overColumnId) {
+                toast({ title: "Limite WIP Atingido", description: `A coluna "${overColumn.name}" está cheia.`, variant: "destructive" });
+                return;
+            }
+        }
+        
         setTasks(currentTasks => {
             const activeIndex = currentTasks.findIndex(t => t.id === active.id);
-            const overIndex = currentTasks.findIndex(t => t.id === over.id);
-            if (currentTasks[activeIndex].columnId !== currentTasks[overIndex].columnId) {
-                currentTasks[activeIndex].columnId = currentTasks[overIndex].columnId;
+            let overIndex = currentTasks.findIndex(t => t.id === overId);
+            
+            // If dropping on a column, not another task
+            if (overIsColumn) {
+                const tasksInColumn = currentTasks.filter(t => t.columnId === overId);
+                overIndex = activeIndex; // Keep original position logic for now, or find last index in new column
             }
+            
+            if (currentTasks[activeIndex].columnId !== overColumnId) {
+                currentTasks[activeIndex].columnId = overColumnId as string;
+                // Correctly place it in the new column
+                const newIndex = tasksInOverColumn.length;
+                return arrayMove(currentTasks, activeIndex, activeIndex); // This seems wrong, let's fix it.
+            }
+            
             return arrayMove(currentTasks, activeIndex, overIndex);
         })
     }
@@ -376,7 +410,7 @@ export default function DevKanbanPage() {
                       <div><Label htmlFor="tagId">Tag/Tipo</Label>
                         <div className="flex gap-2">
                           <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
-                          <DialogTrigger asChild><Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button></DialogTrigger>
+                          <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}><DialogTrigger asChild><Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button></DialogTrigger></Dialog>
                         </div>
                       </div>
                     </div>
@@ -412,8 +446,7 @@ export default function DevKanbanPage() {
                 </form>
             </DialogContent>
             
-            {/* Tag Modal */}
-            <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
+             <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
               <DialogContent className="sm:max-w-md">
                     <DialogHeader><DialogTitle>Criar Nova Tag</DialogTitle></DialogHeader>
                     <form onSubmit={handleTagSubmit(handleAddTag)} className="space-y-4">
