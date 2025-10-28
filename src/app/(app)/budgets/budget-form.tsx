@@ -1,7 +1,7 @@
 // src/app/(app)/budgets/budget-form.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,6 +18,9 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import type { Category, Budget } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { getCategories, addCategory } from "@/services/category.service";
+import { useSession } from "next-auth/react";
+
 
 const budgetFormSchema = z.object({
   category_id: z.string().min(1, "Selecione uma categoria."),
@@ -46,16 +49,13 @@ interface BudgetFormProps {
   isModal?: boolean;
 }
 
-const mockCategories: Category[] = [
-    { id: 'cat-1', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: 'cat-2', name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: 'cat-3', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-];
-
-
 export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const isAuthLoading = status === "loading";
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -63,8 +63,6 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const isEditing = !!initialData;
 
   const { control, handleSubmit, register, formState: { errors }, reset, setValue } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetFormSchema),
@@ -79,13 +77,37 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
       period_end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
     },
   });
+  
+  const isEditing = !!initialData;
 
   const { handleSubmit: handleCategorySubmit, register: categoryFormRegister, formState: { errors: categoryFormErrors }, reset: resetCategoryForm } = useForm<NewCategoryFormData>({
     resolver: zodResolver(newCategorySchema),
   });
+  
+  const fetchCategories = useCallback(async () => {
+    if (!user?.id) return;
+    setIsLoadingCategories(true);
+    const { data, error } = await getCategories(user.id);
+    if (error) {
+      toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
+    } else {
+      // Filtra apenas categorias de despesa, pois orçamentos são para gastos
+      const expenseCategories = (data || []).filter(c => c.type === 'expense');
+      setCategories(expenseCategories);
+    }
+    setIsLoadingCategories(false);
+  }, [user?.id]);
+  
+  useEffect(() => {
+    if (status === 'authenticated' && user?.id) {
+      fetchCategories();
+    }
+  }, [status, user?.id, fetchCategories]);
+
 
   const onBudgetSubmit: SubmitHandler<BudgetFormData> = async (data) => {
     setIsSubmitting(true);
+    // Simulação, pois o backend não foi implementado
     await new Promise(resolve => setTimeout(resolve, 500));
     toast({ title: isEditing ? "Orçamento Atualizado! (Simulação)" : "Orçamento Criado! (Simulação)", action: <CheckCircle className="text-green-500" /> });
     onFormSuccess();
@@ -93,27 +115,45 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   };
 
   const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const newCategory: Category = { id: `cat_${Date.now()}`, name: data.name, type: 'expense', is_default: false, created_at: '', updated_at: '' };
-    setCategories(prev => [...prev, newCategory]);
-    setValue("category_id", newCategory.id, { shouldValidate: true });
-    toast({ title: "Categoria Criada! (Simulação)", description: `Categoria "${data.name}" criada.` });
-    resetCategoryForm();
-    setIsCategoryModalOpen(false);
+    if (!user?.id) {
+        toast({title: "Usuário não autenticado.", variant: "destructive"});
+        return;
+    }
+    const { data: newCategory, error } = await addCategory(user.id, { name: data.name, type: 'expense' });
+
+    if (error) {
+        toast({ title: "Erro ao criar categoria", description: error.message, variant: "destructive" });
+    } else if (newCategory) {
+        setCategories(prev => [...prev, newCategory]);
+        setValue("category_id", newCategory.id, { shouldValidate: true });
+        toast({ title: "Categoria Criada!", description: `Categoria "${data.name}" criada.` });
+        resetCategoryForm();
+        setIsCategoryModalOpen(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit(onBudgetSubmit)} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="category_id">Categoria</Label>
+        <Label htmlFor="category_id">Categoria de Despesa</Label>
         <div className="flex items-center gap-2">
           <Controller name="category_id" control={control} render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories || isSubmitting}><SelectTrigger id="category_id" className="flex-grow"><SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Selecione uma categoria"} /></SelectTrigger><SelectContent>{categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent></Select>
+            <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories || isSubmitting}>
+              <SelectTrigger id="category_id" className="flex-grow">
+                <SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Selecione uma categoria"} />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                 {categories.length === 0 && !isLoadingCategories && (
+                    <div className="p-4 text-sm text-center text-muted-foreground">Nenhuma categoria de despesa encontrada. Crie uma!</div>
+                 )}
+              </SelectContent>
+            </Select>
           )} />
           <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
-            <DialogTrigger asChild><Button type="button" variant="outline" size="icon"><PlusCircle className="h-4 w-4" /></Button></DialogTrigger>
+            <DialogTrigger asChild><Button type="button" variant="outline" size="icon" disabled={isAuthLoading}><PlusCircle className="h-4 w-4" /></Button></DialogTrigger>
             <DialogContent className="sm:max-w-md">
-              <DialogHeader><DialogTitle className="font-headline flex items-center"><Settings2 className="mr-2 h-5 w-5 text-primary"/>Nova Categoria de Despesa</DialogTitle><DialogDescription>Crie uma nova categoria para seus orçamentos.</DialogDescription></DialogHeader>
+              <DialogHeader><DialogTitle className="font-headline flex items-center"><Settings2 className="mr-2 h-5 w-5 text-primary"/>Nova Categoria de Despesa</DialogTitle><DialogDescription>Crie uma nova categoria para seus orçamentos e transações.</DialogDescription></DialogHeader>
               <form onSubmit={handleCategorySubmit(onCategorySubmit)} className="space-y-4 py-2">
                 <div><Label htmlFor="new_cat_name">Nome</Label><Input id="new_cat_name" {...categoryFormRegister("name")} />{categoryFormErrors.name && <p className="text-sm text-destructive mt-1">{categoryFormErrors.name.message}</p>}</div>
                 <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar Categoria</Button></DialogFooter>
@@ -131,7 +171,7 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
       {errors.root && <p className="text-sm text-destructive mt-1">{errors.root.message}</p>}
       <div className="flex justify-end gap-2 pt-4">
         {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
-        <Button type="submit" disabled={isSubmitting || isLoadingCategories}><Save className="mr-2 h-4 w-4"/>{isSubmitting ? "Salvando..." : (isEditing ? "Salvar Alterações" : "Criar Orçamento")}</Button>
+        <Button type="submit" disabled={isSubmitting || isLoadingCategories || isAuthLoading}><Save className="mr-2 h-4 w-4"/>{isSubmitting ? "Salvando..." : (isEditing ? "Salvar Alterações" : "Criar Orçamento")}</Button>
       </div>
     </form>
   );
