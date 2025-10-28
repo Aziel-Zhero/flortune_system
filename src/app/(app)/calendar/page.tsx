@@ -68,8 +68,8 @@ const sampleEvents: CalendarEvent[] = [
 // --- END MOCK DATA ---
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents);
-  const [isLoading, setIsLoading] = useState(false);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -79,13 +79,17 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   
   useEffect(() => {
+    setIsLoading(true);
     try {
         const storedManualEvents = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
+        // Combine mock transaction events with stored manual events
         const combined = [...sampleEvents.filter(se => !storedManualEvents.some((me: CalendarEvent) => me.id === se.id)), ...storedManualEvents];
         setEvents(combined);
     } catch (e) {
         console.error("Failed to load manual events from localStorage", e);
-        setEvents(sampleEvents);
+        setEvents(sampleEvents); // Fallback to just sample data
+    } finally {
+        setIsLoading(false);
     }
   }, []);
 
@@ -95,8 +99,10 @@ export default function CalendarPage() {
   
   const manualEvents = useMemo(() => events.filter(e => e.extendedProps.source === 'manual'), [events]);
   useEffect(() => {
-    localStorage.setItem('flortune-manual-events', JSON.stringify(manualEvents));
-  }, [manualEvents]);
+    if(!isLoading) { // Only save to localStorage after initial load
+      localStorage.setItem('flortune-manual-events', JSON.stringify(manualEvents));
+    }
+  }, [manualEvents, isLoading]);
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     setSelectedEvent(clickInfo.event as unknown as CalendarEvent);
@@ -158,7 +164,11 @@ export default function CalendarPage() {
         .filter(e => {
             if (!e.start) return false;
             const eventStart = parseISO(e.start as string);
-            if (selectedDay) return isEqual(eventStart, selectedDay);
+            // If a day is selected, filter for that day, otherwise filter for the current month view
+            if (selectedDay) {
+                const eventEnd = e.end ? parseISO(e.end as string) : eventStart;
+                return selectedDay >= eventStart && selectedDay <= eventEnd;
+            }
             return eventStart >= start && eventStart <= end;
         })
         .sort((a,b) => new Date(a.start as string).getTime() - new Date(b.start as string).getTime());
