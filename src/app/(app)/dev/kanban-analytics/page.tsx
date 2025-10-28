@@ -8,7 +8,8 @@ import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow, AlertTriangl
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, Area as AreaRecharts, AreaChart as AreaChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer } from "recharts";
+import { Bar, BarChart as BarChartRecharts, LabelList, Area as AreaRecharts, AreaChart as AreaChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer, Pie, PieChart as PieChartRecharts, Sector } from "recharts";
+import { PieSectorDataItem } from "recharts/types/polar/Pie"
 import { PrivateValue } from "@/components/shared/private-value";
 
 interface Task {
@@ -58,8 +59,12 @@ export default function KanbanAnalyticsPage() {
   }, []);
 
   const analyticsData = useMemo(() => {
-    const wipColumnIds = columns.filter(c => c.id.includes('doing') || c.id.includes('progress')).map(c => c.id);
-    const doneColumnIds = columns.filter(c => c.id.includes('done')).map(c => c.id);
+    if (!columns.length) return {
+        distribution: [], wipCount: 0, wipValue: 0, wipPoints: 0, throughput: 0
+    };
+    
+    const wipColumnIds = columns.filter(c => c.name.toLowerCase().includes('andamento') || c.name.toLowerCase().includes('doing')).map(c => c.id);
+    const doneColumnIds = columns.filter(c => c.name.toLowerCase().includes('concluído') || c.name.toLowerCase().includes('done')).map(c => c.id);
 
     const dataByColumn = columns.map(column => {
         const columnTasks = tasks.filter(task => task.columnId === column.id);
@@ -85,7 +90,16 @@ export default function KanbanAnalyticsPage() {
   
   const distributionChartConfig = { tasks: { label: "Nº de Tarefas", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
   const valueChartConfig = { value: { label: "Valor (R$)", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
-  const pointsChartConfig = { points: { label: "Story Points", color: "hsl(var(--chart-3))" } } satisfies ChartConfig;
+  const pointsChartConfig = useMemo(() => {
+      const config: ChartConfig = { points: { label: "Story Points" }};
+      analyticsData.distribution.forEach((col, i) => {
+          config[col.name] = {
+              label: col.name,
+              color: `hsl(var(--chart-${(i % 5) + 1}))`
+          }
+      });
+      return config;
+  }, [analyticsData.distribution]);
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -154,16 +168,23 @@ export default function KanbanAnalyticsPage() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><BarChart /> Distribuição de Tarefas</CardTitle>
-              <CardDescription>Nº de tarefas em cada coluna.</CardDescription>
+              <CardDescription>Nº de tarefas em cada coluna do fluxo.</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={distributionChartConfig} className="w-full h-72">
-                  <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="tasks" fill="var(--color-tasks)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+                  <BarChartRecharts accessibilityLayer data={analyticsData.distribution} margin={{ top: 20 }}>
+                      <CartesianGrid vertical={false} />
+                      <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)}/>
+                      <RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                      <Bar dataKey="tasks" fill="var(--color-tasks)" radius={8}>
+                          <LabelList position="top" offset={12} className="fill-foreground" fontSize={12} />
+                      </Bar>
+                  </BarChartRecharts>
               </ChartContainer>
             </CardContent>
           </Card>
@@ -172,31 +193,50 @@ export default function KanbanAnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><DollarSign /> Distribuição de Valor</CardTitle>
-              <CardDescription>Valor agregado (R$) em cada coluna.</CardDescription>
+              <CardDescription>Valor agregado (R$) em cada etapa.</CardDescription>
             </CardHeader>
             <CardContent>
                <ChartContainer config={valueChartConfig} className="w-full h-72">
-                  <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value as number)} cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="value" fill="var(--color-value)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+                  <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{ right: 16 }}>
+                      <CartesianGrid horizontal={false} />
+                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 10)} hide />
+                      <XAxis dataKey="value" type="number" hide />
+                      <RechartsTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
+                      <Bar dataKey="value" layout="vertical" fill="var(--color-value)" radius={4}>
+                         <LabelList dataKey="name" position="insideLeft" offset={8} className="fill-[var(--background)]" fontSize={12} />
+                         <LabelList dataKey="value" position="right" offset={8} className="fill-foreground" fontSize={12} formatter={(value: number) => new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(value)} />
+                      </Bar>
+                  </BarChartRecharts>
               </ChartContainer>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
-          <Card>
+          <Card className="flex flex-col">
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><Puzzle /> Distribuição de Esforço</CardTitle>
-              <CardDescription>Story Points em cada coluna.</CardDescription>
+              <CardDescription>Story Points distribuídos pelo fluxo.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChartContainer config={pointsChartConfig} className="w-full h-72">
-                    <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{left: 20}}><CartesianGrid horizontal={false}/><YAxis dataKey="name" type="category" tick={false} axisLine={false} width={80}/><XAxis type="number" hide/><RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} /><Bar dataKey="points" fill="var(--color-points)" radius={4}><ChartTooltipContent/></Bar></BarChartRecharts>
+            <CardContent className="flex-1 pb-0">
+                <ChartContainer config={pointsChartConfig} className="mx-auto aspect-square max-h-[250px]">
+                    <PieChart>
+                      <RechartsTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
+                      <Pie data={analyticsData.distribution} dataKey="points" nameKey="name" innerRadius={60} strokeWidth={5}>
+                         {analyticsData.distribution.map((entry, index) => (
+                          <Sector key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                        ))}
+                      </Pie>
+                    </PieChart>
                 </ChartContainer>
             </CardContent>
+            <CardFooter className="flex-col gap-2 text-sm mt-auto">
+               <div className="text-muted-foreground leading-none">
+                Total de {analyticsData.distribution.reduce((acc, curr) => acc + curr.points, 0)} pontos distribuídos.
+              </div>
+            </CardFooter>
           </Card>
         </motion.div>
-      </div>
-
-       <motion.div custom={7} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-1">
+        <motion.div custom={7} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><Workflow /> Diagrama de Fluxo Cumulativo (CFD)</CardTitle>
@@ -210,15 +250,20 @@ export default function KanbanAnalyticsPage() {
                       <YAxis label={{ value: 'Nº de Tarefas', angle: -90, position: 'insideLeft' }}/>
                       <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
                       <ChartLegend content={<ChartLegendContent />} />
-                      <AreaRecharts dataKey="Backlog" type="monotone" fill="var(--color-Backlog)" fillOpacity={0.6} stroke="var(--color-Backlog)" stackId="a" />
-                      <AreaRecharts dataKey="Em Andamento" type="monotone" fill="var(--color-Em-Andamento)" fillOpacity={0.6} stroke="var(--color-Em-Andamento)" stackId="a" />
-                      <AreaRecharts dataKey="Concluído" type="monotone" fill="var(--color-Concluído)" fillOpacity={0.6} stroke="var(--color-Concluído)" stackId="a" />
+                      <defs>
+                        <linearGradient id="fillBacklog" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Backlog)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Backlog)" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillEmAndamento" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Em-Andamento)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Em-Andamento)" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillConcluido" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Concluído)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Concluído)" stopOpacity={0.1}/></linearGradient>
+                      </defs>
+                      <AreaRecharts dataKey="Backlog" type="natural" fill="url(#fillBacklog)" fillOpacity={0.6} stroke="var(--color-Backlog)" stackId="a" />
+                      <AreaRecharts dataKey="Em Andamento" type="natural" fill="url(#fillEmAndamento)" fillOpacity={0.6} stroke="var(--color-Em-Andamento)" stackId="a" />
+                      <AreaRecharts dataKey="Concluído" type="natural" fill="url(#fillConcluido)" fillOpacity={0.6} stroke="var(--color-Concluído)" stackId="a" />
                   </AreaChartRecharts>
               </ChartContainer>
             </CardContent>
           </Card>
         </motion.div>
-
+      </div>
     </div>
   );
 }
