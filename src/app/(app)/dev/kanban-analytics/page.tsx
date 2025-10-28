@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow, AlertTriangle, DollarSign, Puzzle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
+import { Bar, BarChart as BarChartRecharts, Area as AreaRecharts, AreaChart as AreaChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import { PrivateValue } from "@/components/shared/private-value";
 
 interface Task {
@@ -23,6 +23,21 @@ interface Column {
   name: string;
   wipLimit?: number;
 }
+
+// --- MOCK DATA ---
+const mockCumulativeFlowData = [
+    { date: "01/07", Backlog: 15, "Em Andamento": 3, "Concluído": 20 },
+    { date: "02/07", Backlog: 12, "Em Andamento": 5, "Concluído": 21 },
+    { date: "03/07", Backlog: 10, "Em Andamento": 6, "Concluído": 22 },
+    { date: "04/07", Backlog: 10, "Em Andamento": 5, "Concluído": 23 },
+    { date: "05/07", Backlog: 8, "Em Andamento": 4, "Concluído": 26 },
+    { date: "08/07", Backlog: 6, "Em Andamento": 5, "Concluído": 27 },
+];
+const cfdChartConfig = {
+    Backlog: { label: "Backlog", color: "hsl(var(--chart-5))" },
+    "Em Andamento": { label: "Em Andamento", color: "hsl(var(--chart-2))" },
+    Concluído: { label: "Concluído", color: "hsl(var(--chart-1))" },
+} satisfies ChartConfig;
 
 export default function KanbanAnalyticsPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -43,6 +58,9 @@ export default function KanbanAnalyticsPage() {
   }, []);
 
   const analyticsData = useMemo(() => {
+    const wipColumnIds = columns.filter(c => c.id.includes('doing') || c.id.includes('progress')).map(c => c.id);
+    const doneColumnIds = columns.filter(c => c.id.includes('done')).map(c => c.id);
+
     const dataByColumn = columns.map(column => {
         const columnTasks = tasks.filter(task => task.columnId === column.id);
         return {
@@ -53,9 +71,8 @@ export default function KanbanAnalyticsPage() {
         };
     });
 
-    const wipColumns = ['doing', 'in_progress', 'review', 'test'];
-    const wipTasks = tasks.filter(task => wipColumns.includes(task.columnId));
-    const doneTasks = tasks.filter(task => task.columnId === 'done');
+    const wipTasks = tasks.filter(task => wipColumnIds.includes(task.columnId));
+    const doneTasks = tasks.filter(task => doneColumnIds.includes(task.columnId));
 
     return {
         distribution: dataByColumn,
@@ -183,12 +200,21 @@ export default function KanbanAnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2"><Workflow /> Diagrama de Fluxo Cumulativo (CFD)</CardTitle>
-              <CardDescription>Visualização do trabalho em cada etapa ao longo do tempo (Em desenvolvimento).</CardDescription>
+              <CardDescription>Visualização do trabalho em cada etapa ao longo do tempo (com dados de exemplo).</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="w-full h-80 flex items-center justify-center bg-muted/50 rounded-md">
-                <p className="text-muted-foreground">Gráfico CFD em breve.</p>
-              </div>
+               <ChartContainer config={cfdChartConfig} className="w-full h-80">
+                  <AreaChartRecharts accessibilityLayer data={mockCumulativeFlowData}>
+                      <CartesianGrid vertical={false} />
+                      <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={10}/>
+                      <YAxis label={{ value: 'Nº de Tarefas', angle: -90, position: 'insideLeft' }}/>
+                      <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <AreaRecharts dataKey="Backlog" type="monotone" fill="var(--color-Backlog)" fillOpacity={0.6} stroke="var(--color-Backlog)" stackId="a" />
+                      <AreaRecharts dataKey="Em Andamento" type="monotone" fill="var(--color-Em-Andamento)" fillOpacity={0.6} stroke="var(--color-Em-Andamento)" stackId="a" />
+                      <AreaRecharts dataKey="Concluído" type="monotone" fill="var(--color-Concluído)" fillOpacity={0.6} stroke="var(--color-Concluído)" stackId="a" />
+                  </AreaChartRecharts>
+              </ChartContainer>
             </CardContent>
           </Card>
         </motion.div>
