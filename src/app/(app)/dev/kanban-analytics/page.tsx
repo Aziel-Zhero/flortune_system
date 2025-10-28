@@ -27,18 +27,25 @@ interface Column {
 
 // --- MOCK DATA ---
 const mockCumulativeFlowData = [
-    { date: "01/07", Backlog: 15, "Em Andamento": 3, "Concluído": 20 },
-    { date: "02/07", Backlog: 12, "Em Andamento": 5, "Concluído": 21 },
-    { date: "03/07", Backlog: 10, "Em Andamento": 6, "Concluído": 22 },
-    { date: "04/07", Backlog: 10, "Em Andamento": 5, "Concluído": 23 },
-    { date: "05/07", Backlog: 8, "Em Andamento": 4, "Concluído": 26 },
-    { date: "08/07", Backlog: 6, "Em Andamento": 5, "Concluído": 27 },
+    // Semana, Pronto (base), Revisao (Pronto + Revisao), Implementacao (Pronto + Revisao + Impl), Especificacao (Total)
+    { week: "1", Pronto: 5, Revisão: 12, Implementação: 25, Especificação: 35 },
+    { week: "2", Pronto: 10, Revisão: 20, Implementação: 35, Especificação: 42 },
+    { week: "3", Pronto: 15, Revisão: 28, Implementação: 45, Especificação: 55 },
+    { week: "4", Pronto: 22, Revisão: 35, Implementação: 52, Especificação: 60 },
+    { week: "5", Pronto: 28, Revisão: 42, Implementação: 60, Especificação: 68 },
+    { week: "6", Pronto: 35, Revisão: 50, Implementação: 68, Especificação: 75 },
+    { week: "7", Pronto: 45, Revisão: 60, Implementação: 75, Especificação: 85 },
+    { week: "8", Pronto: 55, Revisão: 70, Implementação: 82, Especificação: 95 },
+    { week: "9", Pronto: 68, Revisão: 80, Implementação: 90, Especificação: 105 },
+    { week: "10", Pronto: 85, Revisão: 95, Implementação: 105, Especificação: 120 },
 ];
 const cfdChartConfig = {
-    Backlog: { label: "Backlog", color: "hsl(var(--chart-5))" },
-    "Em Andamento": { label: "Em Andamento", color: "hsl(var(--chart-2))" },
-    Concluído: { label: "Concluído", color: "hsl(var(--chart-1))" },
+    Pronto: { label: "Pronto", color: "hsl(var(--chart-4))" },
+    Revisão: { label: "Revisão", color: "hsl(var(--chart-5))" },
+    Implementação: { label: "Implementação", color: "hsl(var(--chart-2))" },
+    Especificação: { label: "Especificação", color: "hsl(var(--chart-1))" },
 } satisfies ChartConfig;
+
 
 export default function KanbanAnalyticsPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -162,7 +169,7 @@ export default function KanbanAnalyticsPage() {
         </motion.div>
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Throughput (Vazão)</CardTitle><CardDescription className="text-xs">Tarefas concluídas (simulado)</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline text-lg">Throughput (Vazão)</CardTitle><CardDescription className="text-xs">Tarefas concluídas</CardDescription></CardHeader>
                 <CardContent className="flex items-center gap-4"><MoveRight className="h-10 w-10 text-blue-500"/><p className="text-4xl font-bold">{analyticsData.throughput}</p></CardContent>
             </Card>
         </motion.div>
@@ -246,18 +253,20 @@ export default function KanbanAnalyticsPage() {
                <ChartContainer config={cfdChartConfig} className="w-full h-80">
                   <AreaChartRecharts accessibilityLayer data={mockCumulativeFlowData}>
                       <CartesianGrid vertical={false} />
-                      <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={10}/>
-                      <YAxis label={{ value: 'Nº de Tarefas', angle: -90, position: 'insideLeft' }}/>
+                      <XAxis dataKey="week" name="Semana" tickLine={false} axisLine={false} tickMargin={10}/>
+                      <YAxis label={{ value: 'Histórias', angle: -90, position: 'insideLeft' }}/>
                       <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
                       <ChartLegend content={<ChartLegendContent />} />
                       <defs>
-                        <linearGradient id="fillBacklog" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Backlog)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Backlog)" stopOpacity={0.1}/></linearGradient>
-                        <linearGradient id="fillEmAndamento" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Em-Andamento)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Em-Andamento)" stopOpacity={0.1}/></linearGradient>
-                        <linearGradient id="fillConcluido" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Concluído)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Concluído)" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillEspecificacao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Especificação)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Especificação)" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillImplementacao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Implementação)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Implementação)" stopOpacity={0.1}/></linearGradient>
+                        <linearGradient id="fillRevisao" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Revisão)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Revisão)" stopOpacity={0.1}/></linearGradient>
+                         <linearGradient id="fillPronto" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Pronto)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Pronto)" stopOpacity={0.1}/></linearGradient>
                       </defs>
-                      <AreaRecharts dataKey="Backlog" type="natural" fill="url(#fillBacklog)" fillOpacity={0.6} stroke="var(--color-Backlog)" stackId="a" />
-                      <AreaRecharts dataKey="Em Andamento" type="natural" fill="url(#fillEmAndamento)" fillOpacity={0.6} stroke="var(--color-Em-Andamento)" stackId="a" />
-                      <AreaRecharts dataKey="Concluído" type="natural" fill="url(#fillConcluido)" fillOpacity={0.6} stroke="var(--color-Concluído)" stackId="a" />
+                      <AreaRecharts dataKey="Especificação" type="natural" fill="url(#fillEspecificacao)" stroke="var(--color-Especificação)" stackId="a" />
+                      <AreaRecharts dataKey="Implementação" type="natural" fill="url(#fillImplementacao)" stroke="var(--color-Implementação)" stackId="a" />
+                      <AreaRecharts dataKey="Revisão" type="natural" fill="url(#fillRevisao)" stroke="var(--color-Revisão)" stackId="a" />
+                      <AreaRecharts dataKey="Pronto" type="natural" fill="url(#fillPronto)" stroke="var(--color-Pronto)" stackId="a" />
                   </AreaChartRecharts>
               </ChartContainer>
             </CardContent>
