@@ -3,12 +3,12 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { AreaChart, BarChart, Clock, ListTodo, MoveRight, Workflow, AlertTriangle, DollarSign, Puzzle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, LabelList, Area as AreaRecharts, AreaChart as AreaChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer, Pie, PieChart as PieChartRecharts, Sector } from "recharts";
+import { Bar, BarChart as BarChartRecharts, LabelList, Area as AreaRecharts, AreaChart as AreaChartRecharts, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer, Pie, PieChart, Sector } from "recharts";
 import { PieSectorDataItem } from "recharts/types/polar/Pie"
 import { PrivateValue } from "@/components/shared/private-value";
 
@@ -88,7 +88,7 @@ export default function KanbanAnalyticsPage() {
     };
   }, [tasks, columns]);
   
-  const distributionChartConfig = { tasks: { label: "Nº de Tarefas", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
+  const tasksChartConfig = { tasks: { label: "Tarefas", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
   const valueChartConfig = { value: { label: "Valor (R$)", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
   const pointsChartConfig = useMemo(() => {
       const config: ChartConfig = { points: { label: "Story Points" }};
@@ -162,7 +162,7 @@ export default function KanbanAnalyticsPage() {
         </motion.div>
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline text-lg">Throughput (Vazão)</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="font-headline text-lg">Throughput (Vazão)</CardTitle><CardDescription className="text-xs">Tarefas concluídas (simulado)</CardDescription></CardHeader>
                 <CardContent className="flex items-center gap-4"><MoveRight className="h-10 w-10 text-blue-500"/><p className="text-4xl font-bold">{analyticsData.throughput}</p></CardContent>
             </Card>
         </motion.div>
@@ -176,7 +176,7 @@ export default function KanbanAnalyticsPage() {
               <CardDescription>Nº de tarefas em cada coluna do fluxo.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={distributionChartConfig} className="w-full h-72">
+              <ChartContainer config={tasksChartConfig} className="w-full h-72">
                   <BarChartRecharts accessibilityLayer data={analyticsData.distribution} margin={{ top: 20 }}>
                       <CartesianGrid vertical={false} />
                       <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)}/>
@@ -199,11 +199,11 @@ export default function KanbanAnalyticsPage() {
                <ChartContainer config={valueChartConfig} className="w-full h-72">
                   <BarChartRecharts accessibilityLayer data={analyticsData.distribution} layout="vertical" margin={{ right: 16 }}>
                       <CartesianGrid horizontal={false} />
-                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 10)} hide />
+                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} hide />
                       <XAxis dataKey="value" type="number" hide />
                       <RechartsTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
                       <Bar dataKey="value" layout="vertical" fill="var(--color-value)" radius={4}>
-                         <LabelList dataKey="name" position="insideLeft" offset={8} className="fill-[var(--background)]" fontSize={12} />
+                         <LabelList dataKey="name" position="insideLeft" offset={8} className="fill-background" fontSize={12} />
                          <LabelList dataKey="value" position="right" offset={8} className="fill-foreground" fontSize={12} formatter={(value: number) => new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(value)} />
                       </Bar>
                   </BarChartRecharts>
@@ -222,8 +222,8 @@ export default function KanbanAnalyticsPage() {
                     <PieChart>
                       <RechartsTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
                       <Pie data={analyticsData.distribution} dataKey="points" nameKey="name" innerRadius={60} strokeWidth={5}>
-                         {analyticsData.distribution.map((entry, index) => (
-                          <Sector key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                         {analyticsData.distribution.map((entry) => (
+                          <Sector key={`cell-${entry.name}`} fill={`var(--color-${entry.name})`} />
                         ))}
                       </Pie>
                     </PieChart>
