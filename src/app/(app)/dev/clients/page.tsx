@@ -42,12 +42,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileSpreadsheet, AlertTriangle, Calculator, Loader2 } from "lucide-react";
+import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileSpreadsheet, AlertTriangle, Calculator, Loader2, CalendarIcon } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { PrivateValue } from "@/components/shared/private-value";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 // --- Tipos e Dados ---
 type ClientStatus = 'planning' | 'in_progress' | 'delivered' | 'on_hold' | 'delayed';
@@ -70,13 +73,13 @@ const clientSchema = z.object({
   name: z.string().min(2, "O nome do cliente/projeto é obrigatório."),
   serviceType: z.string().min(2, "O tipo de serviço é obrigatório."),
   status: z.enum(['planning', 'in_progress', 'delivered', 'on_hold', 'delayed']),
-  startDate: z.string().refine(v => v, { message: "Data de início é obrigatória." }),
-  deadline: z.string().refine(v => v, { message: "Data de entrega é obrigatória." }),
+  startDate: z.date({ required_error: "Data de início é obrigatória." }),
+  deadline: z.date({ required_error: "Data de entrega é obrigatória." }),
   priority: z.enum(['low', 'medium', 'high']),
   notes: z.string().max(5000, "Máximo de 5000 caracteres.").optional().default(""),
   tasks: z.string().max(5000, "Máximo de 5000 caracteres.").optional().default(""),
   totalPrice: z.coerce.number().optional().nullable(),
-}).refine(data => new Date(data.deadline) >= new Date(data.startDate), {
+}).refine(data => data.deadline >= data.startDate, {
   message: "A data de entrega não pode ser anterior à data de início.",
   path: ["deadline"],
 });
@@ -125,19 +128,29 @@ export default function DevClientsPage() {
 
   const handleOpenForm = useCallback((client: Client | null = null) => {
     setEditingClient(client);
-    reset(client || { name: "", serviceType: "", status: "planning", priority: "medium", startDate: format(new Date(), 'yyyy-MM-dd'), deadline: format(new Date(), 'yyyy-MM-dd'), notes: "", tasks: "", totalPrice: null });
+    if (client) {
+      reset({ ...client, startDate: parseISO(client.startDate), deadline: parseISO(client.deadline) });
+    } else {
+      reset({ name: "", serviceType: "", status: "planning", priority: "medium", startDate: new Date(), deadline: new Date(), notes: "", tasks: "", totalPrice: null });
+    }
     setIsFormOpen(true);
   }, [reset]);
 
   const onSubmit: SubmitHandler<ClientFormData> = useCallback(async (data) => {
     setIsSubmitting(true);
     await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const formattedData = {
+        ...data,
+        startDate: format(data.startDate, 'yyyy-MM-dd'),
+        deadline: format(data.deadline, 'yyyy-MM-dd'),
+    };
 
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...editingClient, ...data } : c));
+      setClients(clients.map(c => c.id === editingClient.id ? { ...editingClient, ...formattedData } : c));
       toast({ title: "Cliente Atualizado!" });
     } else {
-      const finalClient: Client = { ...data, id: `client_${Date.now()}` };
+      const finalClient: Client = { ...formattedData, id: `client_${Date.now()}` };
       setClients(prev => [finalClient, ...prev]);
       toast({ title: "Cliente Adicionado!" });
     }
@@ -254,11 +267,25 @@ export default function DevClientsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><Label htmlFor="name">Nome Cliente/Projeto</Label><Input id="name" {...register("name")} autoFocus />{errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}</div>
                 <div><Label htmlFor="serviceType">Serviço</Label><Input id="serviceType" {...register("serviceType")} />{errors.serviceType && <p className="text-sm text-destructive mt-1">{errors.serviceType.message}</p>}</div>
-                <div><Label htmlFor="startDate">Data de Início</Label><Input id="startDate" type="date" {...register("startDate")} />{errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}</div>
-                <div><Label htmlFor="deadline">Data de Entrega</Label><Input id="deadline" type="date" {...register("deadline")} />{errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}</div>
+                
+                 <div>
+                    <Label>Data de Início</Label>
+                    <Controller name="startDate" control={control} render={({ field }) => (
+                        <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>
+                    )} />
+                    {errors.startDate && <p className="text-sm text-destructive mt-1">{errors.startDate.message}</p>}
+                </div>
+                 <div>
+                    <Label>Data de Entrega</Label>
+                    <Controller name="deadline" control={control} render={({ field }) => (
+                        <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>
+                    )} />
+                    {errors.deadline && <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>}
+                </div>
+                
                 <div><Label>Status</Label><Controller name="status" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
-                <div><Label>Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
                 <div className="md:col-span-1"><Label htmlFor="totalPrice">Preço do Projeto (R$)</Label><Input id="totalPrice" type="number" step="0.01" {...register("totalPrice")} />{errors.totalPrice && <p className="text-sm text-destructive mt-1">{errors.totalPrice.message}</p>}</div>
+                <div className="md:col-span-1"><Label>Prioridade</Label><Controller name="priority" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(priorityConfig).map(([k, {label}]) => (<SelectItem key={k} value={k}>{label}</SelectItem>))}</SelectContent></Select>)}/></div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
