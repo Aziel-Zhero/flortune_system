@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { KanbanSquare, PlusCircle, Calendar, DollarSign, AlertTriangle, Settings, Trash2, Edit, Palette } from "lucide-react";
+import { KanbanSquare, PlusCircle, Calendar, DollarSign, AlertTriangle, Settings, Trash2, Edit, Palette, HelpCircle } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,7 +41,7 @@ interface Task {
   tagId?: string;
   value?: number;
   delayCost?: number;
-  delayCostPeriod?: 'hora' | 'dia' | 'semana';
+  delayCostPeriod?: 'hora' | 'dia' | 'semana' | 'quinzenal' | 'mensal';
 }
 
 interface Column {
@@ -57,7 +57,7 @@ const taskSchema = z.object({
   assignedTo: z.string().optional(),
   value: z.coerce.number().optional(),
   delayCost: z.coerce.number().optional(),
-  delayCostPeriod: z.enum(['hora', 'dia', 'semana']).optional(),
+  delayCostPeriod: z.enum(['hora', 'dia', 'semana', 'quinzenal', 'mensal']).optional(),
   tagId: z.string().optional(),
 });
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -195,17 +195,16 @@ export default function DevKanbanPage() {
   const [tags, setTags] = useState<Tag[]>(initialTags);
   const [activeElement, setActiveElement] = useState<Task | Column | null>(null);
 
-  // --- Task Modal ---
+  // --- Modal States ---
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const { register: taskRegister, handleSubmit: handleTaskSubmit, control: taskControl, reset: resetTaskForm, formState: { errors: taskErrors } } = useForm<TaskFormData>({ resolver: zodResolver(taskSchema) });
-  
-  // --- Column Modal ---
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const [editingColumn, setEditingColumn] = useState<Column | null>(null);
-  const { register: columnRegister, handleSubmit: handleColumnSubmit, reset: resetColumnForm, control: columnControl, formState: { errors: columnErrors } } = useForm<ColumnFormData>({ resolver: zodResolver(columnSchema) });
-  
-  // --- Tag Modal ---
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  
+  // --- Form Hooks ---
+  const { register: taskRegister, handleSubmit: handleTaskSubmit, control: taskControl, reset: resetTaskForm, formState: { errors: taskErrors } } = useForm<TaskFormData>({ resolver: zodResolver(taskSchema) });
+  const { register: columnRegister, handleSubmit: handleColumnSubmit, reset: resetColumnForm, control: columnControl, formState: { errors: columnErrors } } = useForm<ColumnFormData>({ resolver: zodResolver(columnSchema) });
   const { register: tagRegister, handleSubmit: handleTagSubmit, reset: resetTagForm, control: tagControl, formState: { errors: tagErrors } } = useForm<NewTagFormData>({ resolver: zodResolver(newTagSchema) });
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
@@ -307,7 +306,12 @@ export default function DevKanbanPage() {
   return (
     <>
       <div className="flex flex-col h-full">
-        <PageHeader title="Quadro Kanban (DEV)" description="Visualize e gerencie o fluxo de trabalho. Arraste e solte tarefas e colunas." icon={<KanbanSquare />} />
+        <PageHeader 
+          title="Quadro Kanban" 
+          description="Visualize e gerencie o fluxo de trabalho. Arraste e solte tarefas e colunas." 
+          icon={<KanbanSquare />}
+          actions={<Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>}
+        />
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} collisionDetection={closestCorners}>
           <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
               <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
@@ -334,9 +338,7 @@ export default function DevKanbanPage() {
                   <div><Label htmlFor="tagId">Tag/Tipo</Label>
                     <div className="flex gap-2">
                       <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
-                      <DialogTrigger asChild>
-                        <Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button>
-                      </DialogTrigger>
+                      <Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button>
                     </div>
                   </div>
                 </div>
@@ -345,7 +347,7 @@ export default function DevKanbanPage() {
                     <div><Label htmlFor="delayCost">Custo do Atraso (R$)</Label><Input id="delayCost" type="number" step="0.01" {...taskRegister("delayCost")} /></div>
                 </div>
                  <div className="grid grid-cols-1">
-                    <div><Label htmlFor="delayCostPeriod">Período do Custo de Atraso</Label><Controller name="delayCostPeriod" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="hora">por Hora</SelectItem><SelectItem value="dia">por Dia</SelectItem><SelectItem value="semana">por Semana</SelectItem></SelectContent></Select>)}/></div>
+                    <div><Label htmlFor="delayCostPeriod">Período do Custo de Atraso</Label><Controller name="delayCostPeriod" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="hora">por Hora</SelectItem><SelectItem value="dia">por Dia</SelectItem><SelectItem value="semana">por Semana</SelectItem><SelectItem value="quinzenal">por Quinzena</SelectItem><SelectItem value="mensal">por Mês</SelectItem></SelectContent></Select>)}/></div>
                  </div>
                 <div><Label htmlFor="assignedTo">Atribuído a (nomes separados por vírgula)</Label><Input id="assignedTo" {...taskRegister("assignedTo")} placeholder="Ex: João, Maria" /></div>
               <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Adicionar Tarefa</Button></DialogFooter>
@@ -393,6 +395,52 @@ export default function DevKanbanPage() {
                   <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar</Button></DialogFooter>
               </form>
           </DialogContent>
+      </Dialog>
+
+      <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline flex items-center"><HelpCircle className="h-5 w-5 mr-2 text-primary"/>Guia de Uso do Quadro Kanban</DialogTitle>
+            <DialogDescription>Entenda os conceitos e como usar esta ferramenta para maximizar sua produtividade.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-6 text-sm text-muted-foreground max-h-[70vh] overflow-y-auto pr-4">
+            <div className="space-y-2">
+                <h4 className="font-semibold text-foreground">O que é Kanban?</h4>
+                <p>Kanban é um método para gerenciar o fluxo de trabalho. Seu principal objetivo é visualizar o trabalho, limitar o trabalho em andamento (WIP) e maximizar a eficiência. Em vez de planejar iterações fixas como no Scrum, o Kanban foca no fluxo contínuo de entrega de valor.</p>
+            </div>
+            <div className="space-y-2">
+                <h4 className="font-semibold text-foreground">Funcionalidades Implementadas</h4>
+                <ul className="list-disc list-inside space-y-3">
+                    <li>
+                        <strong>Colunas Personalizadas:</strong> Você pode adicionar, renomear e reordenar as colunas para mapear seu fluxo de trabalho real. Use o botão "Adicionar Nova Coluna" ou a engrenagem em cada coluna para gerenciá-las.
+                    </li>
+                    <li>
+                        <strong>Limite WIP (Work In Progress):</strong> Ao editar uma coluna, você pode definir um "Limite WIP". Quando o número de tarefas na coluna excede esse limite, o cabeçalho fica vermelho. Isso é um sinal visual para a equipe parar de iniciar novas tarefas e focar em finalizar o que já está em andamento, resolvendo gargalos.
+                    </li>
+                    <li>
+                        <strong>Priorização por Valor e Urgência:</strong> Ao criar uma tarefa, você pode definir o "Valor do Projeto" (o benefício de concluí-la) e o "Custo do Atraso" (quanto custa não fazer a tarefa por um período). Tarefas com alto Custo de Atraso devem ser priorizadas. Esta é uma técnica poderosa para tomar decisões econômicas.
+                    </li>
+                    <li>
+                        <strong>Tags e Cores:</strong> Use as tags para categorizar suas tarefas (ex: "Bug", "Melhoria", "Infra"). Você pode criar novas tags e associar cores a elas, melhorando a organização visual do seu quadro.
+                    </li>
+                     <li>
+                        <strong>Atribuição Múltipla:</strong> O campo "Atribuído a" aceita múltiplos nomes separados por vírgula, ideal para tarefas que envolvem trabalho em par ou em equipe.
+                    </li>
+                </ul>
+            </div>
+             <div className="space-y-2 pt-2 border-t">
+                <h4 className="font-semibold text-foreground">Como Começar?</h4>
+                <p>1. **Mapeie seu Fluxo:** Adicione e renomeie as colunas para representar as etapas do seu processo (Ex: Ideias, A Fazer, Desenvolvendo, Testando, Concluído).</p>
+                <p>2. **Defina Limites WIP:** Comece com limites baixos para as colunas "em andamento". Por exemplo, não mais que 1 ou 2 tarefas por pessoa na equipe.</p>
+                <p>3. **Adicione Tarefas:** Preencha o backlog com suas tarefas. Tente estimar o Valor e o Custo do Atraso para as mais importantes.</p>
+                <p>4. **Puxe o Trabalho:** Em vez de "empurrar" trabalho, puxe a próxima tarefa mais importante do "A Fazer" para "Em Andamento" apenas quando houver capacidade (abaixo do limite WIP).</p>
+                <p>5. **Observe e Melhore:** Use o quadro para identificar onde as tarefas estão parando. O objetivo é manter o fluxo suave e contínuo.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button>Entendi</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );
