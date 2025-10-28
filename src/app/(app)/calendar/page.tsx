@@ -186,7 +186,7 @@ export default function CalendarPage() {
             {isLoading ? (
                 <div className="p-4 space-y-4">
                     <Skeleton className="h-10 w-1/2" />
-                    <Skeleton className="h-[500px] w-full" />
+                    <Skeleton className="h-full w-full" />
                 </div>
             ) : (
                 <FullCalendar
