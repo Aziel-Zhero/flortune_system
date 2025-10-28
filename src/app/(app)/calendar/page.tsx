@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
-import { format, parseISO, startOfMonth, endOfMonth, isEqual } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -182,7 +182,7 @@ export default function CalendarPage() {
         icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
       />
       <div className="flex flex-1 gap-6 overflow-hidden">
-        <div className="flex-1 p-1 -m-1 bg-card border rounded-lg shadow-sm overflow-hidden min-w-0">
+        <div className="flex-1 bg-card border rounded-lg shadow-sm overflow-hidden min-w-0">
             {isLoading ? (
                 <div className="p-4 space-y-4">
                     <Skeleton className="h-10 w-1/2" />
