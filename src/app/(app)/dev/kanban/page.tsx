@@ -1,7 +1,7 @@
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners, type DragStartEvent, type DragOverEvent, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -166,6 +166,8 @@ const KanbanColumn: React.FC<{ column: Column; tasks: Task[]; tags: Tag[]; onEdi
     const tasksCount = tasks.length;
     const isWipExceeded = column.wipLimit !== undefined && tasksCount > column.wipLimit;
 
+    const tasksIds = useMemo(() => tasks.map(t => t.id), [tasks]);
+
     return (
       <div ref={setNodeRef} style={style} className={cn("w-80 rounded-lg flex flex-col flex-shrink-0 max-h-[calc(100vh-16rem)]", column.colorClass || 'bg-muted/50', isDragging && "opacity-30")}>
         <div {...attributes} {...listeners} className={cn("flex justify-between items-center mb-3 px-3 pt-3 pb-1 cursor-grab active:cursor-grabbing", isWipExceeded && "bg-red-500/40 rounded-t-lg")}>
@@ -183,7 +185,7 @@ const KanbanColumn: React.FC<{ column: Column; tasks: Task[]; tags: Tag[]; onEdi
             </DropdownMenu>
           </div>
         </div>
-        <SortableContext items={tasks.map(t => t.id)}>
+        <SortableContext items={tasksIds}>
           <div className="flex-1 space-y-2 p-3 pt-0 rounded-md overflow-y-auto">
               {tasks.map(task => <SortableKanbanCard key={task.id} task={task} tags={tags} />)}
           </div>
@@ -225,19 +227,26 @@ export default function DevKanbanPage() {
 
   function onDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
+    if (!over) return;
+  
+    const activeId = active.id;
+    const overId = over.id;
+  
+    if (activeId === overId) return;
+  
     const isActiveATask = active.data.current?.type === "Task";
     const isOverAColumn = over.data.current?.type === "Column";
-
+  
     if (isActiveATask && isOverAColumn) {
-      setTasks((currentTasks) => {
-        const activeIndex = currentTasks.findIndex((t) => t.id === active.id);
-        if (currentTasks[activeIndex].columnId !== over.id) {
-            currentTasks[activeIndex].columnId = over.id as string;
-            return arrayMove(currentTasks, activeIndex, activeIndex);
+      setTasks((tasks) => {
+        const activeIndex = tasks.findIndex((t) => t.id === activeId);
+        
+        if (tasks[activeIndex].columnId !== overId) {
+            tasks[activeIndex].columnId = overId as string;
+            return arrayMove(tasks, activeIndex, activeIndex);
         }
-        return currentTasks;
+  
+        return tasks;
       });
     }
   }
@@ -343,30 +352,32 @@ export default function DevKanbanPage() {
             </div>
 
             {/* Task Modal */}
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nova Tarefa</DialogTitle><DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription></DialogHeader>
-              <form onSubmit={handleTaskSubmit(handleAddTask)} className="space-y-4">
-                  <div><Label htmlFor="title">Título da Tarefa</Label><Input id="title" {...taskRegister("title")} />{taskErrors.title && <p className="text-sm text-destructive mt-1">{taskErrors.title.message}</p>}</div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><Label htmlFor="points">Story Points</Label><Input id="points" type="number" {...taskRegister("points")} /></div>
-                      <div><Label htmlFor="tagId">Tag/Tipo</Label>
-                        <div className="flex gap-2">
-                          <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
-                          <DialogTrigger asChild><Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button></DialogTrigger>
+            <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Nova Tarefa</DialogTitle><DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription></DialogHeader>
+                <form onSubmit={handleTaskSubmit(handleAddTask)} className="space-y-4">
+                    <div><Label htmlFor="title">Título da Tarefa</Label><Input id="title" {...taskRegister("title")} />{taskErrors.title && <p className="text-sm text-destructive mt-1">{taskErrors.title.message}</p>}</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div><Label htmlFor="points">Story Points</Label><Input id="points" type="number" {...taskRegister("points")} /></div>
+                        <div><Label htmlFor="tagId">Tag/Tipo</Label>
+                          <div className="flex gap-2">
+                            <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
+                            <DialogTrigger asChild><Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button></DialogTrigger>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 items-end">
-                        <div><Label htmlFor="value">Valor do Projeto (R$)</Label><Input id="value" type="number" step="0.01" {...taskRegister("value")} /></div>
-                        <div><Label htmlFor="delayCost">Custo do Atraso (R$)</Label><Input id="delayCost" type="number" step="0.01" {...taskRegister("delayCost")} /></div>
-                    </div>
-                    <div className="grid grid-cols-1">
-                        <div><Label htmlFor="delayCostPeriod">Período do Custo de Atraso</Label><Controller name="delayCostPeriod" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="hora">por Hora</SelectItem><SelectItem value="dia">por Dia</SelectItem><SelectItem value="semana">por Semana</SelectItem><SelectItem value="quinzenal">por Quinzena</SelectItem><SelectItem value="mensal">por Mês</SelectItem></SelectContent></Select>)}/></div>
-                    </div>
-                    <div><Label htmlFor="assignedTo">Atribuído a (nomes separados por vírgula)</Label><Input id="assignedTo" {...taskRegister("assignedTo")} placeholder="Ex: João, Maria" /></div>
-                  <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Adicionar Tarefa</Button></DialogFooter>
-              </form>
-            </DialogContent>
+                      <div className="grid grid-cols-2 gap-4 items-end">
+                          <div><Label htmlFor="value">Valor do Projeto (R$)</Label><Input id="value" type="number" step="0.01" {...taskRegister("value")} /></div>
+                          <div><Label htmlFor="delayCost">Custo do Atraso (R$)</Label><Input id="delayCost" type="number" step="0.01" {...taskRegister("delayCost")} /></div>
+                      </div>
+                      <div className="grid grid-cols-1">
+                          <div><Label htmlFor="delayCostPeriod">Período do Custo de Atraso</Label><Controller name="delayCostPeriod" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="hora">por Hora</SelectItem><SelectItem value="dia">por Dia</SelectItem><SelectItem value="semana">por Semana</SelectItem><SelectItem value="quinzenal">por Quinzena</SelectItem><SelectItem value="mensal">por Mês</SelectItem></SelectContent></Select>)}/></div>
+                      </div>
+                      <div><Label htmlFor="assignedTo">Atribuído a (nomes separados por vírgula)</Label><Input id="assignedTo" {...taskRegister("assignedTo")} placeholder="Ex: João, Maria" /></div>
+                    <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Adicionar Tarefa</Button></DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
             
             {/* Column Modal */}
             <DialogContent className="sm:max-w-md">
