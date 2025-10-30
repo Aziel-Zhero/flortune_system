@@ -21,7 +21,8 @@ import {
   Sigma,
   Coins,
   Receipt,
-  ArrowRightLeft
+  ArrowRightLeft,
+  AlertTriangle
 } from "lucide-react";
 import {
   Select,
@@ -66,6 +67,11 @@ import {
   RadialBarChart, 
   RadialBar
 } from "recharts";
+import { useSession } from "next-auth/react";
+import { getTransactions } from "@/services/transaction.service";
+import type { Transaction } from "@/types/database.types";
+import { toast } from "@/hooks/use-toast";
+import { subMonths, startOfMonth, endOfMonth, getMonth, getYear, format, parseISO } from 'date-fns';
 
 interface CategoryData {
   name: string;
@@ -96,45 +102,6 @@ const chartColors = [
   "hsl(var(--chart-1)/0.7)",
   "hsl(var(--chart-2)/0.7)",
 ];
-
-// --- MOCK DATA PARA GRÁFICOS PRINCIPAIS ---
-const mockSpendingByCategory: CategoryData[] = [
-  { name: "Moradia", value: 1850.55, fill: chartColors[0] },
-  { name: "Alimentação", value: 1230.70, fill: chartColors[1] },
-  { name: "Lazer", value: 680.00, fill: chartColors[2] },
-  { name: "Transporte", value: 430.50, fill: chartColors[3] },
-  { name: "Outros", value: 250.00, fill: chartColors[4] },
-];
-
-const mockIncomeBySource: CategoryData[] = [
-  { name: "Salário", value: 7500.00, fill: chartColors[0] },
-  { name: "Freelance", value: 2100.00, fill: chartColors[1] },
-  { name: "Rendimentos", value: 350.00, fill: chartColors[2] },
-];
-
-const mockTopExpenses: TopExpense[] = [
-  { id: '1', description: 'Aluguel & Condomínio', amount: 1800.00, date: '05/07/2024', categoryName: 'Moradia' },
-  { id: '2', description: 'Compras do Mês', amount: 850.20, date: '02/07/2024', categoryName: 'Alimentação' },
-  { id: '3', description: 'Show da Banda X', amount: 350.00, date: '15/07/2024', categoryName: 'Lazer' },
-  { id: '4', description: 'Combustível', amount: 250.00, date: '10/07/2024', categoryName: 'Transporte' },
-  { id: '5', description: 'Restaurante Y', amount: 220.50, date: '20/07/2024', categoryName: 'Alimentação' },
-];
-
-const mockMonthlyEvolution: MonthlyEvolutionData[] = [
-  { month: "Jan/24", Receitas: 6800, Despesas: 4500 },
-  { month: "Fev/24", Receitas: 7100, Despesas: 4800 },
-  { month: "Mar/24", Receitas: 7200, Despesas: 4700 },
-  { month: "Abr/24", Receitas: 6900, Despesas: 5100 },
-  { month: "Mai/24", Receitas: 7800, Despesas: 5500 },
-  { month: "Jun/24", Receitas: 8200, Despesas: 5300 },
-  { month: "Jul/24", Receitas: 9600, Despesas: 4500 },
-  { month: "Ago/24", Receitas: 0, Despesas: 0 },
-  { month: "Set/24", Receitas: 0, Despesas: 0 },
-  { month: "Out/24", Receitas: 0, Despesas: 0 },
-  { month: "Nov/24", Receitas: 0, Despesas: 0 },
-  { month: "Dez/24", Receitas: 0, Despesas: 0 },
-];
-// --- FIM DOS MOCK DATA ---
 
 const RealDataCustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -199,29 +166,145 @@ const galleryChartConfig = {
 
 
 export default function AnalysisPage() {
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const authLoading = status === "loading";
+
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [isFetchingTransactions, setIsFetchingTransactions] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
   }, []);
 
-  const spendingByCategory = mockSpendingByCategory;
-  const incomeBySource = mockIncomeBySource;
-  const monthlyEvolution = mockMonthlyEvolution;
-  const topExpenses = mockTopExpenses;
-  const isFetchingTransactions = false;
-  const noTransactionsAtAll = false;
+  useEffect(() => {
+    if (!user?.id || authLoading) {
+      setIsFetchingTransactions(authLoading);
+      if (!authLoading && !user?.id) setAllTransactions([]);
+      return;
+    }
+    const fetchAllTransactions = async () => {
+      setIsFetchingTransactions(true);
+      try {
+        const { data, error } = await getTransactions(user.id);
+        if (error) {
+          toast({ title: "Erro ao buscar transações", description: error.message, variant: "destructive" });
+          setAllTransactions([]);
+        } else {
+          setAllTransactions(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados de transação.", variant: "destructive" });
+        setAllTransactions([]);
+      } finally {
+        setIsFetchingTransactions(false);
+      }
+    };
+    fetchAllTransactions();
+  }, [user?.id, authLoading]);
+
+
+  const filteredTransactions = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
+
+    if (timePeriod === 'monthly') {
+      startDate = startOfMonth(now);
+    } else if (timePeriod === 'yearly') {
+      startDate = startOfMonth(new Date(now.getFullYear(), 0));
+    } else {
+      startDate = new Date(0); // Epoch for 'all'
+    }
+
+    return allTransactions.filter(tx => {
+      try {
+        return parseISO(tx.date) >= startDate;
+      } catch {
+        return false;
+      }
+    });
+  }, [allTransactions, timePeriod]);
+
+
+  const { spendingByCategory, incomeBySource, topExpenses, monthlyEvolution } = useMemo(() => {
+    const spendingMap = new Map<string, number>();
+    const incomeMap = new Map<string, number>();
+    const allExpenses: TopExpense[] = [];
+    const evolutionMap = new Map<string, { Receitas: number; Despesas: number }>();
+    
+    // Monthly Evolution
+    for (const tx of allTransactions) {
+      try {
+        const txDate = parseISO(tx.date);
+        const monthKey = format(txDate, "MMM/yy");
+
+        if (!evolutionMap.has(monthKey)) {
+          evolutionMap.set(monthKey, { Receitas: 0, Despesas: 0 });
+        }
+        
+        const monthData = evolutionMap.get(monthKey)!;
+
+        if(tx.type === 'income') {
+            monthData.Receitas += tx.amount;
+        } else {
+            monthData.Despesas += tx.amount;
+        }
+      } catch (e) {
+        console.error("Error processing transaction for evolution chart", e);
+      }
+    }
+
+    const twelveMonthsAgo = subMonths(new Date(), 11);
+    const evolutionResult: MonthlyEvolutionData[] = [];
+    for (let i = 0; i < 12; i++) {
+        const monthDate = startOfMonth(subMonths(new Date(), 11 - i));
+        const monthKey = format(monthDate, "MMM/yy");
+        evolutionResult.push({
+            month: monthKey,
+            ...(evolutionMap.get(monthKey) || { Receitas: 0, Despesas: 0 })
+        });
+    }
+
+    // Process other charts based on filtered transactions
+    for (const tx of filteredTransactions) {
+      try {
+        const categoryName = tx.category?.name || "Sem Categoria";
+        
+        if (tx.type === 'expense') {
+          spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
+          allExpenses.push({
+            id: tx.id,
+            description: tx.description,
+            amount: tx.amount,
+            date: format(parseISO(tx.date), "dd/MM/yyyy"),
+            categoryName: categoryName,
+          });
+        } else if (tx.type === 'income') {
+          incomeMap.set(categoryName, (incomeMap.get(categoryName) || 0) + tx.amount);
+        }
+      } catch (e) {
+        console.error("Error processing transaction for pie charts", e);
+      }
+    }
+
+    return {
+      spendingByCategory: Array.from(spendingMap, ([name, value], i) => ({ name, value, fill: chartColors[i % chartColors.length] })).sort((a, b) => b.value - a.value),
+      incomeBySource: Array.from(incomeMap, ([name, value], i) => ({ name, value, fill: chartColors[i % chartColors.length] })).sort((a, b) => b.value - a.value),
+      topExpenses: allExpenses.sort((a, b) => b.amount - a.amount).slice(0, 5),
+      monthlyEvolution: evolutionResult,
+    };
+  }, [filteredTransactions, allTransactions]);
+
+
+  const noTransactionsAtAll = !isFetchingTransactions && allTransactions.length === 0;
 
   const realDataChartConfig = useMemo(() => ({
     Receitas: { label: "Receitas", color: "hsl(var(--chart-1))" },
     Despesas: { label: "Despesas", color: "hsl(var(--chart-2))" },
   }), []);
 
-  if (isLoading) {
+  if (authLoading || isFetchingTransactions) {
     return (
       <div className="space-y-8">
         <PageHeader title="Análise Financeira" description="Carregando seus insights financeiros..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
@@ -236,6 +319,23 @@ export default function AnalysisPage() {
       </div>
     );
   }
+  
+  if (noTransactionsAtAll) {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          title="Análise Financeira"
+          description="Explore seus padrões de gastos, receitas e tendências ao longo do tempo."
+          icon={<Wallet className="h-6 w-6 text-primary"/>}
+        />
+        <Card className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 border-dashed">
+            <AlertTriangle className="w-16 h-16 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Sem Dados para Analisar</h2>
+            <p className="text-muted-foreground">Parece que você ainda não adicionou nenhuma transação. Comece a registrar suas receitas e despesas para ver seus relatórios aqui!</p>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -244,7 +344,7 @@ export default function AnalysisPage() {
         description="Explore seus padrões de gastos, receitas e tendências ao longo do tempo."
         icon={<Wallet className="h-6 w-6 text-primary"/>}
         actions={
-          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isFetchingTransactions || noTransactionsAtAll}>
+          <Select value={timePeriod} onValueChange={setTimePeriod}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Selecionar período" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="monthly">Este Mês</SelectItem>
