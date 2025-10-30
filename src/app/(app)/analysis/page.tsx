@@ -114,8 +114,6 @@ const mockTopExpenses: TopExpense[] = [
   { id: '1', description: 'Aluguel & Condomínio', amount: 1800.00, date: '05/07/2024', categoryName: 'Moradia' },
   { id: '2', description: 'Compras do Mês', amount: 850.20, date: '02/07/2024', categoryName: 'Alimentação' },
   { id: '3', description: 'Show da Banda X', amount: 350.00, date: '15/07/2024', categoryName: 'Lazer' },
-  { id: '4', description: 'Combustível', amount: 250.00, date: '10/07/2024', categoryName: 'Transporte' },
-  { id: '5', description: 'Restaurante Y', amount: 220.50, date: '20/07/2024', categoryName: 'Alimentação' },
 ];
 
 const mockMonthlyEvolution: MonthlyEvolutionData[] = [
@@ -312,7 +310,7 @@ export default function AnalysisPage() {
                 </CardContent>
             </Card>
             <Card className="shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 3 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
                 <CardContent className="h-[320px] sm:h-80 overflow-y-auto">
                     <Table size="sm">
                         <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
