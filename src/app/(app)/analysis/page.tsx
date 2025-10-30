@@ -24,9 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { APP_NAME } from "@/lib/constants";
-import { useSession } from "next-auth/react";
-import { getTransactions } from "@/services/transaction.service";
-import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
@@ -211,10 +208,6 @@ const genericChartConfig = {
 
 
 export default function AnalysisPage() {
-  const { data: session, status } = useSession();
-  const user = session?.user;
-  const authLoading = status === "loading";
-
   const [timePeriod, setTimePeriod] = useState("monthly");
 
   useEffect(() => {
@@ -232,22 +225,6 @@ export default function AnalysisPage() {
     Receitas: { label: "Receitas", color: "hsl(var(--chart-1))" },
     Despesas: { label: "Despesas", color: "hsl(var(--chart-2))" },
   }), []);
-
-  if (authLoading) {
-    return (
-      <div className="space-y-8">
-        <PageHeader title="Análise Financeira" description="Carregando seus insights financeiros..." icon={<Wallet className="h-6 w-6 text-primary"/>} />
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3].map(i => ( <Card key={`sk-card-pie-${i}`} className="shadow-sm lg:col-span-1"><CardHeader><Skeleton className="h-6 w-3/4 mb-1"/><Skeleton className="h-4 w-1/2"/></CardHeader><CardContent><Skeleton className="h-80 w-full"/></CardContent></Card> ))}
-          <Card className="md:col-span-2 lg:col-span-3"><CardHeader><Skeleton className="h-6 w-1/2 mb-1"/><Skeleton className="h-4 w-3/4"/></CardHeader><CardContent><Skeleton className="h-96 w-full"/></CardContent></Card>
-        </div>
-         <PageHeader title="Galeria de Exemplos de Gráficos" description="Carregando demonstrações..." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           {[...Array(6)].map((_, i) => ( <Card key={`sk-gallery-${i}`}><CardHeader><Skeleton className="h-5 w-1/2" /><Skeleton className="h-3 w-3/4 mt-1" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>))}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">

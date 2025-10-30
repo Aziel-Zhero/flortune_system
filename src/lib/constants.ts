@@ -119,10 +119,8 @@ export const AVAILABLE_QUOTES = [
   { name: "Peso Argentino", code: "ARS-BRL" },
   { name: "Bitcoin", code: "BTC-BRL" },
   { name: "Ethereum", code: "ETH-BRL" },
-  { name: "Dogecoin", code: "DOGE-BRL" },
   { name: "Litecoin", code: "LTC-BRL" },
   { name: "Ibovespa", code: "IBOV" }, // Nota: API pode não retornar todos os campos para índices
   { name: "Nasdaq", code: "NASDAQ" }, // Nota: API pode não retornar todos os campos para índices
   { name: "Cacau", code: "CAC" },
-  { name: "Ouro", code: "GOLD" },
 ];
