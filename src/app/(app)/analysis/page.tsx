@@ -14,7 +14,13 @@ import {
   BarChart3 as BarIconLucide, 
   Radar as RadarIconLucide, 
   Target as RadialIconLucide,
-  LineChart as LineIconLucideReal
+  LineChart as LineIconLucideReal,
+  Users2,
+  Trophy,
+  DollarSign,
+  Banknote,
+  Percent,
+  TrendingUp,
 } from "lucide-react";
 import {
   Select,
@@ -24,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { APP_NAME } from "@/lib/constants";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
   ChartLegend,
@@ -60,7 +65,6 @@ import {
   RadialBar,
   Brush
 } from "recharts";
-import { toast } from "@/hooks/use-toast";
 
 interface CategoryData {
   name: string;
@@ -88,8 +92,6 @@ const chartColors = [
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
-  "hsl(var(--chart-1)/0.7)",
-  "hsl(var(--chart-2)/0.7)",
 ];
 
 // --- MOCK DATA PARA GRÁFICOS PRINCIPAIS ---
@@ -132,6 +134,66 @@ const mockMonthlyEvolution: MonthlyEvolutionData[] = [
 ];
 // --- FIM DOS MOCK DATA ---
 
+// --- NOVOS MOCK DATA PARA A GALERIA DE NEGÓCIOS ---
+const mockClientProjectData = [
+  { month: "Jan", clientes: 5, projetos: 3 },
+  { month: "Fev", clientes: 6, projetos: 4 },
+  { month: "Mar", clientes: 8, projetos: 5 },
+  { month: "Abr", clientes: 7, projetos: 6 },
+  { month: "Mai", clientes: 9, projetos: 8 },
+  { month: "Jun", clientes: 11, projetos: 9 },
+];
+const mockGoalsData = [
+  { month: "Jan", meta: 10000, atingido: 8000 },
+  { month: "Fev", meta: 10000, atingido: 8500 },
+  { month: "Mar", meta: 12000, atingido: 11000 },
+  { month: "Abr", meta: 12000, atingido: 12500 },
+  { month: "Mai", meta: 15000, atingido: 14000 },
+  { month: "Jun", meta: 15000, atingido: 16000 },
+];
+const mockAccumulatedData = [
+  { name: 'Projetos', value: 125000 },
+  { name: 'Orçamento', value: 85000 },
+  { name: 'Metas', value: 45000 },
+];
+const mockSpendingTimelineData = [
+  { date: '01/07', gastos: 250 },
+  { date: '05/07', gastos: 450 },
+  { date: '10/07', gastos: 300 },
+  { date: '15/07', gastos: 600 },
+  { date: '20/07', gastos: 550 },
+  { date: '25/07', gastos: 700 },
+];
+const mockOverallSpendingData = [
+  { name: 'Serviços', value: 4500, fill: chartColors[0] },
+  { name: 'Marketing', value: 2500, fill: chartColors[1] },
+  { name: 'Infraestrutura', value: 1800, fill: chartColors[2] },
+  { name: 'Equipe', value: 8000, fill: chartColors[3] },
+  { name: 'Outros', value: 1200, fill: chartColors[4] },
+];
+const mockRadarGeneralData = [
+  { subject: 'Receita', A: 85, fullMark: 100 },
+  { subject: 'Lucratividade', A: 70, fullMark: 100 },
+  { subject: 'Satisfação', A: 90, fullMark: 100 },
+  { subject: 'Novos Clientes', A: 60, fullMark: 100 },
+  { subject: 'Retenção', A: 80, fullMark: 100 },
+];
+const mockTop3SpendingData = [
+  { name: 'Equipe', value: 8000, fill: chartColors[3] },
+  { name: 'Serviços', value: 4500, fill: chartColors[0] },
+  { name: 'Marketing', value: 2500, fill: chartColors[1] },
+];
+const mockYieldData = { value: 8.5 };
+const mockTaxData = { value: 22.5 };
+const mockComparativeData = [
+  { month: 'Q1', '2023': 4000, '2024': 5500 },
+  { month: 'Q2', '2023': 3000, '2024': 4800 },
+  { month: 'Q3', '2023': 5000, '2024': 6200 },
+  { month: 'Q4', '2023': 4500, '2024': 7100 },
+];
+// --- FIM DOS NOVOS MOCK DATA ---
+
+
 const RealDataCustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -168,44 +230,18 @@ const RealDataPieCustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-const mockMonths = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"];
-const mockAreaData = mockMonths.map(month => ({ month, desktop: Math.floor(Math.random() * 200) + 100, mobile: Math.floor(Math.random() * 150) + 50 }));
-const mockBarData = mockMonths.map(month => ({ month, desktop: Math.floor(Math.random() * 200) + 100, mobile: Math.floor(Math.random() * 150) + 50 }));
-const mockLineData = mockMonths.map(month => ({ month, desktop: Math.floor(Math.random() * 200) + 100, mobile: Math.floor(Math.random() * 150) + 50 }));
-const mockPieData = [
-  { name: 'Alimentação', value: 400, fill: 'var(--color-food)' },
-  { name: 'Transporte', value: 300, fill: 'var(--color-transport)' },
-  { name: 'Lazer', value: 300, fill: 'var(--color-leisure)' },
-  { name: 'Moradia', value: 200, fill: 'var(--color-housing)' },
-];
-const mockRadarData = [
-  { subject: 'Matemática', A: 120, B: 110, fullMark: 150 },
-  { subject: 'Chinês', A: 98, B: 130, fullMark: 150 },
-  { subject: 'Inglês', A: 86, B: 130, fullMark: 150 },
-  { subject: 'Geografia', A: 99, B: 100, fullMark: 150 },
-  { subject: 'Física', A: 85, B: 90, fullMark: 150 },
-  { subject: 'História', A: 65, B: 85, fullMark: 150 },
-];
-const mockRadialData = [
-  { name: 'Meta A', uv: 31.47, pv: 2400, fill: 'var(--color-goalA)' },
-  { name: 'Meta B', uv: 26.69, pv: 4567, fill: 'var(--color-goalB)' },
-  { name: 'Meta C', uv: 15.69, pv: 1398, fill: 'var(--color-goalC)' },
-];
-
-const genericChartConfig = {
-  desktop: { label: "Desktop", color: "hsl(var(--chart-1))" },
-  mobile: { label: "Mobile", color: "hsl(var(--chart-2))" },
-  food: { label: "Alimentação", color: "hsl(var(--chart-1))" },
-  transport: { label: "Transporte", color: "hsl(var(--chart-2))" },
-  leisure: { label: "Lazer", color: "hsl(var(--chart-3))" },
-  housing: { label: "Moradia", color: "hsl(var(--chart-4))" },
-  serieA: { label: "Série A", color: "hsl(var(--chart-1))" },
-  serieB: { label: "Série B", color: "hsl(var(--chart-2))" },
-  goalA: { label: "Meta A", color: "hsl(var(--chart-3))" },
-  goalB: { label: "Meta B", color: "hsl(var(--chart-4))" },
-  goalC: { label: "Meta C", color: "hsl(var(--chart-5))" },
-} satisfies ChartConfig;
-
+const businessChartConfig: ChartConfig = {
+  clientes: { label: "Clientes", color: "hsl(var(--chart-1))" },
+  projetos: { label: "Projetos", color: "hsl(var(--chart-2))" },
+  meta: { label: "Meta", color: "hsl(var(--muted-foreground))" },
+  atingido: { label: "Atingido", color: "hsl(var(--chart-1))" },
+  gastos: { label: "Gastos", color: "hsl(var(--chart-2))" },
+  '2023': { label: '2023', color: 'hsl(var(--chart-3))' },
+  '2024': { label: '2024', color: 'hsl(var(--chart-1))' },
+  performance: { label: "Performance", color: "hsl(var(--chart-1))" },
+  rendimento: { label: "Rendimento", color: "hsl(var(--chart-1))"},
+  imposto: { label: "Imposto", color: "hsl(var(--chart-2))" },
+};
 
 export default function AnalysisPage() {
   const [timePeriod, setTimePeriod] = useState("monthly");
@@ -218,8 +254,6 @@ export default function AnalysisPage() {
   const incomeBySource = mockIncomeBySource;
   const monthlyEvolution = mockMonthlyEvolution;
   const topExpenses = mockTopExpenses;
-  const isFetchingTransactions = false; 
-  const noTransactionsAtAll = false;
 
   const realDataChartConfig = useMemo(() => ({
     Receitas: { label: "Receitas", color: "hsl(var(--chart-1))" },
@@ -233,7 +267,7 @@ export default function AnalysisPage() {
         description="Explore seus padrões de gastos, receitas e tendências ao longo do tempo."
         icon={<Wallet className="h-6 w-6 text-primary"/>}
         actions={
-          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isFetchingTransactions || noTransactionsAtAll}>
+          <Select value={timePeriod} onValueChange={setTimePeriod}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Selecionar período" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="monthly">Este Mês</SelectItem>
@@ -246,269 +280,170 @@ export default function AnalysisPage() {
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card className="shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
                 <CardContent className="h-[320px] sm:h-80">
-                    {spendingByCategory.length > 0 ? (
-                        <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                    <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
-                                        {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
-                                    </Pie>
-                                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de despesas.</p></div>}
+                    <ChartContainer config={{}} className="min-h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <RechartsTooltip content={<RealDataPieCustomTooltip />} />
+                                <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                    {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
+                                </Pie>
+                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
             <Card className="shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : timePeriod === 'yearly' ? 'este ano' : 'total'}).</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
                 <CardContent className="h-[320px] sm:h-80">
-                    {incomeBySource.length > 0 ? (
-                        <ChartContainer config={realDataChartConfig} className="min-h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                    <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
-                                        {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
-                                    </Pie>
-                                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados de receitas.</p></div>}
+                    <ChartContainer config={{}} className="min-h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <RechartsTooltip content={<RealDataPieCustomTooltip />} />
+                                <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                    {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
+                                </Pie>
+                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
                 <CardContent className="h-[320px] sm:h-80 overflow-y-auto">
-                    {topExpenses.length > 0 ? (
-                        <Table size="sm">
-                            <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
-                            <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
-                        </Table>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem despesas para listar.</p></div>}
+                    <Table size="sm">
+                        <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                        <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
+                    </Table>
                 </CardContent>
             </Card>
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-80 sm:h-96 overflow-hidden">
-                    {monthlyEvolution.length > 0 && monthlyEvolution.some(d => d.Receitas > 0 || d.Despesas > 0) ? (
-                        <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
-                            <ResponsiveContainer width="99%" height="100%">
-                                <AreaChart
-                                    accessibilityLayer
-                                    data={monthlyEvolution}
-                                    margin={{
-                                        top: 20, 
-                                        right: 30, 
-                                        left: 10,  
-                                        bottom: 70, 
-                                    }}
-                                >
-                                    <defs>
-                                        <linearGradient id="fillReceitasEvolution" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--color-Receitas)" stopOpacity={0.8}/>
-                                            <stop offset="95%" stopColor="var(--color-Receitas)" stopOpacity={0.1}/>
-                                        </linearGradient>
-                                        <linearGradient id="fillDespesasEvolution" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--color-Despesas)" stopOpacity={0.7}/>
-                                            <stop offset="95%" stopColor="var(--color-Despesas)" stopOpacity={0.1}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                                    <XAxis
-                                        dataKey="month"
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickMargin={10} 
-                                        interval={0}
-                                        angle={-45}
-                                        textAnchor="end"
-                                        height={80} 
-                                        dy={10}    
-                                        tick={{ fontSize: '0.65rem' }}
-                                    />
-                                    <YAxis
-                                        tickFormatter={(value) => `R$${Number(value / 1000).toFixed(0)}k`}
-                                        tick={{ fontSize: '0.65rem' }}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickMargin={5} 
-                                        dx={-5}    
-                                        width={60} 
-                                    />
-                                    <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
-                                    <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
-                                    <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitasEvolution)" stackId="1" name="Receitas" />
-                                    <Area type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" fillOpacity={1} fill="url(#fillDespesasEvolution)" stackId="2" name="Despesas" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground"><p>Sem dados suficientes para exibir a evolução.</p></div>}
+                    <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
+                        <ResponsiveContainer width="99%" height="100%">
+                            <AreaChart accessibilityLayer data={monthlyEvolution} margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
+                                <defs>
+                                    <linearGradient id="fillReceitasEvolution" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Receitas)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Receitas)" stopOpacity={0.1}/></linearGradient>
+                                    <linearGradient id="fillDespesasEvolution" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Despesas)" stopOpacity={0.7}/><stop offset="95%" stopColor="var(--color-Despesas)" stopOpacity={0.1}/></linearGradient>
+                                </defs>
+                                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={-45} textAnchor="end" height={80} dy={10} tick={{ fontSize: '0.65rem' }} />
+                                <YAxis tickFormatter={(value) => `R$${Number(value / 1000).toFixed(0)}k`} tick={{ fontSize: '0.65rem' }} tickLine={false} axisLine={false} tickMargin={5} dx={-5} width={60} />
+                                <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
+                                <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
+                                <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitasEvolution)" stackId="1" name="Receitas" />
+                                <Area type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" fillOpacity={1} fill="url(#fillDespesasEvolution)" stackId="2" name="Despesas" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
       </div>
 
-      <PageHeader title="Galeria de Exemplos de Gráficos" description="Demonstração de diferentes tipos de gráficos." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
+      <PageHeader title="Galeria de Análises de Negócio" description="Demonstração de métricas de projetos e clientes." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><Users2 className="mr-2 h-5 w-5 text-primary"/>Clientes e Projetos</CardTitle><CardDescription>Evolução de novos clientes e projetos.</CardDescription></CardHeader>
           <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <AreaChart accessibilityLayer data={mockAreaData} margin={{left: 12, right: 12}}>
+            <ChartContainer config={businessChartConfig} className="w-full h-full">
+              <AreaChart accessibilityLayer data={mockClientProjectData} margin={{left: 0, right: 12}}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
+                <YAxis />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                <Area dataKey="mobile" type="natural" fill="var(--color-mobile)" fillOpacity={0.4} stroke="var(--color-mobile)" stackId="a" />
-                <Area dataKey="desktop" type="natural" fill="var(--color-desktop)" fillOpacity={0.4} stroke="var(--color-desktop)" stackId="a" />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Area dataKey="clientes" type="natural" fill="var(--color-clientes)" fillOpacity={0.4} stroke="var(--color-clientes)" stackId="a" />
+                <Area dataKey="projetos" type="natural" fill="var(--color-projetos)" fillOpacity={0.4} stroke="var(--color-projetos)" stackId="b" />
               </AreaChart>
             </ChartContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><AreaIconLucide className="mr-2 h-5 w-5 text-primary"/>Area Chart - Gradient (Mock)</CardTitle><CardDescription>Com preenchimento gradiente.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary"/>Progresso de Metas</CardTitle><CardDescription>Valores atingidos vs. metas mensais.</CardDescription></CardHeader>
           <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <AreaChart accessibilityLayer data={mockAreaData} margin={{left: 12, right: 12}}>
+            <ChartContainer config={businessChartConfig} className="w-full h-full">
+              <AreaChart accessibilityLayer data={mockGoalsData} margin={{left: 0, right: 12}}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
+                <YAxis tickFormatter={(value) => `${(value / 1000)}k`} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <defs>
-                  <linearGradient id="fillDesktopExample" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-desktop)" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="var(--color-desktop)" stopOpacity={0.1} />
-                  </linearGradient>
+                  <linearGradient id="fillAtingido" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-atingido)" stopOpacity={0.8} /><stop offset="95%" stopColor="var(--color-atingido)" stopOpacity={0.1} /></linearGradient>
                 </defs>
-                <Area dataKey="desktop" type="natural" fill="url(#fillDesktopExample)" stroke="var(--color-desktop)" stackId="a" />
+                <Line dataKey="meta" type="monotone" stroke="var(--color-meta)" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                <Area dataKey="atingido" type="natural" fill="url(#fillAtingido)" stroke="var(--color-atingido)" stackId="a" />
               </AreaChart>
             </ChartContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Custom Label (Mock)</CardTitle><CardDescription>Barras com rótulos personalizados.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><DollarSign className="mr-2 h-5 w-5 text-primary"/>Totais Acumulados</CardTitle><CardDescription>Valores totais de projetos e orçamentos.</CardDescription></CardHeader>
           <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <BarChart accessibilityLayer data={mockBarData} layout="vertical" margin={{right: 30}}>
+            <ChartContainer config={businessChartConfig} className="w-full h-full">
+              <BarChart accessibilityLayer data={mockAccumulatedData} layout="vertical" margin={{right: 30, left: 10}}>
                 <CartesianGrid horizontal={false} />
-                <YAxis dataKey="month" type="category" tickLine={false} tickMargin={10} axisLine={false} className="capitalize"/>
-                <XAxis dataKey="desktop" type="number" hide />
+                <YAxis dataKey="name" type="category" tickLine={false} tickMargin={5} axisLine={false} className="capitalize text-xs"/>
+                <XAxis type="number" hide />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar dataKey="desktop" layout="vertical" fill="var(--color-desktop)" radius={4}>
-                  <LabelList dataKey="desktop" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                <Bar dataKey="value" layout="vertical" fill="var(--color-clientes)" radius={4}>
+                  <LabelList dataKey="value" position="right" offset={8} className="fill-foreground" fontSize={12} formatter={(value: number) => `R$${(value / 1000)}k`} />
                 </Bar>
               </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Stacked (Mock)</CardTitle><CardDescription>Barras empilhadas com legenda.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><Banknote className="mr-2 h-5 w-5 text-primary"/>Orçamento Atingido</CardTitle><CardDescription>Acompanhamento de gastos ao longo do tempo.</CardDescription></CardHeader>
           <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <BarChart accessibilityLayer data={mockBarData}>
+            <ChartContainer config={businessChartConfig} className="w-full h-full">
+              <LineChart accessibilityLayer data={mockSpendingTimelineData} margin={{top: 20, left: 0, right: 12}}>
                 <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="desktop" fill="var(--color-desktop)" radius={[4, 4, 0, 0]} stackId="a" />
-                <Bar dataKey="mobile" fill="var(--color-mobile)" radius={[4, 4, 0, 0]} stackId="a" />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Label (Mock)</CardTitle><CardDescription>Linhas com rótulos nos pontos.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <LineChart accessibilityLayer data={mockLineData} margin={{top: 20, left: 12, right: 12}}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
+                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickFormatter={(value) => `R$${value}`}/>
                 <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Line dataKey="desktop" type="natural" stroke="var(--color-desktop)" strokeWidth={2} dot={{fill: "var(--color-desktop)"}} activeDot={{ r: 6 }} >
-                  <LabelList dataKey="desktop" position="top" offset={12} className="fill-foreground" fontSize={12} />
+                <Line dataKey="gastos" type="monotone" stroke="var(--color-gastos)" strokeWidth={2} dot={{fill: "var(--color-gastos)"}} activeDot={{ r: 6 }}>
+                   <LabelList dataKey="gastos" position="top" offset={12} className="fill-foreground" fontSize={12} formatter={(value: number) => `R$${value}`} />
                 </Line>
               </LineChart>
             </ChartContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><LineIconLucideReal className="mr-2 h-5 w-5 text-primary"/>Line Chart - Interactive (Mock)</CardTitle><CardDescription>Linhas com tooltip e brush.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <LineChart accessibilityLayer data={mockLineData} margin={{left:12, right:12}}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
-                <YAxis tickMargin={8} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line"/>} />
-                <Line dataKey="desktop" type="natural" stroke="var(--color-desktop)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
-                <Line dataKey="mobile" type="natural" stroke="var(--color-mobile)" strokeWidth={2} dot={false} activeDot={{r:6}}/>
-                <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={15} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Interactive (Mock)</CardTitle><CardDescription>Passe o mouse para ver detalhes.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Gastos Gerais</CardTitle><CardDescription>Distribuição geral de despesas do negócio.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
+            <ChartContainer config={businessChartConfig} className="w-full max-w-[250px] aspect-square">
               <PieChart>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
-                <Pie data={mockPieData} dataKey="value" nameKey="name" />
+                <RechartsTooltip content={<RealDataPieCustomTooltip />} />
+                <Pie data={mockOverallSpendingData} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={{stroke: "hsl(var(--muted-foreground))"}}/>
               </PieChart>
             </ChartContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Pie Chart - Label (Mock)</CardTitle><CardDescription>Gráfico de Pizza com rótulos.</CardDescription></CardHeader>
-          <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-                <Pie data={mockPieData} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={{stroke: "hsl(var(--muted-foreground))"}} />
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Circle (Mock)</CardTitle><CardDescription>Grid circular com área preenchida.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Visão Geral do Negócio</CardTitle><CardDescription>Indicadores de performance chave.</CardDescription></CardHeader>
           <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <RadarChart data={mockRadarData}>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <PolarGrid gridType="circle" />
-                <PolarAngleAxis dataKey="subject" />
-                <PolarRadiusAxis angle={30} domain={[0, 150]} />
-                <Radar name="Série A" dataKey="A" stroke="var(--color-serieA)" fill="var(--color-serieA)" fillOpacity={0.6} />
-                <ChartLegend content={<ChartLegendContent />} />
-              </RadarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Radar Chart - Polygon (Mock)</CardTitle><CardDescription>Grid poligonal com múltiplas séries.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <RadarChart data={mockRadarData}>
+            <ChartContainer config={businessChartConfig} className="w-full h-full">
+              <RadarChart data={mockRadarGeneralData}>
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <PolarGrid gridType="polygon" />
                 <PolarAngleAxis dataKey="subject" />
-                <PolarRadiusAxis angle={30} domain={[0, 150]} />
-                <Radar name="Série A" dataKey="A" stroke="var(--color-serieA)" fill="var(--color-serieA)" fillOpacity={0.6} />
-                <Radar name="Série B" dataKey="B" stroke="var(--color-serieB)" fill="var(--color-serieB)" fillOpacity={0.5} />
-                <ChartLegend content={<ChartLegendContent />} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                <Radar name="Performance" dataKey="A" stroke="var(--color-performance)" fill="var(--color-performance)" fillOpacity={0.6} />
               </RadarChart>
             </ChartContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Label (Mock)</CardTitle><CardDescription>Com rótulos nas barras.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><TrendingDown className="mr-2 h-5 w-5 text-destructive"/>Top 3 Maiores Gastos</CardTitle><CardDescription>Focos de despesa do período.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
-              <RadialBarChart data={mockRadialData} innerRadius="20%" outerRadius="80%" startAngle={90} endAngle={450}>
-                <PolarAngleAxis type="number" domain={[0, 100]} dataKey="uv" tick={false} />
-                <RadialBar dataKey="uv" background>
+            <ChartContainer config={businessChartConfig} className="w-full max-w-[250px] aspect-square">
+              <RadialBarChart data={mockTop3SpendingData} innerRadius="30%" outerRadius="80%" startAngle={90} endAngle={450}>
+                <PolarAngleAxis type="number" domain={[0, 8000]} dataKey="value" tick={false} />
+                <RadialBar dataKey="value" background>
                   <LabelList position="insideStart" dataKey="name" className="fill-white text-xs" fontSize={10}/>
                 </RadialBar>
                 <ChartTooltip content={<ChartTooltipContent nameKey="name" hideIndicator />} />
@@ -517,68 +452,48 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Center (Mock)</CardTitle><CardDescription>Com texto no centro.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="font-headline flex items-center"><TrendingUp className="mr-2 h-5 w-5 text-emerald-500"/>Rendimento Médio</CardTitle><CardDescription>Percentual de rendimento médio.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={genericChartConfig} className="w-full max-w-[250px] aspect-square">
-              <RadialBarChart data={[mockRadialData[0]]} 
-                cx="50%" cy="50%" innerRadius="60%" outerRadius="80%" barSize={10} startAngle={90} endAngle={450}>
-                <PolarAngleAxis type="number" domain={[0, 100]} dataKey="uv" tick={false} />
-                <RadialBar dataKey="uv" background cornerRadius={5} />
-                <RechartsTooltip content={<ChartTooltipContent nameKey="name" hideIndicator />} />
-                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-sm font-semibold">
-                  {`${mockRadialData[0].uv.toFixed(0)}%`}
+            <ChartContainer config={businessChartConfig} className="w-full max-w-[250px] aspect-square">
+              <RadialBarChart data={[mockYieldData]} cx="50%" cy="50%" innerRadius="60%" outerRadius="80%" barSize={10} startAngle={90} endAngle={450}>
+                <PolarAngleAxis type="number" domain={[0, 10]} dataKey="value" tick={false} />
+                <RadialBar dataKey="value" background cornerRadius={5} fill="var(--color-rendimento)" />
+                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-2xl font-semibold">
+                  {`${mockYieldData.value.toFixed(1)}%`}
                 </text>
               </RadialBarChart>
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1">
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadialIconLucide className="mr-2 h-5 w-5 text-primary"/>Radial Bar - Multiple (Mock)</CardTitle><CardDescription>Múltiplas barras radiais.</CardDescription></CardHeader>
+        <Card>
+          <CardHeader><CardTitle className="font-headline flex items-center"><Percent className="mr-2 h-5 w-5 text-primary"/>Alíquota de Imposto</CardTitle><CardDescription>Simulação de alíquota efetiva.</CardDescription></CardHeader>
           <CardContent className="h-72 flex items-center justify-center">
-             <ChartContainer config={genericChartConfig} className="w-full max-w-[300px] aspect-square">
-               <RadialBarChart data={mockRadialData} 
-                  innerRadius={20}
-                  outerRadius={100}
-                  barSize={10}
-                  startAngle={180}
-                  endAngle={0}
-                >
-                <PolarAngleAxis type="number" domain={[0, 100]} dataKey="value" tick={false} />
-                <RadialBar dataKey="uv" />
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-                <ChartLegend content={<ChartLegendContent nameKey="name" verticalAlign="bottom"/>} />
+             <ChartContainer config={businessChartConfig} className="w-full max-w-[300px] aspect-square">
+               <RadialBarChart data={[mockTaxData, {value: 100-mockTaxData.value}]} innerRadius={50} outerRadius={100} barSize={10} startAngle={90} endAngle={450}>
+                <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                <RadialBar dataKey="value" cornerRadius={5}>
+                    <Cell fill="var(--color-imposto)" />
+                    <Cell fill="var(--color-muted)" />
+                </RadialBar>
+                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-2xl font-semibold">
+                  {`${mockTaxData.value.toFixed(1)}%`}
+                </text>
               </RadialBarChart>
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Bar Chart - Interactive (Mock)</CardTitle><CardDescription>Com brush e tooltip customizado.</CardDescription></CardHeader>
+        <Card className="lg:col-span-3">
+          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Comparativo Anual (Trimestral)</CardTitle><CardDescription>Comparação de performance entre 2023 e 2024.</CardDescription></CardHeader>
           <CardContent className="h-80">
-            <ChartContainer config={genericChartConfig} className="w-full h-full">
-              <BarChart accessibilityLayer data={mockBarData}>
+            <ChartContainer config={businessChartConfig} className="w-full h-full">
+              <BarChart accessibilityLayer data={mockComparativeData}>
                 <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 3)} />
-                <YAxis tickMargin={8}/>
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      indicator="dashed"
-                      nameKey="name"
-                      hideLabel
-                      formatter={(value, name, item) => (
-                        <div className="flex flex-col gap-0.5">
-                           <span className="font-medium capitalize" style={{color: item.color}}>{name}</span>
-                           <span className="text-muted-foreground text-xs">Mês: {item.payload.month}</span>
-                           <span className="text-foreground font-bold">Valor: {value}</span>
-                        </div>
-                      )}
-                    />
-                  }
-                />
+                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                <YAxis tickFormatter={(value) => `R$${(value / 1000)}k`}/>
+                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dashed" />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-                <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
+                <Bar dataKey="2023" fill="var(--color-2023)" radius={4} />
+                <Bar dataKey="2024" fill="var(--color-2024)" radius={4} />
                 <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={20} />
               </BarChart>
             </ChartContainer>
