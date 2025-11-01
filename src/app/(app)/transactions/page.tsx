@@ -1,3 +1,4 @@
+
 // src/app/(app)/transactions/page.tsx
 "use client";
 
@@ -233,104 +234,102 @@ export default function TransactionsPage() {
             <CardDescription>Uma lista detalhada de suas receitas e despesas.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table className="min-w-[640px]">
-                <TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px] sm:w-[120px]">
+                    <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Data <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
+                  </TableHead>
+                  <TableHead className="min-w-[150px] sm:min-w-[200px]">Descrição</TableHead>
+                  <TableHead className="w-[120px] sm:w-[150px]">
+                    <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Categoria <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
+                  </TableHead>
+                  <TableHead className="text-right w-[100px] sm:w-[120px]">
+                    <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Valor <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
+                  </TableHead>
+                  <TableHead className="w-[50px]"><span className="sr-only">Ações</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((transaction, index) => (
+                  <motion.tr
+                    key={transaction.id}
+                    custom={index}
+                    variants={rowVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    layout
+                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                  >
+                    <TableCell className="text-muted-foreground text-xs md:text-sm">
+                      {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                          {transaction.is_recurring && (
+                              <Tooltip>
+                                  <TooltipTrigger><Repeat className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                  <TooltipContent><p>Transação Recorrente</p></TooltipContent>
+                              </Tooltip>
+                          )}
+                          <span>{transaction.description}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                          variant="outline" 
+                          className={cn("font-normal whitespace-nowrap", getCategoryColorClass(transaction.category?.type))}
+                      >
+                        {transaction.category?.name || "Sem categoria"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <PrivateValue
+                        value={transaction.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        className={cn("font-semibold whitespace-nowrap", transaction.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Abrir menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditClick(transaction.id, transaction.description || "Transação")}>
+                            <Edit3 className="mr-2 h-4 w-4"/>Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                              onClick={() => handleDeleteClick(transaction.id, transaction.description || "Transação")}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4"/>Deletar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+                {transactions.length === 0 && !isLoading && (
                   <TableRow>
-                    <TableHead className="w-[100px] sm:w-[120px]">
-                      <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Data <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
-                    </TableHead>
-                    <TableHead className="min-w-[150px] sm:min-w-[200px]">Descrição</TableHead>
-                    <TableHead className="w-[120px] sm:w-[150px]">
-                      <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Categoria <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
-                    </TableHead>
-                    <TableHead className="text-right w-[100px] sm:w-[120px]">
-                      <Button variant="ghost" size="sm" className="px-1 py-0.5 h-auto hover:bg-muted">Valor <ArrowUpDown className="ml-1 h-3 w-3" /></Button>
-                    </TableHead>
-                    <TableHead className="w-[50px]"><span className="sr-only">Ações</span></TableHead>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                       <div className="flex flex-col items-center gap-2">
+                        <AlertTriangle className="h-10 w-10 text-muted-foreground/50" />
+                        <span>Nenhuma transação encontrada.</span>
+                        <DialogTrigger asChild>
+                            <Button size="sm" className="mt-2">Adicionar Primeira Transação</Button>
+                        </DialogTrigger>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((transaction, index) => (
-                    <motion.tr
-                      key={transaction.id}
-                      custom={index}
-                      variants={rowVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      layout
-                      className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                    >
-                      <TableCell className="text-muted-foreground text-xs md:text-sm">
-                        {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                            {transaction.is_recurring && (
-                                <Tooltip>
-                                    <TooltipTrigger><Repeat className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
-                                    <TooltipContent><p>Transação Recorrente</p></TooltipContent>
-                                </Tooltip>
-                            )}
-                            <span>{transaction.description}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                            variant="outline" 
-                            className={cn("font-normal whitespace-nowrap", getCategoryColorClass(transaction.category?.type))}
-                        >
-                          {transaction.category?.name || "Sem categoria"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <PrivateValue
-                          value={transaction.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                          className={cn("font-semibold whitespace-nowrap", transaction.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Abrir menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditClick(transaction.id, transaction.description || "Transação")}>
-                              <Edit3 className="mr-2 h-4 w-4"/>Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                onClick={() => handleDeleteClick(transaction.id, transaction.description || "Transação")}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4"/>Deletar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                  {transactions.length === 0 && !isLoading && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                         <div className="flex flex-col items-center gap-2">
-                          <AlertTriangle className="h-10 w-10 text-muted-foreground/50" />
-                          <span>Nenhuma transação encontrada.</span>
-                          <DialogTrigger asChild>
-                              <Button size="sm" className="mt-2">Adicionar Primeira Transação</Button>
-                          </DialogTrigger>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
         <AlertDialog open={deleteDialog.isOpen} onOpenChange={(isOpen) => setDeleteDialog(prev => ({...prev, isOpen}))}>

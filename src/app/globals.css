@@ -420,6 +420,30 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
+  /* Estilização da barra de rolagem */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
   .font-headline {
     font-family: 'Poppins', sans-serif;
   }
@@ -427,5 +451,3 @@
     font-family: 'Inter', sans-serif;
   }
 }
-
-    

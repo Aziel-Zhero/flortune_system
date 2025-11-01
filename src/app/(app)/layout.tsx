@@ -13,11 +13,11 @@ export default function AppLayout({
   
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen flex-col bg-background overflow-hidden">
+      <div className="flex min-h-screen flex-col bg-background">
         <AppHeader />
         <div className="flex flex-1 pt-16"> 
           <AppSidebar />
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 min-w-0">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             {children}
           </main>
         </div>
