@@ -127,13 +127,14 @@ export default function GoalsPage() {
   
   if (isLoadingData) {
     return (
-      <div>
+      <div className="flex flex-col h-full">
         <PageHeader
           title="Metas Financeiras"
           description="Defina, acompanhe e alcance suas aspirações financeiras."
           icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={<Skeleton className="h-10 w-44 rounded-md" />}
         />
+        <div className="flex-1 overflow-y-auto">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array(3).fill(0).map((_, index) => (
             <Card key={index} className="shadow-sm h-full">
@@ -166,13 +167,14 @@ export default function GoalsPage() {
             </Button>
           </Card>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-      <div>
+      <div className="flex flex-col h-full">
         <PageHeader
           title="Metas Financeiras"
           description="Defina, acompanhe e alcance suas aspirações financeiras."
@@ -186,6 +188,7 @@ export default function GoalsPage() {
             </DialogTrigger>
           }
         />
+        <div className="flex-1 overflow-y-auto">
         {currentGoals.length === 0 && !isLoadingData && (
           <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
               <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
@@ -292,7 +295,7 @@ export default function GoalsPage() {
               </motion.div>
            )}
         </div>
-
+        </div>
         <AlertDialog open={deleteDialog.isOpen} onOpenChange={(isOpen) => setDeleteDialog(prev => ({...prev, isOpen}))}>
           <AlertDialogContent>
             <AlertDialogHeader>

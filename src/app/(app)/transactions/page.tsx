@@ -1,4 +1,3 @@
-
 // src/app/(app)/transactions/page.tsx
 "use client";
 
@@ -153,7 +152,7 @@ export default function TransactionsPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full">
+      <div className="flex flex-col h-full">
         <PageHeader
           title="Transações"
           icon={<List className="h-6 w-6 text-primary"/>}
@@ -165,38 +164,38 @@ export default function TransactionsPage() {
             </div>
           }
         />
-        <Card className="shadow-sm">
-          <CardHeader>
-            <Skeleton className="h-6 w-1/2 mb-1"/>
-            <Skeleton className="h-4 w-3/4"/>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px] sm:w-[120px]"><Skeleton className="h-5 w-16"/></TableHead>
-                    <TableHead className="min-w-[150px] sm:min-w-[200px]"><Skeleton className="h-5 w-32"/></TableHead>
-                    <TableHead className="w-[120px] sm:w-[150px]"><Skeleton className="h-5 w-20"/></TableHead>
-                    <TableHead className="text-right w-[100px] sm:w-[120px]"><Skeleton className="h-5 w-16 ml-auto"/></TableHead>
-                    <TableHead className="w-[50px]"><span className="sr-only">Ações</span></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array(5).fill(0).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell><Skeleton className="h-4 w-full"/></TableCell>
-                      <TableCell><Skeleton className="h-4 w-full"/></TableCell>
-                      <TableCell><Skeleton className="h-6 w-20 rounded-full"/></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto"/></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-8 w-8 rounded-sm"/></TableCell>
+        <div className="flex-1 overflow-auto">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-1"/>
+              <Skeleton className="h-4 w-3/4"/>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px] sm:w-[120px]"><Skeleton className="h-5 w-16"/></TableHead>
+                      <TableHead className="min-w-[150px] sm:min-w-[200px]"><Skeleton className="h-5 w-32"/></TableHead>
+                      <TableHead className="w-[120px] sm:w-[150px]"><Skeleton className="h-5 w-20"/></TableHead>
+                      <TableHead className="text-right w-[100px] sm:w-[120px]"><Skeleton className="h-5 w-16 ml-auto"/></TableHead>
+                      <TableHead className="w-[50px]"><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {Array(5).fill(0).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell><Skeleton className="h-4 w-full"/></TableCell>
+                        <TableCell><Skeleton className="h-4 w-full"/></TableCell>
+                        <TableCell><Skeleton className="h-6 w-20 rounded-full"/></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto"/></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-8 w-8 rounded-sm"/></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -204,7 +203,7 @@ export default function TransactionsPage() {
   return (
     <TooltipProvider>
     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-      <div className="w-full">
+      <div className="flex flex-col h-full">
         <PageHeader
           title="Transações"
           icon={<List className="h-6 w-6 text-primary"/>}
@@ -228,6 +227,7 @@ export default function TransactionsPage() {
             </div>
           }
         />
+        <div className="flex-1 overflow-y-auto">
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="font-headline text-xl md:text-2xl">Todas as Transações</CardTitle>
@@ -332,6 +332,7 @@ export default function TransactionsPage() {
             </Table>
           </CardContent>
         </Card>
+        </div>
         <AlertDialog open={deleteDialog.isOpen} onOpenChange={(isOpen) => setDeleteDialog(prev => ({...prev, isOpen}))}>
           <AlertDialogContent>
             <AlertDialogHeader>
