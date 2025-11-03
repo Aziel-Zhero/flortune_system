@@ -24,7 +24,11 @@ import {
   Target, 
   ListChecks, 
   ArrowRightLeft,
-  Info
+  Info,
+  NotebookPen,
+  CalendarDays,
+  Users2,
+  KanbanSquare
 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
@@ -39,7 +43,7 @@ interface SharedAccess {
   permission: "view" | "edit";
 }
 
-type ModuleSection = 'goals' | 'budgets' | 'todos' | 'transactions';
+type ModuleSection = 'goals' | 'budgets' | 'todos' | 'transactions' | 'notepad' | 'calendar' | 'clients' | 'kanban';
 
 interface Module {
   id: string;
@@ -56,6 +60,10 @@ const sectionConfig: Record<ModuleSection, { label: string; icon: React.ElementT
   budgets: { label: "Orçamentos", icon: Target },
   todos: { label: "Tarefas", icon: ListChecks },
   transactions: { label: "Receitas/Despesas", icon: ArrowRightLeft },
+  notepad: { label: "Anotações", icon: NotebookPen },
+  calendar: { label: "Calendário", icon: CalendarDays },
+  clients: { label: "Clientes", icon: Users2 },
+  kanban: { label: "Kanban", icon: KanbanSquare },
 };
 
 const initialModules: Module[] = [
@@ -75,7 +83,7 @@ const initialModules: Module[] = [
       { id: "access_2", email: "cliente@example.com", permission: "view" },
       { id: "access_3", email: "dev-colega@example.com", permission: "edit" },
     ],
-    sections: ['transactions'],
+    sections: ['transactions', 'clients', 'kanban'],
     createdAt: "2024-06-15T09:00:00Z",
     updatedAt: "2024-07-22T11:00:00Z",
     owner: 'me',
@@ -189,7 +197,6 @@ export default function SharingPage() {
         </Tabs>
       </div>
 
-      {/* Dialog para CRIAR módulo */}
       <Dialog open={isModuleModalOpen} onOpenChange={setIsModuleModalOpen}>
         <DialogContent className="sm:max-w-lg">
             <DialogHeader><DialogTitle className="font-headline">Criar Novo Módulo</DialogTitle><DialogDescription>Dê um nome e escolha quais seções este módulo irá conter.</DialogDescription></DialogHeader>
@@ -214,7 +221,6 @@ export default function SharingPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Dialog para CONVIDAR usuário */}
       <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
         <DialogContent>
             <DialogHeader><DialogTitle className="font-headline">Gerenciar Acesso: {currentModule?.name}</DialogTitle><DialogDescription>Convide um usuário e defina suas permissões para este módulo.</DialogDescription></DialogHeader>
