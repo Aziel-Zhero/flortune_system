@@ -1,3 +1,4 @@
+
 // src/app/(app)/transactions/page.tsx
 "use client";
 
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat } from "lucide-react";
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +59,13 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
   return categoryTypeColors.default;
 };
 
+// Simulação de transações compartilhadas recebidas de outro usuário
+const mockSharedTransactions: Transaction[] = [
+    { id: 'shared-tx-1', user_id: 'other-user', description: 'Reembolso de Despesas (Compartilhado)', amount: 250.75, date: '2024-07-26', type: 'income', is_recurring: false, category_id: 'cat-shared-1', created_at: '2024-07-26T10:00:00Z', updated_at: '2024-07-26T10:00:00Z', category: { id: 'cat-shared-1', name: 'Reembolso', type: 'income', is_default: false } },
+    { id: 'shared-tx-2', user_id: 'other-user', description: 'Jantar de Equipe (Compartilhado)', amount: 180.50, date: '2024-07-25', type: 'expense', is_recurring: false, category_id: 'cat-shared-2', created_at: '2024-07-25T20:00:00Z', updated_at: '2024-07-25T20:00:00Z', category: { id: 'cat-shared-2', name: 'Alimentação', type: 'expense', is_default: true } },
+];
+
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +82,10 @@ export default function TransactionsPage() {
         toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
         setTransactions([]);
       } else {
-        setTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
+        const userTransactions = Array.isArray(transactionsRes.data) ? transactionsRes.data : [];
+        // Apenas para demonstração: combina as transações do usuário com as compartilhadas
+        const allData = [...userTransactions, ...mockSharedTransactions];
+        setTransactions(allData);
       }
     } catch (error) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados da página.", variant: "destructive" });
@@ -90,6 +101,10 @@ export default function TransactionsPage() {
   }, [fetchPageData]);
 
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
+    if (transactionId.startsWith('shared-')) {
+        toast({title: "Ação não permitida", description: "Você não pode deletar uma transação compartilhada.", variant: "destructive"});
+        return;
+    }
     setDeleteDialog({ isOpen: true, item: { id: transactionId, description: transactionDescription } });
   };
 
@@ -117,10 +132,14 @@ export default function TransactionsPage() {
     setDeleteDialog({ isOpen: false, item: null });
   };
 
-  const handleEditClick = (transactionId: string, transactionDescription: string) => {
+  const handleEditClick = (transaction: Transaction) => {
+    if (transaction.id.startsWith('shared-')) {
+        toast({title: "Ação não permitida", description: "Você não pode editar uma transação compartilhada com permissão de visualização.", variant: "destructive"});
+        return;
+    }
     toast({
       title: "Editar Transação",
-      description: `Funcionalidade de edição para "${transactionDescription}" (placeholder).`,
+      description: `Funcionalidade de edição para "${transaction.description}" (placeholder).`,
     });
   };
   
@@ -251,7 +270,9 @@ export default function TransactionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((transaction, index) => (
+                {transactions.map((transaction, index) => {
+                  const isShared = transaction.id.startsWith('shared-');
+                  return (
                   <motion.tr
                     key={transaction.id}
                     custom={index}
@@ -260,7 +281,7 @@ export default function TransactionsPage() {
                     animate="visible"
                     exit="exit"
                     layout
-                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                    className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted", isShared && "bg-amber-500/10 hover:bg-amber-500/20")}
                   >
                     <TableCell className="text-muted-foreground text-xs md:text-sm">
                       {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('pt-BR')}
@@ -271,6 +292,12 @@ export default function TransactionsPage() {
                               <Tooltip>
                                   <TooltipTrigger><Repeat className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
                                   <TooltipContent><p>Transação Recorrente</p></TooltipContent>
+                              </Tooltip>
+                          )}
+                          {isShared && (
+                              <Tooltip>
+                                  <TooltipTrigger><Share2 className="h-3 w-3 text-amber-600"/></TooltipTrigger>
+                                  <TooltipContent><p>Transação de um módulo compartilhado</p></TooltipContent>
                               </Tooltip>
                           )}
                           <span>{transaction.description}</span>
@@ -300,7 +327,7 @@ export default function TransactionsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditClick(transaction.id, transaction.description || "Transação")}>
+                          <DropdownMenuItem onClick={() => handleEditClick(transaction)}>
                             <Edit3 className="mr-2 h-4 w-4"/>Editar
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -314,7 +341,7 @@ export default function TransactionsPage() {
                       </DropdownMenu>
                     </TableCell>
                   </motion.tr>
-                ))}
+                )})}
                 {transactions.length === 0 && !isLoading && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">

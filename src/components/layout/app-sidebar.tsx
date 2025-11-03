@@ -34,6 +34,10 @@ const mockUser = {
     avatarFallback: "U",
 }
 
+// Mock de quais módulos estão compartilhados com o usuário atual.
+// Em um app real, isso viria de uma API.
+const sharedModulesWithMe = ['/transactions', '/goals'];
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { isMobile, setOpenMobile, open: sidebarOpen } = useSidebar();
@@ -109,6 +113,8 @@ export function AppSidebar() {
                   }
                   const IconComponent = getIcon(item.icon);
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                  const isShared = sharedModulesWithMe.includes(item.href);
+
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
@@ -121,6 +127,9 @@ export function AppSidebar() {
                         <Link href={item.href}>
                           <IconComponent />
                           <span>{item.label}</span>
+                           {isShared && (
+                            <LucideIcons.Share2 className="ml-auto h-3 w-3 text-yellow-500 animate-pulse-gold" />
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
