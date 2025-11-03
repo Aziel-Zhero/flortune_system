@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
@@ -111,6 +112,8 @@ export default function SharingPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePermission, setInvitePermission] = useState<"view" | "edit">("view");
 
+  const [isKanbanConfirmOpen, setIsKanbanConfirmOpen] = useState(false);
+
   useEffect(() => {
     document.title = `Meus Módulos - ${APP_NAME}`;
   }, []);
@@ -154,8 +157,8 @@ export default function SharingPage() {
     setIsInviteModalOpen(true);
   }
 
-  const handleInvite = () => {
-    if (!currentModule || !inviteEmail) {
+  const proceedWithInvite = () => {
+     if (!currentModule || !inviteEmail) {
       toast({ title: "Dados incompletos", variant: "destructive" });
       return;
     }
@@ -164,6 +167,14 @@ export default function SharingPage() {
     toast({ title: "Convite Enviado", description: `${inviteEmail} foi convidado para o módulo "${currentModule.name}".`});
     setInviteEmail("");
     setIsInviteModalOpen(false);
+  }
+
+  const handleInvite = () => {
+    if (currentModule?.sections.includes('kanban')) {
+        setIsKanbanConfirmOpen(true);
+    } else {
+        proceedWithInvite();
+    }
   }
 
   const handleRevokeAccess = (moduleId: string, accessId: string) => {
@@ -231,6 +242,24 @@ export default function SharingPage() {
             <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="button" onClick={handleInvite}><Send className="mr-2 h-4 w-4"/>Enviar Convite</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={isKanbanConfirmOpen} onOpenChange={setIsKanbanConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Compartilhamento do Kanban</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem certeza? Compartilhar um módulo que inclui o Quadro Kanban irá **substituir** o quadro local do usuário convidado para manter os dados sincronizados. Esta ação não pode ser desfeita para o destinatário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { proceedWithInvite(); setIsKanbanConfirmOpen(false); }}>
+              Sim, enviar convite
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </TooltipProvider>
   );
 }
