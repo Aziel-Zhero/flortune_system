@@ -80,7 +80,7 @@ export default function TeamsPage() {
 
   const { register: memberRegister, handleSubmit: handleMemberSubmit, reset: resetMemberForm, formState: { errors: memberErrors } } = useForm<TeamMemberFormData>({ resolver: zodResolver(teamMemberSchema) });
   const { control: projectControl, handleSubmit: handleProjectSubmit, reset: resetProjectForm } = useForm<ProjectFormData>({ resolver: zodResolver(projectSchema) });
-  const { control: activityControl, handleSubmit: handleActivitySubmit, reset: resetActivityForm } = useForm<ActivityFormData>({ resolver: zodResolver(activitySchema) });
+  const { control: activityControl, handleSubmit: handleActivitySubmit, reset: resetActivityForm, formState: { errors: activityErrors } } = useForm<ActivityFormData>({ resolver: zodResolver(activitySchema) });
 
   const teamIsFull = useMemo(() => teamMembers.length >= 5, [teamMembers]);
 
@@ -196,8 +196,14 @@ export default function TeamsPage() {
                               <CardDescription>Cliente: {p.client}</CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3">
-                              <div className="flex justify-between text-sm"><span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span><span>{format(parseISO(p.deadline), 'dd/MM/yyyy')}</span></div>
-                              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Rentabilidade:</span><span className={margin < 30 ? 'text-destructive font-semibold' : 'text-emerald-500 font-semibold'}>{margin.toFixed(1)}%</span></div>
+                              <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
+                                  <span>{new Date(p.deadline + 'T00:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Rentabilidade:</span>
+                                  <span className={margin < 30 ? 'text-destructive font-semibold' : 'text-emerald-500 font-semibold'}>{margin.toFixed(1)}%</span>
+                              </div>
                                {getProjectStatusBadge(p.status)}
                           </CardContent>
                            <CardFooter className="pt-2 border-t">
