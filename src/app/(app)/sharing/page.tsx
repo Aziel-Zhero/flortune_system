@@ -141,6 +141,8 @@ export default function SharingPage() {
 
   const openInviteModal = (module: Module) => {
     setCurrentModule(module);
+    setInviteEmail('');
+    setInvitePermission('view');
     setIsInviteModalOpen(true);
   }
 
@@ -166,29 +168,29 @@ export default function SharingPage() {
 
   return (
     <TooltipProvider>
-      <Dialog open={isModuleModalOpen || isInviteModalOpen} onOpenChange={(open) => { if (!open) { setIsModuleModalOpen(false); setIsInviteModalOpen(false); } }}>
-        <div className="flex flex-col h-full">
-          <PageHeader
-            title="Meus Módulos"
-            description="Crie módulos, compartilhe com outros usuários e gerencie seus acessos."
-            icon={<Share2 className="h-6 w-6 text-primary" />}
-            actions={<Button onClick={() => setIsModuleModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Módulo</Button>}
-          />
-          <Tabs defaultValue="my-modules" className="flex-grow flex flex-col">
-            <TabsList className="self-start">
-              <TabsTrigger value="my-modules">Módulos que eu compartilhei ({modulesByMe.length})</TabsTrigger>
-              <TabsTrigger value="shared-with-me">Compartilhados comigo ({modulesWithMe.length})</TabsTrigger>
-            </TabsList>
-            <TabsContent value="my-modules" className="flex-grow mt-4">
-              <ModuleTable modules={modulesByMe} openInviteModal={openInviteModal} title="Módulos Criados por Você"/>
-            </TabsContent>
-            <TabsContent value="shared-with-me" className="flex-grow mt-4">
-              <ModuleTable modules={modulesWithMe} openInviteModal={openInviteModal} title="Módulos que Outros Compartilharam com Você"/>
-            </TabsContent>
-          </Tabs>
-        </div>
+      <div className="flex flex-col h-full">
+        <PageHeader
+          title="Meus Módulos"
+          description="Crie módulos, compartilhe com outros usuários e gerencie seus acessos."
+          icon={<Share2 className="h-6 w-6 text-primary" />}
+          actions={<Button onClick={() => setIsModuleModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Módulo</Button>}
+        />
+        <Tabs defaultValue="my-modules" className="flex-grow flex flex-col">
+          <TabsList className="self-start">
+            <TabsTrigger value="my-modules">Módulos que eu compartilhei ({modulesByMe.length})</TabsTrigger>
+            <TabsTrigger value="shared-with-me">Compartilhados comigo ({modulesWithMe.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="my-modules" className="flex-grow mt-4">
+            <ModuleTable modules={modulesByMe} openInviteModal={openInviteModal} title="Módulos Criados por Você"/>
+          </TabsContent>
+          <TabsContent value="shared-with-me" className="flex-grow mt-4">
+            <ModuleTable modules={modulesWithMe} openInviteModal={openInviteModal} title="Módulos que Outros Compartilharam com Você"/>
+          </TabsContent>
+        </Tabs>
+      </div>
 
-        {/* Dialog para criar módulo */}
+      {/* Dialog para CRIAR módulo */}
+      <Dialog open={isModuleModalOpen} onOpenChange={setIsModuleModalOpen}>
         <DialogContent className="sm:max-w-lg">
             <DialogHeader><DialogTitle className="font-headline">Criar Novo Módulo</DialogTitle><DialogDescription>Dê um nome e escolha quais seções este módulo irá conter.</DialogDescription></DialogHeader>
             <div className="py-4 space-y-4">
@@ -210,8 +212,10 @@ export default function SharingPage() {
             </div>
             <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="button" onClick={handleCreateModule}>Criar Módulo</Button></DialogFooter>
         </DialogContent>
-        
-        {/* Dialog para convidar usuário */}
+      </Dialog>
+      
+      {/* Dialog para CONVIDAR usuário */}
+      <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
         <DialogContent>
             <DialogHeader><DialogTitle className="font-headline">Gerenciar Acesso: {currentModule?.name}</DialogTitle><DialogDescription>Convide um usuário e defina suas permissões para este módulo.</DialogDescription></DialogHeader>
             <div className="py-4 space-y-4">
