@@ -83,7 +83,6 @@ export const PRICING_TIERS = [
       'Gerenciamento de Clientes e Projetos',
       'Calculadoras e Ferramentas de DEV',
       'Módulo Quadro Kanban com compartilhamento',
-      'API de acesso para integrações (em breve)',
     ],
     featured: false,
     icon: "Code",
