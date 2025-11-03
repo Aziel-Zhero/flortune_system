@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Globe, PlusCircle, Trash2, Edit } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -26,6 +27,14 @@ interface WebService {
   provider: string;
   monthlyCost: number;
   renewalDate: string;
+  isClientService: boolean;
+  clientId?: string;
+  clientName?: string;
+}
+
+interface Client {
+  id: string;
+  name: string;
 }
 
 const serviceSchema = z.object({
@@ -34,24 +43,35 @@ const serviceSchema = z.object({
   provider: z.string().min(2, "O nome do provedor é obrigatório."),
   monthlyCost: z.coerce.number().min(0, "O custo não pode ser negativo."),
   renewalDate: z.string().refine(v => v, { message: "Data de renovação é obrigatória." }),
+  isClientService: z.boolean().optional().default(false),
+  clientId: z.string().optional(),
+}).refine(data => !data.isClientService || (data.isClientService && !!data.clientId), {
+    message: "Selecione um cliente para este serviço.",
+    path: ["clientId"],
 });
+
 type ServiceFormData = z.infer<typeof serviceSchema>;
 
 export default function WebManagementPage() {
   const [services, setServices] = useState<WebService[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<WebService | null>(null);
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ServiceFormData>({
+  const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
   });
+  
+  const isClientService = watch("isClientService");
 
   useEffect(() => {
     document.title = `Gestão Web - ${APP_NAME}`;
     try {
       const storedServices = localStorage.getItem("flortune-web-services");
       if (storedServices) setServices(JSON.parse(storedServices));
-    } catch (e) { console.error("Falha ao carregar serviços do localStorage", e); }
+      const storedClients = localStorage.getItem("flortune-dev-clients");
+      if (storedClients) setClients(JSON.parse(storedClients));
+    } catch (e) { console.error("Falha ao carregar dados do localStorage", e); }
   }, []);
 
   useEffect(() => {
@@ -60,24 +80,26 @@ export default function WebManagementPage() {
     } catch (e) { console.error("Falha ao salvar serviços no localStorage", e); }
   }, [services]);
 
-  const totalMonthlyCost = services.reduce((acc, s) => acc + s.monthlyCost, 0);
+  const totalInternalCost = services.reduce((acc, s) => s.isClientService ? acc : acc + s.monthlyCost, 0);
 
   const handleOpenForm = (service: WebService | null = null) => {
     setEditingService(service);
     if (service) {
       reset(service);
     } else {
-      reset({ name: "", type: 'SaaS', provider: "", monthlyCost: 0, renewalDate: "" });
+      reset({ name: "", type: 'SaaS', provider: "", monthlyCost: 0, renewalDate: "", isClientService: false, clientId: undefined });
     }
     setIsFormOpen(true);
   };
 
   const onSubmit: SubmitHandler<ServiceFormData> = (data) => {
+    const clientName = data.clientId ? clients.find(c => c.id === data.clientId)?.name : undefined;
+
     if (editingService) {
-      setServices(services.map(s => s.id === editingService.id ? { ...s, ...data } : s));
+      setServices(services.map(s => s.id === editingService.id ? { ...s, ...data, clientName } : s));
       toast({ title: "Serviço Atualizado!" });
     } else {
-      setServices(prev => [{ ...data, id: `svc_${Date.now()}` }, ...prev]);
+      setServices(prev => [{ ...data, id: `svc_${Date.now()}`, clientName }, ...prev]);
       toast({ title: "Serviço Adicionado!" });
     }
     setIsFormOpen(false);
@@ -100,19 +122,19 @@ export default function WebManagementPage() {
         />
         
         <Card>
-            <CardHeader><CardTitle className="font-headline text-lg">Custo Mensal Total</CardTitle><CardDescription>Soma de todos os seus custos recorrentes de infraestrutura web.</CardDescription></CardHeader>
-            <CardContent><p className="text-3xl font-bold text-primary"><PrivateValue value={totalMonthlyCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/></p></CardContent>
+            <CardHeader><CardTitle className="font-headline text-lg">Custo Interno Mensal</CardTitle><CardDescription>Soma dos seus custos que não são de clientes.</CardDescription></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-primary"><PrivateValue value={totalInternalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/></p></CardContent>
         </Card>
         
         <Card>
             <CardHeader><CardTitle className="font-headline">Serviços Contratados</CardTitle></CardHeader>
             <CardContent>
                 <Table>
-                    <TableHeader><TableRow><TableHead>Serviço</TableHead><TableHead>Provedor</TableHead><TableHead>Tipo</TableHead><TableHead>Custo Mensal</TableHead><TableHead>Renovação</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Serviço</TableHead><TableHead>Provedor</TableHead><TableHead>Custo Mensal</TableHead><TableHead>Renovação</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
                     <TableBody>
-                        {services.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum serviço adicionado.</TableCell></TableRow>}
+                        {services.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum serviço adicionado.</TableCell></TableRow>}
                         {services.map(s => (
-                            <TableRow key={s.id}><TableCell>{s.name}</TableCell><TableCell>{s.provider}</TableCell><TableCell><Badge variant="outline">{s.type}</Badge></TableCell><TableCell><PrivateValue value={s.monthlyCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/></TableCell><TableCell>{s.renewalDate}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenForm(s)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}><Trash2 className="h-4 w-4"/></Button></TableCell></TableRow>
+                            <TableRow key={s.id}><TableCell><div><p>{s.name}</p>{s.isClientService && <Badge variant="secondary" className="mt-1">Cliente: {s.clientName}</Badge>}</div></TableCell><TableCell>{s.provider}</TableCell><TableCell><PrivateValue value={s.monthlyCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/></TableCell><TableCell>{s.renewalDate}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenForm(s)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}><Trash2 className="h-4 w-4"/></Button></TableCell></TableRow>
                         ))}
                     </TableBody>
                 </Table>
@@ -129,6 +151,13 @@ export default function WebManagementPage() {
             <div><Label htmlFor="monthlyCost">Custo Mensal (R$)</Label><Input id="monthlyCost" type="number" {...register("monthlyCost")} />{errors.monthlyCost && <p className="text-sm text-destructive mt-1">{errors.monthlyCost.message}</p>}</div>
             <div><Label htmlFor="renewalDate">Data de Renovação</Label><Input id="renewalDate" type="date" {...register("renewalDate")} />{errors.renewalDate && <p className="text-sm text-destructive mt-1">{errors.renewalDate.message}</p>}</div>
           </div>
+          <div className="items-top flex space-x-2">
+            <Controller name="isClientService" control={control} render={({ field }) => (<Checkbox id="isClientService" checked={field.value} onCheckedChange={field.onChange} />)} />
+            <div className="grid gap-1.5 leading-none"><Label htmlFor="isClientService" className="cursor-pointer">Este serviço é para um cliente?</Label><p className="text-xs text-muted-foreground">Marque se este custo é repassado ou monitorado para um cliente.</p></div>
+          </div>
+          {isClientService && (
+            <div><Label>Cliente</Label><Controller name="clientId" control={control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione o cliente"/></SelectTrigger><SelectContent>{clients.length > 0 ? clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>) : <p className="p-2 text-xs text-muted-foreground">Nenhum cliente cadastrado.</p>}</SelectContent></Select>)} />{errors.clientId && <p className="text-sm text-destructive mt-1">{errors.clientId.message}</p>}</div>
+          )}
           <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
         </form>
       </DialogContent>
