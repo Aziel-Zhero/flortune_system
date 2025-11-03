@@ -1,11 +1,14 @@
+
 // src/app/(app)/dev/systems/complexity-estimator/page.tsx
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Sigma, Construction } from "lucide-react";
+import { Sigma, Construction, ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function ComplexityEstimatorPage() {
   useEffect(() => {
@@ -18,6 +21,7 @@ export default function ComplexityEstimatorPage() {
         title="Estimador de Complexidade Técnica"
         description="Avalie a complexidade de um sistema para orçar ou planejar sprints."
         icon={<Sigma className="h-6 w-6 text-primary" />}
+        actions={<Button asChild variant="outline"><Link href="/dev/systems"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button>}
       />
       <Card className="shadow-lg">
         <CardHeader>

@@ -16,7 +16,7 @@ export const NAV_LINKS_CONFIG = [
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/dashboard", label: "Dash", icon: "AreaChart" as const, type: "link" as const },
   { href: "/dev/clients", label: "Clientes & Projetos", icon: "Users2" as const, type: "link" as const },
-  { href: "/dev/systems", label: "Ferramentas", icon: "HardDrive" as const, type: "link" as const },
+  { href: "/dev/systems", label: "Ferramentas", icon: "Wrench" as const, type: "link" as const },
   { href: "/dev/web-management", label: "Gestão Web", icon: "Globe" as const, type: "link" as const },
   { href: "/dev/devops", label: "Gestão de Sistemas", icon: "GitMerge" as const, type: "link" as const },
   { type: "separator" as const },

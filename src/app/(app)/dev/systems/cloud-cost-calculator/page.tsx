@@ -1,11 +1,14 @@
+
 // src/app/(app)/dev/systems/cloud-cost-calculator/page.tsx
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Cloud, Construction } from "lucide-react";
+import { Cloud, Construction, ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function CloudCostCalculatorPage() {
   useEffect(() => {
@@ -18,6 +21,7 @@ export default function CloudCostCalculatorPage() {
         title="Calculadora de Custos Cloud"
         description="Simule o custo mensal de manter uma aplicação na nuvem."
         icon={<Cloud className="h-6 w-6 text-primary" />}
+        actions={<Button asChild variant="outline"><Link href="/dev/systems"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button>}
       />
       <Card className="shadow-lg">
         <CardHeader>

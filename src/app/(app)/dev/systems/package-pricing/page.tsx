@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/systems/package-pricing/page.tsx
 "use client";
 
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Percent, DollarSign, Clock, Briefcase, AlertCircle, BarChartHorizontalBig } from "lucide-react";
+import { Percent, DollarSign, Clock, Briefcase, AlertCircle, BarChartHorizontalBig, HelpCircle, ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
@@ -15,6 +16,8 @@ import { z } from "zod";
 import { PrivateValue } from "@/components/shared/private-value";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import Link from "next/link";
 
 const packagePricingSchema = z.object({
   planName: z.string().min(2, "Nome do plano é obrigatório.").optional().default("Meu Pacote"),
@@ -29,6 +32,7 @@ type PackagePricingFormData = z.infer<typeof packagePricingSchema>;
 
 export default function PackagePricingPage() {
   const [planPrice, setPlanPrice] = useState<number | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<PackagePricingFormData>({
     resolver: zodResolver(packagePricingSchema),
@@ -68,102 +72,137 @@ export default function PackagePricingPage() {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Calculadora de Precificação de Pacotes e Assinaturas"
-        description="Estruture preços para serviços recorrentes, pacotes de horas ou entregas mensais."
-        icon={<Briefcase className="h-6 w-6 text-primary" />}
-      />
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="font-headline">Detalhes do Pacote/Assinatura</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="planName">Nome do Plano/Pacote</Label>
-              <Input id="planName" {...register("planName")} placeholder="Ex: Pacote Pro de Manutenção" />
-              {errors.planName && <p className="text-sm text-destructive mt-1">{errors.planName.message}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="includedHours">Nº de Horas Inclusas</Label>
-                <div className="relative">
-                   <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="includedHours" type="number" step="1" placeholder="Ex: 10" {...register("includedHours")} className="pl-10" />
+    <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+      <div>
+        <PageHeader
+          title="Calculadora de Precificação de Pacotes e Assinaturas"
+          description="Estruture preços para serviços recorrentes, pacotes de horas ou entregas mensais."
+          icon={<Briefcase className="h-6 w-6 text-primary" />}
+          actions={<Button asChild variant="outline"><Link href="/dev/systems"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button>}
+        />
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Card className="shadow-lg">
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="font-headline">Detalhes do Pacote/Assinatura</CardTitle>
+                    <DialogTrigger asChild><Button variant="ghost" size="icon"><HelpCircle className="h-5 w-5 text-muted-foreground"/></Button></DialogTrigger>
                 </div>
-                {errors.includedHours && <p className="text-sm text-destructive mt-1">{errors.includedHours.message}</p>}
-              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="hourlyRateForPackage">Valor/Hora Base para o Pacote (R$)</Label>
-                <div className="relative">
-                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="hourlyRateForPackage" type="number" step="0.01" placeholder="Ex: 50" {...register("hourlyRateForPackage")} className="pl-10" />
-                </div>
-                {errors.hourlyRateForPackage && <p className="text-sm text-destructive mt-1">{errors.hourlyRateForPackage.message}</p>}
+                <Label htmlFor="planName">Nome do Plano/Pacote</Label>
+                <Input id="planName" {...register("planName")} placeholder="Ex: Pacote Pro de Manutenção" />
+                {errors.planName && <p className="text-sm text-destructive mt-1">{errors.planName.message}</p>}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="toolInfrastructureCost">Custo Ferramentas/Infra Mensal (R$)</Label>
-                    <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="toolInfrastructureCost" type="number" step="0.01" placeholder="Ex: 25" {...register("toolInfrastructureCost")} className="pl-10" />
-                    </div>
-                    {errors.toolInfrastructureCost && <p className="text-sm text-destructive mt-1">{errors.toolInfrastructureCost.message}</p>}
+                  <Label htmlFor="includedHours">Nº de Horas Inclusas</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="includedHours" type="number" step="1" placeholder="Ex: 10" {...register("includedHours")} className="pl-10" />
+                  </div>
+                  {errors.includedHours && <p className="text-sm text-destructive mt-1">{errors.includedHours.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="profitMargin">Margem de Lucro Desejada (%)</Label>
-                    <div className="relative">
-                        <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="profitMargin" type="number" step="1" placeholder="Ex: 30" {...register("profitMargin")} className="pl-10" />
-                    </div>
-                    {errors.profitMargin && <p className="text-sm text-destructive mt-1">{errors.profitMargin.message}</p>}
+                  <Label htmlFor="hourlyRateForPackage">Valor/Hora Base para o Pacote (R$)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="hourlyRateForPackage" type="number" step="0.01" placeholder="Ex: 50" {...register("hourlyRateForPackage")} className="pl-10" />
+                  </div>
+                  {errors.hourlyRateForPackage && <p className="text-sm text-destructive mt-1">{errors.hourlyRateForPackage.message}</p>}
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="extraHourRate">Valor Hora Extra (R$)</Label>
-                    <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="extraHourRate" type="number" step="0.01" placeholder="Ex: 75" {...register("extraHourRate")} className="pl-10" />
-                    </div>
-                    {errors.extraHourRate && <p className="text-sm text-destructive mt-1">{errors.extraHourRate.message}</p>}
-                </div>
-            </div>
-            
-          </CardContent>
-          <CardFooter className="flex flex-col items-start gap-4">
-            <div className="flex gap-2">
-                <Button type="submit">Calcular Preço do Plano</Button>
-                <Button type="button" variant="outline" onClick={handleReset}>Limpar</Button>
-            </div>
-            
-            {planPrice !== null && (
-              <Card className="w-full bg-primary/5 border-primary/20 mt-4">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-primary font-headline text-md flex items-center"><BarChartHorizontalBig className="mr-2 h-5 w-5"/>Resultados da Precificação do Plano:</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Preço Sugerido do Plano/Pacote:</p>
-                      <p className="text-xl font-bold text-primary">
-                        R$ <PrivateValue value={planPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /> / mês
-                      </p>
-                    </div>
-                </CardContent>
-              </Card>
-            )}
-             {Object.keys(errors).length > 0 && planPrice === null && (
-                <Alert variant="destructive" className="w-full mt-2">
-                    <AlertCircle size={18} className="h-4 w-4" />
-                    <AlertTitle>Erro de Validação</AlertTitle>
-                    <AlertDescription>Por favor, corrija os erros no formulário para calcular.</AlertDescription>
-                </Alert>
-            )}
-          </CardFooter>
-        </Card>
-      </form>
-    </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="toolInfrastructureCost">Custo Ferramentas/Infra Mensal (R$)</Label>
+                      <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input id="toolInfrastructureCost" type="number" step="0.01" placeholder="Ex: 25" {...register("toolInfrastructureCost")} className="pl-10" />
+                      </div>
+                      {errors.toolInfrastructureCost && <p className="text-sm text-destructive mt-1">{errors.toolInfrastructureCost.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="profitMargin">Margem de Lucro Desejada (%)</Label>
+                      <div className="relative">
+                          <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input id="profitMargin" type="number" step="1" placeholder="Ex: 30" {...register("profitMargin")} className="pl-10" />
+                      </div>
+                      {errors.profitMargin && <p className="text-sm text-destructive mt-1">{errors.profitMargin.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="extraHourRate">Valor Hora Extra (R$)</Label>
+                      <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input id="extraHourRate" type="number" step="0.01" placeholder="Ex: 75" {...register("extraHourRate")} className="pl-10" />
+                      </div>
+                      {errors.extraHourRate && <p className="text-sm text-destructive mt-1">{errors.extraHourRate.message}</p>}
+                  </div>
+              </div>
+              
+            </CardContent>
+            <CardFooter className="flex flex-col items-start gap-4">
+              <div className="flex gap-2">
+                  <Button type="submit">Calcular Preço do Plano</Button>
+                  <Button type="button" variant="outline" onClick={handleReset}>Limpar</Button>
+              </div>
+              
+              {planPrice !== null && (
+                <Card className="w-full bg-primary/5 border-primary/20 mt-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-primary font-headline text-md flex items-center"><BarChartHorizontalBig className="mr-2 h-5 w-5"/>Resultados da Precificação do Plano:</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Preço Sugerido do Plano/Pacote:</p>
+                        <p className="text-xl font-bold text-primary">
+                          R$ <PrivateValue value={planPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /> / mês
+                        </p>
+                      </div>
+                  </CardContent>
+                </Card>
+              )}
+              {Object.keys(errors).length > 0 && planPrice === null && (
+                  <Alert variant="destructive" className="w-full mt-2">
+                      <AlertCircle size={18} className="h-4 w-4" />
+                      <AlertTitle>Erro de Validação</AlertTitle>
+                      <AlertDescription>Por favor, corrija os erros no formulário para calcular.</AlertDescription>
+                  </Alert>
+              )}
+            </CardFooter>
+          </Card>
+        </form>
+      </div>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">Fórmula e Explicação</DialogTitle>
+          <DialogDescription>
+            Precificar pacotes de serviços exige cobrir seus custos fixos e variáveis, além de garantir sua margem de lucro.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4 text-sm">
+          <p>Este cálculo ajuda a definir um preço mensal justo para um pacote de horas, cobrindo seus custos e aplicando sua margem de lucro desejada.</p>
+          <div className="p-3 bg-muted rounded-md font-mono text-xs overflow-x-auto">
+            <p className="font-bold">Custo das Horas =</p>
+            <p className="ml-2">Horas Inclusas × Valor/Hora do Pacote</p>
+            <br />
+            <p className="font-bold">Custo Total Base =</p>
+            <p className="ml-2">Custo das Horas + Custo de Ferramentas/Infra</p>
+            <br />
+            <p className="font-bold">Preço do Plano =</p>
+            <p className="ml-2">Custo Total Base × (1 + (Margem de Lucro / 100))</p>
+          </div>
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+            <li>O **Valor/Hora do Pacote** pode ser um valor ligeiramente menor que seu valor/hora avulso, como um incentivo para o cliente fechar o pacote.</li>
+            <li>O **Custo de Ferramentas** inclui qualquer assinatura ou licença que você paga para poder realizar o serviço (ex: R$25/mês para uma ferramenta de monitoramento).</li>
+            <li>O **Valor da Hora Extra** deve ser maior que seu valor/hora normal para desencorajar o excesso de escopo e compensar o trabalho não planejado.</li>
+          </ul>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button>Entendi</Button></DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

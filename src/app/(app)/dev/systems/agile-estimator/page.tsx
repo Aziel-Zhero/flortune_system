@@ -1,11 +1,14 @@
+
 // src/app/(app)/dev/systems/agile-estimator/page.tsx
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { GanttChartSquare, Construction } from "lucide-react";
+import { GanttChartSquare, Construction, ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function AgileEstimatorPage() {
   useEffect(() => {
@@ -18,6 +21,7 @@ export default function AgileEstimatorPage() {
         title="Estimador Ágil (Sprint Estimator)"
         description="Estime o esforço de um projeto ágil baseado em story points e velocidade da equipe."
         icon={<GanttChartSquare className="h-6 w-6 text-primary" />}
+        actions={<Button asChild variant="outline"><Link href="/dev/systems"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button>}
       />
       <Card className="shadow-lg">
         <CardHeader>
