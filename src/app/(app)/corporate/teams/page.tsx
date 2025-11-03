@@ -179,11 +179,11 @@ export default function TeamsPage() {
     setIsAssignModalOpen(true);
   }
 
-  const onAssignSubmit: SubmitHandler<{memberId: string}> = (data) => {
-      if (!currentActivity || !data.memberId) return;
+  const onAssignSubmit: SubmitHandler<{assignedTo: string}> = (data) => {
+      if (!currentActivity || !data.assignedTo) return;
 
-      setActivities(prev => prev.map(act => act.id === currentActivity.id ? {...act, status: 'assigned', assignedTo: data.memberId } : act));
-      toast({title: "Atividade Atribuída!", description: `"${currentActivity.description}" foi atribuída a ${teamMembers.find(m => m.id === data.memberId)?.name}.`});
+      setActivities(prev => prev.map(act => act.id === currentActivity.id ? {...act, status: 'assigned', assignedTo: data.assignedTo } : act));
+      toast({title: "Atividade Atribuída!", description: `"${currentActivity.description}" foi atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`});
       setIsAssignModalOpen(false);
       setCurrentActivity(null);
   }
@@ -258,7 +258,7 @@ export default function TeamsPage() {
                           <CardContent className="space-y-3">
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
-                                  <span>{format(parseISO(p.deadline), 'dd/MM/yyyy')}</span>
+                                  <span>{format(parseISO(p.deadline), "dd/MM/yyyy", { timeZone: 'UTC' })}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Rentabilidade:</span>
@@ -343,7 +343,7 @@ export default function TeamsPage() {
        <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Atribuir Atividade</DialogTitle><DialogDescription>Selecione um membro da equipe para a atividade: "{currentActivity?.description}"</DialogDescription></DialogHeader>
-          <form onSubmit={handleSubmit(onAssignSubmit as any)} className="space-y-4 py-2">
+          <form onSubmit={handleActivitySubmit(onAssignSubmit as any)} className="space-y-4 py-2">
             <div>
               <Label>Atribuir Para</Label>
               <Controller name="assignedTo" control={activityControl} render={({ field }) => (
