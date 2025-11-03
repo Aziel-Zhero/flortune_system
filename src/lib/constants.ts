@@ -27,6 +27,10 @@ export const NAV_LINKS_CONFIG = [
   { type: "title" as const, label: "Módulos" },
   { href: "/sharing", label: "Compartilhamento", icon: "Share2" as const, type: "link" as const },
   { type: "separator" as const },
+  { type: "title" as const, label: "CORPORATIVO" },
+  { href: "/corporate/teams", label: "Equipes", icon: "Users" as const, type: "link" as const },
+  { href: "/corporate/reports", label: "Graficos & Metas", icon: "AreaChart" as const, type: "link" as const },
+  { type: "separator" as const },
   { href: "/plans", label: "Nossos Planos", icon: "Gem" as const, type: "link" as const },
   { href: "/help", label: "Ajuda", icon: "LifeBuoy" as const, type: "link" as const },
 ] as const;
