@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { AreaChart, Clock, ListChecks, CheckCircle, GitCommit, Workflow } from "lucide-react";
+import { AreaChart, Clock, ListChecks, CheckCircle, GitCommit, Workflow, AlertTriangle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Area, AreaChart as AreaChartRecharts, Line, LineChart as LineChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts";
