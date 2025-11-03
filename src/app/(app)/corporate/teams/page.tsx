@@ -3,17 +3,18 @@
 
 import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserPlus, FileDown, TrendingUp, Briefcase, ListChecks, BarChart } from "lucide-react";
+import { Users, UserPlus, FileDown, TrendingUp, Briefcase, ListChecks, BarChart, Package, Clock, AlertCircle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Area, AreaChart as AreaChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { PrivateValue } from "@/components/shared/private-value";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const teamMembers = [
   { id: 'usr_1', name: 'Ana Silva', role: 'Gerente de Projetos', avatar: 'https://placehold.co/40x40/a2d2ff/333?text=AS', activeProjects: 3, lastActivity: '2 horas atrás', taskProgress: 85 },
@@ -21,6 +22,13 @@ const teamMembers = [
   { id: 'usr_3', name: 'Carla Dias', role: 'Desenvolvedora Pleno', avatar: 'https://placehold.co/40x40/ffafcc/333?text=CD', activeProjects: 2, lastActivity: '5 horas atrás', taskProgress: 70 },
   { id: 'usr_4', name: 'Daniel Alves', role: 'UX/UI Designer', avatar: 'https://placehold.co/40x40/caffbf/333?text=DA', activeProjects: 4, lastActivity: 'Ontem', taskProgress: 90 },
   { id: 'usr_5', name: 'Eduarda Lima', role: 'Estagiária', avatar: 'https://placehold.co/40x40/ffc8dd/333?text=EL', activeProjects: 1, lastActivity: 'Hoje', taskProgress: 60 },
+];
+
+const projects = [
+    { id: 'proj_1', name: 'Sistema de E-commerce', client: 'Loja Fashion', status: 'in_progress', deadline: '2024-08-30', value: 50000, cost: 20000, team: ['usr_2', 'usr_3', 'usr_4'] },
+    { id: 'proj_2', name: 'Aplicativo Mobile de Saúde', client: 'Clínica Bem-Estar', status: 'in_progress', deadline: '2024-09-15', value: 80000, cost: 35000, team: ['usr_1', 'usr_2', 'usr_4'] },
+    { id: 'proj_3', name: 'Manutenção de CRM Interno', client: 'Soluções Tech', status: 'delayed', deadline: '2024-07-25', value: 15000, cost: 8000, team: ['usr_3'] },
+    { id: 'proj_4', name: 'Website Institucional', client: 'Advocacia & Lei', status: 'completed', deadline: '2024-07-10', value: 25000, cost: 10000, team: ['usr_4', 'usr_5'] },
 ];
 
 const teamPerformanceData = [
@@ -36,8 +44,18 @@ export default function TeamsPage() {
   useEffect(() => {
     document.title = `Gestão de Equipes - ${APP_NAME}`;
   }, []);
+  
+  const getProjectStatusBadge = (status: string) => {
+    switch (status) {
+      case 'in_progress': return <Badge variant="default" className="bg-blue-500">Em Andamento</Badge>;
+      case 'delayed': return <Badge variant="destructive">Atrasado</Badge>;
+      case 'completed': return <Badge variant="secondary" className="bg-green-600 text-white">Concluído</Badge>;
+      default: return <Badge variant="outline">Planejamento</Badge>;
+    }
+  };
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       <PageHeader
         title="Gestão de Equipes"
@@ -104,6 +122,54 @@ export default function TeamsPage() {
         </CardContent>
       </Card>
       
+       <div className="space-y-4">
+        <PageHeader title="Visão Geral de Projetos" description="Acompanhe a saúde e o andamento de todos os projetos ativos." icon={<Package className="h-6 w-6 text-primary" />} />
+         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {projects.map(p => {
+                const profit = p.value - p.cost;
+                const margin = p.value > 0 ? (profit / p.value) * 100 : 0;
+                return (
+                    <Card key={p.id}>
+                        <CardHeader>
+                            <div className="flex justify-between items-start">
+                                <CardTitle className="font-headline">{p.name}</CardTitle>
+                                {getProjectStatusBadge(p.status)}
+                            </div>
+                            <CardDescription>Cliente: {p.client}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                             <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
+                                <span>{new Date(p.deadline + 'T00:00:00Z').toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Rentabilidade:</span>
+                                <span className={margin < 30 ? 'text-destructive font-semibold' : 'text-emerald-500 font-semibold'}>{margin.toFixed(1)}%</span>
+                            </div>
+                             <div className="flex items-center justify-between pt-2 border-t">
+                                <span className="text-sm text-muted-foreground">Equipe:</span>
+                                <div className="flex -space-x-2">
+                                {p.team.map(memberId => {
+                                    const member = teamMembers.find(m => m.id === memberId);
+                                    if (!member) return null;
+                                    return (
+                                        <Tooltip key={member.id}>
+                                            <TooltipTrigger asChild>
+                                                <Avatar className="h-7 w-7 border-2 border-card"><AvatarImage src={member.avatar} data-ai-hint="user avatar"/><AvatarFallback>{member.name.charAt(0)}</AvatarFallback></Avatar>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>{member.name}</p></TooltipContent>
+                                        </Tooltip>
+                                    )
+                                })}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )
+            })}
+        </div>
+      </div>
+      
        <Card>
         <CardHeader>
           <CardTitle className="font-headline flex items-center gap-2">
@@ -137,7 +203,7 @@ export default function TeamsPage() {
           </ChartContainer>
         </CardContent>
       </Card>
-
     </div>
+    </TooltipProvider>
   );
 }
