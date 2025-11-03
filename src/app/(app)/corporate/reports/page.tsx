@@ -4,11 +4,11 @@
 import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AreaChart, Clock, ListChecks, CheckCircle, GitCommit, AlertTriangle } from "lucide-react";
+import { AreaChart, Clock, ListChecks, CheckCircle, GitCommit } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts";
+import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 
 const dailyProductivityData = [
     { day: "Seg", tasks: 8 }, { day: "Ter", tasks: 12 }, { day: "Qua", tasks: 7 },
@@ -43,18 +43,6 @@ export default function CorporateReportsPage() {
         description="Visualize a produtividade diária e as atividades recentes da sua equipe."
         icon={<AreaChart className="h-6 w-6 text-primary" />}
       />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
-          <Card><CardHeader><CardTitle>Dias na Sprint</CardTitle></CardHeader><CardContent className="flex items-center gap-4"><Clock className="h-8 w-8 text-primary" /><p className="text-3xl font-bold">7 / 15</p></CardContent></Card>
-        </motion.div>
-        <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
-          <Card><CardHeader><CardTitle>Tarefas da Sprint</CardTitle></CardHeader><CardContent className="flex items-center gap-4"><ListChecks className="h-8 w-8 text-green-500" /><p className="text-3xl font-bold">28 / 40</p></CardContent></Card>
-        </motion.div>
-        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
-          <Card><CardHeader><CardTitle>Impedimentos Ativos</CardTitle></CardHeader><CardContent className="flex items-center gap-4"><AlertTriangle className="h-8 w-8 text-destructive" /><p className="text-3xl font-bold">2</p></CardContent></Card>
-        </motion.div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-3">

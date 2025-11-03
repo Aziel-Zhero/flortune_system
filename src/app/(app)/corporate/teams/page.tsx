@@ -11,9 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
-import { Users, UserPlus, FileDown, TrendingUp, Briefcase, ListChecks, BarChart, Package, Clock, AlertCircle, Settings, Edit } from "lucide-react";
+import { Users, UserPlus, FileDown, Briefcase, Package, Clock, Settings, Edit, PlusCircle, CalendarIcon } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Area, AreaChart as AreaChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
@@ -24,7 +24,11 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { ptBR } from 'date-fns/locale';
 
 const teamMemberSchema = z.object({
   name: z.string().min(2, "Nome é obrigatório."),
@@ -38,6 +42,14 @@ const projectSchema = z.object({
   value: z.coerce.number().min(0, "O valor não pode ser negativo."),
 });
 type ProjectFormData = z.infer<typeof projectSchema>;
+
+const activitySchema = z.object({
+  description: z.string().min(3, "Descrição é obrigatória."),
+  assignedTo: z.string().min(1, "Selecione um membro da equipe."),
+  dueDate: z.date().optional(),
+});
+type ActivityFormData = z.infer<typeof activitySchema>;
+
 
 const initialTeamMembers = [
   { id: 'usr_1', name: 'Ana Silva', email: 'ana.silva@example.com', role: 'Gerente de Projetos', avatar: 'https://placehold.co/40x40/a2d2ff/333?text=AS', activeProjects: 3, lastActivity: '2 horas atrás', taskProgress: 85 },
@@ -54,15 +66,6 @@ const initialProjects = [
     { id: 'proj_4', name: 'Website Institucional', client: 'Advocacia & Lei', status: 'completed' as const, deadline: '2024-07-10', value: 25000, cost: 10000, team: ['usr_4', 'usr_5'] },
 ];
 
-const teamPerformanceData = [
-  { month: 'Jan', tasks: 45, value: 50000 },
-  { month: 'Fev', tasks: 52, value: 65000 },
-  { month: 'Mar', tasks: 60, value: 72000 },
-  { month: 'Abr', tasks: 55, value: 68000 },
-  { month: 'Mai', tasks: 65, value: 85000 },
-  { month: 'Jun', tasks: 72, value: 95000 },
-];
-
 export default function TeamsPage() {
   const [teamMembers, setTeamMembers] = useState(initialTeamMembers);
   const [projects, setProjects] = useState(initialProjects);
@@ -71,12 +74,14 @@ export default function TeamsPage() {
   const [isLimitAlertOpen, setIsLimitAlertOpen] = useState(false);
   const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [currentMember, setCurrentMember] = useState<(typeof teamMembers[0]) | null>(null);
   const [currentProject, setCurrentProject] = useState<(typeof projects[0]) | null>(null);
 
   const { register: memberRegister, handleSubmit: handleMemberSubmit, reset: resetMemberForm, formState: { errors: memberErrors } } = useForm<TeamMemberFormData>({ resolver: zodResolver(teamMemberSchema) });
-  const { control: projectControl, handleSubmit: handleProjectSubmit, reset: resetProjectForm, formState: { errors: projectErrors } } = useForm<ProjectFormData>({ resolver: zodResolver(projectSchema) });
-  
+  const { control: projectControl, handleSubmit: handleProjectSubmit, reset: resetProjectForm } = useForm<ProjectFormData>({ resolver: zodResolver(projectSchema) });
+  const { control: activityControl, handleSubmit: handleActivitySubmit, reset: resetActivityForm } = useForm<ActivityFormData>({ resolver: zodResolver(activitySchema) });
+
   const teamIsFull = useMemo(() => teamMembers.length >= 5, [teamMembers]);
 
   useEffect(() => { document.title = `Gestão de Equipes - ${APP_NAME}`; }, []);
@@ -113,6 +118,9 @@ export default function TeamsPage() {
   };
   
   const handleOpenMemberDialog = (member: (typeof teamMembers[0]) | null) => {
+    if (!member && teamIsFull) {
+      setIsLimitAlertOpen(true);
+    } else {
       setCurrentMember(member);
       if(member) {
           resetMemberForm(member);
@@ -121,6 +129,7 @@ export default function TeamsPage() {
           resetMemberForm({name: "", email: "", role: ""});
           setIsAddMemberDialogOpen(true);
       }
+    }
   };
   
   const handleOpenProjectDialog = (project: typeof projects[0]) => {
@@ -128,12 +137,15 @@ export default function TeamsPage() {
       resetProjectForm(project);
       setIsEditProjectOpen(true);
   };
-
-  const AddMemberButton = () => (
-    <Button onClick={() => teamIsFull ? setIsLimitAlertOpen(true) : handleOpenMemberDialog(null)}>
-      <UserPlus className="mr-2 h-4 w-4"/>Adicionar Membro
-    </Button>
-  );
+  
+  const onActivitySubmit: SubmitHandler<ActivityFormData> = (data) => {
+      toast({
+          title: "Atividade Criada (Simulação)",
+          description: `Atividade "${data.description}" atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`
+      });
+      setIsActivityModalOpen(false);
+      resetActivityForm();
+  };
 
   return (
     <TooltipProvider>
@@ -142,18 +154,12 @@ export default function TeamsPage() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline"><FileDown className="mr-2 h-4 w-4"/>Gerar Relatório</Button>
-              <AddMemberButton />
+              <Button onClick={() => setIsActivityModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Atividade</Button>
+              <Button onClick={() => handleOpenMemberDialog(null)}><UserPlus className="mr-2 h-4 w-4"/>Adicionar Membro</Button>
             </div>
           }
         />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card><CardHeader><CardTitle className="font-headline text-lg">Membros Ativos</CardTitle></CardHeader><CardContent className="flex items-center gap-4"><Users className="h-8 w-8 text-primary"/><p className="text-3xl font-bold">{teamMembers.length} / 5</p></CardContent></Card>
-            <Card><CardHeader><CardTitle className="font-headline text-lg">Projetos em Andamento</CardTitle></CardHeader><CardContent className="flex items-center gap-4"><Briefcase className="h-8 w-8 text-blue-500"/><p className="text-3xl font-bold">{projects.filter(p => p.status === 'in_progress').length}</p></CardContent></Card>
-            <Card><CardHeader><CardTitle className="font-headline text-lg">Tarefas Concluídas</CardTitle><CardDescription className="text-xs">Este mês</CardDescription></CardHeader><CardContent className="flex items-center gap-4"><ListChecks className="h-8 w-8 text-green-500"/><p className="text-3xl font-bold">128</p></CardContent></Card>
-            <Card><CardHeader><CardTitle className="font-headline text-lg">Faturamento da Equipe</CardTitle><CardDescription className="text-xs">Este mês</CardDescription></CardHeader><CardContent className="flex items-center gap-4"><TrendingUp className="h-8 w-8 text-emerald-500"/><p className="text-3xl font-bold"><PrivateValue value={'R$ 95.000'}/></p></CardContent></Card>
-        </div>
-
         <Card>
           <CardHeader><CardTitle className="font-headline">Membros da Equipe</CardTitle></CardHeader>
           <CardContent>
@@ -190,7 +196,7 @@ export default function TeamsPage() {
                               <CardDescription>Cliente: {p.client}</CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3">
-                              <div className="flex justify-between text-sm"><span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span><span>{format(new Date(p.deadline), 'dd/MM/yyyy')}</span></div>
+                              <div className="flex justify-between text-sm"><span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span><span>{format(parseISO(p.deadline), 'dd/MM/yyyy')}</span></div>
                               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Rentabilidade:</span><span className={margin < 30 ? 'text-destructive font-semibold' : 'text-emerald-500 font-semibold'}>{margin.toFixed(1)}%</span></div>
                                {getProjectStatusBadge(p.status)}
                           </CardContent>
@@ -213,11 +219,6 @@ export default function TeamsPage() {
               })}
           </div>
         </div>
-        
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center gap-2"><BarChart className="h-5 w-5 text-primary"/>Performance da Equipe (Tarefas Concluídas)</CardTitle><CardDescription>Visualização da produtividade e valor gerado pela equipe ao longo do tempo.</CardDescription></CardHeader>
-          <CardContent><ChartContainer config={{tasks: {label: "Tarefas"}, value: {label: "Valor (R$)"}}} className="w-full h-80"><AreaChartRecharts accessibilityLayer data={teamPerformanceData}><CartesianGrid vertical={false} /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} /><YAxis yAxisId="left" tickFormatter={(value) => `${value}`} /><YAxis yAxisId="right" orientation="right" tickFormatter={(value) => `R$${(value / 1000)}k`} /><RechartsTooltip cursor={false} content={<ChartTooltipContent formatter={(value, name) => (name === "tasks" ? `${value} tarefas` : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value as number))} indicator="dot" />} /><ChartLegend content={<ChartLegendContent />} /><defs><linearGradient id="fillValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8} /><stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1} /></linearGradient><linearGradient id="fillTasks" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8} /><stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1} /></linearGradient></defs><Area yAxisId="right" dataKey="value" type="natural" fill="url(#fillValue)" stroke="hsl(var(--chart-2))" stackId="a" name="Valor Gerado"/><Area yAxisId="left" dataKey="tasks" type="natural" fill="url(#fillTasks)" stroke="hsl(var(--chart-1))" stackId="b" name="Tarefas Concluídas"/></AreaChartRecharts></ChartContainer></CardContent>
-        </Card>
       </div>
 
       <AlertDialog open={isLimitAlertOpen} onOpenChange={setIsLimitAlertOpen}>
@@ -244,10 +245,40 @@ export default function TeamsPage() {
              <DialogHeader><DialogTitle>Editar Projeto: {currentProject?.name}</DialogTitle></DialogHeader>
              <form onSubmit={handleProjectSubmit(handleEditProject)} className="space-y-4 py-2">
                 <div><Label>Status</Label><Controller name="status" control={projectControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="planning">Planejamento</SelectItem><SelectItem value="in_progress">Em Andamento</SelectItem><SelectItem value="delayed">Atrasado</SelectItem><SelectItem value="completed">Concluído</SelectItem></SelectContent></Select>)}/></div>
-                <div><Label htmlFor="project-value">Valor do Contrato (R$)</Label><Input id="project-value" type="number" step="0.01" {...projectControl.register("value")} />{projectErrors.value && <p className="text-sm text-destructive mt-1">{projectErrors.value.message}</p>}</div>
+                <div><Label htmlFor="project-value">Valor do Contrato (R$)</Label><Input id="project-value" type="number" step="0.01" {...projectControl.register("value")} /></div>
                 <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar Alterações</Button></DialogFooter>
              </form>
           </DialogContent>
+      </Dialog>
+
+      <Dialog open={isActivityModalOpen} onOpenChange={setIsActivityModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Criar Nova Atividade</DialogTitle><DialogDescription>Atribua uma nova tarefa para um membro da equipe.</DialogDescription></DialogHeader>
+          <form onSubmit={handleActivitySubmit(onActivitySubmit)} className="space-y-4 py-2">
+            <div>
+                <Label htmlFor="activity-desc">Descrição da Atividade</Label>
+                <Input id="activity-desc" {...activityControl.register("description")} />
+                {activityErrors.description && <p className="text-sm text-destructive mt-1">{activityErrors.description.message}</p>}
+            </div>
+            <div>
+              <Label>Atribuir Para</Label>
+              <Controller name="assignedTo" control={activityControl} render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione um membro..."/></SelectTrigger><SelectContent>{teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select>
+              )} />
+               {activityErrors.assignedTo && <p className="text-sm text-destructive mt-1">{activityErrors.assignedTo.message}</p>}
+            </div>
+             <div>
+              <Label>Prazo (Opcional)</Label>
+              <Controller name="dueDate" control={activityControl} render={({ field }) => (
+                <Popover>
+                    <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4"/>{field.value ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}</Button></PopoverTrigger>
+                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                </Popover>
+              )} />
+            </div>
+            <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar Atividade</Button></DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
     </TooltipProvider>
   );
