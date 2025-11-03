@@ -201,7 +201,7 @@ export default function TeamsPage() {
                           <CardContent className="space-y-3">
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
-                                  <span>{new Date(p.deadline + 'T00:00:00Z').toLocaleDateString('pt-BR')}</span>
+                                  <span>{new Date(p.deadline + 'T00:00:00Z').toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Rentabilidade:</span>
