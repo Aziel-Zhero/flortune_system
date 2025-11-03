@@ -1,11 +1,10 @@
 // src/app/(app)/dev/dashboard/page.tsx
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AreaChart, DollarSign, Target, Briefcase, TrendingUp, TrendingDown, Users, PieChart as PieChartIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AreaChart, DollarSign, Users, PieChart as PieChartIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -16,7 +15,6 @@ import { PrivateValue } from "@/components/shared/private-value";
 const projectsSummary = { totalRevenue: 125000, totalCost: 42000 };
 const profit = projectsSummary.totalRevenue - projectsSummary.totalCost;
 const clients = { active: 12, newThisMonth: 2 };
-const tasks = { completed: 87, pending: 23 };
 
 const monthlyProfitData = [
   { month: "Jan", profit: 12000 }, { month: "Fev", profit: 15000 },
