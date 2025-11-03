@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
-import { Users, UserPlus, FileDown, Briefcase, Package, Clock, Settings, Edit, PlusCircle, CalendarIcon } from "lucide-react";
+import { Users, UserPlus, FileDown, Briefcase, Package, Clock, Settings, Edit, PlusCircle, CalendarIcon, ListTodo } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Area, AreaChart as AreaChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
@@ -45,7 +45,7 @@ type ProjectFormData = z.infer<typeof projectSchema>;
 
 const activitySchema = z.object({
   description: z.string().min(3, "Descrição é obrigatória."),
-  assignedTo: z.string().min(1, "Selecione um membro da equipe."),
+  assignedTo: z.string().min(1, "Selecione um membro da equipe.").optional(),
   dueDate: z.date().optional(),
 });
 type ActivityFormData = z.infer<typeof activitySchema>;
@@ -66,23 +66,43 @@ const initialProjects = [
     { id: 'proj_4', name: 'Website Institucional', client: 'Advocacia & Lei', status: 'completed' as const, deadline: '2024-07-10', value: 25000, cost: 10000, team: ['usr_4', 'usr_5'] },
 ];
 
+interface Activity {
+  id: string;
+  description: string;
+  dueDate?: string | null;
+  assignedTo?: string | null;
+  status: 'available' | 'assigned';
+}
+
+const initialActivities: Activity[] = [
+    { id: 'act-1', description: 'Revisar documentação da API de pagamentos', dueDate: '2024-08-05', status: 'available' },
+    { id: 'act-2', description: 'Criar protótipos de baixa fidelidade para nova feature', dueDate: '2024-08-10', status: 'available' },
+    { id: 'act-3', description: 'Configurar ambiente de staging para o Projeto X', dueDate: null, status: 'available' },
+    { id: 'act-4', description: 'Atualizar dependências do projeto principal', dueDate: null, status: 'assigned', assignedTo: 'usr_2' },
+]
+
 export default function TeamsPage() {
   const [teamMembers, setTeamMembers] = useState(initialTeamMembers);
   const [projects, setProjects] = useState(initialProjects);
+  const [activities, setActivities] = useState(initialActivities);
 
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
   const [isLimitAlertOpen, setIsLimitAlertOpen] = useState(false);
   const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [currentMember, setCurrentMember] = useState<(typeof teamMembers[0]) | null>(null);
   const [currentProject, setCurrentProject] = useState<(typeof projects[0]) | null>(null);
+  const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
+
 
   const { register: memberRegister, handleSubmit: handleMemberSubmit, reset: resetMemberForm, formState: { errors: memberErrors } } = useForm<TeamMemberFormData>({ resolver: zodResolver(teamMemberSchema) });
   const { control: projectControl, handleSubmit: handleProjectSubmit, reset: resetProjectForm } = useForm<ProjectFormData>({ resolver: zodResolver(projectSchema) });
-  const { control: activityControl, handleSubmit: handleActivitySubmit, reset: resetActivityForm, formState: { errors: activityErrors } } = useForm<ActivityFormData>({ resolver: zodResolver(activitySchema) });
+  const { control: activityControl, register: activityRegister, handleSubmit: handleActivitySubmit, reset: resetActivityForm, formState: { errors: activityErrors } } = useForm<ActivityFormData>({ resolver: zodResolver(activitySchema) });
 
   const teamIsFull = useMemo(() => teamMembers.length >= 5, [teamMembers]);
+  const availableActivities = useMemo(() => activities.filter(a => a.status === 'available'), [activities]);
 
   useEffect(() => { document.title = `Gestão de Equipes - ${APP_NAME}`; }, []);
   
@@ -139,21 +159,42 @@ export default function TeamsPage() {
   };
   
   const onActivitySubmit: SubmitHandler<ActivityFormData> = (data) => {
+      const newActivity: Activity = {
+        id: `act_${Date.now()}`,
+        description: data.description,
+        dueDate: data.dueDate ? format(data.dueDate, 'yyyy-MM-dd') : null,
+        status: 'available',
+      }
+      setActivities(prev => [newActivity, ...prev]);
       toast({
-          title: "Atividade Criada (Simulação)",
-          description: `Atividade "${data.description}" atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`
+          title: "Atividade Criada",
+          description: `A atividade "${data.description}" está disponível para atribuição.`
       });
       setIsActivityModalOpen(false);
       resetActivityForm();
   };
 
+  const handleOpenAssignDialog = (activity: Activity) => {
+    setCurrentActivity(activity);
+    setIsAssignModalOpen(true);
+  }
+
+  const onAssignSubmit: SubmitHandler<{memberId: string}> = (data) => {
+      if (!currentActivity || !data.memberId) return;
+
+      setActivities(prev => prev.map(act => act.id === currentActivity.id ? {...act, status: 'assigned', assignedTo: data.memberId } : act));
+      toast({title: "Atividade Atribuída!", description: `"${currentActivity.description}" foi atribuída a ${teamMembers.find(m => m.id === data.memberId)?.name}.`});
+      setIsAssignModalOpen(false);
+      setCurrentActivity(null);
+  }
+
   return (
     <TooltipProvider>
       <div className="space-y-8">
-        <PageHeader title="Gestão de Equipes" description="Gerencie membros da equipe, acompanhe a performance e atribua projetos." icon={<Users className="h-6 w-6 text-primary" />}
+        <PageHeader title="Gestão de Equipes" description="Gerencie membros, acompanhe a performance e distribua o trabalho." icon={<Users className="h-6 w-6 text-primary" />}
           actions={
             <div className="flex gap-2">
-              <Button variant="outline"><FileDown className="mr-2 h-4 w-4"/>Gerar Relatório</Button>
+              <Button variant="outline"><FileDown className="mr-2 h-4 w-4"/>Relatório</Button>
               <Button onClick={() => setIsActivityModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Atividade</Button>
               <Button onClick={() => handleOpenMemberDialog(null)}><UserPlus className="mr-2 h-4 w-4"/>Adicionar Membro</Button>
             </div>
@@ -179,6 +220,25 @@ export default function TeamsPage() {
             </Table>
           </CardContent>
         </Card>
+
+        <Card>
+            <CardHeader><CardTitle className="font-headline flex items-center gap-2"><ListTodo /> Atividades Disponíveis</CardTitle><CardDescription>Tarefas aguardando atribuição para um membro da equipe.</CardDescription></CardHeader>
+            <CardContent>
+                 <Table>
+                    <TableHeader><TableRow><TableHead>Descrição da Atividade</TableHead><TableHead>Prazo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                        {availableActivities.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">Nenhuma atividade disponível no momento.</TableCell></TableRow>}
+                        {availableActivities.map(act => (
+                             <TableRow key={act.id}>
+                                <TableCell>{act.description}</TableCell>
+                                <TableCell>{act.dueDate ? format(parseISO(act.dueDate), 'dd/MM/yyyy') : 'Sem prazo'}</TableCell>
+                                <TableCell className="text-right"><Button size="sm" onClick={() => handleOpenAssignDialog(act)}>Atribuir</Button></TableCell>
+                             </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
         
         <div className="space-y-4">
           <PageHeader title="Visão Geral de Projetos" description="Acompanhe a saúde e o andamento de todos os projetos ativos." icon={<Package className="h-6 w-6 text-primary" />} />
@@ -198,7 +258,7 @@ export default function TeamsPage() {
                           <CardContent className="space-y-3">
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
-                                  <span>{new Date(p.deadline + 'T00:00:00Z').toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                                  <span>{format(parseISO(p.deadline), 'dd/MM/yyyy')}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Rentabilidade:</span>
@@ -259,19 +319,12 @@ export default function TeamsPage() {
 
       <Dialog open={isActivityModalOpen} onOpenChange={setIsActivityModalOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Criar Nova Atividade</DialogTitle><DialogDescription>Atribua uma nova tarefa para um membro da equipe.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Criar Nova Atividade</DialogTitle><DialogDescription>Crie uma nova tarefa que ficará disponível para atribuição.</DialogDescription></DialogHeader>
           <form onSubmit={handleActivitySubmit(onActivitySubmit)} className="space-y-4 py-2">
             <div>
                 <Label htmlFor="activity-desc">Descrição da Atividade</Label>
-                <Input id="activity-desc" {...activityControl.register("description")} />
+                <Input id="activity-desc" {...activityRegister("description")} />
                 {activityErrors.description && <p className="text-sm text-destructive mt-1">{activityErrors.description.message}</p>}
-            </div>
-            <div>
-              <Label>Atribuir Para</Label>
-              <Controller name="assignedTo" control={activityControl} render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione um membro..."/></SelectTrigger><SelectContent>{teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select>
-              )} />
-               {activityErrors.assignedTo && <p className="text-sm text-destructive mt-1">{activityErrors.assignedTo.message}</p>}
             </div>
              <div>
               <Label>Prazo (Opcional)</Label>
@@ -283,6 +336,22 @@ export default function TeamsPage() {
               )} />
             </div>
             <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar Atividade</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+       <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Atribuir Atividade</DialogTitle><DialogDescription>Selecione um membro da equipe para a atividade: "{currentActivity?.description}"</DialogDescription></DialogHeader>
+          <form onSubmit={handleSubmit(onAssignSubmit as any)} className="space-y-4 py-2">
+            <div>
+              <Label>Atribuir Para</Label>
+              <Controller name="assignedTo" control={activityControl} render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione um membro..."/></SelectTrigger><SelectContent>{teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select>
+              )} />
+               {activityErrors.assignedTo && <p className="text-sm text-destructive mt-1">{activityErrors.assignedTo.message}</p>}
+            </div>
+            <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Atribuir Atividade</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
