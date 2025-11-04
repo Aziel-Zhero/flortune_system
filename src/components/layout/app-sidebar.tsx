@@ -1,3 +1,4 @@
+
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -55,30 +56,19 @@ export function AppSidebar() {
       side="left"
     >
         <SidebarHeader className="p-4 flex items-center justify-between group-data-[collapsible=icon]:justify-center">
-            <Link 
-              href="/dashboard" 
-              className={cn(
-                "flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
-                {"group-data-[collapsible=icon]:hidden": !isMobile || (isMobile && sidebarOpen)}, 
-                {"hidden": isMobile && !sidebarOpen} 
-              )} 
-              onClick={closeMobileSidebar}
-            >
-                <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
-                <span className="font-bold text-xl font-headline">{APP_NAME}</span>
-            </Link>
-            <Link 
-                href="/dashboard" 
-                className={cn(
-                    "items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
-                    {"hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full": !isMobile},
-                    {"hidden": isMobile} 
-                )}
-                onClick={closeMobileSidebar}
-            >
-                <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
-            </Link>
-             <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
+            <div className="flex items-center gap-2 flex-grow">
+                <Link 
+                  href="/dashboard" 
+                  className={cn(
+                    "flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
+                  )} 
+                  onClick={closeMobileSidebar}
+                >
+                    <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
+                    <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
+                </Link>
+            </div>
+            <SidebarTrigger className="group-data-[collapsible=icon]:hidden mt-1" />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
