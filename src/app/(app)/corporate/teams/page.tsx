@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
-import { Users, UserPlus, FileDown, Briefcase, Package, Clock, Settings, Edit, PlusCircle, CalendarIcon, ListTodo } from "lucide-react";
+import { Users, UserPlus, FileDown, Briefcase, Package, Clock, Settings, Edit, PlusCircle, CalendarIcon, ListTodo, KanbanSquare } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Area, AreaChart as AreaChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
@@ -53,6 +54,7 @@ type ActivityFormData = z.infer<typeof activitySchema>;
 const assignActivitySchema = z.object({
   activityId: z.string().min(1, "Selecione uma atividade."),
   assignedTo: z.string().min(1, "Selecione um membro da equipe."),
+  addToKanban: z.boolean().optional().default(false),
 });
 type AssignActivityFormData = z.infer<typeof assignActivitySchema>;
 
@@ -101,8 +103,6 @@ export default function TeamsPage() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [currentMember, setCurrentMember] = useState<(typeof teamMembers[0]) | null>(null);
   const [currentProject, setCurrentProject] = useState<(typeof projects[0]) | null>(null);
-  const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
-
 
   const { register: memberRegister, handleSubmit: handleMemberSubmit, reset: resetMemberForm, formState: { errors: memberErrors } } = useForm<TeamMemberFormData>({ resolver: zodResolver(teamMemberSchema) });
   const { control: projectControl, handleSubmit: handleProjectSubmit, reset: resetProjectForm } = useForm<ProjectFormData>({ resolver: zodResolver(projectSchema) });
@@ -176,14 +176,41 @@ export default function TeamsPage() {
         projectId: null,
       }
       setActivities(prev => [newActivity, ...prev]);
-      toast({ title: "Atividade Criada", description: `A atividade "${data.description}" está disponível.`});
+      toast({ title: "Atividade Criada", description: `A atividade "${data.description}" está disponível para atribuição.`});
       setIsActivityModalOpen(false);
       resetActivityForm();
   };
 
   const onAssignSubmit: SubmitHandler<AssignActivityFormData> = (data) => {
+      const assignedActivity = activities.find(a => a.id === data.activityId);
+      if (!assignedActivity) return;
+      
       setActivities(prev => prev.map(act => act.id === data.activityId ? {...act, status: 'assigned', assignedTo: data.assignedTo, projectId: currentProject?.id || null } : act));
-      toast({title: "Atividade Atribuída!", description: `Atividade atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`});
+      
+      if (data.addToKanban) {
+        try {
+            const kanbanTasks = JSON.parse(localStorage.getItem('kanban-tasks') || '[]');
+            const kanbanColumns = JSON.parse(localStorage.getItem('kanban-columns') || '[]');
+            const todoColumn = kanbanColumns.find((c: any) => c.name.toLowerCase().includes('a fazer') || c.name.toLowerCase().includes('to do'));
+
+            const newKanbanTask = {
+                id: `task_${assignedActivity.id}`,
+                columnId: todoColumn ? todoColumn.id : 'todo',
+                title: assignedActivity.description,
+                assignedTo: teamMembers.find(m => m.id === data.assignedTo)?.name || '',
+                dueDate: assignedActivity.dueDate,
+            };
+            
+            localStorage.setItem('kanban-tasks', JSON.stringify([...kanbanTasks, newKanbanTask]));
+            toast({ title: "Atividade Atribuída e Adicionada ao Kanban!", description: `Atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`});
+
+        } catch (e) {
+            toast({ title: "Erro ao Sincronizar com Kanban", description: "Não foi possível adicionar a tarefa ao quadro.", variant: "destructive"});
+        }
+      } else {
+        toast({title: "Atividade Atribuída!", description: `Atividade atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`});
+      }
+
       setIsAssignModalOpen(false);
       resetAssignForm();
   }
@@ -226,25 +253,6 @@ export default function TeamsPage() {
             </Table>
           </CardContent>
         </Card>
-
-        <Card>
-            <CardHeader><CardTitle className="font-headline flex items-center gap-2"><ListTodo /> Atividades Disponíveis</CardTitle><CardDescription>Tarefas aguardando atribuição para um membro da equipe.</CardDescription></CardHeader>
-            <CardContent>
-                 <Table>
-                    <TableHeader><TableRow><TableHead>Descrição da Atividade</TableHead><TableHead>Prazo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {availableActivities.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">Nenhuma atividade disponível no momento.</TableCell></TableRow>}
-                        {availableActivities.map(act => (
-                             <TableRow key={act.id}>
-                                <TableCell>{act.description}</TableCell>
-                                <TableCell>{act.dueDate ? format(parseISO(act.dueDate), 'dd/MM/yyyy') : 'Sem prazo'}</TableCell>
-                                <TableCell className="text-right"><Button size="sm" onClick={() => handleOpenAssignDialog()}>Atribuir</Button></TableCell>
-                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
         
         <div className="space-y-4">
           <PageHeader title="Visão Geral de Projetos" description="Acompanhe a saúde e o andamento de todos os projetos ativos." icon={<Package className="h-6 w-6 text-primary" />} />
@@ -267,7 +275,7 @@ export default function TeamsPage() {
                           <CardContent className="space-y-3">
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
-                                  <span>{format(parseISO(p.deadline), "dd/MM/yyyy")}</span>
+                                  <span>{format(parseISO(p.deadline), 'dd/MM/yyyy', { locale: ptBR })}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Rentabilidade:</span>
@@ -341,7 +349,7 @@ export default function TeamsPage() {
               <Controller name="dueDate" control={activityControl} render={({ field }) => (
                 <Popover>
                     <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4"/>{field.value ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}</Button></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus /></PopoverContent>
                 </Popover>
               )} />
             </div>
@@ -356,6 +364,10 @@ export default function TeamsPage() {
           <form onSubmit={handleAssignSubmit(onAssignSubmit)} className="space-y-4 py-2">
              <div><Label>Atividade Disponível</Label><Controller name="activityId" control={assignControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione uma atividade..."/></SelectTrigger><SelectContent>{availableActivities.map(act => <SelectItem key={act.id} value={act.id}>{act.description}</SelectItem>)}</SelectContent></Select>)} />{assignErrors.activityId && <p className="text-sm text-destructive mt-1">{assignErrors.activityId.message}</p>}</div>
              <div><Label>Atribuir Para</Label><Controller name="assignedTo" control={assignControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione um membro..."/></SelectTrigger><SelectContent>{teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select>)} />{assignErrors.assignedTo && <p className="text-sm text-destructive mt-1">{assignErrors.assignedTo.message}</p>}</div>
+             <div className="flex items-center space-x-2">
+                <Controller name="addToKanban" control={assignControl} render={({ field }) => (<Checkbox id="addToKanban" checked={field.value} onCheckedChange={field.onChange} />)} />
+                <Label htmlFor="addToKanban" className="font-normal flex items-center gap-1.5"><KanbanSquare className="h-4 w-4"/>Adicionar ao Quadro Kanban</Label>
+             </div>
             <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Atribuir Atividade</Button></DialogFooter>
           </form>
         </DialogContent>
