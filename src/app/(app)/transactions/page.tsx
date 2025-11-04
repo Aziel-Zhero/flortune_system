@@ -1,4 +1,3 @@
-
 // src/app/(app)/transactions/page.tsx
 "use client";
 

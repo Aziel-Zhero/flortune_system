@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AreaChart, CheckCircle, GitCommit, Target, Users, PieChart as PieChartIcon } from "lucide-react";
+import { AreaChart, CheckCircle, GitCommit, PieChart as PieChartIcon, Users } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -70,7 +70,7 @@ export default function CorporateReportsPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
+        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
           <Card>
             <CardHeader><CardTitle className="font-headline flex items-center gap-2">Produtividade Diária da Equipe</CardTitle><CardDescription>Acompanhe o número de tarefas concluídas a cada dia da semana.</CardDescription></CardHeader>
             <CardContent className="h-80">
@@ -130,9 +130,9 @@ export default function CorporateReportsPage() {
             </Card>
         </motion.div>
 
-        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
+        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader><CardTitle className="font-headline">Feed de Atividades da Equipe</CardTitle><CardDescription>O que sua equipe está trabalhando agora.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5"/>Feed de Atividades da Equipe</CardTitle><CardDescription>O que sua equipe está trabalhando agora.</CardDescription></CardHeader>
                 <CardContent className="space-y-4 max-h-80 overflow-y-auto">
                     {recentActivities.map(act => {
                         const Icon = act.icon;
