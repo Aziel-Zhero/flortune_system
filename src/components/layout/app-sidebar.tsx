@@ -17,6 +17,7 @@ import {
   SidebarMenuButton,
   useSidebar,
   SidebarFooter,
+  SidebarTrigger, // Importar o SidebarTrigger
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -78,6 +79,8 @@ export function AppSidebar() {
             >
                 <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
             </Link>
+            {/* Botão de Toggle movido para cá */}
+            <SidebarTrigger className={cn("group-data-[collapsible=icon]:hidden", isMobile && "hidden")} />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
@@ -138,8 +141,8 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarContent>
         
-        <SidebarFooter className="p-2 border-t border-sidebar-border mt-auto">
-          
+        <SidebarFooter className="p-2 border-t border-sidebar-border mt-auto group-data-[collapsible=icon]:hidden">
+            {/* Conteúdo do rodapé, se necessário */}
         </SidebarFooter>
     </Sidebar>
   );
