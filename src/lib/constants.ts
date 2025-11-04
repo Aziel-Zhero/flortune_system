@@ -34,8 +34,8 @@ export const NAV_LINKS_CONFIG = [
 export const ADMIN_NAV_LINKS_CONFIG = [
   { href: "/dashboard-admin", label: "Home", icon: "Home" as const, type: "link" as const },
   { href: "/admin/dashboard", label: "Dashboard", icon: "LayoutDashboard" as const, type: "link" as const },
-  { href: "/admin/marketplace", label: "Marketing Place", icon: "Store" as const, type: "link" as const },
-  { href: "/admin/marketing", label: "Marketing", icon: "Megaphone" as const, type: "link" as const },
+  { type: "title" as const, label: "Marketing & Vendas"},
+  { href: "/admin/marketplace", label: "Produtos", icon: "Store" as const, type: "link" as const },
   { href: "/admin/black-friday", label: "Black Friday", icon: "ShoppingBag" as const, type: "link" as const },
 ];
 
