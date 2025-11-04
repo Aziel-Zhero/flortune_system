@@ -1,4 +1,3 @@
-
 // src/app/(app)/corporate/teams/page.tsx
 "use client";
 
@@ -41,15 +40,21 @@ type TeamMemberFormData = z.infer<typeof teamMemberSchema>;
 const projectSchema = z.object({
   status: z.enum(['in_progress', 'delayed', 'completed', 'planning']),
   value: z.coerce.number().min(0, "O valor não pode ser negativo."),
+  deadline: z.date({ required_error: "Data do prazo é obrigatória."}),
 });
 type ProjectFormData = z.infer<typeof projectSchema>;
 
 const activitySchema = z.object({
   description: z.string().min(3, "Descrição é obrigatória."),
-  assignedTo: z.string().min(1, "Selecione um membro da equipe.").optional(),
   dueDate: z.date().optional(),
 });
 type ActivityFormData = z.infer<typeof activitySchema>;
+
+const assignActivitySchema = z.object({
+  activityId: z.string().min(1, "Selecione uma atividade."),
+  assignedTo: z.string().min(1, "Selecione um membro da equipe."),
+});
+type AssignActivityFormData = z.infer<typeof assignActivitySchema>;
 
 
 const initialTeamMembers = [
@@ -73,13 +78,13 @@ interface Activity {
   dueDate?: string | null;
   assignedTo?: string | null;
   status: 'available' | 'assigned';
-  projectId?: string | null; // Adicionado para vincular a um projeto
+  projectId?: string | null;
 }
 
 const initialActivities: Activity[] = [
-    { id: 'act-1', description: 'Revisar documentação da API de pagamentos', dueDate: '2024-08-05', status: 'available' },
-    { id: 'act-2', description: 'Criar protótipos de baixa fidelidade para nova feature', dueDate: '2024-08-10', status: 'available' },
-    { id: 'act-3', description: 'Configurar ambiente de staging para o Projeto X', dueDate: null, status: 'available' },
+    { id: 'act-1', description: 'Revisar documentação da API de pagamentos', dueDate: '2024-08-05', status: 'available', projectId: null },
+    { id: 'act-2', description: 'Criar protótipos de baixa fidelidade para nova feature', dueDate: '2024-08-10', status: 'available', projectId: null },
+    { id: 'act-3', description: 'Configurar ambiente de staging para o Projeto X', dueDate: null, status: 'available', projectId: null },
     { id: 'act-4', description: 'Atualizar dependências do projeto principal', dueDate: null, status: 'assigned', assignedTo: 'usr_2', projectId: 'proj_1' },
 ]
 
@@ -101,8 +106,9 @@ export default function TeamsPage() {
 
   const { register: memberRegister, handleSubmit: handleMemberSubmit, reset: resetMemberForm, formState: { errors: memberErrors } } = useForm<TeamMemberFormData>({ resolver: zodResolver(teamMemberSchema) });
   const { control: projectControl, handleSubmit: handleProjectSubmit, reset: resetProjectForm } = useForm<ProjectFormData>({ resolver: zodResolver(projectSchema) });
-  const { control: activityControl, register: activityRegister, handleSubmit: handleActivitySubmit, reset: resetActivityForm, formState: { errors: activityErrors } } = useForm<ActivityFormData>({ resolver: zodResolver(activitySchema) });
-
+  const { control: activityControl, handleSubmit: handleActivitySubmit, reset: resetActivityForm, formState: { errors: activityErrors } } = useForm<ActivityFormData>({ resolver: zodResolver(activitySchema) });
+  const { control: assignControl, handleSubmit: handleAssignSubmit, reset: resetAssignForm, formState: { errors: assignErrors } } = useForm<AssignActivityFormData>({ resolver: zodResolver(assignActivitySchema) });
+  
   const teamIsFull = useMemo(() => teamMembers.length >= 5, [teamMembers]);
   const availableActivities = useMemo(() => activities.filter(a => a.status === 'available'), [activities]);
 
@@ -118,10 +124,10 @@ export default function TeamsPage() {
   };
 
   const handleAddOrEditMember = (data: TeamMemberFormData) => {
-    if(currentMember) { // Editing
+    if(currentMember) {
       setTeamMembers(prev => prev.map(m => m.id === currentMember.id ? {...m, ...data} : m));
       toast({title: "Membro Atualizado!"});
-    } else { // Adding
+    } else {
       const newMember = { id: `usr_${Date.now()}`, ...data, avatar: `https://placehold.co/40x40/cdb4db/333?text=${data.name.charAt(0).toUpperCase()}`, activeProjects: 0, lastActivity: 'Agora', taskProgress: 0 };
       setTeamMembers(prev => [...prev, newMember]);
       toast({ title: "Membro Adicionado!", description: `${data.name} foi adicionado(a) à equipe.`});
@@ -133,7 +139,8 @@ export default function TeamsPage() {
 
   const handleEditProject = (data: ProjectFormData) => {
       if(!currentProject) return;
-      setProjects(prev => prev.map(p => p.id === currentProject.id ? {...p, ...data} : p));
+      const formattedData = { ...data, deadline: format(data.deadline, 'yyyy-MM-dd') };
+      setProjects(prev => prev.map(p => p.id === currentProject.id ? {...p, ...formattedData } : p));
       toast({title: "Projeto Atualizado!"});
       setIsEditProjectOpen(false);
       setCurrentProject(null);
@@ -156,7 +163,7 @@ export default function TeamsPage() {
   
   const handleOpenProjectDialog = (project: typeof projects[0]) => {
       setCurrentProject(project);
-      resetProjectForm(project);
+      resetProjectForm({ ...project, deadline: parseISO(project.deadline)});
       setIsEditProjectOpen(true);
   };
   
@@ -166,35 +173,25 @@ export default function TeamsPage() {
         description: data.description,
         dueDate: data.dueDate ? format(data.dueDate, 'yyyy-MM-dd') : null,
         status: 'available',
-        projectId: currentProject?.id || null, // Vincula ao projeto se houver
+        projectId: null,
       }
       setActivities(prev => [newActivity, ...prev]);
-      toast({
-          title: "Atividade Criada",
-          description: `A atividade "${data.description}" está disponível.`
-      });
+      toast({ title: "Atividade Criada", description: `A atividade "${data.description}" está disponível.`});
       setIsActivityModalOpen(false);
       resetActivityForm();
   };
 
-  const handleOpenAssignDialog = (activity: Activity) => {
-    setCurrentActivity(activity);
-    setIsAssignModalOpen(true);
-  }
-
-  const onAssignSubmit: SubmitHandler<{assignedTo: string}> = (data) => {
-      if (!currentActivity || !data.assignedTo) return;
-
-      setActivities(prev => prev.map(act => act.id === currentActivity.id ? {...act, status: 'assigned', assignedTo: data.assignedTo } : act));
-      toast({title: "Atividade Atribuída!", description: `"${currentActivity.description}" foi atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`});
+  const onAssignSubmit: SubmitHandler<AssignActivityFormData> = (data) => {
+      setActivities(prev => prev.map(act => act.id === data.activityId ? {...act, status: 'assigned', assignedTo: data.assignedTo, projectId: currentProject?.id || null } : act));
+      toast({title: "Atividade Atribuída!", description: `Atividade atribuída a ${teamMembers.find(m => m.id === data.assignedTo)?.name}.`});
       setIsAssignModalOpen(false);
-      setCurrentActivity(null);
+      resetAssignForm();
   }
   
-  const handleOpenActivityDialog = (project: typeof projects[0] | null = null) => {
+  const handleOpenAssignDialog = (project: typeof projects[0] | null = null) => {
       setCurrentProject(project);
-      resetActivityForm({description: "", dueDate: undefined, assignedTo: undefined});
-      setIsActivityModalOpen(true);
+      resetAssignForm();
+      setIsAssignModalOpen(true);
   }
 
   return (
@@ -204,7 +201,7 @@ export default function TeamsPage() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline"><FileDown className="mr-2 h-4 w-4"/>Relatório</Button>
-              <Button onClick={() => handleOpenActivityDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Atividade</Button>
+              <Button onClick={() => setIsActivityModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Atividade</Button>
               <Button onClick={() => handleOpenMemberDialog(null)}><UserPlus className="mr-2 h-4 w-4"/>Adicionar Membro</Button>
             </div>
           }
@@ -241,7 +238,7 @@ export default function TeamsPage() {
                              <TableRow key={act.id}>
                                 <TableCell>{act.description}</TableCell>
                                 <TableCell>{act.dueDate ? format(parseISO(act.dueDate), 'dd/MM/yyyy') : 'Sem prazo'}</TableCell>
-                                <TableCell className="text-right"><Button size="sm" onClick={() => handleOpenAssignDialog(act)}>Atribuir</Button></TableCell>
+                                <TableCell className="text-right"><Button size="sm" onClick={() => handleOpenAssignDialog()}>Atribuir</Button></TableCell>
                              </TableRow>
                         ))}
                     </TableBody>
@@ -261,7 +258,7 @@ export default function TeamsPage() {
                               <div className="flex justify-between items-start">
                                   <CardTitle className="font-headline">{p.name}</CardTitle>
                                   <div className="flex items-center -mr-2">
-                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenActivityDialog(p)}><UserPlus className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Atribuir atividade a este projeto</p></TooltipContent></Tooltip>
+                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenAssignDialog(p)}><UserPlus className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Atribuir atividade a este projeto</p></TooltipContent></Tooltip>
                                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenProjectDialog(p)}><Settings className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Editar projeto</p></TooltipContent></Tooltip>
                                   </div>
                               </div>
@@ -324,6 +321,7 @@ export default function TeamsPage() {
              <form onSubmit={handleProjectSubmit(handleEditProject)} className="space-y-4 py-2">
                 <div><Label>Status</Label><Controller name="status" control={projectControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="planning">Planejamento</SelectItem><SelectItem value="in_progress">Em Andamento</SelectItem><SelectItem value="delayed">Atrasado</SelectItem><SelectItem value="completed">Concluído</SelectItem></SelectContent></Select>)}/></div>
                 <div><Label htmlFor="project-value">Valor do Contrato (R$)</Label><Input id="project-value" type="number" step="0.01" {...projectControl.register("value")} /></div>
+                <div><Label>Prazo Final</Label><Controller name="deadline" control={projectControl} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4"/>{field.value ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>)} /></div>
                 <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar Alterações</Button></DialogFooter>
              </form>
           </DialogContent>
@@ -331,11 +329,11 @@ export default function TeamsPage() {
 
       <Dialog open={isActivityModalOpen} onOpenChange={setIsActivityModalOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Criar Nova Atividade {currentProject ? `para "${currentProject.name}"` : ""}</DialogTitle><DialogDescription>Crie uma nova tarefa que ficará disponível para atribuição.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Criar Nova Atividade</DialogTitle><DialogDescription>Crie uma nova tarefa que ficará disponível para atribuição.</DialogDescription></DialogHeader>
           <form onSubmit={handleActivitySubmit(onActivitySubmit)} className="space-y-4 py-2">
             <div>
                 <Label htmlFor="activity-desc">Descrição da Atividade</Label>
-                <Input id="activity-desc" {...activityRegister("description")} />
+                <Input id="activity-desc" {...activityControl.register("description")} />
                 {activityErrors.description && <p className="text-sm text-destructive mt-1">{activityErrors.description.message}</p>}
             </div>
              <div>
@@ -354,15 +352,10 @@ export default function TeamsPage() {
 
        <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Atribuir Atividade</DialogTitle><DialogDescription>Selecione um membro da equipe para a atividade: "{currentActivity?.description}"</DialogDescription></DialogHeader>
-          <form onSubmit={handleActivitySubmit(onAssignSubmit as any)} className="space-y-4 py-2">
-            <div>
-              <Label>Atribuir Para</Label>
-              <Controller name="assignedTo" control={activityControl} render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione um membro..."/></SelectTrigger><SelectContent>{teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select>
-              )} />
-               {activityErrors.assignedTo && <p className="text-sm text-destructive mt-1">{activityErrors.assignedTo.message}</p>}
-            </div>
+          <DialogHeader><DialogTitle>Atribuir Atividade</DialogTitle><DialogDescription>Selecione uma atividade e um membro da equipe.</DialogDescription></DialogHeader>
+          <form onSubmit={handleAssignSubmit(onAssignSubmit)} className="space-y-4 py-2">
+             <div><Label>Atividade Disponível</Label><Controller name="activityId" control={assignControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione uma atividade..."/></SelectTrigger><SelectContent>{availableActivities.map(act => <SelectItem key={act.id} value={act.id}>{act.description}</SelectItem>)}</SelectContent></Select>)} />{assignErrors.activityId && <p className="text-sm text-destructive mt-1">{assignErrors.activityId.message}</p>}</div>
+             <div><Label>Atribuir Para</Label><Controller name="assignedTo" control={assignControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione um membro..."/></SelectTrigger><SelectContent>{teamMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent></Select>)} />{assignErrors.assignedTo && <p className="text-sm text-destructive mt-1">{assignErrors.assignedTo.message}</p>}</div>
             <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Atribuir Atividade</Button></DialogFooter>
           </form>
         </DialogContent>

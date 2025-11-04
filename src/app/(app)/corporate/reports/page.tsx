@@ -1,4 +1,3 @@
-
 // src/app/(app)/corporate/reports/page.tsx
 "use client";
 
@@ -9,7 +8,7 @@ import { AreaChart, Clock, ListChecks, CheckCircle, GitCommit } from "lucide-rea
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
 const dailyProductivityData = [
     { day: "Seg", tasks: 8 }, { day: "Ter", tasks: 12 }, { day: "Qua", tasks: 7 },
@@ -55,7 +54,7 @@ export default function CorporateReportsPage() {
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
                   <YAxis />
-                  <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                   <Bar dataKey="tasks" fill="var(--color-tasks)" radius={4} />
                 </BarChartRecharts>
               </ChartContainer>

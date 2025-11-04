@@ -61,8 +61,8 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
 
 // Simulação de transações compartilhadas recebidas de outro usuário
 const mockSharedTransactions: Transaction[] = [
-    { id: 'shared-tx-1', user_id: 'other-user', description: 'Reembolso de Despesas (Compartilhado)', amount: 250.75, date: '2024-07-26', type: 'income', is_recurring: false, category_id: 'cat-shared-1', created_at: '2024-07-26T10:00:00Z', updated_at: '2024-07-26T10:00:00Z', category: { id: 'cat-shared-1', name: 'Reembolso', type: 'income', is_default: false } },
-    { id: 'shared-tx-2', user_id: 'other-user', description: 'Jantar de Equipe (Compartilhado)', amount: 180.50, date: '2024-07-25', type: 'expense', is_recurring: false, category_id: 'cat-shared-2', created_at: '2024-07-25T20:00:00Z', updated_at: '2024-07-25T20:00:00Z', category: { id: 'cat-shared-2', name: 'Alimentação', type: 'expense', is_default: true } },
+    { id: 'shared-tx-1', user_id: 'other-user', description: 'Reembolso de Despesas (Compartilhado)', amount: 250.75, date: '2024-07-26', type: 'income', is_recurring: false, category_id: 'cat-shared-1', created_at: '2024-07-26T10:00:00Z', updated_at: '2024-07-26T10:00:00Z', category: { id: 'cat-shared-1', name: 'Reembolso', type: 'income', is_default: false, created_at: '', updated_at: '' } },
+    { id: 'shared-tx-2', user_id: 'other-user', description: 'Jantar de Equipe (Compartilhado)', amount: 180.50, date: '2024-07-25', type: 'expense', is_recurring: false, category_id: 'cat-shared-2', created_at: '2024-07-25T20:00:00Z', updated_at: '2024-07-25T20:00:00Z', category: { id: 'cat-shared-2', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
 ];
 
 
