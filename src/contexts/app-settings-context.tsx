@@ -1,3 +1,4 @@
+
 // src/contexts/app-settings-context.tsx
 
 "use client";
@@ -14,6 +15,8 @@ interface WeatherData {
   description: string;
   icon: string;
 }
+
+export type CampaignTheme = 'black-friday' | 'flash-sale' | null;
 
 // Definindo o tipo para o valor do contexto de AppSettings
 export interface AppSettingsProviderValue {
@@ -40,8 +43,8 @@ export interface AppSettingsProviderValue {
   quotesError: string | null;
   loadQuotes: (quoteList: string[]) => Promise<void>;
   
-  isBlackFridayActive: boolean;
-  toggleBlackFriday: () => void;
+  activeCampaignTheme: CampaignTheme;
+  setActiveCampaignTheme: (theme: CampaignTheme) => void;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -58,7 +61,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
-  const [isBlackFridayActive, setIsBlackFridayActive] = useState(false);
+  const [activeCampaignTheme, setActiveCampaignThemeState] = useState<CampaignTheme>(null);
   
   const [weatherCity, setWeatherCityState] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -153,17 +156,22 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const toggleBlackFriday = useCallback(() => {
-    setIsBlackFridayActive(prev => {
-      const newStatus = !prev;
-      localStorage.setItem('flortune-black-friday-active', JSON.stringify(newStatus));
-      return newStatus;
-    });
+  const setActiveCampaignTheme = useCallback((theme: CampaignTheme) => {
+    if (theme) {
+      localStorage.setItem('flortune-active-campaign', theme);
+    } else {
+      localStorage.removeItem('flortune-active-campaign');
+    }
+    setActiveCampaignThemeState(theme);
   }, []);
 
   useEffect(() => {
-    document.body.classList.toggle('black-friday-active', isBlackFridayActive);
-  }, [isBlackFridayActive]);
+    document.body.classList.remove('theme-black-friday', 'theme-flash-sale');
+    if (activeCampaignTheme) {
+      document.body.classList.add(`theme-${activeCampaignTheme}`);
+    }
+  }, [activeCampaignTheme]);
+
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
@@ -200,8 +208,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setSelectedQuotesState(initialQuotes);
       loadQuotes(initialQuotes);
 
-      const storedBlackFriday = localStorage.getItem('flortune-black-friday-active');
-      if (storedBlackFriday) setIsBlackFridayActive(JSON.parse(storedBlackFriday));
+      const storedCampaign = localStorage.getItem('flortune-active-campaign');
+      if (storedCampaign) setActiveCampaignThemeState(storedCampaign as CampaignTheme);
       
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
@@ -216,7 +224,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
       selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
       loadQuotes,
-      isBlackFridayActive, toggleBlackFriday,
+      activeCampaignTheme, setActiveCampaignTheme,
     }}>
       {children}
     </AppSettingsContext.Provider>

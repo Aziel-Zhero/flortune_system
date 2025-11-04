@@ -414,7 +414,11 @@
 }
 
 @layer base {
-  .black-friday-active {
+  .theme-black-friday {
+    --background: 0 0% 8%;
+    --foreground: 0 0% 98%;
+  }
+  .theme-flash-sale {
     --accent: 53 100% 50%;
     --accent-foreground: 53 100% 10%;
     --foreground: 0 0% 98%;
