@@ -315,17 +315,18 @@ export default function DashboardPage() {
       </div>
       
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-         {(isLoadingQuotes ? Array(5).fill(0) : quotes).map((quote: QuoteData | 0, index: number) => {
+         {(isLoadingQuotes ? Array(5).fill(0) : quotes.length > 0 ? quotes : Array(5).fill({name: 'Indisponível', pctChange: '0', bid: '0'})).slice(0,5).map((quote: QuoteData | 0, index: number) => {
             const isLoading = quote === 0;
             const pctChange = !isLoading ? parseFloat(quote.pctChange) : 0;
             const isPositive = pctChange >= 0;
+            const quoteName = !isLoading ? (quote.name ? quote.name.split('/')[0] : `Cotação ${index + 1}`) : '';
             
             return (
-              <motion.div key={isLoading ? `skel-quote-${index}` : quote.code} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+              <motion.div key={isLoading ? `skel-quote-${index}` : (quote.code || index)} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
                 <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                       {isLoading ? <Skeleton className="h-4 w-16" /> : quote.name.split('/')[0]}
+                    <CardTitle className="text-sm font-medium text-muted-foreground truncate">
+                       {isLoading ? <Skeleton className="h-4 w-16" /> : quoteName}
                     </CardTitle>
                      <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
                        {isLoading ? <Skeleton className="h-4 w-12"/> : (
@@ -391,12 +392,12 @@ export default function DashboardPage() {
         </motion.div>
 
         <motion.div custom={11} variants={cardVariants} initial="hidden" animate="visible">
-        <Card className="shadow-sm">
+        <Card className="shadow-sm h-full">
           <CardHeader>
             <CardTitle className="font-headline flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Visão Geral de Gastos (Este Mês)</CardTitle>
             <CardDescription>Suas principais categorias de despesas.</CardDescription>
           </CardHeader>
-          <CardContent className="min-h-[250px] flex items-center justify-center">
+          <CardContent className="min-h-[280px] flex items-center justify-center">
              {transactionsLoading ? (
                 <Skeleton className="w-full h-[200px]" />
              ): monthlySpendingByCategory.length > 0 ? (
