@@ -122,7 +122,7 @@ export const AVAILABLE_QUOTES = [
   { name: "Bitcoin", code: "BTC-BRL" },
   { name: "Ethereum", code: "ETH-BRL" },
   { name: "Litecoin", code: "LTC-BRL" },
-  { name: "Ibovespa", code: "IBOV" }, // Nota: API pode não retornar todos os campos para índices
-  { name: "Nasdaq", code: "NASDAQ" }, // Nota: API pode não retornar todos os campos para índices
+  { name: "Ibovespa", code: "IBOV" },
+  { name: "Nasdaq", code: "NASDAQ" },
   { name: "Cacau", code: "CAC" },
 ];

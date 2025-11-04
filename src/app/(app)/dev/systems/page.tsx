@@ -100,14 +100,14 @@ const tools: ToolCardProps[] = [
 
 export default function DevSystemsPage() {
   useEffect(() => {
-    document.title = `Sistemas e Ferramentas (DEV) - ${APP_NAME}`;
+    document.title = `Ferramentas para DEVs - ${APP_NAME}`;
   }, []);
 
   return (
     <div>
       <PageHeader
-        title="Sistemas e Ferramentas (DEV)"
-        description="Calculadoras e utilitários para desenvolvedores, freelancers e gestão de projetos."
+        title="Ferramentas para Desenvolvedores"
+        description="Calculadoras e utilitários para freelancers e gestão de projetos."
         icon={<HardDrive className="h-6 w-6 text-primary" />}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

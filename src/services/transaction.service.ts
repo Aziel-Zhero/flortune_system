@@ -1,117 +1,49 @@
 // src/services/transaction.service.ts
 "use server";
 
-import { supabase } from "@/lib/supabase/client";
 import type { Transaction } from "@/types/database.types";
 import type { ServiceListResponse, ServiceResponse } from "@/types/database.types";
 
-/**
- * Fetches all transactions for a user, optionally filtered by month and year.
- * @param userId - The ID of the user.
- * @returns A promise that resolves to the list of transactions or an error.
- */
+const mockTransactions: Transaction[] = [
+    { id: 'tx-1', user_id: 'mock-user-id', category_id: 'cat-1', description: 'Salário Mensal', amount: 7500, date: '2024-07-01', type: 'income', is_recurring: true, created_at: '2024-07-01T09:00:00Z', updated_at: '2024-07-01T09:00:00Z', category: { id: 'cat-1', name: 'Salário', type: 'income', is_default: true, created_at: '', updated_at: '' } },
+    { id: 'tx-2', user_id: 'mock-user-id', category_id: 'cat-2', description: 'Aluguel & Condomínio', amount: 1800, date: '2024-07-05', type: 'expense', is_recurring: true, created_at: '2024-07-05T10:00:00Z', updated_at: '2024-07-05T10:00:00Z', category: { id: 'cat-2', name: 'Moradia', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+    { id: 'tx-3', user_id: 'mock-user-id', category_id: 'cat-3', description: 'Supermercado do Mês', amount: 850.20, date: '2024-07-06', type: 'expense', is_recurring: false, created_at: '2024-07-06T11:00:00Z', updated_at: '2024-07-06T11:00:00Z', category: { id: 'cat-3', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+    { id: 'tx-4', user_id: 'mock-user-id', category_id: 'cat-4', description: 'Projeto Freelance', amount: 2100, date: '2024-07-10', type: 'income', is_recurring: false, created_at: '2024-07-10T15:00:00Z', updated_at: '2024-07-10T15:00:00Z', category: { id: 'cat-4', name: 'Freelance', type: 'income', is_default: false, created_at: '', updated_at: '' } },
+    { id: 'tx-5', user_id: 'mock-user-id', category_id: 'cat-5', description: 'Show da Banda X', amount: 350.00, date: '2024-07-15', type: 'expense', is_recurring: false, created_at: '2024-07-15T20:00:00Z', updated_at: '2024-07-15T20:00:00Z', category: { id: 'cat-5', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
+];
+
 export async function getTransactions(userId: string): Promise<ServiceListResponse<Transaction>> {
-  if (!supabase) {
-    return { data: null, error: new Error("Supabase client is not initialized.") };
-  }
-  if (!userId) {
-    return { data: null, error: new Error("User ID is required.") };
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select(`
-        *,
-        category:categories (
-          id,
-          name,
-          type
-        )
-      `)
-      .eq("user_id", userId)
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching transactions:", error.message);
-      throw error;
-    }
-
-    // O Supabase retorna `category` como um objeto, mas o tipo pode esperar um array.
-    // Garantimos que o tipo esteja correto.
-    const typedData = data as unknown as Transaction[];
-
-    return { data: typedData, error: null };
-  } catch (error: any) {
-    return { data: null, error };
-  }
+  console.log(`Fetching mock transactions for user: ${userId}`);
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300)); 
+  const sortedData = mockTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return { data: sortedData, error: null };
 }
 
 export type NewTransactionData = Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category'>;
 
-/**
- * Adds a new transaction for a user.
- * @param userId - The ID of the user.
- * @param transactionData - The data for the new transaction.
- * @returns A promise that resolves to the newly created transaction or an error.
- */
 export async function addTransaction(userId: string, transactionData: NewTransactionData): Promise<ServiceResponse<Transaction>> {
-  if (!supabase) {
-    return { data: null, error: new Error("Supabase client is not initialized.") };
-  }
-  if (!userId) {
-    return { data: null, error: new Error("User ID is required.") };
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("transactions")
-      .insert([{ ...transactionData, user_id: userId }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error adding transaction:", error.message);
-      throw error;
-    }
-
-    return { data, error: null };
-  } catch (error: any) {
-    return { data: null, error };
-  }
+    console.log(`Adding mock transaction for user: ${userId}`, transactionData);
+    const newTransaction: Transaction = {
+        id: `tx_${Date.now()}`,
+        user_id: userId,
+        ...transactionData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+    mockTransactions.push(newTransaction);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return { data: newTransaction, error: null };
 }
 
-
-/**
- * Deletes a transaction for a user.
- * @param transactionId - The ID of the transaction to delete.
- * @param userId - The ID of the user who owns the transaction.
- * @returns A promise that resolves to a success status or an error.
- */
 export async function deleteTransaction(transactionId: string, userId: string): Promise<{ error: Error | null }> {
-    if (!supabase) {
-        return { error: new Error("Supabase client is not initialized.") };
+    console.log(`Deleting mock transaction: ${transactionId} for user: ${userId}`);
+    const index = mockTransactions.findIndex(t => t.id === transactionId && t.user_id === userId);
+    if (index > -1) {
+        mockTransactions.splice(index, 1);
     }
-    if (!userId || !transactionId) {
-        return { error: new Error("Transaction ID and User ID are required.") };
-    }
-
-    try {
-        const { error } = await supabase
-            .from("transactions")
-            .delete()
-            .eq('id', transactionId)
-            .eq('user_id', userId); // Security check to ensure user owns the transaction
-
-        if (error) {
-            console.error("Error deleting transaction:", error.message);
-            throw error;
-        }
-
-        return { error: null };
-
-    } catch (error: any) {
-        return { error };
-    }
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return { error: null };
 }
