@@ -19,7 +19,7 @@ export function AppHeader() {
   const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
   
-  const isAdminArea = pathname.startsWith('/dashboard-admin');
+  const isAdminArea = pathname.startsWith('/dashboard-admin') || pathname.startsWith('/admin');
   const appTitle = isAdminArea ? `${APP_NAME} Workspace` : APP_NAME;
   const logoLink = isAdminArea ? "/dashboard-admin" : "/dashboard";
 
@@ -63,7 +63,7 @@ export function AppHeader() {
             <Bell className="h-5 w-5" />
             <span className="sr-only">Notificações</span>
           </Button>
-          <UserNav />
+          <UserNav isAdmin={isAdminArea} />
         </div>
       </div>
     </header>

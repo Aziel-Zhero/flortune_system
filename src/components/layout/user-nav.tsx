@@ -21,7 +21,6 @@ import { QuoteSettingsDialog } from "@/components/settings/quote-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 
-// Mock user data as authentication is disabled
 const mockUser = {
   displayName: "Usuário",
   userEmail: "usuario@exemplo.com",
@@ -29,7 +28,11 @@ const mockUser = {
   avatarUrl: `https://placehold.co/100x100.png?text=U`,
 };
 
-export function UserNav() {
+interface UserNavProps {
+  isAdmin?: boolean;
+}
+
+export function UserNav({ isAdmin = false }: UserNavProps) {
   const router = useRouter();
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
@@ -73,14 +76,18 @@ export function UserNav() {
                 <span>Configurações</span>
               </Link>
             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)} className="cursor-pointer">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                <span>Configurar Cotações</span>
-             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
-                <MapPin className="mr-2 h-4 w-4" />
-                <span>Configurar Clima</span>
-             </DropdownMenuItem>
+            {!isAdmin && (
+              <>
+                <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)} className="cursor-pointer">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <span>Configurar Cotações</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <span>Configurar Clima</span>
+                </DropdownMenuItem>
+              </>
+            )}
              <DropdownMenuItem asChild>
                 <Link href="/help">
                     <LifeBuoy className="mr-2 h-4 w-4" />
@@ -95,8 +102,12 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
-      <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
+      {!isAdmin && (
+        <>
+          <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
+          <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
+        </>
+      )}
     </>
   );
 }
