@@ -80,8 +80,7 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
 
 export default function LandingPage() {
   const { isBlackFridayActive } = useAppSettings();
-  // Cor para Black Friday: Cinza muito claro para o fundo fluido.
-  const flortuneColor: [number, number, number] = isBlackFridayActive ? [0.8, 0.8, 0.8] : [22/255, 163/255, 129/255];
+  const flortuneColor: [number, number, number] = isBlackFridayActive ? [0.85, 0.85, 0.85] : [22/255, 163/255, 129/255];
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
