@@ -1,4 +1,3 @@
-
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -36,12 +35,11 @@ const mockUser = {
 }
 
 // Mock de quais módulos estão compartilhados com o usuário atual.
-// Em um app real, isso viria de uma API.
 const sharedModulesWithMe = ['/transactions', '/goals'];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, open: sidebarOpen } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   
   const closeMobileSidebar = () => {
     if (isMobile) {
