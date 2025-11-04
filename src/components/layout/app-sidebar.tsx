@@ -16,8 +16,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   useSidebar,
-  SidebarFooter,
-  SidebarTrigger, // Importar o SidebarTrigger
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -79,22 +78,20 @@ export function AppSidebar() {
             >
                 <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
             </Link>
+             <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
-          <div className="flex items-center justify-between w-full group-data-[collapsible=icon]:justify-center">
-            <Link href="/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0" onClick={closeMobileSidebar}>
-              <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
-                  <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar"/>
-                  <AvatarFallback>{mockUser.avatarFallback}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                  <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{mockUser.displayName}</span>
-                  <span className="text-xs text-muted-foreground">Conta Local</span>
-              </div>
-            </Link>
-            <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
-          </div>
+          <Link href="/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
+            <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
+                <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar"/>
+                <AvatarFallback>{mockUser.avatarFallback}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{mockUser.displayName}</span>
+                <span className="text-xs text-muted-foreground">Conta Local</span>
+            </div>
+          </Link>
         </div>
 
         <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
@@ -141,10 +138,6 @@ export function AppSidebar() {
                 })}
           </SidebarMenu>
         </SidebarContent>
-        
-        <SidebarFooter className="p-2 border-t border-sidebar-border mt-auto group-data-[collapsible=icon]:hidden">
-            {/* Conteúdo do rodapé, se necessário */}
-        </SidebarFooter>
     </Sidebar>
   );
 }
