@@ -97,7 +97,7 @@ export const PRICING_TIERS = [
     href: '/signup?plan=corporativo',
     priceMonthly: 'R$139,90',
     priceAnnotation: 'para 3 usuários. Usuários adicionais cobrados à parte.',
-    description: 'Soluções financeiras robustas e personalizadas para grandes equipes e empresas em crescimento.',
+    description: 'Soluções financeiras e de gestão para pequenas e médias equipes.',
     features: [
       'Todas as funcionalidades do plano para DEVs',
       'Gerenciamento de múltiplos usuários/equipes',

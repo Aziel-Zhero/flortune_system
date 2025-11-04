@@ -66,7 +66,7 @@ export function AppSidebar() {
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
                 </Link>
             </div>
-            <SidebarTrigger className="mt-1" />
+            <SidebarTrigger className="h-7 w-7 mt-2" />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
@@ -88,7 +88,7 @@ export function AppSidebar() {
           <SidebarMenu>
             {NAV_LINKS_CONFIG.map((item, index) => {
                   if (item.type === "separator") {
-                    return <Separator key={`sep-${index}`} className="my-2 mx-2 group-data-[collapsible=icon]:hidden" />;
+                    return null; // Separator removed as per request
                   }
                   if (item.type === "title") {
                     return (
