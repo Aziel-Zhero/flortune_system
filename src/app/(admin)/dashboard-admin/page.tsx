@@ -64,7 +64,7 @@ export default function AdminDashboardPage() {
         ))}
       </div>
       
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+       <div className="grid grid-cols-1 gap-6">
           <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
               <CardHeader>
@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChartRecharts>
                             <ChartTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
-                            <Pie data={userDistributionData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} >
+                            <Pie data={userDistributionData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={80} outerRadius={120} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} >
                                 {userDistributionData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
@@ -85,15 +85,6 @@ export default function AdminDashboardPage() {
                     </ResponsiveContainer>
                 </ChartContainer>
               </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
-            <Card>
-              <CardHeader>
-                  <CardTitle>Bem-vindo ao Flortune Workspace!</CardTitle>
-                  <CardDescription>Esta é a base do seu painel de controle. A partir daqui, você pode expandir para gerenciar usuários, campanhas de marketing, visualizar dashboards de performance e muito mais.</CardDescription>
-              </CardHeader>
             </Card>
           </motion.div>
        </div>
