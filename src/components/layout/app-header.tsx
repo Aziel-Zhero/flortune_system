@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeOff, Search, Bell, Menu } from "lucide-react";
+import { Eye, EyeOff, Search, Bell, Menu, DollarSign } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
+import { PrivateValue } from "../shared/private-value";
 
 export function AppHeader() {
   const { isPrivateMode, togglePrivateMode } = useAppSettings();
@@ -22,6 +23,9 @@ export function AppHeader() {
   const isAdminArea = pathname.startsWith('/dashboard-admin') || pathname.startsWith('/admin');
   const appTitle = isAdminArea ? `${APP_NAME} Workspace` : APP_NAME;
   const logoLink = isAdminArea ? "/dashboard-admin" : "/dashboard";
+
+  // Mocked total revenue for admin workspace
+  const totalRevenue = 25340.50;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
@@ -50,6 +54,19 @@ export function AppHeader() {
               </div>
             </form>
           )}
+
+          {isAdminArea && (
+            <div className="hidden sm:flex items-center gap-2 border-l pl-4 ml-4">
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground -mb-1">Receita Total</span>
+                    <span className="font-bold text-lg text-primary">
+                        <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
+                    </span>
+                </div>
+            </div>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
