@@ -1,3 +1,4 @@
+
 // src/app/(app)/corporate/reports/page.tsx
 "use client";
 

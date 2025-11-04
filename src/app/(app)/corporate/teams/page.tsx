@@ -1,3 +1,4 @@
+
 // src/app/(app)/corporate/teams/page.tsx
 "use client";
 
@@ -72,13 +73,14 @@ interface Activity {
   dueDate?: string | null;
   assignedTo?: string | null;
   status: 'available' | 'assigned';
+  projectId?: string | null; // Adicionado para vincular a um projeto
 }
 
 const initialActivities: Activity[] = [
     { id: 'act-1', description: 'Revisar documentação da API de pagamentos', dueDate: '2024-08-05', status: 'available' },
     { id: 'act-2', description: 'Criar protótipos de baixa fidelidade para nova feature', dueDate: '2024-08-10', status: 'available' },
     { id: 'act-3', description: 'Configurar ambiente de staging para o Projeto X', dueDate: null, status: 'available' },
-    { id: 'act-4', description: 'Atualizar dependências do projeto principal', dueDate: null, status: 'assigned', assignedTo: 'usr_2' },
+    { id: 'act-4', description: 'Atualizar dependências do projeto principal', dueDate: null, status: 'assigned', assignedTo: 'usr_2', projectId: 'proj_1' },
 ]
 
 export default function TeamsPage() {
@@ -164,11 +166,12 @@ export default function TeamsPage() {
         description: data.description,
         dueDate: data.dueDate ? format(data.dueDate, 'yyyy-MM-dd') : null,
         status: 'available',
+        projectId: currentProject?.id || null, // Vincula ao projeto se houver
       }
       setActivities(prev => [newActivity, ...prev]);
       toast({
           title: "Atividade Criada",
-          description: `A atividade "${data.description}" está disponível para atribuição.`
+          description: `A atividade "${data.description}" está disponível.`
       });
       setIsActivityModalOpen(false);
       resetActivityForm();
@@ -187,6 +190,12 @@ export default function TeamsPage() {
       setIsAssignModalOpen(false);
       setCurrentActivity(null);
   }
+  
+  const handleOpenActivityDialog = (project: typeof projects[0] | null = null) => {
+      setCurrentProject(project);
+      resetActivityForm({description: "", dueDate: undefined, assignedTo: undefined});
+      setIsActivityModalOpen(true);
+  }
 
   return (
     <TooltipProvider>
@@ -195,7 +204,7 @@ export default function TeamsPage() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline"><FileDown className="mr-2 h-4 w-4"/>Relatório</Button>
-              <Button onClick={() => setIsActivityModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Atividade</Button>
+              <Button onClick={() => handleOpenActivityDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Atividade</Button>
               <Button onClick={() => handleOpenMemberDialog(null)}><UserPlus className="mr-2 h-4 w-4"/>Adicionar Membro</Button>
             </div>
           }
@@ -251,14 +260,17 @@ export default function TeamsPage() {
                           <CardHeader>
                               <div className="flex justify-between items-start">
                                   <CardTitle className="font-headline">{p.name}</CardTitle>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenProjectDialog(p)}><Settings className="h-4 w-4"/></Button>
+                                  <div className="flex items-center -mr-2">
+                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenActivityDialog(p)}><UserPlus className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Atribuir atividade a este projeto</p></TooltipContent></Tooltip>
+                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenProjectDialog(p)}><Settings className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Editar projeto</p></TooltipContent></Tooltip>
+                                  </div>
                               </div>
                               <CardDescription>Cliente: {p.client}</CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3">
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
-                                  <span>{format(parseISO(p.deadline), "dd/MM/yyyy", { timeZone: 'UTC' })}</span>
+                                  <span>{format(parseISO(p.deadline), "dd/MM/yyyy")}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Rentabilidade:</span>
@@ -319,7 +331,7 @@ export default function TeamsPage() {
 
       <Dialog open={isActivityModalOpen} onOpenChange={setIsActivityModalOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Criar Nova Atividade</DialogTitle><DialogDescription>Crie uma nova tarefa que ficará disponível para atribuição.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Criar Nova Atividade {currentProject ? `para "${currentProject.name}"` : ""}</DialogTitle><DialogDescription>Crie uma nova tarefa que ficará disponível para atribuição.</DialogDescription></DialogHeader>
           <form onSubmit={handleActivitySubmit(onActivitySubmit)} className="space-y-4 py-2">
             <div>
                 <Label htmlFor="activity-desc">Descrição da Atividade</Label>
