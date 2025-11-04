@@ -82,7 +82,17 @@ export function AdminSidebar() {
 
         <SidebarContent className="p-2">
           <SidebarMenu>
-            {ADMIN_NAV_LINKS_CONFIG.map((item) => {
+            {ADMIN_NAV_LINKS_CONFIG.map((item, index) => {
+                  if (item.type === "title") {
+                    return (
+                      <div 
+                        key={`title-${index}`} 
+                        className="px-3 py-2 text-xs font-semibold uppercase text-muted-foreground tracking-wider group-data-[collapsible=icon]:hidden"
+                      >
+                        {item.label}
+                      </div>
+                    );
+                  }
                   const IconComponent = getIcon(item.icon);
                   const isActive = pathname === item.href;
                   return (
