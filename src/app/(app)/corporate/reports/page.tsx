@@ -4,7 +4,7 @@
 import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AreaChart, Clock, ListChecks, CheckCircle, GitCommit } from "lucide-react";
+import { AreaChart, CheckCircle, GitCommit, HelpCircle, Target } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -26,6 +26,17 @@ const recentActivities = [
     { id: 3, user: "Daniel Alves", action: "iniciou a tarefa", subject: "Design da Landing Page V2", time: "3 horas atrás", icon: GitCommit },
 ];
 
+const analysis5w2h = [
+  { question: "What (O que será feito?)", answer: "Desenvolvimento do novo módulo de relatórios financeiros.", icon: Target },
+  { question: "Why (Por que será feito?)", answer: "Para fornecer aos usuários corporativos insights acionáveis sobre seus dados.", icon: HelpCircle },
+  { question: "Who (Quem fará?)", answer: "Equipe Alpha (Bruno, Carla, Daniel).", icon: CheckCircle },
+  { question: "Where (Onde será feito?)", answer: "No repositório principal do projeto, branch 'feature/reports-module'.", icon: CheckCircle },
+  { question: "When (Quando será feito?)", answer: "Sprint atual, com prazo final em 2 semanas.", icon: CheckCircle },
+  { question: "How (Como será feito?)", answer: "Utilizando Recharts para gráficos, seguindo o design do Figma e com testes unitários.", icon: CheckCircle },
+  { question: "How much (Quanto vai custar?)", answer: "Estimado em 80 horas de desenvolvimento (aproximadamente R$ 8.000).", icon: CheckCircle },
+];
+
+
 export default function CorporateReportsPage() {
   useEffect(() => {
     document.title = `Relatórios Corporativos - ${APP_NAME}`;
@@ -45,7 +56,7 @@ export default function CorporateReportsPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-3">
+        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-3">
           <Card>
             <CardHeader><CardTitle className="font-headline flex items-center gap-2">Produtividade Diária da Equipe</CardTitle><CardDescription>Acompanhe o número de tarefas concluídas a cada dia da semana.</CardDescription></CardHeader>
             <CardContent className="h-80">
@@ -61,7 +72,7 @@ export default function CorporateReportsPage() {
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
+        <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
             <Card>
                 <CardHeader><CardTitle className="font-headline">Feed de Atividades da Equipe</CardTitle><CardDescription>O que sua equipe está trabalhando agora.</CardDescription></CardHeader>
                 <CardContent className="space-y-4 h-80 overflow-y-auto">
@@ -80,6 +91,30 @@ export default function CorporateReportsPage() {
                 </CardContent>
             </Card>
         </motion.div>
+        
+        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-5">
+           <Card>
+                <CardHeader>
+                  <CardTitle className="font-headline">Gerenciamento de Performance (5W2H)</CardTitle>
+                  <CardDescription>Análise estratégica para garantir clareza e alinhamento em cada iniciativa.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {analysis5w2h.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={index} className="flex items-start gap-4 p-3 border rounded-lg bg-muted/30">
+                        <Icon className="h-5 w-5 mt-1 text-primary"/>
+                        <div>
+                          <h4 className="font-semibold">{item.question}</h4>
+                          <p className="text-sm text-muted-foreground">{item.answer}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+        </motion.div>
+
       </div>
     </div>
   );
