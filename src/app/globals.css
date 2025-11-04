@@ -411,19 +411,20 @@
     --sidebar-accent-foreground: 20 55% 88%;
     --sidebar-border: 15 30% 28%;
   }
+
+  body.theme-black-friday {
+    --foreground: 0 0% 98%;
+    background: linear-gradient(90deg, rgba(94, 94, 94, 1) 0%, rgba(61, 66, 64, 1) 40%, rgba(105, 115, 104, 1) 75%, rgba(207, 207, 194, 1) 100%);
+  }
+
+  body.theme-flash-sale {
+    --accent: 53 100% 50%; /* Amarelo Neon */
+    --accent-foreground: 53 100% 5%; /* Cor escura para texto no amarelo */
+    --foreground: 0 0% 98%; /* Texto branco */
+  }
 }
 
 @layer base {
-  .theme-black-friday {
-    --background: 0 0% 8%;
-    --foreground: 0 0% 98%;
-  }
-  .theme-flash-sale {
-    --accent: 53 100% 50%;
-    --accent-foreground: 53 100% 10%;
-    --foreground: 0 0% 98%;
-  }
-
   * {
     @apply border-border;
   }

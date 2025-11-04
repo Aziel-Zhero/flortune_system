@@ -85,11 +85,8 @@ export default function LandingPage() {
   const getCampaignColors = () => {
     switch (activeCampaignTheme) {
       case 'black-friday':
-        return {
-          fluidColor: [0.1, 0.1, 0.1] as [number, number, number],
-          speed: 0.3,
-          amplitude: 0.1
-        };
+        // For Black Friday, we use CSS to apply the gradient, so Iridescence is not needed
+        return null;
       case 'flash-sale':
         return {
           fluidColor: [0.85, 0.85, 0.85] as [number, number, number],
@@ -105,7 +102,7 @@ export default function LandingPage() {
     }
   };
 
-  const { fluidColor, speed, amplitude } = getCampaignColors();
+  const campaignProps = getCampaignColors();
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -141,7 +138,14 @@ export default function LandingPage() {
 
   return (
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
-      <Iridescence color={fluidColor} speed={speed} amplitude={amplitude} mouseReact={true} />
+      {campaignProps && (
+        <Iridescence 
+          color={campaignProps.fluidColor} 
+          speed={campaignProps.speed} 
+          amplitude={campaignProps.amplitude} 
+          mouseReact={true} 
+        />
+      )}
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
