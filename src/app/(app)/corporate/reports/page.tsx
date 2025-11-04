@@ -1,4 +1,3 @@
-
 // src/app/(app)/corporate/reports/page.tsx
 "use client";
 
@@ -6,11 +5,11 @@ import { useEffect, useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AreaChart, CheckCircle, GitCommit, PieChart as PieChartIcon, Users, Workflow } from "lucide-react";
+import { AreaChart, CheckCircle, GitCommit, PieChart as PieChartIcon, Users, Workflow, AlertTriangle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, Pie, PieChart as PieChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Cell } from "recharts";
+import { Bar, BarChart as BarChartRecharts, Pie, PieChart as PieChartRecharts, Tooltip as RechartsTooltip, Cell, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const dailyProductivityData = [
     { day: "Seg", tasks: 8 }, { day: "Ter", tasks: 12 }, { day: "Qua", tasks: 7 },
@@ -71,67 +70,66 @@ export default function CorporateReportsPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
-          <Card>
-            <CardHeader><CardTitle className="font-headline flex items-center gap-2">Produtividade Diária da Equipe</CardTitle><CardDescription>Acompanhe o número de tarefas concluídas a cada dia da semana.</CardDescription></CardHeader>
-            <CardContent className="h-80">
-              <ChartContainer config={productivityChartConfig} className="w-full h-full">
-                <BarChartRecharts accessibilityLayer data={dailyProductivityData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis />
-                  <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
-                  <Bar dataKey="tasks" fill="var(--color-tasks)" radius={4} />
-                </BarChartRecharts>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
+        <div className="lg:col-span-2 space-y-6">
+          <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
-                <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="flex-1">
-                            <CardTitle className="font-headline flex items-center gap-2"><PieChartIcon className="h-5 w-5"/>Performance Individual</CardTitle>
-                            <CardDescription>Análise da distribuição de tarefas por membro.</CardDescription>
-                        </div>
-                        <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
-                            <SelectTrigger className="w-full sm:w-[220px]">
-                                <SelectValue placeholder="Selecione um membro..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {teamMembers.map(member => (
-                                    <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardHeader>
-                <CardContent className="h-80 flex items-center justify-center">
-                    <ChartContainer config={{}} className="w-full h-full">
-                         <PieChartRecharts>
-                            <RechartsTooltip cursor={true} content={<ChartTooltipContent />} />
-                            <Pie
-                                data={selectedMemberPerformance}
-                                dataKey="value"
-                                nameKey="name"
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={100}
-                                label={({ name, value }) => `${name}: ${value}`}
-                            >
-                                {selectedMemberPerformance.map((entry) => (
-                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                ))}
-                            </Pie>
-                         </PieChartRecharts>
-                    </ChartContainer>
-                </CardContent>
+              <CardHeader><CardTitle className="font-headline flex items-center gap-2">Produtividade Diária da Equipe</CardTitle><CardDescription>Acompanhe o número de tarefas concluídas a cada dia da semana.</CardDescription></CardHeader>
+              <CardContent className="h-80">
+                <ChartContainer config={productivityChartConfig} className="w-full h-full">
+                  <BarChartRecharts accessibilityLayer data={dailyProductivityData}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
+                    <YAxis />
+                    <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
+                    <Bar dataKey="tasks" fill="var(--color-tasks)" radius={4} />
+                  </BarChartRecharts>
+                </ChartContainer>
+              </CardContent>
             </Card>
-        </motion.div>
-
-        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
+          </motion.div>
+          <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
+              <Card>
+                  <CardHeader>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex-1">
+                              <CardTitle className="font-headline flex items-center gap-2"><PieChartIcon className="h-5 w-5"/>Performance Individual</CardTitle>
+                              <CardDescription>Análise da distribuição de tarefas por membro.</CardDescription>
+                          </div>
+                          <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                              <SelectTrigger className="w-full sm:w-[220px]">
+                                  <SelectValue placeholder="Selecione um membro..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {teamMembers.map(member => (
+                                      <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                      </div>
+                  </CardHeader>
+                  <CardContent className="h-80 flex items-center justify-center">
+                      <ChartContainer config={{}} className="w-full h-full">
+                          <PieChartRecharts>
+                              <RechartsTooltip cursor={true} content={<ChartTooltipContent />} />
+                              <Pie
+                                  data={selectedMemberPerformance}
+                                  dataKey="value"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={100}
+                                  label={({ name, value }) => `${name}: ${value}`}
+                              >
+                                  {selectedMemberPerformance.map((entry) => (
+                                      <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                  ))}
+                              </Pie>
+                          </PieChartRecharts>
+                      </ChartContainer>
+                  </CardContent>
+              </Card>
+          </motion.div>
+          <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
                 <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5"/>Feed de Atividades da Equipe</CardTitle><CardDescription>O que sua equipe está trabalhando agora.</CardDescription></CardHeader>
                 <CardContent className="space-y-4 max-h-80 overflow-y-auto">
@@ -149,7 +147,8 @@ export default function CorporateReportsPage() {
                     })}
                 </CardContent>
             </Card>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
