@@ -82,27 +82,28 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
 export default function LandingPage() {
   const { activeCampaignTheme } = useAppSettings();
 
-  const getCampaignColors = () => {
+  const getCampaignProps = () => {
     switch (activeCampaignTheme) {
       case 'black-friday':
-        // For Black Friday, we use CSS to apply the gradient, so Iridescence is not needed
-        return null;
+        return null; // Don't render Iridescence, use CSS gradient instead
       case 'flash-sale':
         return {
-          fluidColor: [0.85, 0.85, 0.85] as [number, number, number],
+          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number], // Clean Pink
           speed: 0.2,
-          amplitude: 0.05
+          amplitude: 0.1,
+          show: true,
         };
       default:
         return {
-          fluidColor: [22/255, 163/255, 129/255] as [number, number, number],
+          fluidColor: [22 / 255, 163 / 255, 129 / 255] as [number, number, number],
           speed: 0.3,
-          amplitude: 0.15
+          amplitude: 0.15,
+          show: true,
         };
     }
   };
 
-  const campaignProps = getCampaignColors();
+  const campaignProps = getCampaignProps();
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -138,7 +139,7 @@ export default function LandingPage() {
 
   return (
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
-      {campaignProps && (
+      {campaignProps?.show && (
         <Iridescence 
           color={campaignProps.fluidColor} 
           speed={campaignProps.speed} 
@@ -154,7 +155,6 @@ export default function LandingPage() {
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>
             <nav className="flex items-center gap-2">
-              <Link href="/login-admin" className={cn(buttonVariants({ variant: 'secondary' }))}>TESTE</Link>
               <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-foreground hover:bg-foreground/10 hover:text-foreground")}>Login</Link>
               <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Conta Grátis</Link>
             </nav>

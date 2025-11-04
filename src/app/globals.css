@@ -411,16 +411,15 @@
     --sidebar-accent-foreground: 20 55% 88%;
     --sidebar-border: 15 30% 28%;
   }
-
   body.theme-black-friday {
     --foreground: 0 0% 98%;
-    background: linear-gradient(90deg, rgba(94, 94, 94, 1) 0%, rgba(61, 66, 64, 1) 40%, rgba(105, 115, 104, 1) 75%, rgba(207, 207, 194, 1) 100%);
+    background: linear-gradient(90deg, #111 0%, #222 40%, #333 75%, #444 100%);
   }
 
   body.theme-flash-sale {
-    --accent: 53 100% 50%; /* Amarelo Neon */
-    --accent-foreground: 53 100% 5%; /* Cor escura para texto no amarelo */
-    --foreground: 0 0% 98%; /* Texto branco */
+    --accent: 330 90% 70%; /* Clean Pink */
+    --accent-foreground: 330 90% 10%; 
+    --foreground: 0 0% 98%; /* White text */
   }
 }
 
