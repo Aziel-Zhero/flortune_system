@@ -20,8 +20,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "../ui/button";
-
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;
@@ -42,7 +40,7 @@ const sharedModulesWithMe = ['/transactions', '/goals'];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, open: sidebarOpen, toggleSidebar: toggleDesktopSidebar } = useSidebar();
+  const { isMobile, setOpenMobile, open: sidebarOpen } = useSidebar();
   
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -141,12 +139,7 @@ export function AppSidebar() {
         </SidebarContent>
         
         <SidebarFooter className="p-2 border-t border-sidebar-border mt-auto">
-          <div className="flex items-center justify-end">
-            <Button variant="ghost" size="icon" onClick={toggleDesktopSidebar} className="hidden md:inline-flex h-9 w-9">
-              <LucideIcons.PanelLeft className="h-5 w-5" />
-              <span className="sr-only">Alternar menu lateral</span>
-            </Button>
-          </div>
+          
         </SidebarFooter>
     </Sidebar>
   );

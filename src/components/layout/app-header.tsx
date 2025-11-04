@@ -2,22 +2,28 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeOff, Search, Bell } from "lucide-react";
+import { Eye, EyeOff, Search, Bell, PanelLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserNav } from "./user-nav"; // Ensured import path
+import { UserNav } from "./user-nav";
 import { useAppSettings } from '@/contexts/app-settings-context';
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function AppHeader() {
   const { isPrivateMode, togglePrivateMode } = useAppSettings();
+  const { toggleSidebar } = useSidebar();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
       <div className="container mx-auto flex h-full items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6">
         <div className="flex items-center gap-2 md:gap-4">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-9 w-9">
+            <PanelLeft className="h-5 w-5" />
+            <span className="sr-only">Alternar menu lateral</span>
+          </Button>
           <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
             <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
             <span className="font-bold text-xl font-headline hidden sm:inline-block">{APP_NAME}</span>
