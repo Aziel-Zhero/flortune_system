@@ -1,4 +1,3 @@
-
 // src/app/page.tsx
 "use client";
 
@@ -123,6 +122,7 @@ export default function LandingPage() {
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>
             <nav className="flex items-center gap-2">
+              <Link href="/login-admin" className={cn(buttonVariants({ variant: 'secondary' }))}>TESTE</Link>
               <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-white hover:bg-white/10 hover:text-white")}>Login</Link>
               <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Conta Grátis</Link>
             </nav>
