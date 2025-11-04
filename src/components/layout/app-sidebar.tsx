@@ -66,7 +66,7 @@ export function AppSidebar() {
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
                 </Link>
             </div>
-            <SidebarTrigger className="group-data-[collapsible=icon]:hidden mt-1" />
+            <SidebarTrigger className="mt-1" />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
