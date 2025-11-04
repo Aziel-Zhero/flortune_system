@@ -12,10 +12,16 @@ import { useAppSettings } from '@/contexts/app-settings-context';
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
+import { usePathname } from "next/navigation";
 
 export function AppHeader() {
   const { isPrivateMode, togglePrivateMode } = useAppSettings();
   const { setOpenMobile } = useSidebar();
+  const pathname = usePathname();
+  
+  const isAdminArea = pathname.startsWith('/dashboard-admin');
+  const appTitle = isAdminArea ? `${APP_NAME} Workspace` : APP_NAME;
+  const logoLink = isAdminArea ? "/dashboard-admin" : "/dashboard";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
@@ -25,23 +31,25 @@ export function AppHeader() {
             <Menu className="h-6 w-6" />
             <span className="sr-only">Abrir menu</span>
           </Button>
-          <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
+          <Link href={logoLink} className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
             <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
-            <span className="font-bold text-xl font-headline hidden sm:inline-block">{APP_NAME}</span>
+            <span className="font-bold text-xl font-headline hidden sm:inline-block">{appTitle}</span>
           </Link>
         </div>
 
         <div className="flex flex-1 items-center justify-end space-x-2 md:space-x-4">
-          <form className="hidden md:flex flex-1 max-w-sm">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar transações, orçamentos..."
-                className="pl-10 h-9"
-              />
-            </div>
-          </form>
+          {!isAdminArea && (
+             <form className="hidden md:flex flex-1 max-w-sm">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Buscar transações, orçamentos..."
+                  className="pl-10 h-9"
+                />
+              </div>
+            </form>
+          )}
           <Button
             variant="ghost"
             size="icon"

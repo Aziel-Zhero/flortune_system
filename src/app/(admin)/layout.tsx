@@ -1,22 +1,27 @@
 // src/app/(admin)/layout.tsx
 "use client";
 
-// A simple layout for the admin section. Can be expanded later.
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppHeader } from "@/components/layout/app-header";
+import { AdminSidebar } from "@/components/layout/admin-sidebar";
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto flex h-14 items-center">
-            <p className="font-semibold">Painel de Administração - Flortune</p>
+    <SidebarProvider defaultOpen>
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <AppHeader />
+        <div className="flex flex-1 pt-16 h-full">
+          <AdminSidebar />
+          <main className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col overflow-y-auto">
+            {children}
+          </main>
         </div>
-      </header>
-      <main className="flex-1 p-4 md:p-6 lg:p-8">
-        {children}
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }

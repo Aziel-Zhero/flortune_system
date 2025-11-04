@@ -12,21 +12,17 @@ export const NAV_LINKS_CONFIG = [
   { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
   { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
   { href: "/notepad", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
-  { type: "separator" as const },
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/dashboard", label: "Dash", icon: "AreaChart" as const, type: "link" as const },
   { href: "/dev/clients", label: "Clientes & Projetos", icon: "Users2" as const, type: "link" as const },
   { href: "/dev/systems", label: "Ferramentas", icon: "Wrench" as const, type: "link" as const },
   { href: "/dev/web-management", label: "Gestão Web", icon: "Globe" as const, type: "link" as const },
   { href: "/dev/devops", label: "Gestão de Sistemas", icon: "GitMerge" as const, type: "link" as const },
-  { type: "separator" as const },
   { type: "title" as const, label: "Metodologia Kanban" },
   { href: "/dev/kanban", label: "Quadro Kanban", icon: "KanbanSquare" as const, type: "link" as const },
   { href: "/dev/kanban-analytics", label: "Análise Kanban", icon: "PieChart" as const, type: "link" as const },
-  { type: "separator" as const },
   { type: "title" as const, label: "Módulos" },
   { href: "/sharing", label: "Compartilhamento", icon: "Share2" as const, type: "link" as const },
-  { type: "separator" as const },
   { type: "title" as const, label: "CORPORATIVO" },
   { href: "/corporate/teams", label: "Equipes", icon: "Users" as const, type: "link" as const },
   { href: "/corporate/reports", label: "Graficos & Metas", icon: "AreaChart" as const, type: "link" as const },
@@ -34,6 +30,15 @@ export const NAV_LINKS_CONFIG = [
   { href: "/plans", label: "Nossos Planos", icon: "Gem" as const, type: "link" as const },
   { href: "/help", label: "Ajuda", icon: "LifeBuoy" as const, type: "link" as const },
 ] as const;
+
+export const ADMIN_NAV_LINKS_CONFIG = [
+  { href: "/dashboard-admin", label: "Home", icon: "Home" as const, type: "link" as const },
+  { href: "/admin/dashboard", label: "Dashboard", icon: "LayoutDashboard" as const, type: "link" as const },
+  { href: "/admin/marketplace", label: "Marketing Place", icon: "Store" as const, type: "link" as const },
+  { href: "/admin/marketing", label: "Marketing", icon: "Megaphone" as const, type: "link" as const },
+  { href: "/admin/black-friday", label: "Black Friday", icon: "ShoppingBag" as const, type: "link" as const },
+];
+
 
 // Union type for NavLinkConfig items
 export type NavLinkItem = (typeof NAV_LINKS_CONFIG)[number];

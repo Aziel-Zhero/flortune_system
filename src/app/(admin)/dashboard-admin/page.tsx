@@ -3,7 +3,7 @@
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Briefcase, Code, Star } from "lucide-react";
+import { Users, Briefcase, Code, Star, Home } from "lucide-react";
 import { motion } from "framer-motion";
 
 const cardData = [
@@ -26,8 +26,9 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Home do Administrador"
-        description="Visão geral e métricas chave do sistema."
+        title="Home"
+        icon={<Home />}
+        description="Visão geral e métricas chave do Flortune Workspace."
       />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {cardData.map((card, index) => (
@@ -52,8 +53,8 @@ export default function AdminDashboardPage() {
       </div>
       <Card>
         <CardHeader>
-            <CardTitle>Próximos Passos</CardTitle>
-            <CardDescription>Esta é a base do seu painel administrativo. A partir daqui, podemos construir tabelas para gerenciar usuários, visualizar logs, gerenciar planos e muito mais.</CardDescription>
+            <CardTitle>Bem-vindo ao Flortune Workspace!</CardTitle>
+            <CardDescription>Esta é a base do seu painel de controle. A partir daqui, você pode expandir para gerenciar usuários, campanhas de marketing, visualizar dashboards de performance e muito mais.</CardDescription>
         </CardHeader>
       </Card>
     </div>
