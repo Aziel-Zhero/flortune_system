@@ -11,6 +11,7 @@ import { PrivateValue } from "@/components/shared/private-value";
 
 const cardData = [
   { title: "Total de Usuários", value: "1,250", icon: Users },
+  { title: "Usuários Gratuitos", value: "1,100", icon: Users },
   { title: "Usuários Pagantes", value: "150", icon: Star },
   { title: "Valor Total da Receita", value: <PrivateValue value={25340.50.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />, icon: DollarSign },
   { title: "Assinantes (DEV)", value: "45", icon: Code },
@@ -47,7 +48,7 @@ export default function AdminDashboardPage() {
         icon={<Home />}
         description="Visão geral e métricas chave do Flortune Workspace."
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {cardData.map((card, index) => (
           <motion.div
             key={card.title}
