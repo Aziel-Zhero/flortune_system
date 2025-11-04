@@ -1,3 +1,4 @@
+
 // src/app/(app)/corporate/reports/page.tsx
 "use client";
 
@@ -5,10 +6,10 @@ import { useEffect, useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AreaChart, CheckCircle, GitCommit, PieChart as PieChartIcon, Users } from "lucide-react";
+import { AreaChart, CheckCircle, GitCommit, PieChart as PieChartIcon, Users, Workflow } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { motion } from "framer-motion";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as BarChartRecharts, Pie, PieChart as PieChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Cell } from "recharts";
 
 const dailyProductivityData = [
@@ -18,7 +19,7 @@ const dailyProductivityData = [
 ];
 const productivityChartConfig = {
     tasks: { label: "Tarefas Concluídas", color: "hsl(var(--chart-1))" },
-} satisfies ChartConfig;
+};
 
 const teamMembers = [
   { id: 'usr_1', name: 'Ana Silva', performance: { completed: 15, in_progress: 5, pending: 2 } },
@@ -29,7 +30,7 @@ const teamMembers = [
 const recentActivities = [
     { id: 1, user: "Bruno Costa", action: "finalizou a tarefa", subject: "API de Autenticação", time: "15 min atrás", icon: CheckCircle },
     { id: 2, user: "Carla Dias", action: "moveu para Revisão", subject: "Componente de Gráfico", time: "1 hora atrás", icon: GitCommit },
-    { id: 3, user: "Daniel Alves", action: "iniciou a tarefa", subject: "Design da Landing Page V2", time: "3 horas atrás", icon: GitCommit },
+    { id: 3, user: "Daniel Alves", action: "iniciou a tarefa", subject: "Design da Landing Page V2", time: "3 horas atrás", icon: Workflow },
 ];
 
 const performanceColors = {

@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/kanban/page.tsx
 "use client";
 
@@ -388,8 +389,8 @@ export default function DevKanbanPage() {
 
   return (
     <>
-      <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
-        <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
+      <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
+        <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
           <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
               <div className="flex flex-col h-full">
                 <PageHeader 
@@ -397,9 +398,15 @@ export default function DevKanbanPage() {
                   description="Visualize e gerencie o fluxo de trabalho. Arraste e solte tarefas e colunas." 
                   icon={<KanbanSquare />}
                   actions={<>
-                    <Button variant="outline" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Tarefa</Button>
-                    <Button variant="outline" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="mr-2 h-4 w-4"/>Nova Coluna</Button>
-                    <Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Tarefa</Button>
+                    </DialogTrigger>
+                     <DialogTrigger asChild>
+                      <Button variant="outline" onClick={() => setIsColumnModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Nova Coluna</Button>
+                    </DialogTrigger>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>
+                    </DialogTrigger>
                   </>}
                 />
                 {isClient && (
@@ -528,9 +535,8 @@ export default function DevKanbanPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </Dialog>
         </Dialog>
-      </Dialog>
-
       <AlertDialog open={isSyncAlertOpen} onOpenChange={setIsSyncAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
