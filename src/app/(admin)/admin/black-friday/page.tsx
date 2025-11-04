@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingBag, CalendarIcon, Percent, Save, AlertCircle } from "lucide-react";
+import { ShoppingBag, CalendarIcon, Percent, Save, AlertCircle, Eye } from "lucide-react";
 import { PRICING_TIERS } from "@/lib/constants";
 import { DateRange } from "react-day-picker";
 import { addDays, format } from "date-fns";
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { useAppSettings } from "@/contexts/app-settings-context";
+import Link from "next/link";
 
 export default function BlackFridayPage() {
   const { isBlackFridayActive, toggleBlackFriday } = useAppSettings();
@@ -97,6 +98,18 @@ export default function BlackFridayPage() {
                 </AlertDescription>
             </Alert>
         </CardContent>
+         <CardFooter className="flex flex-wrap items-center gap-4">
+            <Button onClick={handleSaveChanges} disabled={!isBlackFridayActive}>
+                <Save className="mr-2 h-4 w-4" />
+                Salvar Alterações da Campanha
+            </Button>
+             <Button variant="outline" asChild>
+                <Link href="/" target="_blank">
+                    <Eye className="mr-2 h-4 w-4" />
+                    Visualizar Página da Campanha
+                </Link>
+            </Button>
+        </CardFooter>
       </Card>
       
       <Card>
@@ -116,12 +129,6 @@ export default function BlackFridayPage() {
                 </div>
             ))}
         </CardContent>
-        <CardFooter>
-            <Button onClick={handleSaveChanges} disabled={!isBlackFridayActive}>
-                <Save className="mr-2 h-4 w-4" />
-                Salvar Alterações da Campanha
-            </Button>
-        </CardFooter>
       </Card>
 
     </div>
