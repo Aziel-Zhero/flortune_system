@@ -18,7 +18,7 @@ import {
   useSidebar,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../ui/button";
 
@@ -81,6 +81,21 @@ export function AppSidebar() {
                 <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
             </Link>
         </SidebarHeader>
+        
+        <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
+          <Link href="/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
+            <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
+                <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar"/>
+                <AvatarFallback>{mockUser.avatarFallback}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{mockUser.displayName}</span>
+                <span className="text-xs text-muted-foreground">Conta Local</span>
+            </div>
+          </Link>
+        </div>
+
+        <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
 
         <SidebarContent className="p-2">
           <SidebarMenu>
@@ -125,23 +140,13 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarContent>
         
-        <SidebarFooter className="p-2 border-t border-sidebar-border">
-           <div className="px-2 py-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2 flex items-center justify-between">
-              <Link href="/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
-                <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
-                    <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar"/>
-                    <AvatarFallback>{mockUser.avatarFallback}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                    <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{mockUser.displayName}</span>
-                    <span className="text-xs text-muted-foreground">Conta Local</span>
-                </div>
-              </Link>
-               <Button variant="ghost" size="icon" onClick={toggleDesktopSidebar} className="hidden md:inline-flex h-9 w-9 group-data-[collapsible=icon]:hidden">
-                  <LucideIcons.PanelLeft className="h-5 w-5" />
-                  <span className="sr-only">Alternar menu lateral</span>
-                </Button>
-            </div>
+        <SidebarFooter className="p-2 border-t border-sidebar-border mt-auto">
+          <div className="flex items-center justify-end">
+            <Button variant="ghost" size="icon" onClick={toggleDesktopSidebar} className="hidden md:inline-flex h-9 w-9">
+              <LucideIcons.PanelLeft className="h-5 w-5" />
+              <span className="sr-only">Alternar menu lateral</span>
+            </Button>
+          </div>
         </SidebarFooter>
     </Sidebar>
   );
