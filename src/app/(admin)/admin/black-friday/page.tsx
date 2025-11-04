@@ -17,9 +17,10 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
+import { useAppSettings } from "@/contexts/app-settings-context";
 
 export default function BlackFridayPage() {
-  const [isActive, setIsActive] = useState(false);
+  const { isBlackFridayActive, toggleBlackFriday } = useAppSettings();
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(),
     to: addDays(new Date(), 7),
@@ -48,9 +49,9 @@ export default function BlackFridayPage() {
             <div className="flex items-center space-x-4 rounded-md border p-4">
                 <div className="flex-1 space-y-1">
                     <p className="text-sm font-medium leading-none">Ativar Campanha de Black Friday</p>
-                    <p className="text-sm text-muted-foreground">Habilita a exibição de preços promocionais em todo o site.</p>
+                    <p className="text-sm text-muted-foreground">Habilita a exibição de preços promocionais e o tema escuro na landing page.</p>
                 </div>
-                <Switch checked={isActive} onCheckedChange={setIsActive} aria-label="Ativar Campanha"/>
+                <Switch checked={isBlackFridayActive} onCheckedChange={toggleBlackFriday} aria-label="Ativar Campanha"/>
             </div>
              <div className="space-y-2">
                 <Label>Período da Campanha</Label>
@@ -116,7 +117,7 @@ export default function BlackFridayPage() {
             ))}
         </CardContent>
         <CardFooter>
-            <Button onClick={handleSaveChanges} disabled={!isActive}>
+            <Button onClick={handleSaveChanges} disabled={!isBlackFridayActive}>
                 <Save className="mr-2 h-4 w-4" />
                 Salvar Alterações da Campanha
             </Button>

@@ -39,6 +39,9 @@ export interface AppSettingsProviderValue {
   isLoadingQuotes: boolean;
   quotesError: string | null;
   loadQuotes: (quoteList: string[]) => Promise<void>;
+  
+  isBlackFridayActive: boolean;
+  toggleBlackFriday: () => void;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -55,6 +58,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('default');
+  const [isBlackFridayActive, setIsBlackFridayActive] = useState(false);
   
   const [weatherCity, setWeatherCityState] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -149,6 +153,14 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const toggleBlackFriday = useCallback(() => {
+    setIsBlackFridayActive(prev => {
+      const newStatus = !prev;
+      localStorage.setItem('flortune-black-friday-active', JSON.stringify(newStatus));
+      return newStatus;
+    });
+  }, []);
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
@@ -183,6 +195,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
       setSelectedQuotesState(initialQuotes);
       loadQuotes(initialQuotes);
+
+      const storedBlackFriday = localStorage.getItem('flortune-black-friday-active');
+      if (storedBlackFriday) setIsBlackFridayActive(JSON.parse(storedBlackFriday));
       
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
@@ -197,6 +212,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
       selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
       loadQuotes,
+      isBlackFridayActive, toggleBlackFriday,
     }}>
       {children}
     </AppSettingsContext.Provider>

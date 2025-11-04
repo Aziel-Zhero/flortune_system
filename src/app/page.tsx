@@ -9,6 +9,7 @@ import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constan
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
+import { useAppSettings } from "@/contexts/app-settings-context";
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -78,7 +79,9 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
 };
 
 export default function LandingPage() {
-  const flortuneTealRGB: [number, number, number] = [22/255, 163/255, 129/255];
+  const { isBlackFridayActive } = useAppSettings();
+  const flortuneTealRGB: [number, number, number] = isBlackFridayActive ? [0.1, 0.1, 0.1] : [22/255, 163/255, 129/255];
+
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
   const heroParagraphRef = useRef<HTMLParagraphElement>(null);
@@ -112,8 +115,8 @@ export default function LandingPage() {
   }, { scope: mainContainerRef });
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden text-white" ref={mainContainerRef}>
-      <Iridescence color={flortuneTealRGB} speed={0.3} amplitude={0.15} mouseReact={true} />
+    <div className={cn("relative min-h-screen w-full overflow-x-hidden", isBlackFridayActive ? "text-white" : "text-foreground")} ref={mainContainerRef}>
+      <Iridescence color={flortuneTealRGB} speed={isBlackFridayActive ? 0.2 : 0.3} amplitude={isBlackFridayActive ? 0.05 : 0.15} mouseReact={true} />
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
