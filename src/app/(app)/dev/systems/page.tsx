@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HardDrive, Calculator, Coins, ClockIcon, Repeat, ServerCog, Briefcase, PercentSquare, GanttChartSquare, Cloud, Sigma, DollarSign, BarChartHorizontal } from "lucide-react";
+import { HardDrive, Calculator, Coins, ClockIcon, Repeat, ServerCog, Briefcase, PercentSquare, GanttChartSquare, Cloud, Sigma, DollarSign } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -15,20 +15,13 @@ interface ToolCardProps {
   description: string;
   icon: React.ElementType;
   href: string;
-  status?: "Pronto" | "Em Breve";
+  status: "Pronto" | "Em Breve";
 }
 
 const tools: ToolCardProps[] = [
-    {
-    title: "Análise de Valor do Projeto",
-    description: "Estime o valor de mercado do seu projeto e analise a precificação dos planos.",
-    icon: BarChartHorizontal,
-    href: "/dev/systems/valuation",
-    status: "Pronto",
-  },
   {
-    title: "Orçamento de Projeto Tech",
-    description: "Calcule o custo de um sistema baseado em escopo, tempo e complexidade.",
+    title: "Esforço e Custo de Projeto",
+    description: "Estime o custo de um sistema baseado em horas, complexidade e contingência.",
     icon: Calculator,
     href: "/dev/systems/project-pricing",
     status: "Pronto",
@@ -38,28 +31,28 @@ const tools: ToolCardProps[] = [
     description: "Estime o esforço de um projeto ágil baseado em story points e velocidade.",
     icon: GanttChartSquare,
     href: "/dev/systems/agile-estimator",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Custos Cloud / Infra",
     description: "Simule o custo mensal de manter uma aplicação na nuvem.",
     icon: Cloud,
     href: "/dev/systems/cloud-cost-calculator",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Faturamento Dev Freelancer",
     description: "Planeje seu faturamento com base em carga horária, folgas e valor/hora.",
     icon: DollarSign,
     href: "/dev/systems/freelancer-billing",
-    status: "Em Breve",
+    status: "Pronto",
   },
    {
     title: "Estimador de Complexidade",
     description: "Avalie a complexidade de um sistema para orçar ou planejar sprints.",
     icon: Sigma,
     href: "/dev/systems/complexity-estimator",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Precificação de Automação (ROI)",
