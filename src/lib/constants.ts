@@ -54,7 +54,7 @@ export const PRICING_TIERS = [
       'Funcionalidades básicas (Painel, Transações, Metas, etc.)',
       'Compartilhamento de 1 módulo',
       'Acesso limitado a ferramentas de análise',
-      'Add-on de Cotações por R$ 5,00/mês'
+      'Add-on de Cotações por R$ 2,00/mês'
     ],
     featured: false,
     icon: "Leaf",
@@ -95,8 +95,8 @@ export const PRICING_TIERS = [
     name: 'Flortune Corporativo',
     id: 'tier-corporativo',
     href: '/signup?plan=corporativo',
-    priceMonthly: 'R$249,90',
-    priceAnnotation: 'para 5 usuários. Usuários adicionais cobrados à parte.',
+    priceMonthly: 'R$139,90',
+    priceAnnotation: 'para 3 usuários. Usuários adicionais cobrados à parte.',
     description: 'Soluções financeiras robustas e personalizadas para grandes equipes e empresas em crescimento.',
     features: [
       'Todas as funcionalidades do plano para DEVs',
