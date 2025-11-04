@@ -162,6 +162,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    document.body.classList.toggle('black-friday-active', isBlackFridayActive);
+  }, [isBlackFridayActive]);
+
+  useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 

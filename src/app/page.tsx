@@ -80,8 +80,8 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
 
 export default function LandingPage() {
   const { isBlackFridayActive } = useAppSettings();
-  // Cor para Black Friday: Preto puro para o efeito fluido
-  const flortuneColor: [number, number, number] = isBlackFridayActive ? [0, 0, 0] : [22/255, 163/255, 129/255];
+  // Cor para Black Friday: Cinza muito claro para o fundo fluido.
+  const flortuneColor: [number, number, number] = isBlackFridayActive ? [0.8, 0.8, 0.8] : [22/255, 163/255, 129/255];
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -116,18 +116,18 @@ export default function LandingPage() {
   }, { scope: mainContainerRef });
 
   return (
-    <div className={cn("relative min-h-screen w-full overflow-x-hidden", isBlackFridayActive ? "text-white" : "text-foreground")} ref={mainContainerRef}>
+    <div className={cn("relative min-h-screen w-full overflow-x-hidden", isBlackFridayActive ? "text-foreground" : "text-foreground")} ref={mainContainerRef}>
       <Iridescence color={flortuneColor} speed={isBlackFridayActive ? 0.2 : 0.3} amplitude={isBlackFridayActive ? 0.05 : 0.15} mouseReact={true} />
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
-            <Link href="/" className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity">
+            <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
               <Image src="/Logo.png" alt="Flortune Logo" width={32} height={32} />
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>
             <nav className="flex items-center gap-2">
               <Link href="/login-admin" className={cn(buttonVariants({ variant: 'secondary' }))}>TESTE</Link>
-              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-white hover:bg-white/10 hover:text-white")}>Login</Link>
+              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-foreground hover:bg-foreground/10 hover:text-foreground")}>Login</Link>
               <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Conta Grátis</Link>
             </nav>
           </div>
@@ -135,18 +135,18 @@ export default function LandingPage() {
         <main className="container mx-auto px-4 md:px-8">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
             <h1 ref={heroTitleRef} className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0">Cultive Suas Finanças e <span className='text-accent'>Projetos</span> com Inteligência.</h1>
-            <p ref={heroParagraphRef} className="text-lg md:text-xl text-white/80 mb-10 max-w-3xl mx-auto opacity-0">{APP_NAME} é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.</p>
+            <p ref={heroParagraphRef} className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto opacity-0">{APP_NAME} é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
               <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
-              <Link href="/dashboard" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-white border-white/50 hover:bg-white/10 hover:text-white")}>Acessar Painel (Demo)</Link>
+              <Link href="/dashboard" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-foreground border-foreground/50 hover:bg-foreground/10 hover:text-foreground")}>Acessar Painel (Demo)</Link>
             </div>
-            <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0"><Image src="https://placehold.co/800x450.png" alt="Flortune App Mockup" width={800} height={450} className="rounded-lg shadow-2xl border-4 border-white/20" data-ai-hint="app dashboard" priority /></div>
+            <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0"><Image src="https://placehold.co/800x450.png" alt="Flortune App Mockup" width={800} height={450} className="rounded-lg shadow-2xl border-4 border-foreground/20" data-ai-hint="app dashboard" priority /></div>
           </section>
 
           <section className="py-16 md:py-24" ref={featuresSectionRef}>
             <div className="text-center mb-12 md:mb-16" ref={featuresHeaderRef}>
               <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4 opacity-0">Funcionalidades Principais</h2>
-              <p className="text-white/80 max-w-xl mx-auto opacity-0">Tudo o que você precisa para florescer financeiramente e profissionalmente.</p>
+              <p className="text-foreground/80 max-w-xl mx-auto opacity-0">Tudo o que você precisa para florescer financeiramente e profissionalmente.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <FeatureCard className="feature-card" icon={BarChart3} title="Análise Visual" description="Entenda seus gastos e receitas com gráficos intuitivos e relatórios detalhados." />
@@ -161,7 +161,7 @@ export default function LandingPage() {
           <section className="py-16 md:py-24" ref={pricingSectionRef}>
              <div className="text-center pricing-header">
               <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Planos Para Todos os Perfis</h2>
-              <p className="text-white/80 mb-12 md:mb-16 max-w-xl mx-auto">Do cultivador iniciante ao mestre desenvolvedor, temos o plano perfeito para você.</p>
+              <p className="text-foreground/80 mb-12 md:mb-16 max-w-xl mx-auto">Do cultivador iniciante ao mestre desenvolvedor, temos o plano perfeito para você.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 items-stretch">
                 {PRICING_TIERS.map((tier) => {
@@ -188,15 +188,15 @@ export default function LandingPage() {
           <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
               <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
                 <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro?</h2>
-                <p className="text-white/80 mb-8">Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o {APP_NAME}. É rápido, fácil e gratuito para começar.</p>
+                <p className="text-foreground/80 mb-8">Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o {APP_NAME}. É rápido, fácil e gratuito para começar.</p>
                 <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Minha Conta Grátis</Link>
               </div>
           </section>
         </main>
-        <footer className="py-8 border-t border-white/10 mt-16">
-          <div className="container mx-auto text-center text-sm text-white/60">
+        <footer className="py-8 border-t border-foreground/10 mt-16">
+          <div className="container mx-auto text-center text-sm text-foreground/60">
             <p>&copy; {new Date().getFullYear()} {APP_NAME}. Todos os direitos reservados.</p>
-            <nav className="mt-2"><Link href="#" className="hover:text-white/80 px-2">Termos de Serviço</Link><span className="px-1">|</span><Link href="#" className="hover:text-white/80 px-2">Política de Privacidade</Link></nav>
+            <nav className="mt-2"><Link href="#" className="hover:text-foreground/80 px-2">Termos de Serviço</Link><span className="px-1">|</span><Link href="#" className="hover:text-foreground/80 px-2">Política de Privacidade</Link></nav>
           </div>
         </footer>
       </div>
