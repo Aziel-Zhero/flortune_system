@@ -121,59 +121,61 @@ export default function LeadsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Data de Inscrição</TableHead>
-                  <TableHead>Última Atividade</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLeads.map((lead) => (
-                  <TableRow key={lead.id} className={cn(lead.status === 'do_not_contact' && 'bg-destructive/10 opacity-70 hover:bg-destructive/20')}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={lead.avatar} data-ai-hint="user avatar" />
-                          <AvatarFallback>{lead.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-semibold text-sm">{lead.name}</p>
-                          <p className="text-xs text-muted-foreground">{lead.email}</p>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead className="min-w-[250px]">Usuário</TableHead>
+                    <TableHead className="min-w-[150px]">Data de Inscrição</TableHead>
+                    <TableHead className="min-w-[150px]">Última Atividade</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredLeads.map((lead) => (
+                    <TableRow key={lead.id} className={cn(lead.status === 'do_not_contact' && 'bg-destructive/10 opacity-70 hover:bg-destructive/20')}>
+                        <TableCell>
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                            <AvatarImage src={lead.avatar} data-ai-hint="user avatar" />
+                            <AvatarFallback>{lead.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                            <p className="font-semibold text-sm">{lead.name}</p>
+                            <p className="text-xs text-muted-foreground">{lead.email}</p>
+                            </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{lead.joinDate}</TableCell>
-                    <TableCell>{lead.lastActivity}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Abrir menu</span><MoreHorizontal className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenOfferDialog(lead)} disabled={lead.status === 'do_not_contact'}><Gift className="mr-2 h-4 w-4" />Enviar Oferta</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenDetailsDialog(lead)}><User className="mr-2 h-4 w-4" />Ver Detalhes</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className={cn(lead.status === 'active' ? 'text-destructive focus:text-destructive' : 'text-emerald-600 focus:text-emerald-600')}
-                                onClick={() => handleToggleStatus(lead.id)}
-                              >
-                                {lead.status === 'active' ? (
-                                  <><Ban className="mr-2 h-4 w-4" />Não Enviar Ofertas</>
-                                ) : (
-                                  <><CheckCircle className="mr-2 h-4 w-4" />Reativar Ofertas</>
-                                )}
-                              </DropdownMenuItem>
-                          </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell>{lead.joinDate}</TableCell>
+                        <TableCell>{lead.lastActivity}</TableCell>
+                        <TableCell className="text-right">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Abrir menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOpenOfferDialog(lead)} disabled={lead.status === 'do_not_contact'}><Gift className="mr-2 h-4 w-4" />Enviar Oferta</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenDetailsDialog(lead)}><User className="mr-2 h-4 w-4" />Ver Detalhes</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className={cn(lead.status === 'active' ? 'text-destructive focus:text-destructive' : 'text-emerald-600 focus:text-emerald-600')}
+                                    onClick={() => handleToggleStatus(lead.id)}
+                                >
+                                    {lead.status === 'active' ? (
+                                    <><Ban className="mr-2 h-4 w-4" />Não Enviar Ofertas</>
+                                    ) : (
+                                    <><CheckCircle className="mr-2 h-4 w-4" />Reativar Ofertas</>
+                                    )}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
