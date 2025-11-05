@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Users, Search, MoreHorizontal, Gift, User, Trash2, Send } from "lucide-react";
+import { Users, Search, MoreHorizontal, Gift, User, Trash2, Send, Calendar, Clock, MailIcon } from "lucide-react";
 import { APP_NAME, PRICING_TIERS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
@@ -42,6 +42,8 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [detailsLead, setDetailsLead] = useState<Lead | null>(null);
+
 
   useEffect(() => {
     document.title = `Leads - ${APP_NAME}`;
@@ -57,6 +59,11 @@ export default function LeadsPage() {
     setSelectedLead(lead);
     setIsOfferDialogOpen(true);
   };
+  
+  const handleOpenDetailsDialog = (lead: Lead) => {
+    setDetailsLead(lead);
+  };
+
 
   const handleSendOfferSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -128,7 +135,7 @@ export default function LeadsPage() {
                           <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Ações</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => handleOpenOfferDialog(lead)}><Gift className="mr-2 h-4 w-4" />Enviar Oferta</DropdownMenuItem>
-                              <DropdownMenuItem><User className="mr-2 h-4 w-4" />Ver Detalhes</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenDetailsDialog(lead)}><User className="mr-2 h-4 w-4" />Ver Detalhes</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Remover Usuário</DropdownMenuItem>
                           </DropdownMenuContent>
@@ -141,6 +148,42 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <Dialog open={!!detailsLead} onOpenChange={(open) => !open && setDetailsLead(null)}>
+        <DialogContent>
+          <DialogHeader>
+             <div className="flex items-center gap-4 mb-2">
+                <Avatar className="h-14 w-14">
+                  <AvatarImage src={detailsLead?.avatar} data-ai-hint="user avatar" />
+                  <AvatarFallback>{detailsLead?.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <DialogTitle className="font-headline text-xl">{detailsLead?.name}</DialogTitle>
+                    <DialogDescription>Detalhes do lead e atividade.</DialogDescription>
+                </div>
+            </div>
+          </DialogHeader>
+          <div className="py-4 space-y-4 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+                <MailIcon className="h-4 w-4" />
+                <span>{detailsLead?.email}</span>
+            </div>
+             <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>Entrou em: {detailsLead?.joinDate}</span>
+            </div>
+             <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>Última atividade: {detailsLead?.lastActivity}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
         <DialogContent className="sm:max-w-xl">
