@@ -218,6 +218,10 @@ export default function LPEditorPage() {
 
        <Dialog open={!!previewPopup} onOpenChange={(open) => !open && setPreviewPopup(null)}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader className="sr-only">
+              <DialogTitle>Pré-visualização do Pop-up</DialogTitle>
+              <DialogDescription>Este é um preview de como o pop-up aparecerá para o usuário.</DialogDescription>
+            </DialogHeader>
             {previewPopup === 'maintenance' && <MaintenancePopup config={popupConfigs.maintenance} />}
             {previewPopup === 'promotion' && <PromotionPopup config={popupConfigs.promotion} />}
             {previewPopup === 'newsletter' && <NewsletterPopup config={popupConfigs.newsletter} />}
