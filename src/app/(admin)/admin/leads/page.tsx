@@ -13,10 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Users, Search, MoreHorizontal, Gift, User, Trash2, Send, Calendar, Clock, MailIcon } from "lucide-react";
+import { Users, Search, MoreHorizontal, Gift, User, Send, Calendar, Clock, MailIcon, Ban, CheckCircle } from "lucide-react";
 import { APP_NAME, PRICING_TIERS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Lead {
   id: string;
@@ -25,14 +26,15 @@ interface Lead {
   avatar: string;
   joinDate: string;
   lastActivity: string;
+  status: 'active' | 'do_not_contact';
 }
 
 const mockLeads: Lead[] = [
-  { id: 'lead_1', name: 'João da Silva', email: 'joao.silva@emailaleatorio.com', avatar: 'https://placehold.co/40x40/a2d2ff/333?text=JS', joinDate: '20/07/2024', lastActivity: '3 dias atrás' },
-  { id: 'lead_2', name: 'Maria Oliveira', email: 'maria.oliveira@emailaleatorio.com', avatar: 'https://placehold.co/40x40/bde0fe/333?text=MO', joinDate: '15/07/2024', lastActivity: 'Hoje' },
-  { id: 'lead_3', name: 'Pedro Santos', email: 'pedro.santos@emailaleatorio.com', avatar: 'https://placehold.co/40x40/ffafcc/333?text=PS', joinDate: '01/07/2024', lastActivity: '1 semana atrás' },
-  { id: 'lead_4', name: 'Ana Costa', email: 'ana.costa@emailaleatorio.com', avatar: 'https://placehold.co/40x40/caffbf/333?text=AC', joinDate: '25/06/2024', lastActivity: '2 semanas atrás' },
-  { id: 'lead_5', name: 'Lucas Pereira', email: 'lucas.pereira@emailaleatorio.com', avatar: 'https://placehold.co/40x40/ffc8dd/333?text=LP', joinDate: '10/06/2024', lastActivity: '1 mês atrás' },
+  { id: 'lead_1', name: 'João da Silva', email: 'joao.silva@emailaleatorio.com', avatar: 'https://placehold.co/40x40/a2d2ff/333?text=JS', joinDate: '20/07/2024', lastActivity: '3 dias atrás', status: 'active' },
+  { id: 'lead_2', name: 'Maria Oliveira', email: 'maria.oliveira@emailaleatorio.com', avatar: 'https://placehold.co/40x40/bde0fe/333?text=MO', joinDate: '15/07/2024', lastActivity: 'Hoje', status: 'active' },
+  { id: 'lead_3', name: 'Pedro Santos', email: 'pedro.santos@emailaleatorio.com', avatar: 'https://placehold.co/40x40/ffafcc/333?text=PS', joinDate: '01/07/2024', lastActivity: '1 semana atrás', status: 'do_not_contact' },
+  { id: 'lead_4', name: 'Ana Costa', email: 'ana.costa@emailaleatorio.com', avatar: 'https://placehold.co/40x40/caffbf/333?text=AC', joinDate: '25/06/2024', lastActivity: '2 semanas atrás', status: 'active' },
+  { id: 'lead_5', name: 'Lucas Pereira', email: 'lucas.pereira@emailaleatorio.com', avatar: 'https://placehold.co/40x40/ffc8dd/333?text=LP', joinDate: '10/06/2024', lastActivity: '1 mês atrás', status: 'active' },
 ];
 
 const availablePaidPlans = PRICING_TIERS.filter(tier => tier.priceMonthly !== 'Grátis');
@@ -64,7 +66,6 @@ export default function LeadsPage() {
     setDetailsLead(lead);
   };
 
-
   const handleSendOfferSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     toast({
@@ -72,7 +73,24 @@ export default function LeadsPage() {
         description: `A oferta foi enviada com sucesso para ${selectedLead?.email}.`,
     });
     setIsOfferDialogOpen(false);
-  }
+  };
+
+  const handleToggleStatus = (leadId: string) => {
+    setLeads(prevLeads =>
+      prevLeads.map(lead => {
+        if (lead.id === leadId) {
+          const newStatus = lead.status === 'active' ? 'do_not_contact' : 'active';
+          toast({
+            title: newStatus === 'do_not_contact' ? "Lead Marcado" : "Lead Reativado",
+            description: `O usuário ${lead.name} foi atualizado.`,
+          });
+          return { ...lead, status: newStatus };
+        }
+        return lead;
+      })
+    );
+  };
+
 
   return (
     <>
@@ -112,7 +130,7 @@ export default function LeadsPage() {
               </TableHeader>
               <TableBody>
                 {filteredLeads.map((lead) => (
-                  <TableRow key={lead.id}>
+                  <TableRow key={lead.id} className={cn(lead.status === 'do_not_contact' && 'bg-destructive/10 opacity-70 hover:bg-destructive/20')}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
@@ -134,10 +152,19 @@ export default function LeadsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenOfferDialog(lead)}><Gift className="mr-2 h-4 w-4" />Enviar Oferta</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenOfferDialog(lead)} disabled={lead.status === 'do_not_contact'}><Gift className="mr-2 h-4 w-4" />Enviar Oferta</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleOpenDetailsDialog(lead)}><User className="mr-2 h-4 w-4" />Ver Detalhes</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Remover Usuário</DropdownMenuItem>
+                              <DropdownMenuItem
+                                className={cn(lead.status === 'active' ? 'text-destructive focus:text-destructive' : 'text-emerald-600 focus:text-emerald-600')}
+                                onClick={() => handleToggleStatus(lead.id)}
+                              >
+                                {lead.status === 'active' ? (
+                                  <><Ban className="mr-2 h-4 w-4" />Não Enviar Ofertas</>
+                                ) : (
+                                  <><CheckCircle className="mr-2 h-4 w-4" />Reativar Ofertas</>
+                                )}
+                              </DropdownMenuItem>
                           </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
