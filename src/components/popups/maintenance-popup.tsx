@@ -52,11 +52,6 @@ export function MaintenancePopup({ config, onDismiss }: PopupProps) {
           <h3 className="font-semibold font-headline">{config.title}</h3>
           <p className="text-sm opacity-90">{config.description}</p>
         </div>
-        {onDismiss && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 -mr-2 -mt-2" onClick={onDismiss}>
-                <X className="h-4 w-4" />
-            </Button>
-        )}
       </div>
     </motion.div>
   );

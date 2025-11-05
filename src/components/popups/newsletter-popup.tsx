@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Newspaper, X } from "lucide-react";
+import { Newspaper } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import type { PopupConfig } from "@/contexts/app-settings-context";
 import { cn } from "@/lib/utils";
@@ -59,11 +59,6 @@ export function NewsletterPopup({ config, onDismiss }: PopupProps) {
                 <Button type="submit" variant="default">Inscrever</Button>
             </form>
         </div>
-        {onDismiss && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 -mr-2 -mt-2" onClick={onDismiss}>
-                <X className="h-4 w-4" />
-            </Button>
-        )}
       </div>
     </motion.div>
   );

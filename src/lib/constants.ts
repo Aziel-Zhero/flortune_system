@@ -22,6 +22,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/dev/kanban-analytics", label: "Análise Kanban", icon: "PieChart" as const, type: "link" as const },
   { type: "title" as const, label: "Módulos" },
   { href: "/sharing", label: "Compartilhamento", icon: "Share2" as const, type: "link" as const },
+  { href: "/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
   { type: "title" as const, label: "CORPORATIVO" },
   { href: "/corporate/teams", label: "Equipes", icon: "Users" as const, type: "link" as const },
   { href: "/corporate/reports", label: "Graficos & Metas", icon: "AreaChart" as const, type: "link" as const },

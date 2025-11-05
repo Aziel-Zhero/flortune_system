@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Ticket, X } from "lucide-react";
+import { Ticket } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import type { PopupConfig } from "@/contexts/app-settings-context";
 import { cn } from "@/lib/utils";
@@ -58,11 +58,6 @@ export function PromotionPopup({ config, onDismiss }: PopupProps) {
                 <Link href="/plans">Ver Planos</Link>
             </Button>
         </div>
-        {onDismiss && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 -mr-2 -mt-2" onClick={onDismiss}>
-                <X className="h-4 w-4" />
-            </Button>
-        )}
       </div>
     </motion.div>
   );
