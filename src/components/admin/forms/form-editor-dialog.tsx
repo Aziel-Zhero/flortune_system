@@ -73,7 +73,7 @@ export function FormEditorDialog({ isOpen, onOpenChange, question, onSave }: For
                         <SelectContent>
                             <SelectItem value="text">Texto Curto</SelectItem>
                             <SelectItem value="textarea">Texto Longo</SelectItem>
-                            <SelectItem value="rating">Avaliação (1-5)</SelectItem>
+                            <SelectItem value="rating">Avaliação (0-10)</SelectItem>
                             <SelectItem value="boolean">Sim/Não</SelectItem>
                         </SelectContent>
                     </Select>

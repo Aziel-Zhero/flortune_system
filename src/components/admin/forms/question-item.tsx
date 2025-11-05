@@ -23,7 +23,7 @@ interface QuestionItemProps {
 const typeConfig = {
     text: { icon: Type, label: "Texto Curto" },
     textarea: { icon: MessageSquare, label: "Texto Longo" },
-    rating: { icon: Star, label: "Avaliação (1-5)" },
+    rating: { icon: Star, label: "Avaliação (0-10)" },
     boolean: { icon: ToggleRight, label: "Sim/Não" },
 };
 
