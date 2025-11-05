@@ -15,8 +15,12 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import anime from 'animejs';
-import React, { useRef, useEffect, type FC } from 'react';
+import React, { useRef, useEffect, type FC, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { MaintenancePopup } from "@/components/popups/maintenance-popup";
+import { PromotionPopup } from "@/components/popups/promotion-popup";
+import { NewsletterPopup } from "@/components/popups/newsletter-popup";
+
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -79,31 +83,31 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
 };
 
 export default function LandingPage() {
-  const { activeCampaignTheme } = useAppSettings();
+  const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
   const getCampaignProps = () => {
     switch (activeCampaignTheme) {
       case 'black-friday':
-        return { show: false }; // Desativa o fluido para usar o gradiente CSS
+        return { showFluid: false };
       case 'flash-sale':
         return {
-          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number], // Rosa
-          speed: 0.2, amplitude: 0.1, show: true,
+          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number],
+          speed: 0.2, amplitude: 0.1, showFluid: true,
         };
        case 'super-promocao':
         return {
-          fluidColor: [255 / 255, 69 / 255, 0 / 255] as [number, number, number], // Laranja/Vermelho
-          speed: 0.4, amplitude: 0.2, show: true,
+          fluidColor: [255 / 255, 69 / 255, 0 / 255] as [number, number, number],
+          speed: 0.4, amplitude: 0.2, showFluid: true,
         };
       case 'aniversario':
          return {
-          fluidColor: [0 / 255, 51 / 255, 102 / 255] as [number, number, number], // Azul escuro
-          speed: 0.15, amplitude: 0.08, show: true,
+          fluidColor: [0 / 255, 51 / 255, 102 / 255] as [number, number, number],
+          speed: 0.15, amplitude: 0.08, showFluid: true,
         };
       default:
         return {
           fluidColor: [22 / 255, 163 / 255, 129 / 255] as [number, number, number],
-          speed: 0.3, amplitude: 0.15, show: true,
+          speed: 0.3, amplitude: 0.15, showFluid: true,
         };
     }
   };
@@ -141,15 +145,28 @@ export default function LandingPage() {
     if (finalCtaSectionRef.current) gsap.fromTo(finalCtaSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: finalCtaSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
   
   }, { scope: mainContainerRef });
+  
+  const [showPopup, setShowPopup] = useState(false);
+  useEffect(() => {
+    // Only show popup once per session to avoid annoying users
+    const hasSeenPopup = sessionStorage.getItem('flortune-popup-seen');
+    if (activePopup && !hasSeenPopup) {
+      const timer = setTimeout(() => {
+        setShowPopup(true);
+        sessionStorage.setItem('flortune-popup-seen', 'true');
+      }, 2500); // Delay before showing popup
+      return () => clearTimeout(timer);
+    }
+  }, [activePopup]);
+
 
   return (
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
-      {campaignProps?.show && (
+      {campaignProps?.showFluid && (
         <Iridescence 
           color={campaignProps.fluidColor} 
           speed={campaignProps.speed} 
           amplitude={campaignProps.amplitude} 
-          mouseReact={true} 
         />
       )}
       <div className="relative z-10 isolate">
@@ -167,8 +184,8 @@ export default function LandingPage() {
         </header>
         <main className="container mx-auto px-4 md:px-8">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
-            <h1 ref={heroTitleRef} className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0">Cultive Suas Finanças e <span className='text-accent'>Projetos</span> com Inteligência.</h1>
-            <p ref={heroParagraphRef} className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto opacity-0">{APP_NAME} é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.</p>
+            <h1 ref={heroTitleRef} className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0">{landingPageContent.heroTitle}</h1>
+            <p ref={heroParagraphRef} className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto opacity-0">{landingPageContent.heroDescription}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
               <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
               <Link href="/dashboard" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-foreground border-foreground/50 hover:bg-foreground/10 hover:text-foreground")}>Acessar Painel (Demo)</Link>
@@ -220,9 +237,9 @@ export default function LandingPage() {
 
           <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
               <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">Pronto para Cultivar seu Futuro?</h2>
-                <p className="text-foreground/80 mb-8">Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o {APP_NAME}. É rápido, fácil e gratuito para começar.</p>
-                <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Minha Conta Grátis</Link>
+                <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">{landingPageContent.ctaTitle}</h2>
+                <p className="text-foreground/80 mb-8">{landingPageContent.ctaDescription}</p>
+                <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>{landingPageContent.ctaButtonText}</Link>
               </div>
           </section>
         </main>
@@ -238,6 +255,12 @@ export default function LandingPage() {
             </nav>
           </div>
         </footer>
+      </div>
+      {/* Pop-up Rendering */}
+      <div className="fixed bottom-5 right-5 z-50">
+        {showPopup && activePopup === 'maintenance' && <MaintenancePopup config={popupConfigs.maintenance} onDismiss={() => setShowPopup(false)} />}
+        {showPopup && activePopup === 'promotion' && <PromotionPopup config={popupConfigs.promotion} onDismiss={() => setShowPopup(false)} />}
+        {showPopup && activePopup === 'newsletter' && <NewsletterPopup config={popupConfigs.newsletter} onDismiss={() => setShowPopup(false)} />}
       </div>
     </div>
   );
