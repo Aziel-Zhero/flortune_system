@@ -12,19 +12,20 @@ import type { PieSectorDataItem } from "recharts/types/polar/Pie";
 
 // --- MOCK DATA ---
 const mockResponses = [
-  { id: 1, questionId: 'q1', rating: 5, comment: 'Adorei a nova funcionalidade de metas!' },
-  { id: 2, questionId: 'q1', rating: 4, comment: 'O app é bom, mas poderia ser mais rápido.' },
-  { id: 3, questionId: 'q1', rating: 5, comment: 'Melhor app de finanças que já usei.' },
-  { id: 4, questionId: 'q1', rating: 2, comment: 'Achei a interface confusa no começo.' },
-  { id: 5, questionId: 'q1', rating: 3, comment: 'Funciona, mas não tem nada de especial.' },
-  { id: 6, questionId: 'q1', rating: 5, comment: '' },
-  { id: 7, questionId: 'q1', rating: 1, comment: 'Não consegui importar minhas transações.' },
-  { id: 8, questionId: 'q1', rating: 4, comment: 'Gosto dos gráficos de análise.' },
-  { id: 9, questionId: 'q1', rating: 5, comment: 'Super intuitivo e bonito.' },
-  { id: 10, questionId: 'q1', rating: 4, comment: '' },
-  { id: 11, questionId: 'q1', rating: 5, comment: 'Me ajudou a economizar de verdade.' },
-  { id: 12, questionId: 'q1', rating: 2, comment: 'Faltam integrações com outros bancos.' },
+  { id: 1, questionId: 'q1', rating: 5, comment: 'Adorei a nova funcionalidade de metas!', userName: 'Ana P.' },
+  { id: 2, questionId: 'q1', rating: 4, comment: 'O app é bom, mas poderia ser mais rápido.', userName: 'Bruno C.' },
+  { id: 3, questionId: 'q1', rating: 5, comment: 'Melhor app de finanças que já usei.', userName: 'Carla D.' },
+  { id: 4, questionId: 'q1', rating: 2, comment: 'Achei a interface confusa no começo.', userName: 'Daniel A.' },
+  { id: 5, questionId: 'q1', rating: 3, comment: 'Funciona, mas não tem nada de especial.', userName: 'Eduarda L.' },
+  { id: 6, questionId: 'q1', rating: 5, comment: '', userName: 'Fernanda M.' },
+  { id: 7, questionId: 'q1', rating: 1, comment: 'Não consegui importar minhas transações.', userName: 'Gustavo H.' },
+  { id: 8, questionId: 'q1', rating: 4, comment: 'Gosto dos gráficos de análise.', userName: 'Heloísa R.' },
+  { id: 9, questionId: 'q1', rating: 5, comment: 'Super intuitivo e bonito.', userName: 'Igor S.' },
+  { id: 10, questionId: 'q1', rating: 4, comment: '', userName: 'Juliana T.' },
+  { id: 11, questionId: 'q1', rating: 5, comment: 'Me ajudou a economizar de verdade.', userName: 'Lucas V.' },
+  { id: 12, questionId: 'q1', rating: 2, comment: 'Faltam integrações com outros bancos.', userName: 'Mariana B.' },
 ];
+
 
 const ActiveShape = (props: PieSectorDataItem) => {
   const RADIAN = Math.PI / 180;
@@ -156,8 +157,8 @@ export default function MarketingDashboardPage() {
         </motion.div>
       </div>
 
-       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-3">
+       <div className="grid grid-cols-1 gap-6">
+        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
               <CardTitle>Distribuição de Respostas</CardTitle>
@@ -180,17 +181,20 @@ export default function MarketingDashboardPage() {
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
+        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><MessageSquare/> Respostas Recentes</CardTitle>
                     <CardDescription>Últimos comentários deixados pelos usuários.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3 max-h-72 overflow-y-auto">
+                <CardContent className="space-y-4 max-h-80 overflow-y-auto">
                     {mockResponses.filter(r => r.comment).map(response => (
-                        <div key={response.id} className="p-2 border-l-4 rounded-r-md bg-muted/50" style={{ borderLeftColor: response.rating === 5 ? "hsl(var(--chart-2))" : response.rating === 4 ? "hsl(var(--chart-3))" : "hsl(var(--destructive))" }}>
+                        <div key={response.id} className="p-3 border-l-4 rounded-r-md bg-muted/50" style={{ borderLeftColor: response.rating === 5 ? "hsl(var(--chart-2))" : response.rating === 4 ? "hsl(var(--chart-3))" : "hsl(var(--destructive))" }}>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                              <p className="font-semibold">{response.userName}</p>
+                              <div className="flex items-center gap-1"><Star className="h-3 w-3"/> Nota: {response.rating}</div>
+                            </div>
                             <p className="text-sm italic">"{response.comment}"</p>
-                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Star className="h-3 w-3"/> Nota: {response.rating}</p>
                         </div>
                     ))}
                 </CardContent>
