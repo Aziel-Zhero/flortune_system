@@ -6,11 +6,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Store, Edit, Check, PlusCircle } from "lucide-react";
+import { Store, Edit, Check, PlusCircle, Trash2 } from "lucide-react";
 import { APP_NAME, PRICING_TIERS as INITIAL_PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,8 @@ import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
   if (!iconName) return Store;
@@ -52,12 +55,14 @@ const tierSchema = z.object({
 });
 type TierFormData = z.infer<typeof tierSchema>;
 
+const defaultTierIds = INITIAL_PRICING_TIERS.map(t => t.id);
 
 export default function MarketplacePage() {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<Tier | null>(null);
+  const [deletingTier, setDeletingTier] = useState<Tier | null>(null);
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<TierFormData>({
     resolver: zodResolver(tierSchema)
@@ -71,7 +76,6 @@ export default function MarketplacePage() {
       if (storedTiers) {
         setTiers(JSON.parse(storedTiers));
       } else {
-        // Adicionando 'active: true' aos tiers iniciais
         const initialTiersWithStatus = INITIAL_PRICING_TIERS.map(tier => ({...tier, active: true}));
         setTiers(initialTiersWithStatus);
       }
@@ -143,6 +147,15 @@ export default function MarketplacePage() {
       toast({title: `Plano ${active ? "ativado" : "desativado"} com sucesso.`});
   }
 
+  const handleConfirmDelete = () => {
+    if (deletingTier) {
+      setTiers(prevTiers => prevTiers.filter(t => t.id !== deletingTier.id));
+      toast({ title: "Plano Deletado", description: `O plano "${deletingTier.name}" foi removido.`, variant: "destructive" });
+      setDeletingTier(null);
+    }
+  };
+
+
   return (
     <>
       <div className="space-y-8">
@@ -155,6 +168,7 @@ export default function MarketplacePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {tiers.map(tier => {
             const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
+            const isDefault = defaultTierIds.includes(tier.id);
             return (
               <Card key={tier.id} className={cn("flex flex-col transition-opacity", !tier.active && "opacity-60")}>
                 <CardHeader>
@@ -185,11 +199,16 @@ export default function MarketplacePage() {
                     ))}
                   </ul>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="gap-2">
                   <Button variant="outline" className="w-full" onClick={() => handleOpenModal(tier)}>
                     <Edit className="mr-2 h-4 w-4" />
-                    Editar Plano
+                    Editar
                   </Button>
+                  {!isDefault && (
+                    <Button variant="destructive-outline" size="icon" onClick={() => setDeletingTier(tier)}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             )
@@ -261,6 +280,19 @@ export default function MarketplacePage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingTier} onOpenChange={(open) => !open && setDeletingTier(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                <AlertDialogDescription>Tem certeza que deseja excluir o plano "{deletingTier?.name}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeletingTier(null)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
