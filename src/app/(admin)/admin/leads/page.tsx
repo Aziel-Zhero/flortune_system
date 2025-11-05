@@ -102,12 +102,14 @@ export default function LeadsPage() {
         />
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Usuários Gratuitos</CardTitle>
-            <div className="flex justify-between items-center pt-2">
-              <CardDescription>
-                  {filteredLeads.length} de {leads.length} usuários encontrados.
-              </CardDescription>
-              <div className="relative w-full max-w-sm">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-2">
+                <div className="flex-1">
+                    <CardTitle>Lista de Usuários Gratuitos</CardTitle>
+                    <CardDescription>
+                        {filteredLeads.length} de {leads.length} usuários encontrados.
+                    </CardDescription>
+                </div>
+              <div className="relative w-full sm:max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome ou email..."
@@ -232,7 +234,7 @@ export default function LeadsPage() {
                 <Label htmlFor="offerTitle">Título da Oferta</Label>
                 <Input id="offerTitle" placeholder="Ex: Sua Primeira Mensalidade por Nossa Conta!" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="offerPrice">Preço Promocional (R$)</Label>
                   <Input id="offerPrice" type="number" step="0.01" placeholder="Ex: 9.90" />
@@ -247,8 +249,7 @@ export default function LeadsPage() {
                   <Textarea id="offerMessage" placeholder="Adicione uma mensagem pessoal para incentivar a conversão." />
               </div>
             <DialogFooter>
-              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-              <Button type="submit"><Send className="mr-2 h-4 w-4"/>Enviar Proposta</Button>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit"><Send className="mr-2 h-4 w-4"/>Enviar Proposta</Button>
             </DialogFooter>
           </form>
         </DialogContent>

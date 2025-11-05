@@ -118,8 +118,8 @@ export default function MarketingDashboardPage() {
         description="Métricas de satisfação e lealdade do cliente baseadas no feedback recebido."
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
             <Card className="h-full flex flex-col">
               <CardHeader><CardTitle className="font-headline text-lg">NPS Score</CardTitle><CardDescription>Promotores % - Detratores %</CardDescription></CardHeader>
               <CardContent className="flex-1 flex items-center justify-center">

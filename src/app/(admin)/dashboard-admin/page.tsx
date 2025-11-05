@@ -42,7 +42,7 @@ export default function AdminDashboardPage() {
         icon={<Home />}
         description="Visão geral e métricas chave do Flortune Workspace."
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {cardData.map((card, index) => (
           <motion.div
             key={card.title}
@@ -71,8 +71,8 @@ export default function AdminDashboardPage() {
                 <CardTitle className="font-headline flex items-center gap-2"><PieChartIcon /> Distribuição de Usuários</CardTitle>
                 <CardDescription>Proporção de usuários por tipo de plano.</CardDescription>
               </CardHeader>
-              <CardContent className="h-80">
-                  <ChartContainer config={{}} className="w-full h-full">
+              <CardContent className="h-80 flex justify-center">
+                  <ChartContainer config={{}} className="w-full max-w-md h-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChartRecharts>
                             <ChartTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />

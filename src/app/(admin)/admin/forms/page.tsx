@@ -130,7 +130,7 @@ export default function AdminFormsPage() {
         description="Crie e gerencie formulários para coletar feedback, sugestões e opiniões."
         actions={
             <div className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={() => setIsPreviewOpen(true)}><Eye className="mr-2 h-4 w-4"/>Visualizar Formulário</Button>
+                <Button variant="outline" onClick={() => setIsPreviewOpen(true)}><Eye className="mr-2 h-4 w-4"/>Visualizar</Button>
                 <Button onClick={() => handleOpenEditor(null)}><PlusCircle className="mr-2 h-4 w-4" />Adicionar Pergunta</Button>
             </div>
         }
@@ -150,7 +150,7 @@ export default function AdminFormsPage() {
                         id="date"
                         variant={"outline"}
                         className={cn(
-                        "w-full md:w-[300px] justify-start text-left font-normal",
+                        "w-full sm:w-[300px] justify-start text-left font-normal",
                         !date && "text-muted-foreground"
                         )}
                     >

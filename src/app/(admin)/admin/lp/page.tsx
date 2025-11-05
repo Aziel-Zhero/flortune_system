@@ -151,7 +151,7 @@ export default function LPEditorPage() {
                           </div>
                           <div className="space-y-2">
                             <Label>Imagem Principal</Label>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 flex-wrap">
                               <div className="relative w-48 h-auto aspect-video rounded-md overflow-hidden border">
                                 <Image src={landingPageContent.heroImageUrl} alt="Preview da imagem principal" layout="fill" objectFit="cover" />
                               </div>
@@ -236,14 +236,16 @@ export default function LPEditorPage() {
                                     <Label htmlFor={`${popupKey}-description`}>Descrição</Label>
                                     <Textarea id={`${popupKey}-description`} value={config.description} onChange={(e) => handlePopupConfigChange(popupKey, 'description', e.target.value)} rows={3} />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor={`${popupKey}-color`}>Cor de Destaque</Label>
-                                    <Select value={config.color} onValueChange={(v) => handlePopupConfigChange(popupKey, 'color', v as any)}>
-                                        <SelectTrigger id={`${popupKey}-color`} className="w-full md:w-[240px]"><SelectValue /></SelectTrigger>
-                                        <SelectContent>{colorOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                                    </Select>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`${popupKey}-color`}>Cor de Destaque</Label>
+                                        <Select value={config.color} onValueChange={(v) => handlePopupConfigChange(popupKey, 'color', v as any)}>
+                                            <SelectTrigger id={`${popupKey}-color`} className="w-full"><SelectValue /></SelectTrigger>
+                                            <SelectContent>{colorOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <Button variant="secondary" onClick={() => setPreviewPopup(popupKey)}><Eye className="mr-2 h-4 w-4"/> Visualizar Pop-up</Button>
                                 </div>
-                                 <Button variant="secondary" onClick={() => setPreviewPopup(popupKey)}><Eye className="mr-2 h-4 w-4"/> Visualizar Pop-up</Button>
                               </div>
                           </TabsContent>
                       )

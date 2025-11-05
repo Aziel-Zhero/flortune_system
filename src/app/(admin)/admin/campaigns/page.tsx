@@ -70,7 +70,7 @@ export default function CampaignsPage() {
                   value={activeCampaignTheme || 'none'}
                   onValueChange={handleThemeChange}
                 >
-                    <SelectTrigger id="campaign-theme-selector">
+                    <SelectTrigger id="campaign-theme-selector" className="w-full md:w-[300px]">
                         <SelectValue placeholder="Selecione um tema..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -89,7 +89,7 @@ export default function CampaignsPage() {
                         id="date"
                         variant={"outline"}
                         className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full md:w-[300px] justify-start text-left font-normal",
                         !date && "text-muted-foreground"
                         )}
                     >

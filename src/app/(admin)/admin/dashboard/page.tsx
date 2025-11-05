@@ -46,7 +46,7 @@ export default function AdminDashboardPage() {
         description="Análise detalhada do crescimento de usuários e assinantes."
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Taxa de Conversão (Mês)</CardTitle><Percent className="h-4 w-4 text-muted-foreground"/></CardHeader>
@@ -114,14 +114,14 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
+        <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible" className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Distribuição de Compartilhamentos</CardTitle>
               <CardDescription>Proporção de módulos compartilhados por tipo de usuário.</CardDescription>
             </CardHeader>
-            <CardContent className="h-80">
-                <ChartContainer config={{}} className="w-full h-full">
+            <CardContent className="h-80 flex justify-center">
+                <ChartContainer config={{}} className="w-full max-w-xs h-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChartRecharts>
                         <RechartsTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
@@ -140,4 +140,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
