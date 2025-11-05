@@ -1,15 +1,13 @@
-
 // src/app/(admin)/admin/marketing/dashboard/page.tsx
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Heart, TrendingUp, TrendingDown, Minus, MessageSquare, Users, Star } from "lucide-react";
+import { Heart, TrendingUp, TrendingDown, Users, Star, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart as BarChartRecharts, Pie, PieChart as PieChartRecharts, ResponsiveContainer, Cell, Sector } from "recharts";
+import { Bar, BarChart as BarChartRecharts, Pie, PieChart as PieChartRecharts, ResponsiveContainer, Cell, Sector, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
 import type { PieSectorDataItem } from "recharts/types/polar/Pie";
 
 // --- MOCK DATA ---
@@ -70,6 +68,7 @@ const ActiveShape = (props: PieSectorDataItem) => {
 
 
 export default function MarketingDashboardPage() {
+  const [activeIndex, setActiveIndex] = useState(0);
   
   useEffect(() => {
     document.title = "Painel NPS - Flortune";
@@ -96,8 +95,7 @@ export default function MarketingDashboardPage() {
   }, []);
   
   const npsGaugeColor = useMemo(() => {
-    if (npsData.score >= 75) return "hsl(var(--chart-2))"; // Excelente (Verde)
-    if (npsData.score >= 50) return "hsl(var(--chart-1))"; // Muito Bom (Azul)
+    if (npsData.score >= 50) return "hsl(var(--chart-2))"; // Excelente (Verde)
     if (npsData.score >= 0) return "hsl(var(--chart-3))";   // Razoável (Amarelo)
     return "hsl(var(--destructive))"; // Ruim (Vermelho)
   }, [npsData.score]);
@@ -105,6 +103,10 @@ export default function MarketingDashboardPage() {
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, type: "spring", stiffness: 100 } }),
+  };
+
+  const onPieEnter = (_: any, index: number) => {
+    setActiveIndex(index);
   };
 
   return (
@@ -123,7 +125,7 @@ export default function MarketingDashboardPage() {
                   <ChartContainer config={{}} className="w-full h-[150px]">
                       <PieChartRecharts margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                           <Pie
-                            data={[{ value: npsData.score }, { value: 100 - npsData.score }]}
+                            data={[{ value: npsData.score }, { value: 100 - Math.max(-100, npsData.score) }]}
                             dataKey="value"
                             startAngle={180}
                             endAngle={0}
@@ -133,6 +135,7 @@ export default function MarketingDashboardPage() {
                             paddingAngle={2}
                             activeIndex={0}
                             activeShape={ActiveShape}
+                            onMouseEnter={onPieEnter}
                            >
                               <Cell fill={npsGaugeColor} />
                               <Cell fill="hsl(var(--muted))" />
