@@ -29,7 +29,7 @@ export interface PopupConfig {
 export interface LandingPageContent {
   heroTitle: string;
   heroDescription: string;
-  heroImageUrl: string; // Adicionado campo para a URL da imagem
+  heroImageUrl: string;
   ctaTitle: string;
   ctaDescription: string;
   ctaButtonText: string;
