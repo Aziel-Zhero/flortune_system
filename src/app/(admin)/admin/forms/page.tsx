@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, PlusCircle, Save } from "lucide-react";
+import { ClipboardList, PlusCircle, Save, Eye } from "lucide-react";
 import { QuestionItem, type FormQuestion } from "@/components/admin/forms/question-item";
 import { toast } from "@/hooks/use-toast";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -21,6 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { FormPreviewDialog } from "@/components/admin/forms/form-preview-dialog";
+
 
 const initialQuestions: FormQuestion[] = [
     { id: 'q1', text: 'Em uma escala de 1 a 5, qual a sua satisfação geral com o Flortune?', type: 'rating', category: 'Geral' },
@@ -35,6 +37,7 @@ export default function AdminFormsPage() {
   const [questions, setQuestions] = useState<FormQuestion[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<FormQuestion | null>(null);
   const [deletingQuestion, setDeletingQuestion] = useState<FormQuestion | null>(null);
   
@@ -113,7 +116,12 @@ export default function AdminFormsPage() {
         title="Gestão de Formulários"
         icon={<ClipboardList />}
         description="Crie e gerencie formulários para coletar feedback, sugestões e opiniões."
-        actions={<Button onClick={() => handleOpenEditor(null)}><PlusCircle className="mr-2 h-4 w-4" />Adicionar Pergunta</Button>}
+        actions={
+            <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setIsPreviewOpen(true)}><Eye className="mr-2 h-4 w-4"/>Visualizar Formulário</Button>
+                <Button onClick={() => handleOpenEditor(null)}><PlusCircle className="mr-2 h-4 w-4" />Adicionar Pergunta</Button>
+            </div>
+        }
       />
 
       <Card>
@@ -150,6 +158,12 @@ export default function AdminFormsPage() {
         onOpenChange={setIsEditorOpen} 
         question={editingQuestion}
         onSave={handleSaveQuestion}
+      />
+
+      <FormPreviewDialog 
+        isOpen={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        questions={questions}
       />
       
       <AlertDialog open={!!deletingQuestion} onOpenChange={(open) => !open && setDeletingQuestion(null)}>
