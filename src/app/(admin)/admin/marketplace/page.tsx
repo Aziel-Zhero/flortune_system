@@ -1,7 +1,7 @@
 // src/app/(admin)/admin/marketplace/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Store, Edit, Check } from "lucide-react";
-import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
+import { Switch } from "@/components/ui/switch";
+import { Store, Edit, Check, PlusCircle } from "lucide-react";
+import { APP_NAME, PRICING_TIERS as INITIAL_PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Badge } from "@/components/ui/badge";
 
 const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
   if (!iconName) return Store;
@@ -21,52 +26,122 @@ const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
   return IconComponent || Store;
 };
 
-// Definindo tipo para o Tier para facilitar
-type Tier = typeof PRICING_TIERS[number];
+// --- Tipos e Schema ---
+interface Tier {
+  id: string;
+  name: string;
+  href: string;
+  priceMonthly: string;
+  priceAnnotation?: string;
+  description: string;
+  features: string[];
+  featured: boolean;
+  icon: PricingTierIconName;
+  active: boolean; // Novo campo
+}
+
+const tierSchema = z.object({
+  name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
+  description: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres."),
+  priceMonthly: z.string().min(1, "O preço é obrigatório."),
+  priceAnnotation: z.string().optional(),
+  features: z.string().min(1, "Adicione pelo menos uma funcionalidade."),
+  featured: z.boolean().optional().default(false),
+  active: z.boolean().optional().default(true),
+  icon: z.string().min(1, "Selecione um ícone.")
+});
+type TierFormData = z.infer<typeof tierSchema>;
+
 
 export default function MarketplacePage() {
-  const [tiers, setTiers] = useState<Tier[]>(PRICING_TIERS);
+  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<Tier | null>(null);
 
-  // Campos do formulário
-  const [formName, setFormName] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formPrice, setFormPrice] = useState("");
-  const [formFeatures, setFormFeatures] = useState("");
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<TierFormData>({
+    resolver: zodResolver(tierSchema)
+  });
 
-  const handleEdit = (tier: Tier) => {
+  useEffect(() => {
+    setIsClient(true);
+    document.title = "Produtos (Marketplace) - Flortune";
+    try {
+      const storedTiers = localStorage.getItem("flortune-marketplace-tiers");
+      if (storedTiers) {
+        setTiers(JSON.parse(storedTiers));
+      } else {
+        // Adicionando 'active: true' aos tiers iniciais
+        const initialTiersWithStatus = INITIAL_PRICING_TIERS.map(tier => ({...tier, active: true}));
+        setTiers(initialTiersWithStatus);
+      }
+    } catch (e) {
+      console.error("Falha ao carregar tiers do localStorage", e);
+      setTiers(INITIAL_PRICING_TIERS.map(tier => ({...tier, active: true})));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem("flortune-marketplace-tiers", JSON.stringify(tiers));
+    }
+  }, [tiers, isClient]);
+
+  const handleOpenModal = (tier: Tier | null) => {
     setEditingTier(tier);
-    setFormName(tier.name);
-    setFormDescription(tier.description);
-    setFormPrice(tier.priceMonthly);
-    setFormFeatures(tier.features.join('\n'));
+    if (tier) {
+      reset({
+        ...tier,
+        features: tier.features.join('\n'),
+      });
+    } else {
+      reset({
+        name: "",
+        description: "",
+        priceMonthly: "",
+        priceAnnotation: "",
+        features: "",
+        featured: false,
+        active: true,
+        icon: "Gem"
+      });
+    }
     setIsModalOpen(true);
   }
 
-  const handleSaveChanges = () => {
-    if (!editingTier) return;
-
-    setTiers(currentTiers =>
-      currentTiers.map(t =>
-        t.id === editingTier.id
-          ? {
-              ...t,
-              name: formName,
-              description: formDescription,
-              priceMonthly: formPrice,
-              features: formFeatures.split('\n').filter(f => f.trim() !== ""),
-            }
-          : t
-      )
-    );
-
-    toast({
-        title: `Plano "${formName}" Atualizado!`,
-        description: "As informações do plano foram salvas com sucesso (simulação).",
-    });
+  const handleSaveChanges: SubmitHandler<TierFormData> = (data) => {
+    if (editingTier) {
+      setTiers(currentTiers =>
+        currentTiers.map(t =>
+          t.id === editingTier.id
+            ? {
+                ...t,
+                ...data,
+                features: data.features.split('\n').filter(f => f.trim() !== ""),
+                icon: data.icon as PricingTierIconName,
+              }
+            : t
+        )
+      );
+      toast({ title: `Plano "${data.name}" Atualizado!` });
+    } else {
+      const newTier: Tier = {
+        id: `tier_${Date.now()}`,
+        href: `/signup?plan=${data.name.toLowerCase().replace(/\s+/g, '-')}`,
+        ...data,
+        features: data.features.split('\n').filter(f => f.trim() !== ""),
+        icon: data.icon as PricingTierIconName,
+      };
+      setTiers(prev => [newTier, ...prev]);
+      toast({ title: "Novo Plano Criado!" });
+    }
     setIsModalOpen(false);
   };
+  
+  const handleToggleActive = (tierId: string, active: boolean) => {
+      setTiers(prevTiers => prevTiers.map(t => t.id === tierId ? {...t, active} : t));
+      toast({title: `Plano ${active ? "ativado" : "desativado"} com sucesso.`});
+  }
 
   return (
     <>
@@ -75,17 +150,23 @@ export default function MarketplacePage() {
           title="Produtos (Marketplace)"
           icon={<Store />}
           description="Gerencie os planos e produtos oferecidos aos usuários do Flortune."
+          actions={<Button onClick={() => handleOpenModal(null)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Novo Produto</Button>}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {tiers.map(tier => {
             const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
             return (
-              <Card key={tier.id} className="flex flex-col">
+              <Card key={tier.id} className={cn("flex flex-col transition-opacity", !tier.active && "opacity-60")}>
                 <CardHeader>
                     <div className="flex justify-between items-start">
                       <CardTitle className="font-headline text-lg">{tier.name}</CardTitle>
-                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg text-foreground", tier.featured ? "bg-primary/20 text-primary" : "bg-muted")}>
-                          <TierIcon className="h-6 w-6" />
+                      <div className="flex items-center gap-2">
+                        <Badge variant={tier.active ? 'default' : 'secondary'} className={cn(!tier.active && "bg-gray-500", "hidden md:block")}>{tier.active ? "Ativo" : "Inativo"}</Badge>
+                         <Switch
+                            checked={tier.active}
+                            onCheckedChange={(checked) => handleToggleActive(tier.id, checked)}
+                            aria-label={tier.active ? "Desativar plano" : "Ativar plano"}
+                         />
                       </div>
                     </div>
                   <CardDescription>{tier.description}</CardDescription>
@@ -105,7 +186,7 @@ export default function MarketplacePage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full" onClick={() => handleEdit(tier)}>
+                  <Button variant="outline" className="w-full" onClick={() => handleOpenModal(tier)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Editar Plano
                   </Button>
@@ -119,45 +200,65 @@ export default function MarketplacePage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="font-headline">Editar Plano: {editingTier?.name}</DialogTitle>
-            <DialogDescription>
-              Faça as alterações necessárias nas informações do plano.
-            </DialogDescription>
+            <DialogTitle className="font-headline">{editingTier ? "Editar Plano" : "Criar Novo Plano"}</DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          <form onSubmit={handleSubmit(handleSaveChanges)} className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
             <div className="space-y-2">
               <Label htmlFor="formName">Nome do Plano</Label>
-              <Input id="formName" value={formName} onChange={(e) => setFormName(e.target.value)} />
+              <Input id="formName" {...register("name")} />
+              {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="formDescription">Descrição</Label>
-              <Textarea id="formDescription" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} />
+              <Textarea id="formDescription" {...register("description")} />
+              {errors.description && <p className="text-sm text-destructive mt-1">{errors.description.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="formPrice">Preço (Ex: Grátis, R$19,90)</Label>
-              <Input id="formPrice" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} />
-            </div>
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="formPrice">Preço (Ex: Grátis, R$19,90)</Label>
+                    <Input id="formPrice" {...register("priceMonthly")} />
+                    {errors.priceMonthly && <p className="text-sm text-destructive mt-1">{errors.priceMonthly.message}</p>}
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="formPriceAnnotation">Anotação do Preço (Ex: /mês)</Label>
+                    <Input id="formPriceAnnotation" {...register("priceAnnotation")} />
+                </div>
+             </div>
             <div className="space-y-2">
               <Label htmlFor="formFeatures">Funcionalidades (uma por linha)</Label>
               <Textarea
                 id="formFeatures"
-                value={formFeatures}
-                onChange={(e) => setFormFeatures(e.target.value)}
-                rows={8}
+                {...register("features")}
+                rows={6}
                 placeholder="Funcionalidade 1&#10;Funcionalidade 2&#10;Funcionalidade 3"
               />
+              {errors.features && <p className="text-sm text-destructive mt-1">{errors.features.message}</p>}
             </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancelar
-              </Button>
-            </DialogClose>
-            <Button type="button" onClick={handleSaveChanges}>
-              Salvar Alterações
-            </Button>
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Ícone</Label>
+                    <Controller
+                        name="icon"
+                        control={control}
+                        render={({ field }) => (
+                            <select {...field} className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                {Object.keys(LucideIcons).filter(k => /^[A-Z]/.test(k)).map(iconName => (
+                                    <option key={iconName} value={iconName}>{iconName}</option>
+                                ))}
+                            </select>
+                        )}
+                    />
+                </div>
+                <div className="space-y-2 pt-2">
+                    <div className="flex items-center space-x-2"><Controller name="featured" control={control} render={({ field }) => <Checkbox id="featured" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="featured">Plano em Destaque</Label></div>
+                    <div className="flex items-center space-x-2"><Controller name="active" control={control} render={({ field }) => <Checkbox id="active" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="active">Plano Ativo</Label></div>
+                </div>
+            </div>
+          <DialogFooter className="pt-4">
+            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+            <Button type="submit">Salvar Alterações</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>
