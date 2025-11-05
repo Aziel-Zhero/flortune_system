@@ -85,10 +85,10 @@ export default function LandingPage() {
   const getCampaignProps = () => {
     switch (activeCampaignTheme) {
       case 'black-friday':
-        return null; // Don't render Iridescence, use CSS gradient instead
+        return null;
       case 'flash-sale':
         return {
-          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number], // Clean Pink
+          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number],
           speed: 0.2,
           amplitude: 0.1,
           show: true,
@@ -224,7 +224,13 @@ export default function LandingPage() {
         <footer className="py-8 border-t border-foreground/10 mt-16">
           <div className="container mx-auto text-center text-sm text-foreground/60">
             <p>&copy; {new Date().getFullYear()} {APP_NAME}. Todos os direitos reservados.</p>
-            <nav className="mt-2"><Link href="#" className="hover:text-foreground/80 px-2">Termos de Serviço</Link><span className="px-1">|</span><Link href="#" className="hover:text-foreground/80 px-2">Política de Privacidade</Link></nav>
+            <nav className="mt-2">
+                <Link href="#" className="hover:text-foreground/80 px-2">Termos de Serviço</Link>
+                <span className="px-1">|</span>
+                <Link href="#" className="hover:text-foreground/80 px-2">Política de Privacidade</Link>
+                <span className="px-1">|</span>
+                <Link href="/login-admin" className="hover:text-foreground/80 px-2">Admin</Link>
+            </nav>
           </div>
         </footer>
       </div>
