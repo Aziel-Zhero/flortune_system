@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare } from "lucide-react";
+import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare, Star } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { MaintenancePopup } from "@/components/popups/maintenance-popup";
 import { PromotionPopup } from "@/components/popups/promotion-popup";
 import { NewsletterPopup } from "@/components/popups/newsletter-popup";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -82,6 +83,61 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, lin
   );
 };
 
+const mockReviews = [
+  {
+    quote: "Este aplicativo transformou a maneira como eu gerencio minhas finanças. É intuitivo e poderoso. Finalmente sinto que tenho controle total.",
+    author: "Ana Silva",
+    role: "Cultivadora Consciente",
+    avatar: "https://placehold.co/50x50/a2d2ff/333?text=AS",
+    rating: 5,
+  },
+  {
+    quote: "Como desenvolvedor, as ferramentas de gestão de projetos são um divisor de águas. O Kanban e o controle de clientes me economizam horas.",
+    author: "Bruno Costa",
+    role: "DEV",
+    avatar: "https://placehold.co/50x50/bde0fe/333?text=BC",
+    rating: 5,
+  },
+  {
+    quote: "Simples, bonito e direto ao ponto. O modo privado é genial para quando preciso checar algo rápido na rua. Recomendo!",
+    author: "Carla Dias",
+    role: "Mestre Jardineira",
+    avatar: "https://placehold.co/50x50/ffafcc/333?text=CD",
+    rating: 4,
+  },
+  {
+    quote: "Comecei com o plano gratuito e já me ajudou a organizar meu orçamento. É incrível ter tantas funcionalidades sem custo inicial.",
+    author: "Daniel Alves",
+    role: "Cultivador Consciente",
+    avatar: "https://placehold.co/50x50/caffbf/333?text=DA",
+    rating: 5,
+  },
+];
+
+const ReviewCard: FC<(typeof mockReviews)[0]> = ({ quote, author, role, avatar, rating }) => {
+  return (
+    <div className="review-card bg-foreground/5 backdrop-blur-md p-6 rounded-2xl border border-foreground/10 flex flex-col h-full shadow-xl">
+      <div className="flex items-center mb-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star key={i} className={cn("w-4 h-4", i < rating ? "text-yellow-400 fill-yellow-400" : "text-foreground/20 fill-foreground/20")} />
+        ))}
+      </div>
+      <p className="text-foreground/80 text-sm flex-grow">"{quote}"</p>
+      <div className="flex items-center gap-3 mt-6">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={avatar} alt={author} data-ai-hint="user avatar" />
+          <AvatarFallback>{author.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-semibold text-foreground">{author}</p>
+          <p className="text-xs text-muted-foreground">{role}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 export default function LandingPage() {
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
@@ -121,6 +177,7 @@ export default function LandingPage() {
   const heroImageRef = useRef<HTMLDivElement>(null);
   const featuresSectionRef = useRef<HTMLElement>(null);
   const featuresHeaderRef = useRef<HTMLDivElement>(null);
+  const reviewsSectionRef = useRef<HTMLElement>(null);
   const pricingSectionRef = useRef<HTMLElement>(null);
   const finalCtaSectionRef = useRef<HTMLElement>(null);
 
@@ -138,6 +195,12 @@ export default function LandingPage() {
       gsap.fromTo(featuresHeaderRef.current.children, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.2, scrollTrigger: { trigger: featuresSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
       gsap.fromTo(featuresSectionRef.current.querySelectorAll(".feature-card"), { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: "power2.out", scrollTrigger: { trigger: featuresSectionRef.current, start: "top 75%", toggleActions: "play none none none" }});
     }
+
+    if (reviewsSectionRef.current) {
+      gsap.fromTo(reviewsSectionRef.current.querySelector(".reviews-header"), { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: reviewsSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
+      gsap.fromTo(reviewsSectionRef.current.querySelectorAll(".review-card"), { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.2, ease: "power2.out", scrollTrigger: { trigger: reviewsSectionRef.current, start: "top 70%", toggleActions: "play none none none" }});
+    }
+
      if (pricingSectionRef.current) {
       gsap.fromTo(pricingSectionRef.current.querySelector(".pricing-header"), { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, scrollTrigger: { trigger: pricingSectionRef.current, start: "top 85%", toggleActions: "play none none none" }});
       gsap.fromTo(pricingSectionRef.current.querySelectorAll(".pricing-card"), { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.2, ease: "power2.out", scrollTrigger: { trigger: pricingSectionRef.current, start: "top 70%", toggleActions: "play none none none" }});
@@ -234,6 +297,19 @@ export default function LandingPage() {
                 })}
               </div>
           </section>
+
+          <section className="py-16 md:py-24" ref={reviewsSectionRef}>
+            <div className="text-center mb-12 md:mb-16 reviews-header">
+              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">O que nossos primeiros usuários dizem</h2>
+              <p className="text-foreground/80 max-w-xl mx-auto">Feedback real de pessoas que estão cultivando suas finanças com o Flortune.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mockReviews.map((review, index) => (
+                <ReviewCard key={index} {...review} />
+              ))}
+            </div>
+          </section>
+
 
           <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
               <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
