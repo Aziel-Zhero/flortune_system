@@ -1,4 +1,3 @@
-
 // src/contexts/app-settings-context.tsx
 
 "use client";
@@ -17,6 +16,12 @@ interface WeatherData {
 }
 
 export type CampaignTheme = 'black-friday' | 'flash-sale' | 'super-promocao' | 'aniversario' | null;
+export type PopupType = 'maintenance' | 'promotion' | 'newsletter' | null;
+
+interface LandingPageContent {
+  heroTitle: string;
+  heroDescription: string;
+}
 
 // Definindo o tipo para o valor do contexto de AppSettings
 export interface AppSettingsProviderValue {
@@ -45,6 +50,11 @@ export interface AppSettingsProviderValue {
   
   activeCampaignTheme: CampaignTheme;
   setActiveCampaignTheme: (theme: CampaignTheme) => void;
+
+  landingPageContent: LandingPageContent;
+  setLandingPageContent: Dispatch<SetStateAction<LandingPageContent>>;
+  activePopup: PopupType;
+  setActivePopup: (popup: PopupType) => void;
 }
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
@@ -56,6 +66,11 @@ const mockQuotes: QuoteData[] = [
   { code: "IBOV", codein: 'BRL', name: 'Ibovespa', high: '125000', low: '124000', varBid: '500', pctChange: '0.40', bid: '124500', ask: '124500', timestamp: String(Date.now()), create_date: new Date().toISOString() },
   { code: "NASDAQ", codein: 'BRL', name: 'Nasdaq', high: '18000', low: '17900', varBid: '100', pctChange: '0.55', bid: '17950', ask: '17950', timestamp: String(Date.now()), create_date: new Date().toISOString() },
 ];
+
+const defaultLpContent: LandingPageContent = {
+  heroTitle: 'Cultive Suas Finanças e Projetos com Inteligência.',
+  heroDescription: 'Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.',
+};
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isPrivateMode, setIsPrivateMode] = useState(false);
@@ -72,6 +87,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
+  
+  const [landingPageContent, setLandingPageContent] = useState<LandingPageContent>(defaultLpContent);
+  const [activePopup, setActivePopupState] = useState<PopupType>(null);
+
 
   const loadQuotes = useCallback(async (quoteList: string[]) => {
     setIsLoadingQuotes(true);
@@ -83,7 +102,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      await new Promise(resolve => setTimeout(resolve, 300)); // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
       const orderedQuotes = validQuotes
         .map(code => mockQuotes.find(mq => mq.code === code))
         .filter((q): q is QuoteData => !!q);
@@ -165,6 +184,20 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setActiveCampaignThemeState(theme);
   }, []);
 
+  const setActivePopup = useCallback((popup: PopupType) => {
+    if (popup) {
+      localStorage.setItem('flortune-active-popup', popup);
+    } else {
+      localStorage.removeItem('flortune-active-popup');
+    }
+    setActivePopupState(popup);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('flortune-lp-content', JSON.stringify(landingPageContent));
+  }, [landingPageContent]);
+
+
   useEffect(() => {
     document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'theme-aniversario');
     if (activeCampaignTheme) {
@@ -187,29 +220,43 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
+      // Modo Privado
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
 
+      // Modo Escuro
       const storedDarkMode = localStorage.getItem('flortune-dark-mode');
       const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(darkModeEnabled);
       
+      // Tema de Cores
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       applyTheme(storedTheme);
 
+      // Cidade do Clima
       const storedCity = localStorage.getItem('flortune-weather-city');
       if (storedCity) {
         setWeatherCityState(storedCity);
         loadWeatherForCity(storedCity);
       }
       
+      // Cotações
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
       const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
       setSelectedQuotesState(initialQuotes);
       loadQuotes(initialQuotes);
 
+      // Tema de Campanha
       const storedCampaign = localStorage.getItem('flortune-active-campaign');
       if (storedCampaign) setActiveCampaignThemeState(storedCampaign as CampaignTheme);
+
+      // Conteúdo da LP
+      const storedLpContent = localStorage.getItem('flortune-lp-content');
+      if (storedLpContent) setLandingPageContent(JSON.parse(storedLpContent));
+
+      // Pop-up Ativo
+      const storedPopup = localStorage.getItem('flortune-active-popup');
+      if (storedPopup) setActivePopupState(storedPopup as PopupType);
       
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
@@ -225,6 +272,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
       loadQuotes,
       activeCampaignTheme, setActiveCampaignTheme,
+      landingPageContent, setLandingPageContent,
+      activePopup, setActivePopup,
     }}>
       {children}
     </AppSettingsContext.Provider>
