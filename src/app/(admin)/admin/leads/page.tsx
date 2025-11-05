@@ -7,10 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users, Search, MoreHorizontal, Gift, User, Trash2 } from "lucide-react";
-import { APP_NAME } from "@/lib/constants";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Users, Search, MoreHorizontal, Gift, User, Trash2, Send } from "lucide-react";
+import { APP_NAME, PRICING_TIERS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 
@@ -31,9 +35,13 @@ const mockLeads: Lead[] = [
   { id: 'lead_5', name: 'Lucas Pereira', email: 'lucas.pereira@emailaleatorio.com', avatar: 'https://placehold.co/40x40/ffc8dd/333?text=LP', joinDate: '10/06/2024', lastActivity: '1 mês atrás' },
 ];
 
+const availablePaidPlans = PRICING_TIERS.filter(tier => tier.priceMonthly !== 'Grátis');
+
 export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   useEffect(() => {
     document.title = `Leads - ${APP_NAME}`;
@@ -45,85 +53,136 @@ export default function LeadsPage() {
       lead.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSendOffer = (lead: Lead) => {
-    toast({
-        title: "Enviar Oferta (Simulação)",
-        description: `Uma oferta promocional seria enviada para ${lead.name}.`,
-    });
+  const handleOpenOfferDialog = (lead: Lead) => {
+    setSelectedLead(lead);
+    setIsOfferDialogOpen(true);
   };
 
+  const handleSendOfferSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    toast({
+        title: "Proposta Enviada! (Simulação)",
+        description: `A oferta foi enviada com sucesso para ${selectedLead?.email}.`,
+    });
+    setIsOfferDialogOpen(false);
+  }
+
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Leads (Plano Gratuito)"
-        icon={<Users />}
-        description="Visualize e gerencie usuários do plano gratuito para campanhas de conversão."
-      />
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Usuários Gratuitos</CardTitle>
-          <div className="flex justify-between items-center pt-2">
-            <CardDescription>
-                {filteredLeads.length} de {leads.length} usuários encontrados.
-            </CardDescription>
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+    <>
+      <div className="space-y-8">
+        <PageHeader
+          title="Leads (Plano Gratuito)"
+          icon={<Users />}
+          description="Visualize e gerencie usuários do plano gratuito para campanhas de conversão."
+        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Usuários Gratuitos</CardTitle>
+            <div className="flex justify-between items-center pt-2">
+              <CardDescription>
+                  {filteredLeads.length} de {leads.length} usuários encontrados.
+              </CardDescription>
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome ou email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Data de Inscrição</TableHead>
-                <TableHead>Última Atividade</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLeads.map((lead) => (
-                <TableRow key={lead.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={lead.avatar} data-ai-hint="user avatar" />
-                        <AvatarFallback>{lead.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-sm">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground">{lead.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{lead.joinDate}</TableCell>
-                  <TableCell>{lead.lastActivity}</TableCell>
-                  <TableCell className="text-right">
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Abrir menu</span><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleSendOffer(lead)}><Gift className="mr-2 h-4 w-4" />Enviar Oferta</DropdownMenuItem>
-                            <DropdownMenuItem><User className="mr-2 h-4 w-4" />Ver Detalhes</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Remover Usuário</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Data de Inscrição</TableHead>
+                  <TableHead>Última Atividade</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+              </TableHeader>
+              <TableBody>
+                {filteredLeads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={lead.avatar} data-ai-hint="user avatar" />
+                          <AvatarFallback>{lead.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold text-sm">{lead.name}</p>
+                          <p className="text-xs text-muted-foreground">{lead.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{lead.joinDate}</TableCell>
+                    <TableCell>{lead.lastActivity}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Abrir menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleOpenOfferDialog(lead)}><Gift className="mr-2 h-4 w-4" />Enviar Oferta</DropdownMenuItem>
+                              <DropdownMenuItem><User className="mr-2 h-4 w-4" />Ver Detalhes</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Remover Usuário</DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-xl">Criar Oferta Personalizada</DialogTitle>
+            <DialogDescription>
+              Enviando oferta para: <span className="font-semibold text-primary">{selectedLead?.name} ({selectedLead?.email})</span>
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSendOfferSubmit} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="targetPlan">Plano de Destino</Label>
+                <Select defaultValue={availablePaidPlans[0]?.id}>
+                  <SelectTrigger id="targetPlan"><SelectValue placeholder="Selecione um plano..." /></SelectTrigger>
+                  <SelectContent>{availablePaidPlans.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.priceMonthly})</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="offerTitle">Título da Oferta</Label>
+                <Input id="offerTitle" placeholder="Ex: Sua Primeira Mensalidade por Nossa Conta!" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="offerPrice">Preço Promocional (R$)</Label>
+                  <Input id="offerPrice" type="number" step="0.01" placeholder="Ex: 9.90" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offerDuration">Duração (meses)</Label>
+                  <Input id="offerDuration" type="number" placeholder="Ex: 3" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="offerMessage">Mensagem (Opcional)</Label>
+                  <Textarea id="offerMessage" placeholder="Adicione uma mensagem pessoal para incentivar a conversão." />
+              </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit"><Send className="mr-2 h-4 w-4"/>Enviar Proposta</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
