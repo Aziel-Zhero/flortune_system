@@ -3,7 +3,8 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Edit, Trash2, GripVertical, Star, Type, MessageSquare, ToggleRight } from "lucide-react";
 
 export interface FormQuestion {
@@ -15,6 +16,8 @@ export interface FormQuestion {
 
 interface QuestionItemProps {
   question: FormQuestion;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 const typeConfig = {
@@ -33,12 +36,24 @@ const categoryColors: Record<FormQuestion['category'], string> = {
 };
 
 
-export function QuestionItem({ question }: QuestionItemProps) {
+export function QuestionItem({ question, onEdit, onDelete }: QuestionItemProps) {
     const TypeIcon = typeConfig[question.type].icon;
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({id: question.id});
+    
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
 
   return (
-    <div className="flex items-center gap-3 p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors">
-      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+    <div 
+        ref={setNodeRef}
+        style={style}
+        className="flex items-center gap-3 p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors"
+    >
+      <button {...attributes} {...listeners} className="cursor-grab p-1">
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </button>
       <div className="flex-grow">
         <p className="font-medium text-sm">{question.text}</p>
         <div className="flex items-center gap-2 mt-1.5">
@@ -56,7 +71,7 @@ export function QuestionItem({ question }: QuestionItemProps) {
             variant="ghost" 
             size="icon" 
             className="h-8 w-8"
-            onClick={() => toast({ title: "Editar (Em Breve)", description: "Funcionalidade para editar a pergunta será implementada aqui."})}
+            onClick={onEdit}
         >
           <Edit className="h-4 w-4" />
         </Button>
@@ -64,7 +79,7 @@ export function QuestionItem({ question }: QuestionItemProps) {
             variant="ghost" 
             size="icon" 
             className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            onClick={() => toast({ title: "Excluir (Em Breve)", description: "Funcionalidade para excluir a pergunta será implementada aqui.", variant: "destructive"})}
+            onClick={onDelete}
         >
           <Trash2 className="h-4 w-4" />
         </Button>
