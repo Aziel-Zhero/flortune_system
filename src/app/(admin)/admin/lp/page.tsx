@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info } from "lucide-react";
+import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
@@ -52,7 +51,7 @@ export default function LPEditorPage() {
     setPopupConfigs,
   } = useAppSettings();
 
-  const [previewPopup, setPreviewPopup] = useState<PopupType>(null);
+  const [previewPopup, setPreviewPopup] = useState<PopupType | null>(null);
 
   useEffect(() => {
     document.title = "Editor da Landing Page - Flortune";
@@ -84,7 +83,7 @@ export default function LPEditorPage() {
     });
   };
 
-  const handleActivePopupChange = (value: string) => {
+  const handleTabChange = (value: string) => {
     const newPopup = value === "none" ? null : value as PopupType;
     setActivePopup(newPopup);
   }
@@ -114,8 +113,8 @@ export default function LPEditorPage() {
           <CardContent className="space-y-6">
               <Tabs defaultValue="hero">
                   <TabsList>
-                      <TabsTrigger value="hero">Seção Principal</TabsTrigger>
-                      <TabsTrigger value="cta">Chamada Final</TabsTrigger>
+                      <TabsTrigger value="hero">Seção Principal (Hero)</TabsTrigger>
+                      <TabsTrigger value="cta">Chamada Final (CTA)</TabsTrigger>
                   </TabsList>
                   <TabsContent value="hero" className="pt-4">
                       <div className="space-y-4">
@@ -152,36 +151,21 @@ export default function LPEditorPage() {
         <Card>
           <CardHeader>
               <CardTitle>Gerenciador de Pop-ups</CardTitle>
-              <CardDescription>Personalize e ative um pop-up para ser exibido aos visitantes na página inicial.</CardDescription>
+              <CardDescription>Clique na aba para ativar e editar o pop-up correspondente.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-             <div>
-                <Label className="font-semibold">Pop-up Ativo</Label>
-                <RadioGroup value={activePopup || "none"} onValueChange={handleActivePopupChange} className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                    <Label htmlFor="popup-none" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer", activePopup === null ? "border-primary" : "border-muted")}>
-                      <RadioGroupItem value="none" id="popup-none" className="sr-only" />
-                      <span className="text-lg font-semibold">Nenhum</span>
-                    </Label>
-                    {Object.keys(popupConfigs).map(key => {
-                        const config = popupConfigs[key as PopupType];
-                        const Icon = getLucideIcon(config.icon);
-                        return (
-                             <Label key={key} htmlFor={`popup-${key}`} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer", activePopup === key ? "border-primary" : "border-muted")}>
-                                <RadioGroupItem value={key} id={`popup-${key}`} className="sr-only" />
-                                <Icon className="mb-2 h-6 w-6 text-muted-foreground" />
-                                <span className="text-sm font-semibold">{config.title}</span>
-                            </Label>
-                        )
-                    })}
-                </RadioGroup>
-             </div>
-
-              <Tabs defaultValue="maintenance">
-                  <TabsList>
-                      <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
-                      <TabsTrigger value="promotion">Promoção</TabsTrigger>
-                      <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
+          <CardContent>
+              <Tabs value={activePopup || "none"} onValueChange={handleTabChange}>
+                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
+                      <TabsTrigger value="none" className="flex-col h-auto py-2"><Ban className="mb-1 h-5 w-5"/>Nenhum</TabsTrigger>
+                      <TabsTrigger value="maintenance" className="flex-col h-auto py-2"><Construction className="mb-1 h-5 w-5"/>Manutenção</TabsTrigger>
+                      <TabsTrigger value="promotion" className="flex-col h-auto py-2"><Ticket className="mb-1 h-5 w-5"/>Promoção</TabsTrigger>
+                      <TabsTrigger value="newsletter" className="flex-col h-auto py-2"><Newspaper className="mb-1 h-5 w-5"/>Newsletter</TabsTrigger>
                   </TabsList>
+                  
+                  <TabsContent value="none" className="text-center py-10 border-t mt-2">
+                    <p className="text-muted-foreground">Nenhum pop-up está ativo no momento.</p>
+                  </TabsContent>
+                  
                   {Object.keys(popupConfigs).map(key => {
                       const popupKey = key as PopupType;
                       const config = popupConfigs[popupKey];
@@ -191,7 +175,7 @@ export default function LPEditorPage() {
 
                       return (
                           <TabsContent key={popupKey} value={popupKey}>
-                              <div className="space-y-4 pt-4 border-t">
+                              <div className="space-y-4 pt-4 border-t mt-2">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-2">
                                       <Label htmlFor={`${popupKey}-title`}>Título do Pop-up</Label>
@@ -211,7 +195,7 @@ export default function LPEditorPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor={`${popupKey}-color`}>Cor de Destaque</Label>
-                                    <Select value={config.color} onValueChange={(v) => handlePopupConfigChange(popupKey, 'color', v)}>
+                                    <Select value={config.color} onValueChange={(v) => handlePopupConfigChange(popupKey, 'color', v as any)}>
                                         <SelectTrigger id={`${popupKey}-color`} className="w-full md:w-[240px]"><SelectValue /></SelectTrigger>
                                         <SelectContent>{colorOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
                                     </Select>
