@@ -217,17 +217,14 @@ export default function LPEditorPage() {
       </div>
 
        <Dialog open={!!previewPopup} onOpenChange={(open) => !open && setPreviewPopup(null)}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none" onPointerDownOutside={(e) => e.preventDefault()}>
             <DialogHeader className="sr-only">
               <DialogTitle>Pré-visualização do Pop-up</DialogTitle>
               <DialogDescription>Este é um preview de como o pop-up aparecerá para o usuário.</DialogDescription>
             </DialogHeader>
-            {previewPopup === 'maintenance' && <MaintenancePopup config={popupConfigs.maintenance} />}
-            {previewPopup === 'promotion' && <PromotionPopup config={popupConfigs.promotion} />}
-            {previewPopup === 'newsletter' && <NewsletterPopup config={popupConfigs.newsletter} />}
-             <DialogClose asChild>
-                <Button type="button" variant="outline" className="absolute bottom-4 right-4">Fechar Preview</Button>
-            </DialogClose>
+            {previewPopup === 'maintenance' && <MaintenancePopup config={popupConfigs.maintenance} onDismiss={() => setPreviewPopup(null)} />}
+            {previewPopup === 'promotion' && <PromotionPopup config={popupConfigs.promotion} onDismiss={() => setPreviewPopup(null)} />}
+            {previewPopup === 'newsletter' && <NewsletterPopup config={popupConfigs.newsletter} onDismiss={() => setPreviewPopup(null)} />}
         </DialogContent>
       </Dialog>
     </>
