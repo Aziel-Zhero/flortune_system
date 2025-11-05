@@ -16,7 +16,7 @@ interface WeatherData {
   icon: string;
 }
 
-export type CampaignTheme = 'black-friday' | 'flash-sale' | null;
+export type CampaignTheme = 'black-friday' | 'flash-sale' | 'super-promocao' | 'aniversario' | null;
 
 // Definindo o tipo para o valor do contexto de AppSettings
 export interface AppSettingsProviderValue {
@@ -166,7 +166,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    document.body.classList.remove('theme-black-friday', 'theme-flash-sale');
+    document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'theme-aniversario');
     if (activeCampaignTheme) {
       document.body.classList.add(`theme-${activeCampaignTheme}`);
     }

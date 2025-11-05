@@ -411,16 +411,31 @@
     --sidebar-accent-foreground: 20 55% 88%;
     --sidebar-border: 15 30% 28%;
   }
+  
+  /* --- Temas de Campanha --- */
   body.theme-black-friday {
-    --foreground: 0 0% 98%;
-    background: linear-gradient(90deg, #111 0%, #222 40%, #333 75%, #444 100%);
+    --foreground: 0 0% 98%; /* White text */
+    background: linear-gradient(90deg, rgba(34,34,34,1) 0%, rgba(45,45,45,1) 40%, rgba(60,60,60,1) 75%, rgba(75,75,75,1) 100%);
   }
 
   body.theme-flash-sale {
-    --accent: 330 90% 70%; /* Clean Pink */
-    --accent-foreground: 330 90% 10%; 
+    --accent: 340 90% 65%; /* Clean Pink */
+    --accent-foreground: 340 90% 10%; 
     --foreground: 0 0% 98%; /* White text */
   }
+
+  body.theme-super-promocao {
+    --accent: 15 100% 50%; /* Fiery Orange/Red */
+    --accent-foreground: 15 100% 95%;
+    --foreground: 0 0% 98%;
+  }
+
+  body.theme-aniversario {
+    --accent: 45 100% 50%; /* Gold */
+    --accent-foreground: 45 100% 10%;
+    --foreground: 0 0% 98%;
+  }
+
 }
 
 @layer base {

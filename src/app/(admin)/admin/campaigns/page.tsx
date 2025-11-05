@@ -1,4 +1,3 @@
-
 // src/app/(admin)/admin/campaigns/page.tsx
 "use client";
 
@@ -25,6 +24,8 @@ const campaignThemes: { value: CampaignTheme | 'none', label: string }[] = [
   { value: 'none', label: 'Nenhuma (Padrão)' },
   { value: 'black-friday', label: 'Black Friday' },
   { value: 'flash-sale', label: 'Promoção Relâmpago' },
+  { value: 'super-promocao', label: 'Super Promoção' },
+  { value: 'aniversario', label: 'Aniversário' },
 ];
 
 export default function CampaignsPage() {

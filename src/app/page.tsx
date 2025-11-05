@@ -1,4 +1,3 @@
-
 // src/app/page.tsx
 "use client";
 
@@ -85,20 +84,26 @@ export default function LandingPage() {
   const getCampaignProps = () => {
     switch (activeCampaignTheme) {
       case 'black-friday':
-        return null;
+        return { show: false }; // Desativa o fluido para usar o gradiente CSS
       case 'flash-sale':
         return {
-          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number],
-          speed: 0.2,
-          amplitude: 0.1,
-          show: true,
+          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number], // Rosa
+          speed: 0.2, amplitude: 0.1, show: true,
+        };
+       case 'super-promocao':
+        return {
+          fluidColor: [255 / 255, 69 / 255, 0 / 255] as [number, number, number], // Laranja/Vermelho
+          speed: 0.4, amplitude: 0.2, show: true,
+        };
+      case 'aniversario':
+         return {
+          fluidColor: [0 / 255, 51 / 255, 102 / 255] as [number, number, number], // Azul escuro
+          speed: 0.15, amplitude: 0.08, show: true,
         };
       default:
         return {
           fluidColor: [22 / 255, 163 / 255, 129 / 255] as [number, number, number],
-          speed: 0.3,
-          amplitude: 0.15,
-          show: true,
+          speed: 0.3, amplitude: 0.15, show: true,
         };
     }
   };
