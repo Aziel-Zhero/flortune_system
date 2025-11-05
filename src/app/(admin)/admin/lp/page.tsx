@@ -1,8 +1,9 @@
 // src/app/(admin)/admin/lp/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, type ChangeEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Image as ImageIcon } from "lucide-react";
+import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MaintenancePopup } from "@/components/popups/maintenance-popup";
 import { PromotionPopup } from "@/components/popups/promotion-popup";
 import { NewsletterPopup } from "@/components/popups/newsletter-popup";
@@ -52,6 +53,7 @@ export default function LPEditorPage() {
   } = useAppSettings();
 
   const [previewPopup, setPreviewPopup] = useState<PopupType | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = "Editor da Landing Page - Flortune";
@@ -65,6 +67,27 @@ export default function LPEditorPage() {
     }));
   };
   
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        const result = loadEvent.target?.result;
+        if (typeof result === 'string') {
+          setLandingPageContent(prev => ({
+            ...prev,
+            heroImageUrl: result,
+          }));
+          toast({ title: "Imagem Carregada", description: "A nova imagem está pronta para ser salva." });
+        }
+      };
+      reader.onerror = () => {
+        toast({ title: "Erro ao Ler Imagem", description: "Não foi possível carregar o arquivo de imagem.", variant: "destructive" });
+      }
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handlePopupConfigChange = (popup: PopupType, field: string, value: string) => {
     if (!popup) return;
     setPopupConfigs(prev => ({
@@ -127,11 +150,24 @@ export default function LPEditorPage() {
                               <Textarea id="heroDescription" name="heroDescription" value={landingPageContent.heroDescription} onChange={handleLpContentChange} rows={3} />
                           </div>
                           <div className="space-y-2">
-                              <Label htmlFor="heroImageUrl">URL da Imagem Principal</Label>
-                              <div className="relative">
-                                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input id="heroImageUrl" name="heroImageUrl" value={landingPageContent.heroImageUrl} onChange={handleLpContentChange} placeholder="https://exemplo.com/imagem.png" className="pl-10" />
+                            <Label>Imagem Principal</Label>
+                            <div className="flex items-center gap-4">
+                              <div className="relative w-48 h-auto aspect-video rounded-md overflow-hidden border">
+                                <Image src={landingPageContent.heroImageUrl} alt="Preview da imagem principal" layout="fill" objectFit="cover" />
                               </div>
+                              <Input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/png, image/jpeg, image/webp"
+                                onChange={handleImageChange}
+                              />
+                              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Trocar Imagem
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Recomendado: 800x450px.</p>
                           </div>
                       </div>
                   </TabsContent>
