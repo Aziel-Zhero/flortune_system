@@ -15,7 +15,6 @@ export const NAV_LINKS_CONFIG = [
   { type: "separator" as const },
   { type: "title" as const, label: "Módulos" },
   { href: "/sharing", label: "Compartilhamento", icon: "Share2" as const, type: "link" as const },
-  { href: "/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/dashboard", label: "Dash", icon: "AreaChart" as const, type: "link" as const },
@@ -42,6 +41,7 @@ export const ADMIN_NAV_LINKS_CONFIG = [
   { href: "/admin/marketplace", label: "Produtos", icon: "Store" as const, type: "link" as const },
   { href: "/admin/campaigns", label: "Campanhas", icon: "ShoppingBag" as const, type: "link" as const },
   { href: "/admin/lp", label: "LP", icon: "FileText" as const, type: "link" as const },
+  { href: "/admin/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
 ];
 
 
