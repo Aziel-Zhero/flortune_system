@@ -1,3 +1,4 @@
+
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -88,7 +89,7 @@ export function AppSidebar() {
           <SidebarMenu>
             {NAV_LINKS_CONFIG.map((item, index) => {
                   if (item.type === "separator") {
-                    return null; // Separator removed as per request
+                    return <Separator key={`sep-${index}`} className="my-2 mx-2 group-data-[collapsible=icon]:hidden" />;
                   }
                   if (item.type === "title") {
                     return (

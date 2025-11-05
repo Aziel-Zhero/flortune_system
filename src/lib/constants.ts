@@ -1,3 +1,4 @@
+
 export const APP_NAME = "Flortune";
 export const NO_ICON_VALUE = "__NO_ICON__";
 
@@ -11,6 +12,11 @@ export const NAV_LINKS_CONFIG = [
   { href: "/goals", label: "Metas", icon: "Trophy" as const, type: "link" as const },
   { href: "/todos", label: "Lista de Tarefas", icon: "ListChecks" as const, type: "link" as const },
   { href: "/notepad", label: "Anotações", icon: "NotebookPen" as const, type: "link" as const },
+  { type: "separator" as const },
+  { type: "title" as const, label: "Módulos" },
+  { href: "/sharing", label: "Compartilhamento", icon: "Share2" as const, type: "link" as const },
+  { href: "/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
+  { type: "separator" as const },
   { type: "title" as const, label: "PARA DEVs" },
   { href: "/dev/dashboard", label: "Dash", icon: "AreaChart" as const, type: "link" as const },
   { href: "/dev/clients", label: "Clientes & Projetos", icon: "Users2" as const, type: "link" as const },
@@ -20,9 +26,7 @@ export const NAV_LINKS_CONFIG = [
   { type: "title" as const, label: "Metodologia Kanban" },
   { href: "/dev/kanban", label: "Quadro Kanban", icon: "KanbanSquare" as const, type: "link" as const },
   { href: "/dev/kanban-analytics", label: "Análise Kanban", icon: "PieChart" as const, type: "link" as const },
-  { type: "title" as const, label: "Módulos" },
-  { href: "/sharing", label: "Compartilhamento", icon: "Share2" as const, type: "link" as const },
-  { href: "/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
+  { type: "separator" as const },
   { type: "title" as const, label: "CORPORATIVO" },
   { href: "/corporate/teams", label: "Equipes", icon: "Users" as const, type: "link" as const },
   { href: "/corporate/reports", label: "Graficos & Metas", icon: "AreaChart" as const, type: "link" as const },
