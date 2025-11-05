@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban } from "lucide-react";
+import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Image as ImageIcon } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
@@ -125,6 +125,13 @@ export default function LPEditorPage() {
                           <div className="space-y-2">
                               <Label htmlFor="heroDescription">Descrição (Parágrafo)</Label>
                               <Textarea id="heroDescription" name="heroDescription" value={landingPageContent.heroDescription} onChange={handleLpContentChange} rows={3} />
+                          </div>
+                          <div className="space-y-2">
+                              <Label htmlFor="heroImageUrl">URL da Imagem Principal</Label>
+                              <div className="relative">
+                                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input id="heroImageUrl" name="heroImageUrl" value={landingPageContent.heroImageUrl} onChange={handleLpContentChange} placeholder="https://exemplo.com/imagem.png" className="pl-10" />
+                              </div>
                           </div>
                       </div>
                   </TabsContent>

@@ -29,6 +29,7 @@ export interface PopupConfig {
 export interface LandingPageContent {
   heroTitle: string;
   heroDescription: string;
+  heroImageUrl: string; // Adicionado campo para a URL da imagem
   ctaTitle: string;
   ctaDescription: string;
   ctaButtonText: string;
@@ -87,6 +88,7 @@ const mockQuotes: QuoteData[] = [
 const defaultLpContent: LandingPageContent = {
   heroTitle: 'Cultive Suas Finanças e Projetos com Inteligência.',
   heroDescription: 'Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.',
+  heroImageUrl: 'https://placehold.co/800x450.png',
   ctaTitle: "Pronto para Cultivar seu Futuro?",
   ctaDescription: "Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o Flortune. É rápido, fácil e gratuito para começar.",
   ctaButtonText: "Criar Minha Conta Grátis",

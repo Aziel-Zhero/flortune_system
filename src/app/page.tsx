@@ -253,7 +253,17 @@ export default function LandingPage() {
               <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
               <Link href="/dashboard" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-foreground border-foreground/50 hover:bg-foreground/10 hover:text-foreground")}>Acessar Painel (Demo)</Link>
             </div>
-            <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0"><Image src="https://placehold.co/800x450.png" alt="Flortune App Mockup" width={800} height={450} className="rounded-lg shadow-2xl border-4 border-foreground/20" data-ai-hint="app dashboard" priority /></div>
+            <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0">
+              <Image 
+                src={landingPageContent.heroImageUrl} 
+                alt="Flortune App Mockup" 
+                width={800} 
+                height={450} 
+                className="rounded-lg shadow-2xl border-4 border-foreground/20" 
+                data-ai-hint="app dashboard" 
+                priority 
+              />
+            </div>
           </section>
 
           <section className="py-16 md:py-24" ref={featuresSectionRef}>
