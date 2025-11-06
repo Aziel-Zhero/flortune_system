@@ -28,8 +28,8 @@ export function AppHeader() {
   const totalRevenue = 25340.50;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
-      <div className="container mx-auto flex h-full items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6">
+    <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md">
+      <div className="container mx-auto flex h-16 items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6">
         <div className="flex items-center gap-2 md:gap-4">
            <Button variant="ghost" size="icon" onClick={() => setOpenMobile(true)} className="md:hidden -ml-2">
             <Menu className="h-6 w-6" />
@@ -83,6 +83,19 @@ export function AppHeader() {
           <UserNav isAdmin={isAdminArea} />
         </div>
       </div>
+      {isAdminArea && (
+        <div className="container mx-auto px-4 pb-2 sm:hidden">
+            <div className="flex items-center gap-2 border-t pt-2">
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground -mb-1">Receita Total</span>
+                    <span className="font-bold text-lg text-primary">
+                        <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
+                    </span>
+                </div>
+            </div>
+        </div>
+      )}
     </header>
   );
 }
