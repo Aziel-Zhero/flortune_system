@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, PlusCircle, Save, Eye, CalendarIcon } from "lucide-react";
+import { ClipboardList, PlusCircle, Save, Eye, CalendarIcon, Send } from "lucide-react";
 import { QuestionItem, type FormQuestion } from "@/components/admin/forms/question-item";
 import { toast } from "@/hooks/use-toast";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -122,6 +122,13 @@ export default function AdminFormsPage() {
     })
   }
 
+  const handleSendForm = () => {
+    toast({
+        title: "Formulário Enviado (Simulação)",
+        description: "O formulário seria enviado aos usuários selecionados.",
+    });
+  };
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -193,10 +200,14 @@ export default function AdminFormsPage() {
               </DndContext>
             </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-wrap items-center gap-4">
             <Button onClick={handleSaveChanges}>
                 <Save className="mr-2 h-4 w-4" />
                 Salvar Ordem e Período
+            </Button>
+            <Button onClick={handleSendForm} variant="secondary">
+                <Send className="mr-2 h-4 w-4" />
+                Enviar Formulário aos Usuários
             </Button>
         </CardFooter>
       </Card>

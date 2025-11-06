@@ -1,12 +1,14 @@
 // src/app/(admin)/admin/dashboard/page.tsx
 "use client";
 
+import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LayoutDashboard, Users, Percent, Share2, Star, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Bar, BarChart as BarChartRecharts, Line, LineChart as LineChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Pie, PieChart as PieChartRecharts, Cell } from "recharts";
+import { toast } from "@/hooks/use-toast";
 
 const newUsersData = [
   { month: "Jan", users: 150, free: 130, paid: 20 }, 
@@ -37,6 +39,29 @@ export default function AdminDashboardPage() {
       transition: { delay: i * 0.1, type: "spring", stiffness: 100 },
     }),
   };
+
+  useEffect(() => {
+    // Simular notificações de eventos importantes
+    const timer1 = setTimeout(() => {
+      toast({
+        title: "🚀 Novo Assinante!",
+        description: "Maria Oliveira assinou o plano Mestre Jardineiro.",
+      });
+    }, 3000);
+
+    const timer2 = setTimeout(() => {
+      toast({
+        title: "✅ Lead Convertido",
+        description: "João da Silva aceitou a oferta e tornou-se assinante.",
+      });
+    }, 6000);
+    
+    return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+    }
+
+  }, []);
 
   return (
     <div className="space-y-8">

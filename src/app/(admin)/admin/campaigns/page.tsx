@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingBag, CalendarIcon, Percent, Save, AlertCircle, Eye } from "lucide-react";
+import { ShoppingBag, CalendarIcon, Percent, Save, AlertCircle, Eye, Send } from "lucide-react";
 import { PRICING_TIERS } from "@/lib/constants";
 import { DateRange } from "react-day-picker";
 import { addDays, format } from "date-fns";
@@ -46,6 +46,13 @@ export default function CampaignsPage() {
         description: "As configurações da campanha promocional foram salvas.",
     });
   }
+  
+  const handleNotifyUsers = () => {
+    toast({
+        title: "Notificando Usuários (Simulação)",
+        description: "Uma notificação sobre a campanha atual seria enviada para os usuários.",
+    });
+  };
 
   useEffect(() => {
     document.title = "Campanhas Promocionais - Flortune";
@@ -129,6 +136,10 @@ export default function CampaignsPage() {
             <Button onClick={handleSaveChanges}>
                 <Save className="mr-2 h-4 w-4" />
                 Salvar Alterações
+            </Button>
+            <Button onClick={handleNotifyUsers} variant="secondary">
+                <Send className="mr-2 h-4 w-4" />
+                Notificar Usuários
             </Button>
              <Button variant="outline" asChild>
                 <Link href="/" target="_blank">

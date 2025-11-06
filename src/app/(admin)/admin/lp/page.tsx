@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload } from "lucide-react";
+import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload, Send } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
@@ -110,6 +110,14 @@ export default function LPEditorPage() {
     const newPopup = value === "none" ? null : value as PopupType;
     setActivePopup(newPopup);
   }
+  
+  const handleNotifyPopup = (popupKey: PopupType) => {
+    const config = popupConfigs[popupKey];
+    toast({
+      title: `Notificando sobre: ${config.title}`,
+      description: "Uma notificação seria enviada para os usuários sobre este pop-up.",
+    });
+  };
 
   return (
     <>
@@ -236,7 +244,7 @@ export default function LPEditorPage() {
                                     <Label htmlFor={`${popupKey}-description`}>Descrição</Label>
                                     <Textarea id={`${popupKey}-description`} value={config.description} onChange={(e) => handlePopupConfigChange(popupKey, 'description', e.target.value)} rows={3} />
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
                                     <div className="space-y-2">
                                         <Label htmlFor={`${popupKey}-color`}>Cor de Destaque</Label>
                                         <Select value={config.color} onValueChange={(v) => handlePopupConfigChange(popupKey, 'color', v as any)}>
@@ -244,7 +252,8 @@ export default function LPEditorPage() {
                                             <SelectContent>{colorOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
-                                    <Button variant="secondary" onClick={() => setPreviewPopup(popupKey)}><Eye className="mr-2 h-4 w-4"/> Visualizar Pop-up</Button>
+                                    <Button variant="secondary" onClick={() => setPreviewPopup(popupKey)}><Eye className="mr-2 h-4 w-4"/> Visualizar</Button>
+                                    <Button variant="secondary" onClick={() => handleNotifyPopup(popupKey)}><Send className="mr-2 h-4 w-4"/> Notificar</Button>
                                 </div>
                               </div>
                           </TabsContent>
