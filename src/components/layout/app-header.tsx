@@ -21,7 +21,7 @@ import { ptBR } from "date-fns/locale";
 const iconColorClasses = {
   primary: "text-primary",
   destructive: "text-destructive",
-  amber: "text-amber-500",
+  amber: "text-accent", // Corrigido de text-amber-500 para text-accent
   blue: "text-blue-500",
 };
 
