@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { toast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
@@ -63,6 +62,16 @@ export function AppHeader() {
               </div>
             </form>
           )}
+
+           <Button
+            variant="ghost"
+            size="icon"
+            onClick={togglePrivateMode}
+            aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
+            className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
+          >
+            {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -120,7 +129,6 @@ export function AppHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          
           <UserNav isAdmin={isAdminArea} />
         </div>
       </div>
