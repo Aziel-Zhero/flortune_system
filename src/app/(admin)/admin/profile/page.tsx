@@ -1,14 +1,14 @@
 // src/app/(admin)/admin/profile/page.tsx
 "use client";
 
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Smartphone, FileText, Fingerprint, Save } from "lucide-react";
+import { User, Save } from "lucide-react";
 import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
 
@@ -17,7 +17,6 @@ const mockAdminProfile = {
   fullName: "Administrador do Sistema",
   displayName: "Admin",
   email: "admin@flortune.com",
-  phone: "(11) 5555-5555",
   avatarUrl: `https://placehold.co/100x100/fca5a5/1e293b?text=A`,
   avatarFallback: "A",
 };
@@ -27,10 +26,10 @@ export default function AdminProfilePage() {
   const [fullName, setFullName] = useState(mockAdminProfile.fullName);
   const [displayName, setDisplayName] = useState(mockAdminProfile.displayName);
   const [email, setEmail] = useState(mockAdminProfile.email);
-  const [phone, setPhone] = useState(mockAdminProfile.phone);
   const [avatarUrl, setAvatarUrl] = useState(mockAdminProfile.avatarUrl);
   const [avatarFallback, setAvatarFallback] = useState(mockAdminProfile.avatarFallback);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     document.title = `Perfil de Admin - ${APP_NAME}`;
@@ -43,9 +42,29 @@ export default function AdminProfilePage() {
     // Simulate saving
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // In a real app, you would upload the new avatar if it changed
+    // and then save the new profile data.
+    mockAdminProfile.fullName = fullName;
+    mockAdminProfile.displayName = displayName;
+    mockAdminProfile.avatarUrl = avatarUrl;
+    
     toast({ title: "Perfil de Admin Atualizado (Simulação)", description: "Suas informações de perfil foram salvas com sucesso." });
     
     setIsSavingProfile(false);
+  };
+  
+  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const result = event.target?.result;
+            if (typeof result === 'string') {
+                setAvatarUrl(result);
+            }
+        };
+        reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -68,7 +87,8 @@ export default function AdminProfilePage() {
                 <AvatarImage src={avatarUrl} alt={displayName || "Avatar"} data-ai-hint="admin avatar" />
                 <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
-              <Button type="button" variant="outline" disabled>Mudar Foto</Button>
+              <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>Mudar Foto</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -85,13 +105,6 @@ export default function AdminProfilePage() {
                 <Label htmlFor="email">Endereço de Email</Label>
                 <Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" />
                 <p className="text-xs text-muted-foreground mt-1">O email não pode ser alterado.</p>
-              </div>
-              <div>
-                <Label htmlFor="phone">Telefone</Label>
-                 <div className="relative">
-                    <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
-                </div>
               </div>
             </div>
           </CardContent>
