@@ -1,7 +1,7 @@
 // src/app/(admin)/admin/dashboard/page.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LayoutDashboard, Users, Percent, Share2, Star, TrendingUp } from "lucide-react";
@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Bar, BarChart as BarChartRecharts, Line, LineChart as LineChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Pie, PieChart as PieChartRecharts, Cell } from "recharts";
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const newUsersData = [
   { month: "Jan", users: 150, free: 130, paid: 20 }, 
@@ -31,6 +32,7 @@ const shareDistributionData = [
 ];
 
 export default function AdminDashboardPage() {
+  const isMobile = useIsMobile();
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({
@@ -62,6 +64,24 @@ export default function AdminDashboardPage() {
     }
 
   }, []);
+  
+  const renderResponsivePieLabel = (props: any) => {
+    const { cx, cy, midAngle, outerRadius, percent, name } = props;
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius * (isMobile ? 1.1 : 1.2);
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    const textAnchor = x > cx ? 'start' : 'end';
+
+    const label = isMobile ? `${(percent * 100).toFixed(0)}%` : `${name} (${(percent * 100).toFixed(0)}%)`;
+
+    return (
+      <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor={textAnchor} dominantBaseline="central" className="text-xs">
+        {label}
+      </text>
+    );
+  };
+
 
   return (
     <div className="space-y-8">
@@ -146,15 +166,16 @@ export default function AdminDashboardPage() {
               <CardDescription>Proporção de módulos compartilhados por tipo de usuário.</CardDescription>
             </CardHeader>
             <CardContent className="h-80 flex justify-center">
-                <ChartContainer config={{}} className="w-full max-w-xs h-full">
+              <ChartContainer config={{}} className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChartRecharts>
                         <RechartsTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
-                        <Pie data={shareDistributionData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} >
+                        <Pie data={shareDistributionData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={isMobile ? 70 : 90} labelLine={false} label={renderResponsivePieLabel}>
                             {shareDistributionData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                             ))}
                         </Pie>
+                         <ChartLegend content={<ChartLegendContent />} />
                     </PieChartRecharts>
                 </ResponsiveContainer>
               </ChartContainer>
