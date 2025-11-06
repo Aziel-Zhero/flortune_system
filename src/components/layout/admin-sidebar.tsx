@@ -23,6 +23,8 @@ import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PrivateValue } from "../shared/private-value";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Button } from "../ui/button";
+import { useAppSettings } from "@/contexts/app-settings-context";
 
 const getIcon = (iconName?: string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;
@@ -44,6 +46,7 @@ const totalRevenue = 25340.50;
 export function AdminSidebar() {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
+  const { isPrivateMode, togglePrivateMode } = useAppSettings();
   
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -72,7 +75,7 @@ export function AdminSidebar() {
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
-          <Link href="/admin/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+          <Link href="/admin/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
             <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
                 <AvatarImage src={mockAdmin.avatarUrl} alt={mockAdmin.displayName} data-ai-hint="admin avatar"/>
                 <AvatarFallback>{mockAdmin.avatarFallback}</AvatarFallback>
@@ -96,14 +99,26 @@ export function AdminSidebar() {
               <TooltipContent side="right" align="center">
                 <p className="font-semibold">Receita Mensal</p>
                 <p><PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} /></p>
+                <p className="text-xs mt-1">({isPrivateMode ? "Modo privado ativo" : "Modo privado inativo"})</p>
               </TooltipContent>
             </Tooltip>
           </div>
           <div className="flex flex-col rounded-md bg-sidebar-accent/50 p-3 group-data-[collapsible=icon]:hidden">
              <span className="text-xs text-sidebar-accent-foreground/80">Receita Mensal</span>
-              <span className="font-bold text-lg text-sidebar-accent-foreground">
-                  <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
-              </span>
+             <div className="flex items-center justify-between">
+                <span className="font-bold text-lg text-sidebar-accent-foreground">
+                    <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
+                </span>
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={togglePrivateMode}
+                    aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
+                    className={cn("h-7 w-7 text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50", isPrivateMode && "text-accent hover:text-accent/90")}
+                  >
+                    {isPrivateMode ? <LucideIcons.EyeOff className="h-4 w-4" /> : <LucideIcons.Eye className="h-4 w-4" />}
+                  </Button>
+             </div>
           </div>
         </div>
 
@@ -128,7 +143,7 @@ export function AdminSidebar() {
                   const IconComponent = getIcon(item.icon);
                   const isActive = pathname === item.href;
                   return (
-                    <SidebarMenuItem key={item.href || `item-${index}`}>
+                    <SidebarMenuItem key={item.key || item.href || `item-${index}`}>
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}

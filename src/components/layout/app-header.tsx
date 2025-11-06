@@ -51,15 +51,17 @@ export function AppHeader() {
             </form>
           )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={togglePrivateMode}
-            aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
-            className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
-          >
-            {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-          </Button>
+          {!isAdminArea && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={togglePrivateMode}
+              aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
+              className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
+            >
+              {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </Button>
+          )}
           
           <Button variant="ghost" size="icon" className="h-9 w-9">
             <Bell className="h-5 w-5" />

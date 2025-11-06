@@ -36,22 +36,22 @@ export const NAV_LINKS_CONFIG = [
 ] as const;
 
 export const ADMIN_NAV_LINKS_CONFIG = [
-  { href: "/dashboard-admin", label: "Home", icon: "Home" as const, type: "link" as const },
-  { href: "/admin/dashboard", label: "Dashboard", icon: "LayoutDashboard" as const, type: "link" as const },
-  { type: "title" as const, label: "Gestão de Conteúdo"},
-  { href: "/admin/marketplace", label: "Produtos", icon: "Store" as const, type: "link" as const },
-  { href: "/admin/lp", label: "LP", icon: "FileText" as const, type: "link" as const },
-  { type: "title" as const, label: "Engajamento & Conversão"},
-  { href: "/admin/marketing/dashboard", label: "Painel NPS", icon: "Heart" as const, type: "link" as const },
-  { href: "/admin/leads", label: "Leads", icon: "Users" as const, type: "link" as const },
-  { href: "/admin/campaigns", label: "Campanhas", icon: "ShoppingBag" as const, type: "link" as const },
-  { href: "/admin/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
+  { href: "/dashboard-admin", label: "Home", icon: "Home" as const, type: "link" as const, key: "admin-home" },
+  { href: "/admin/dashboard", label: "Dashboard", icon: "LayoutDashboard" as const, type: "link" as const, key: "admin-dashboard" },
+  { type: "title" as const, label: "Gestão de Conteúdo", key: "admin-title-content" },
+  { href: "/admin/marketplace", label: "Produtos", icon: "Store" as const, type: "link" as const, key: "admin-marketplace" },
+  { href: "/admin/lp", label: "LP", icon: "FileText" as const, type: "link" as const, key: "admin-lp" },
+  { type: "title" as const, label: "Engajamento & Conversão", key: "admin-title-engagement" },
+  { href: "/admin/marketing/dashboard", label: "Painel NPS", icon: "Heart" as const, type: "link" as const, key: "admin-nps" },
+  { href: "/admin/leads", label: "Leads", icon: "Users" as const, type: "link" as const, key: "admin-leads" },
+  { href: "/admin/campaigns", label: "Campanhas", icon: "ShoppingBag" as const, type: "link" as const, key: "admin-campaigns" },
+  { href: "/admin/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const, key: "admin-forms" },
   { type: "separator" as const, key: "sep-admin-integ" },
-  { type: "title" as const, label: "Integração" },
-  { href: "/admin/apis", label: "API's", icon: "Code" as const, type: "link" as const },
-  { href: "/admin/telegram", label: "Telegram", icon: "Send" as const, type: "link" as const },
-  { href: "/admin/whatsapp", label: "Whatsapp (WAHA)", icon: "Bot" as const, type: "link" as const },
-  { href: "/admin/whatsapp-official", label: "WhatsApp (Oficial)", icon: "CheckCircle" as const, type: "link" as const },
+  { type: "title" as const, label: "Integração", key: "admin-title-integration" },
+  { href: "/admin/apis", label: "API's", icon: "Code" as const, type: "link" as const, key: "admin-apis" },
+  { href: "/admin/telegram", label: "Telegram", icon: "Send" as const, type: "link" as const, key: "admin-telegram" },
+  { href: "/admin/whatsapp", label: "Whatsapp (WAHA)", icon: "Bot" as const, type: "link" as const, key: "admin-waha" },
+  { href: "/admin/whatsapp-official", label: "WhatsApp (Oficial)", icon: "CheckCircle" as const, type: "link" as const, key: "admin-whatsapp-official" },
 ];
 
 
