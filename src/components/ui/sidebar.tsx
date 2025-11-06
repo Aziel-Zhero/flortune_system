@@ -323,7 +323,7 @@ const SidebarRail = React.forwardRef<
         )}
         {...props}
       >
-        <div className="absolute top-1/2 -translate-y-1/2 left-1 -translate-x-1/2 opacity-0 group-hover/sidebar-wrapper:opacity-100 transition-opacity bg-muted/80 text-muted-foreground border rounded-full p-0.5">
+        <div className="absolute top-1/2 -translate-y-1/2 left-1 opacity-0 group-hover/sidebar-wrapper:opacity-100 transition-opacity bg-muted/80 text-muted-foreground border rounded-full p-0.5">
           {open ? <PanelLeft className="size-3" /> : <PanelRight className="size-3" />}
         </div>
       </TooltipTrigger>

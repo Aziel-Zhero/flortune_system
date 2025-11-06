@@ -116,7 +116,7 @@ export function AdminSidebar() {
         </div>
 
         {/* Botão de recolher/expandir abaixo da receita */}
-        <div className="px-3 mt-2 flex justify-end group-data-[collapsible=icon]:hidden">
+        <div className="px-3 mt-2 flex justify-end group-data-[collapsible=icon]:justify-center">
            <SidebarTrigger />
         </div>
 
