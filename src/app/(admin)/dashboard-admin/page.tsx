@@ -1,22 +1,22 @@
 // src/app/(admin)/dashboard-admin/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Briefcase, Code, Star, Home, DollarSign, PieChart as PieChartIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, Briefcase, Code, Star, Home, PieChart as PieChartIcon, TrendingUp, TrendingDown, Megaphone } from "lucide-react";
 import { motion } from "framer-motion";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Pie, PieChart as PieChartRecharts, ResponsiveContainer, Cell } from "recharts";
-import { PrivateValue } from "@/components/shared/private-value";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const cardData = [
-  { title: "Total de Usuários", value: "1,250", icon: Users },
-  { title: "Usuários Gratuitos", value: "1,100", icon: Users },
-  { title: "Usuários Pagantes", value: "150", icon: Star },
-  { title: "Assinantes (DEV)", value: "45", icon: Code },
-  { title: "Assinantes (Corporativo)", value: "12", icon: Briefcase },
+  { title: "Usuários Totais", value: "1.250", icon: Users, trend: "+5.2%", trend_color: "text-emerald-500" },
+  { title: "Gratuitos", value: "1.100", icon: Users, trend: "+5.8%", trend_color: "text-emerald-500" },
+  { title: "Assinantes (Mestre)", value: "93", icon: Star, trend: "+2.1%", trend_color: "text-emerald-500" },
+  { title: "Assinantes (DEV)", value: "45", icon: Code, trend: "-1.2%", trend_color: "text-destructive" },
+  { title: "Assinantes (Corp.)", value: "12", icon: Briefcase, trend: "+4.5%", trend_color: "text-emerald-500" },
+  { title: "Origem de Campanhas", value: "28", icon: Megaphone, trend: "+10%", trend_color: "text-emerald-500" },
 ];
 
 const userDistributionData = [
@@ -39,7 +39,7 @@ export default function AdminDashboardPage() {
   };
 
   const renderCustomizedLabel = (props: any) => {
-    const { cx, cy, midAngle, outerRadius, percent, index, name } = props;
+    const { cx, cy, midAngle, outerRadius, percent, name } = props;
     const RADIAN = Math.PI / 180;
     const radius = outerRadius * 1.15;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
         icon={<Home />}
         description="Visão geral e métricas chave do Flortune Workspace."
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
         {cardData.map((card, index) => (
           <motion.div
             key={card.title}
@@ -72,13 +72,16 @@ export default function AdminDashboardPage() {
             initial="hidden"
             animate="visible"
           >
-            <Card>
+            <Card className="h-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
                 <card.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{card.value}</div>
+                 <p className={`text-xs ${card.trend_color}`}>
+                    {card.trend} vs. mês anterior
+                 </p>
               </CardContent>
             </Card>
           </motion.div>
@@ -90,7 +93,6 @@ export default function AdminDashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><PieChartIcon /> Distribuição de Usuários</CardTitle>
-                <CardDescription>Proporção de usuários por tipo de plano.</CardDescription>
               </CardHeader>
               <CardContent className="h-[22rem] flex flex-col items-center justify-center">
                   <ChartContainer config={{}} className="w-full h-full">
@@ -103,15 +105,16 @@ export default function AdminDashboardPage() {
                               nameKey="name"
                               cx="50%"
                               cy="50%"
-                              innerRadius={60}
-                              outerRadius={90}
-                              labelLine={false}
-                              label={renderCustomizedLabel}
+                              innerRadius={isMobile ? 40 : 60}
+                              outerRadius={isMobile ? 70 : 90}
+                              labelLine={!isMobile}
+                              label={isMobile ? false : renderCustomizedLabel}
                             >
                                 {userDistributionData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
                             </Pie>
+                             {isMobile && <ChartLegend content={<ChartLegendContent />} />}
                         </PieChartRecharts>
                     </ResponsiveContainer>
                 </ChartContainer>
