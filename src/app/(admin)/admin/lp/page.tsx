@@ -114,8 +114,8 @@ export default function LPEditorPage() {
   const handleNotifyPopup = (popupKey: PopupType) => {
     const config = popupConfigs[popupKey];
     toast({
-      title: `Notificando sobre: ${config.title}`,
-      description: "Uma notificação seria enviada para os usuários sobre este pop-up.",
+      title: `Notificação de Teste: ${config.title}`,
+      description: "Esta é uma simulação de como a notificação apareceria para os usuários.",
     });
   };
 
@@ -253,7 +253,7 @@ export default function LPEditorPage() {
                                         </Select>
                                     </div>
                                     <Button variant="secondary" onClick={() => setPreviewPopup(popupKey)}><Eye className="mr-2 h-4 w-4"/> Visualizar</Button>
-                                    <Button variant="secondary" onClick={() => handleNotifyPopup(popupKey)}><Send className="mr-2 h-4 w-4"/> Notificar</Button>
+                                    <Button variant="secondary" onClick={() => handleNotifyPopup(popupKey)}><Send className="mr-2 h-4 w-4"/> Testar Notificação</Button>
                                 </div>
                               </div>
                           </TabsContent>
