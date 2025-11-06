@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
 
 export function AppHeader() {
   const { isPrivateMode, togglePrivateMode } = useAppSettings();
@@ -50,20 +51,13 @@ export function AppHeader() {
               </div>
             </form>
           )}
-
-          {!isAdminArea && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={togglePrivateMode}
-              aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
-              className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
-            >
-              {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            </Button>
-          )}
           
-          <Button variant="ghost" size="icon" className="h-9 w-9">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-9 w-9"
+            onClick={() => toast({ title: 'Notificações', description: 'Nenhuma nova notificação no momento.'})}
+          >
             <Bell className="h-5 w-5" />
             <span className="sr-only">Notificações</span>
           </Button>
