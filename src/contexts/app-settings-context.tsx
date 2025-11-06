@@ -6,6 +6,7 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import type { QuoteData } from '@/services/quote.service';
+import { usePathname } from 'next/navigation';
 
 // --- Tipos ---
 
@@ -122,6 +123,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [popupConfigs, setPopupConfigs] = useState<Record<PopupType, PopupConfig>>(defaultPopupConfigs);
   const [activePopup, setActivePopupState] = useState<PopupType | null>(null);
 
+  const pathname = usePathname();
+  const isAdminArea = pathname.startsWith('/admin') || pathname.startsWith('/dashboard-admin');
 
   const loadQuotes = useCallback(async (quoteList: string[]) => {
     setIsLoadingQuotes(true);
@@ -261,15 +264,24 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setIsDarkMode(darkModeEnabled);
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       applyTheme(storedTheme);
-      const storedCity = localStorage.getItem('flortune-weather-city');
-      if (storedCity) {
-        setWeatherCityState(storedCity);
-        loadWeatherForCity(storedCity);
+      
+      // Conditionally load data based on route
+      if (!isAdminArea) {
+        const storedCity = localStorage.getItem('flortune-weather-city');
+        if (storedCity) {
+          setWeatherCityState(storedCity);
+          loadWeatherForCity(storedCity);
+        }
+        const storedQuotes = localStorage.getItem('flortune-selected-quotes');
+        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
+        setSelectedQuotesState(initialQuotes);
+        loadQuotes(initialQuotes);
+      } else {
+        // Ensure data is cleared/not loaded for admin area
+        setIsLoadingQuotes(false);
+        setIsLoadingWeather(false);
       }
-      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
-      setSelectedQuotesState(initialQuotes);
-      loadQuotes(initialQuotes);
+
       const storedCampaign = localStorage.getItem('flortune-active-campaign');
       if (storedCampaign) setActiveCampaignThemeState(storedCampaign as CampaignTheme);
       const storedLpContent = localStorage.getItem('flortune-lp-content');
@@ -282,7 +294,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }
-  }, [applyTheme, loadWeatherForCity, loadQuotes]);
+  }, [applyTheme, loadWeatherForCity, loadQuotes, isAdminArea]);
 
   return (
     <AppSettingsContext.Provider value={{ 
