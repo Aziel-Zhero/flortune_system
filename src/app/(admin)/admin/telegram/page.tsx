@@ -53,6 +53,19 @@ export default function TelegramPage() {
       [name]: value,
     }));
   };
+  
+  const handleTestSend = (template: string) => {
+    // Simula a substituição de variáveis e o envio
+    const sampleMessage = template
+        .replace('{userName}', 'Alex Green')
+        .replace('{planName}', 'Mestre Jardineiro')
+        .replace('{revenueValue}', 'R$ 10.000,00');
+
+    toast({
+        title: "Simulando Envio para o Telegram",
+        description: <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4"><code className="text-white whitespace-pre-wrap">{sampleMessage}</code></pre>
+    })
+  }
 
   return (
     <div className="space-y-8">
@@ -128,37 +141,55 @@ export default function TelegramPage() {
         <CardContent className="space-y-6">
             <div className="space-y-2">
                 <Label htmlFor="msg-new-subscriber">Notificação de Novo Assinante</Label>
-                <Textarea 
-                    id="msg-new-subscriber" 
-                    name="newSubscriber"
-                    value={messageTemplates.newSubscriber}
-                    onChange={handleTemplateChange}
-                    rows={3} 
-                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Textarea 
+                      id="msg-new-subscriber" 
+                      name="newSubscriber"
+                      value={messageTemplates.newSubscriber}
+                      onChange={handleTemplateChange}
+                      rows={3} 
+                      className="flex-grow"
+                  />
+                  <Button variant="outline" onClick={() => handleTestSend(messageTemplates.newSubscriber)} className="w-full sm:w-auto">
+                    <Send className="mr-2 h-4 w-4" /> Testar Envio
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">Variáveis disponíveis: <code>{'{userName}'}</code>, <code>{'{planName}'}</code></p>
             </div>
             <div className="space-y-2 opacity-50">
                 <Label htmlFor="msg-payment-failed">Notificação de Falha de Pagamento</Label>
-                <Textarea 
-                    id="msg-payment-failed" 
-                    name="paymentFailed"
-                    value={messageTemplates.paymentFailed}
-                    onChange={handleTemplateChange}
-                    rows={3} 
-                    disabled
-                />
+                 <div className="flex flex-col sm:flex-row gap-2">
+                    <Textarea 
+                        id="msg-payment-failed" 
+                        name="paymentFailed"
+                        value={messageTemplates.paymentFailed}
+                        onChange={handleTemplateChange}
+                        rows={3} 
+                        disabled
+                        className="flex-grow"
+                    />
+                    <Button variant="outline" disabled className="w-full sm:w-auto">
+                        <Send className="mr-2 h-4 w-4" /> Testar Envio
+                    </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">Variáveis disponíveis: <code>{'{userName}'}</code>, <code>{'{planName}'}</code>, <code>{'{invoiceValue}'}</code> (Em breve)</p>
             </div>
              <div className="space-y-2 opacity-50">
                 <Label htmlFor="msg-revenue-goal">Notificação de Meta de Faturamento</Label>
-                <Textarea 
-                    id="msg-revenue-goal" 
-                    name="revenueGoalMet"
-                    value={messageTemplates.revenueGoalMet}
-                    onChange={handleTemplateChange}
-                    rows={3} 
-                    disabled
-                />
+                 <div className="flex flex-col sm:flex-row gap-2">
+                    <Textarea 
+                        id="msg-revenue-goal" 
+                        name="revenueGoalMet"
+                        value={messageTemplates.revenueGoalMet}
+                        onChange={handleTemplateChange}
+                        rows={3} 
+                        disabled
+                        className="flex-grow"
+                    />
+                    <Button variant="outline" disabled className="w-full sm:w-auto">
+                        <Send className="mr-2 h-4 w-4" /> Testar Envio
+                    </Button>
+                 </div>
                 <p className="text-xs text-muted-foreground">Variáveis disponíveis: <code>{'{revenueValue}'}</code>, <code>{'{goalName}'}</code> (Em breve)</p>
             </div>
         </CardContent>
