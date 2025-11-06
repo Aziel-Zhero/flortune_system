@@ -291,7 +291,7 @@ export default function LPEditorPage() {
                                         </Select>
                                     </div>
                                     <Button variant="secondary" onClick={() => setPreviewPopup(popupKey)}><Eye className="mr-2 h-4 w-4"/> Visualizar</Button>
-                                    <Button variant="secondary" className="hover:bg-amber-100/80 dark:hover:bg-amber-900/50" onClick={() => handleNotifyPopup(popupKey)}><Send className="mr-2 h-4 w-4"/> Testar Notificação</Button>
+                                    <Button variant="secondary" onClick={() => handleNotifyPopup(popupKey)}><Send className="mr-2 h-4 w-4"/> Testar Notificação</Button>
                                 </div>
                               </div>
                           </TabsContent>
