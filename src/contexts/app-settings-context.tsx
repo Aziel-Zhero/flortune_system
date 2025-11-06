@@ -19,6 +19,7 @@ export interface Notification {
   read: boolean;
   createdAt: Date;
   icon?: React.ElementType;
+  color?: 'primary' | 'destructive' | 'amber' | 'blue';
 }
 
 interface WeatherData {
@@ -36,6 +37,10 @@ export interface PopupConfig {
   description: string;
   icon: string;
   color: 'primary' | 'destructive' | 'amber' | 'blue';
+  startDate?: Date;
+  endDate?: Date;
+  frequencyValue?: number;
+  frequencyUnit?: 'horas' | 'dias';
 }
 
 export interface LandingPageContent {
@@ -115,9 +120,9 @@ const defaultLpContent: LandingPageContent = {
 };
 
 const defaultPopupConfigs: Record<PopupType, PopupConfig> = {
-  maintenance: { title: "Manutenção Agendada", description: "Estaremos realizando uma manutenção no sistema no próximo domingo das 02:00 às 04:00. O sistema poderá ficar indisponível.", icon: "Construction", color: "amber" },
-  promotion: { title: "Oferta Especial!", description: "Assine o plano Mestre Jardineiro hoje e ganhe 30% de desconto nos primeiros 3 meses!", icon: "Ticket", color: "primary" },
-  newsletter: { title: "Assine nossa Newsletter", description: "Receba dicas semanais de finanças e produtividade diretamente no seu email.", icon: "Newspaper", color: "blue" },
+  maintenance: { title: "Manutenção Agendada", description: "Estaremos realizando uma manutenção no sistema no próximo domingo das 02:00 às 04:00. O sistema poderá ficar indisponível.", icon: "Construction", color: "amber", frequencyValue: 2, frequencyUnit: 'horas' },
+  promotion: { title: "Oferta Especial!", description: "Assine o plano Mestre Jardineiro hoje e ganhe 30% de desconto nos primeiros 3 meses!", icon: "Ticket", color: "primary", frequencyValue: 1, frequencyUnit: 'dias' },
+  newsletter: { title: "Assine nossa Newsletter", description: "Receba dicas semanais de finanças e produtividade diretamente no seu email.", icon: "Newspaper", color: "blue", frequencyValue: 3, frequencyUnit: 'dias' },
 }
 
 // --- Provedor ---
@@ -277,8 +282,19 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [landingPageContent]);
   
   useEffect(() => {
-    localStorage.setItem('flortune-popup-configs', JSON.stringify(popupConfigs));
+    try {
+      const storedPopupConfigs = JSON.parse(localStorage.getItem('flortune-popup-configs') || '{}');
+      const mergedConfigs = { ...defaultPopupConfigs, ...storedPopupConfigs };
+      // Dates are stored as strings, need to convert back to Date objects
+      Object.keys(mergedConfigs).forEach(key => {
+        const k = key as PopupType;
+        if(mergedConfigs[k].startDate) mergedConfigs[k].startDate = new Date(mergedConfigs[k].startDate as any);
+        if(mergedConfigs[k].endDate) mergedConfigs[k].endDate = new Date(mergedConfigs[k].endDate as any);
+      })
+      localStorage.setItem('flortune-popup-configs', JSON.stringify(mergedConfigs));
+    } catch(e) { console.error("Error merging popup configs", e) }
   }, [popupConfigs]);
+
 
   useEffect(() => {
     document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'theme-aniversario');
@@ -331,8 +347,18 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       if (storedLpContent) setLandingPageContent(JSON.parse(storedLpContent));
       const storedPopup = localStorage.getItem('flortune-active-popup');
       if (storedPopup) setActivePopupState(storedPopup as PopupType);
+      
       const storedPopupConfigs = localStorage.getItem('flortune-popup-configs');
-      if (storedPopupConfigs) setPopupConfigs(JSON.parse(storedPopupConfigs));
+      if (storedPopupConfigs) {
+        const parsedConfigs = JSON.parse(storedPopupConfigs);
+        // Dates are stored as strings, need to convert back to Date objects
+        Object.keys(parsedConfigs).forEach(key => {
+            const k = key as PopupType;
+            if(parsedConfigs[k].startDate) parsedConfigs[k].startDate = new Date(parsedConfigs[k].startDate);
+            if(parsedConfigs[k].endDate) parsedConfigs[k].endDate = new Date(parsedConfigs[k].endDate);
+        });
+        setPopupConfigs(parsedConfigs);
+      }
       
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);

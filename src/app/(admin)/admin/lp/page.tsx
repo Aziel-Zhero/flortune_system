@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload, Send } from "lucide-react";
+import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload, Send, CalendarIcon, Clock } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
@@ -21,6 +21,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { MaintenancePopup } from "@/components/popups/maintenance-popup";
 import { PromotionPopup } from "@/components/popups/promotion-popup";
 import { NewsletterPopup } from "@/components/popups/newsletter-popup";
+import { DateRange } from "react-day-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 
 const iconOptions = [
@@ -89,7 +93,7 @@ export default function LPEditorPage() {
     }
   };
 
-  const handlePopupConfigChange = (popup: PopupType, field: string, value: string) => {
+  const handlePopupConfigChange = (popup: PopupType, field: string, value: any) => {
     if (!popup) return;
     setPopupConfigs(prev => ({
         ...prev,
@@ -118,6 +122,7 @@ export default function LPEditorPage() {
         title: `Teste: ${config.title}`,
         description: `Esta é uma notificação de teste para o pop-up de ${config.title.toLowerCase()}.`,
         icon: getLucideIcon(config.icon),
+        color: config.color,
     });
     toast({
       title: "Notificação de Teste Enviada",
@@ -250,6 +255,33 @@ export default function LPEditorPage() {
                                     <Label htmlFor={`${popupKey}-description`}>Descrição</Label>
                                     <Textarea id={`${popupKey}-description`} value={config.description} onChange={(e) => handlePopupConfigChange(popupKey, 'description', e.target.value)} rows={3} />
                                 </div>
+
+                                <div className="space-y-2 p-4 border rounded-md">
+                                  <Label className="font-semibold">Agendamento de Exibição</Label>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      <div>
+                                          <Label htmlFor={`${popupKey}-date-range`}>Período de Validade</Label>
+                                           <Popover>
+                                              <PopoverTrigger asChild>
+                                                <Button id={`${popupKey}-date-range`} variant="outline" className={cn("w-full justify-start text-left font-normal", !config.startDate && !config.endDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4"/>{config.startDate && config.endDate ? <>{format(config.startDate, "dd/MM/yy")} - {format(config.endDate, "dd/MM/yy")}</> : <span>Defina um período</span>}</Button>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" selected={{from: config.startDate, to: config.endDate}} onSelect={(range) => { handlePopupConfigChange(popupKey, 'startDate', range?.from); handlePopupConfigChange(popupKey, 'endDate', range?.to); }}/></PopoverContent>
+                                          </Popover>
+                                      </div>
+                                      <div className="flex items-end gap-2">
+                                          <div className="flex-1 space-y-2">
+                                            <Label htmlFor={`${popupKey}-freq-val`}>Frequência</Label>
+                                            <Input id={`${popupKey}-freq-val`} type="number" value={config.frequencyValue || ''} onChange={(e) => handlePopupConfigChange(popupKey, 'frequencyValue', e.target.valueAsNumber)} placeholder="Ex: 2" />
+                                          </div>
+                                           <Select value={config.frequencyUnit || 'horas'} onValueChange={(v) => handlePopupConfigChange(popupKey, 'frequencyUnit', v)}>
+                                              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                                              <SelectContent><SelectItem value="horas">Horas</SelectItem><SelectItem value="dias">Dias</SelectItem></SelectContent>
+                                           </Select>
+                                      </div>
+                                  </div>
+                                   <p className="text-xs text-muted-foreground">O pop-up será exibido para o usuário na frequência definida, somente durante o período de validade.</p>
+                                </div>
+                                
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
                                     <div className="space-y-2">
                                         <Label htmlFor={`${popupKey}-color`}>Cor de Destaque</Label>
@@ -259,7 +291,7 @@ export default function LPEditorPage() {
                                         </Select>
                                     </div>
                                     <Button variant="secondary" onClick={() => setPreviewPopup(popupKey)}><Eye className="mr-2 h-4 w-4"/> Visualizar</Button>
-                                    <Button variant="secondary" onClick={() => handleNotifyPopup(popupKey)}><Send className="mr-2 h-4 w-4"/> Testar Notificação</Button>
+                                    <Button variant="secondary" className="hover:bg-amber-100/80 dark:hover:bg-amber-900/50" onClick={() => handleNotifyPopup(popupKey)}><Send className="mr-2 h-4 w-4"/> Testar Notificação</Button>
                                 </div>
                               </div>
                           </TabsContent>

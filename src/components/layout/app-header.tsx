@@ -18,6 +18,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const iconColorClasses = {
+  primary: "text-primary",
+  destructive: "text-destructive",
+  amber: "text-amber-500",
+  blue: "text-blue-500",
+};
+
 export function AppHeader() {
   const { 
     isPrivateMode, 
@@ -103,10 +110,11 @@ export function AppHeader() {
                 {notifications.length > 0 ? (
                   notifications.map(n => {
                     const Icon = n.icon || BellRing;
+                    const colorClass = n.color ? iconColorClasses[n.color] : 'text-primary';
                     return (
                       <DropdownMenuItem key={n.id} className="flex items-start gap-2 cursor-pointer" onSelect={() => markNotificationAsRead(n.id)}>
                         {!n.read && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary" />}
-                        <Icon className={cn("h-4 w-4 mt-1", n.read ? "text-muted-foreground" : "")}/>
+                        <Icon className={cn("h-4 w-4 mt-1", n.read ? "text-muted-foreground" : colorClass)}/>
                         <div className="flex-1">
                            <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
                            <p className="text-xs text-muted-foreground">{n.description}</p>
