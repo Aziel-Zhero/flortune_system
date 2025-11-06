@@ -10,6 +10,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { Bar, BarChart as BarChartRecharts, Line, LineChart as LineChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Pie, PieChart as PieChartRecharts, Cell } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { PieSectorDataItem } from "recharts/types/polar/Pie";
 
 const newUsersData = [
   { month: "Jan", users: 150, free: 130, paid: 20 }, 
@@ -65,8 +66,8 @@ export default function AdminDashboardPage() {
 
   }, []);
   
-  const renderResponsivePieLabel = (props: any) => {
-    const { cx, cy, midAngle, outerRadius, percent, name } = props;
+  const renderResponsivePieLabel = (props: PieSectorDataItem) => {
+    const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, percent = 0, name = '' } = props;
     const RADIAN = Math.PI / 180;
     const radius = outerRadius * (isMobile ? 1.1 : 1.2);
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -132,7 +133,6 @@ export default function AdminDashboardPage() {
                     <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8}/>
                     <YAxis />
                     <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
                     <Bar dataKey="free" fill="hsl(var(--chart-2))" radius={4} stackId="a" />
                     <Bar dataKey="paid" fill="hsl(var(--chart-1))" radius={4} stackId="a" />
                   </BarChartRecharts>
@@ -175,7 +175,6 @@ export default function AdminDashboardPage() {
                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                             ))}
                         </Pie>
-                         <ChartLegend content={<ChartLegendContent />} />
                     </PieChartRecharts>
                 </ResponsiveContainer>
               </ChartContainer>
