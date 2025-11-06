@@ -83,6 +83,9 @@ export function AdminSidebar() {
         <SidebarContent className="p-2">
           <SidebarMenu>
             {ADMIN_NAV_LINKS_CONFIG.map((item, index) => {
+                  if (item.type === "separator") {
+                    return <Separator key={`sep-${index}`} className="my-2 mx-2 group-data-[collapsible=icon]:hidden" />;
+                  }
                   if (item.type === "title") {
                     return (
                       <div 
