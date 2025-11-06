@@ -1,4 +1,3 @@
-
 // src/components/layout/admin-sidebar.tsx
 "use client"
 
@@ -73,6 +72,7 @@ export function AdminSidebar() {
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{`${APP_NAME} WS`}</span>
                 </Link>
             </div>
+             <SidebarTrigger className="h-7 w-7 mt-1" />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
@@ -163,10 +163,8 @@ export function AdminSidebar() {
           </SidebarMenu>
         </SidebarContent>
 
-        <SidebarFooter className="p-2">
-          <div className="flex justify-end group-data-[collapsible=icon]:justify-center">
-            <SidebarTrigger className="h-8 w-8" />
-          </div>
+        <SidebarFooter className="p-2 mt-auto">
+          {/* O SidebarTrigger foi movido para o header */}
         </SidebarFooter>
     </Sidebar>
   );
