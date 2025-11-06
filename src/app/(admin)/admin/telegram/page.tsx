@@ -7,24 +7,51 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Bot, Send, Save, KeyRound } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import Image from 'next/image';
 
+interface MessageTemplates {
+  newSubscriber: string;
+  paymentFailed: string;
+  revenueGoalMet: string;
+}
+
 export default function TelegramPage() {
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
+  const [messageTemplates, setMessageTemplates] = useState<MessageTemplates>({
+    newSubscriber: "🎉 Novo assinante! O usuário {userName} acabou de assinar o plano {planName}. Parabéns!",
+    paymentFailed: "⚠️ Falha de pagamento para o usuário {userName} no plano {planName}. Ação necessária.",
+    revenueGoalMet: "🚀 Meta de faturamento atingida! A receita mensal alcançou {revenueValue}.",
+  });
 
   useEffect(() => {
     document.title = `Integração Telegram - ${APP_NAME}`;
   }, []);
 
-  const handleSave = () => {
+  const handleSaveCredentials = () => {
     toast({
       title: "Configuração Salva (Simulação)",
       description: "As credenciais do bot do Telegram foram salvas com sucesso."
     });
+  };
+
+  const handleSaveMessages = () => {
+    toast({
+      title: "Mensagens Salvas (Simulação)",
+      description: "Os modelos de mensagem foram salvos com sucesso."
+    });
+  };
+
+  const handleTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setMessageTemplates(prev => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   return (
@@ -69,7 +96,7 @@ export default function TelegramPage() {
 
           <div>
             <h3 className="font-semibold mb-2">Passo 3: Configure as Credenciais</h3>
-            <div className="space-y-4">
+            <div className="space-y-4 p-4 border rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor="botToken">Token de API do Bot</Label>
                 <div className="relative">
@@ -84,14 +111,62 @@ export default function TelegramPage() {
                    <Input id="chatId" placeholder="Cole seu Chat ID aqui" value={chatId} onChange={(e) => setChatId(e.target.value)} className="pl-10"/>
                 </div>
               </div>
+               <Button onClick={handleSaveCredentials}>
+                <Save className="mr-2 h-4 w-4" />
+                Salvar Credenciais
+              </Button>
             </div>
           </div>
         </CardContent>
+      </Card>
+      
+       <Card className="shadow-lg">
+        <CardHeader>
+            <CardTitle className="font-headline">Mensagens Automáticas</CardTitle>
+            <CardDescription>Personalize o texto que a Hana enviará para cada tipo de notificação.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="space-y-2">
+                <Label htmlFor="msg-new-subscriber">Notificação de Novo Assinante</Label>
+                <Textarea 
+                    id="msg-new-subscriber" 
+                    name="newSubscriber"
+                    value={messageTemplates.newSubscriber}
+                    onChange={handleTemplateChange}
+                    rows={3} 
+                />
+                <p className="text-xs text-muted-foreground">Variáveis disponíveis: <code>{'{userName}'}</code>, <code>{'{planName}'}</code></p>
+            </div>
+            <div className="space-y-2 opacity-50">
+                <Label htmlFor="msg-payment-failed">Notificação de Falha de Pagamento</Label>
+                <Textarea 
+                    id="msg-payment-failed" 
+                    name="paymentFailed"
+                    value={messageTemplates.paymentFailed}
+                    onChange={handleTemplateChange}
+                    rows={3} 
+                    disabled
+                />
+                <p className="text-xs text-muted-foreground">Variáveis disponíveis: <code>{'{userName}'}</code>, <code>{'{planName}'}</code>, <code>{'{invoiceValue}'}</code> (Em breve)</p>
+            </div>
+             <div className="space-y-2 opacity-50">
+                <Label htmlFor="msg-revenue-goal">Notificação de Meta de Faturamento</Label>
+                <Textarea 
+                    id="msg-revenue-goal" 
+                    name="revenueGoalMet"
+                    value={messageTemplates.revenueGoalMet}
+                    onChange={handleTemplateChange}
+                    rows={3} 
+                    disabled
+                />
+                <p className="text-xs text-muted-foreground">Variáveis disponíveis: <code>{'{revenueValue}'}</code>, <code>{'{goalName}'}</code> (Em breve)</p>
+            </div>
+        </CardContent>
         <CardFooter>
-          <Button onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
-            Salvar e Ativar Integração
-          </Button>
+            <Button onClick={handleSaveMessages}>
+              <Save className="mr-2 h-4 w-4" />
+              Salvar Mensagens
+            </Button>
         </CardFooter>
       </Card>
     </div>
