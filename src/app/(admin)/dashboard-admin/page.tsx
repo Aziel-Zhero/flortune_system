@@ -4,7 +4,7 @@
 import { useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Briefcase, Code, Star, Home, PieChart as PieChartIcon, TrendingUp, TrendingDown, Megaphone } from "lucide-react";
+import { Users, Briefcase, Code, Star, Home, PieChart as PieChartIcon, TrendingUp, TrendingDown, Megaphone, Leaf } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Pie, PieChart as PieChartRecharts, ResponsiveContainer, Cell } from "recharts";
@@ -12,16 +12,16 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const cardData = [
   { title: "Usuários Totais", value: "1.250", icon: Users, trend: "+5.2%", trend_color: "text-emerald-500" },
-  { title: "Gratuitos", value: "1.100", icon: Users, trend: "+5.8%", trend_color: "text-emerald-500" },
-  { title: "Assinantes (Mestre)", value: "93", icon: Star, trend: "+2.1%", trend_color: "text-emerald-500" },
-  { title: "Assinantes (DEV)", value: "45", icon: Code, trend: "-1.2%", trend_color: "text-destructive" },
-  { title: "Assinantes (Corp.)", value: "12", icon: Briefcase, trend: "+4.5%", trend_color: "text-emerald-500" },
+  { title: "Cultivador", value: "1.100", icon: Leaf, trend: "+5.8%", trend_color: "text-emerald-500" },
+  { title: "Mestre Jardineiro", value: "93", icon: Star, trend: "+2.1%", trend_color: "text-emerald-500" },
+  { title: "DEV", value: "45", icon: Code, trend: "-1.2%", trend_color: "text-destructive" },
+  { title: "Corporativo", value: "12", icon: Briefcase, trend: "+4.5%", trend_color: "text-emerald-500" },
   { title: "Origem de Campanhas", value: "28", icon: Megaphone, trend: "+10%", trend_color: "text-emerald-500" },
 ];
 
 const userDistributionData = [
-    { name: 'Gratuitos', value: 1100, fill: 'hsl(var(--chart-1))' },
-    { name: 'Pagantes (Comum)', value: 93, fill: 'hsl(var(--chart-2))' },
+    { name: 'Cultivador', value: 1100, fill: 'hsl(var(--chart-1))' },
+    { name: 'Mestre Jardineiro', value: 93, fill: 'hsl(var(--chart-2))' },
     { name: 'DEV', value: 45, fill: 'hsl(var(--chart-3))' },
     { name: 'Corporativo', value: 12, fill: 'hsl(var(--chart-4))' },
 ];
@@ -107,14 +107,13 @@ export default function AdminDashboardPage() {
                               cy="50%"
                               innerRadius={isMobile ? 40 : 60}
                               outerRadius={isMobile ? 70 : 90}
-                              labelLine={!isMobile}
-                              label={isMobile ? false : renderCustomizedLabel}
+                              labelLine={false}
+                              label={renderCustomizedLabel}
                             >
                                 {userDistributionData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
                             </Pie>
-                             {isMobile && <ChartLegend content={<ChartLegendContent />} />}
                         </PieChartRecharts>
                     </ResponsiveContainer>
                 </ChartContainer>
