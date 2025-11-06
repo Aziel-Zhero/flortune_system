@@ -7,44 +7,31 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Bot, Save, KeyRound, Server } from "lucide-react";
+import { Bot, Save, KeyRound, Server, Download, ClipboardCopy, FileCode } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { CodeBlock } from '@/components/shared/code-block';
 
-const installDependenciesCode = `npm install axios express`;
-
-const sendMessageCode = `const axios = require('axios');
-
-const url = "http://localhost:3000/api/sendText";
-const data = {
-    session: "default",
-    chatId: "12132132130@c.us",
-    text: "Hi there!"
-};
-
-axios.post(url, data)
-    .then(response => console.log(response.data))
-    .catch(error => console.error(error));`;
-
-const receiveMessageCode = `const express = require('express');
-const app = express();
-app.use(express.json());
-
-app.post("/bot", (req, res) => {
-    const data = req.body;
-    // It is not a message
-    if (data.event !== "message") {
-        res.send("OK");
-        return;
-    }
-    // Process the message, save it, etc.
-    processMessage(data.payload);
-    res.send("OK");
-});
-
-app.listen(3000, () => console.log("Bot is running on port 3000"));`;
+const dockerPullCode = `docker pull devlikeapro/waha`;
+const initWahaCode = `docker run --rm -v "$(pwd)":/app/env devlikeapro/waha init-waha /app/env`;
+const runWahaCode = `docker run -it --env-file "$(pwd)/.env" -v "$(pwd)/sessions:/app/.sessions" --rm -p 3000:3000 --name waha devlikeapro/waha`;
+const sendMessageCode = `fetch('http://localhost:3000/api/sendText', {
+  method: 'POST',
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'X-Api-Key': '00000000000000000000000000000000' // Substitua pela sua API Key
+  },
+  body: JSON.stringify({
+    chatId: "123123@c.us", // Substitua pelo seu número
+    text: "Hi there!",
+    session: "default"
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));`;
 
 export default function WahaWhatsappPage() {
   const [apiUrl, setApiUrl] = useState("http://localhost:3000");
@@ -64,7 +51,7 @@ export default function WahaWhatsappPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Integração com WhatsApp (WAHA)"
+        title="Integração com WhatsApp (WAHA A Plus)"
         icon={<Bot />}
         description="Conecte uma instância do WhatsApp HTTP API (WAHA) para automações."
       />
@@ -82,58 +69,42 @@ export default function WahaWhatsappPage() {
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8">
           <div>
-            <h3 className="font-semibold mb-2">Passo 1: Instale o WAHA</h3>
+            <h3 className="font-semibold mb-2">Passo 0: Requisitos</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              Primeiro, você precisa ter uma instância do WAHA rodando. Você pode instalá-lo localmente usando Docker. Consulte a <a href="https://github.com/devlikeapro/waha" target="_blank" rel="noopener noreferrer" className="text-primary underline">documentação oficial do WAHA</a> para detalhes.
+              O WAHA funciona com Docker. Certifique-se de que você o tem instalado. Siga o guia oficial do <a href="https://docs.docker.com/get-docker/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Docker para instalá-lo</a>.
             </p>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-2">Passo 2: Configure as Credenciais</h3>
-            <div className="space-y-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor="api-url">URL da Instância WAHA</Label>
-                <div className="relative">
-                  <Server className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="api-url" placeholder="http://localhost:3000" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} className="pl-10" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="api-key">Chave da API (se configurada)</Label>
-                <div className="relative">
-                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="api-key" type="password" placeholder="Chave de API opcional" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="pl-10"/>
-                </div>
-              </div>
-            </div>
+            <h3 className="font-semibold mb-2">Passo 1: Baixar a Imagem do Docker</h3>
+             <CodeBlock code={dockerPullCode} language="bash" />
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-2">Passo 2: Iniciar o WAHA e Gerar Credenciais</h3>
+            <p className="text-sm text-muted-foreground mb-2">Este comando criará um arquivo `.env` no seu diretório atual com as credenciais.</p>
+             <CodeBlock code={initWahaCode} language="bash" />
+             <p className="text-sm text-muted-foreground mt-2">Guarde o `Username`, `Password` e `API key` gerados.</p>
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-2">Passo 3: Rodar o WAHA</h3>
+             <p className="text-sm text-muted-foreground mb-2">Use o comando abaixo para iniciar o container do WAHA com as credenciais geradas. Lembre-se que esta não é uma instalação para produção.</p>
+             <CodeBlock code={runWahaCode} language="bash" />
+             <p className="text-sm text-muted-foreground mt-2">Após rodar, acesse o Dashboard em <a href="http://localhost:3000/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary underline">http://localhost:3000/dashboard</a>.</p>
           </div>
           
            <div>
-            <h3 className="font-semibold mb-2">Passo 3: Exemplos de Código (JS/TS)</h3>
-            <div className="space-y-4">
-                <div>
-                    <Label>Instalar Dependências</Label>
-                    <CodeBlock code={installDependenciesCode} language="bash" />
-                </div>
-                <div>
-                    <Label>Enviar Mensagem</Label>
-                    <CodeBlock code={sendMessageCode} language="javascript" />
-                </div>
-                 <div>
-                    <Label>Receber Mensagem (Webhook)</Label>
-                    <CodeBlock code={receiveMessageCode} language="javascript" />
-                </div>
+            <h3 className="font-semibold mb-2">Passo 4, 5 e 6: Iniciar Sessão e Enviar Mensagem</h3>
+            <p className="text-sm text-muted-foreground mb-2">No Dashboard, inicie a sessão "default", escaneie o QR Code com seu celular e, quando o status for "WORKING", use o código abaixo para enviar sua primeira mensagem.</p>
+            <div>
+                <Label>Exemplo de Envio (JavaScript `fetch`)</Label>
+                <CodeBlock code={sendMessageCode} language="javascript" />
             </div>
           </div>
         </CardContent>
-        <CardFooter>
-            <Button onClick={handleSaveChanges}>
-              <Save className="mr-2 h-4 w-4" />
-              Salvar Configuração
-            </Button>
-        </CardFooter>
       </Card>
     </div>
   );

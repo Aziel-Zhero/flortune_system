@@ -51,6 +51,7 @@ export const ADMIN_NAV_LINKS_CONFIG = [
   { href: "/admin/apis", label: "API's", icon: "Code" as const, type: "link" as const },
   { href: "/admin/telegram", label: "Telegram", icon: "Send" as const, type: "link" as const },
   { href: "/admin/whatsapp", label: "Whatsapp (WAHA)", icon: "Bot" as const, type: "link" as const },
+  { href: "/admin/whatsapp-official", label: "WhatsApp (Oficial)", icon: "CheckCircle" as const, type: "link" as const },
 ];
 
 
