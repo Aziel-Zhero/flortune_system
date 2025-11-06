@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeOff, Search, Bell, Menu, DollarSign } from "lucide-react";
+import { Eye, EyeOff, Search, Bell, Menu } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { PrivateValue } from "../shared/private-value";
 
 export function AppHeader() {
   const { isPrivateMode, togglePrivateMode } = useAppSettings();
@@ -23,9 +22,6 @@ export function AppHeader() {
   const isAdminArea = pathname.startsWith('/dashboard-admin') || pathname.startsWith('/admin');
   const appTitle = isAdminArea ? `${APP_NAME} Workspace` : APP_NAME;
   const logoLink = isAdminArea ? "/dashboard-admin" : "/dashboard";
-
-  // Mocked total revenue for admin workspace
-  const totalRevenue = 25340.50;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md">
@@ -64,10 +60,12 @@ export function AppHeader() {
           >
             {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </Button>
+          
           <Button variant="ghost" size="icon" className="h-9 w-9">
             <Bell className="h-5 w-5" />
             <span className="sr-only">Notificações</span>
           </Button>
+          
           <UserNav isAdmin={isAdminArea} />
         </div>
       </div>
