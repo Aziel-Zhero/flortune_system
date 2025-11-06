@@ -93,27 +93,27 @@ export default function AdminDashboardPage() {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
-          <Card>
+          <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Taxa de Conversão (Mês)</CardTitle><Percent className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-emerald-500">4.2%</div><p className="text-xs text-muted-foreground">+1.1% vs. mês anterior</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold text-emerald-500">4.2%</div><p className="text-xs text-muted-foreground">+1.1% vs. mês anterior</p></CardContent>
           </Card>
         </motion.div>
         <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
-          <Card>
+          <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Crescimento (Gratuitos)</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent><div className="text-2xl font-bold">+180</div><p className="text-xs text-muted-foreground">Novos usuários gratuitos este mês</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold">+180</div><p className="text-xs text-muted-foreground">Novos usuários gratuitos este mês</p></CardContent>
           </Card>
         </motion.div>
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
-          <Card>
+          <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Módulos Compartilhados</CardTitle><Share2 className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent><div className="text-2xl font-bold">87</div><p className="text-xs text-muted-foreground">Total de módulos com acesso compartilhado</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold">87</div><p className="text-xs text-muted-foreground">Total de módulos com acesso compartilhado</p></CardContent>
           </Card>
         </motion.div>
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
-          <Card>
+          <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Compart. por Assinantes</CardTitle><Star className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent><div className="text-2xl font-bold">52</div><p className="text-xs text-muted-foreground">Módulos compartilhados por usuários pagantes</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold">52</div><p className="text-xs text-muted-foreground">Módulos compartilhados por usuários pagantes</p></CardContent>
           </Card>
         </motion.div>
       </div>
