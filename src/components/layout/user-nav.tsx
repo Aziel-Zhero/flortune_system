@@ -27,6 +27,13 @@ const mockUser = {
   fallbackInitial: "U",
   avatarUrl: `https://placehold.co/100x100.png?text=U`,
 };
+const mockAdmin = {
+  displayName: "Admin",
+  userEmail: "admin@flortune.com",
+  fallbackInitial: "A",
+  avatarUrl: `https://placehold.co/100x100/fca5a5/1e293b?text=A`,
+};
+
 
 interface UserNavProps {
   isAdmin?: boolean;
@@ -36,11 +43,17 @@ export function UserNav({ isAdmin = false }: UserNavProps) {
   const router = useRouter();
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  
+  const user = isAdmin ? mockAdmin : mockUser;
 
   const handleLogout = () => {
     toast({ title: "Logout simulado", description: "Você será redirecionado para a página de login."});
-    router.push('/login');
+    const logoutUrl = isAdmin ? '/login-admin' : '/login';
+    router.push(logoutUrl);
   };
+  
+  const profileUrl = isAdmin ? '/admin/profile' : '/profile';
+  const settingsUrl = isAdmin ? '/admin/settings' : '/settings';
 
   return (
     <>
@@ -48,30 +61,30 @@ export function UserNav({ isAdmin = false }: UserNavProps) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar" />
-              <AvatarFallback>{mockUser.fallbackInitial}</AvatarFallback>
+              <AvatarImage src={user.avatarUrl} alt={user.displayName} data-ai-hint="user avatar" />
+              <AvatarFallback>{user.fallbackInitial}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none font-headline">{mockUser.displayName}</p>
+              <p className="text-sm font-medium leading-none font-headline">{user.displayName}</p>
               <p className="text-xs leading-none text-muted-foreground">
-                {mockUser.userEmail}
+                {user.userEmail}
               </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link href="/profile">
+              <Link href={profileUrl}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Perfil</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/settings">
+              <Link href={settingsUrl}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Configurações</span>
               </Link>

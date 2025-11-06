@@ -46,6 +46,10 @@ export const ADMIN_NAV_LINKS_CONFIG = [
   { href: "/admin/leads", label: "Leads", icon: "Users" as const, type: "link" as const },
   { href: "/admin/campaigns", label: "Campanhas", icon: "ShoppingBag" as const, type: "link" as const },
   { href: "/admin/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
+  { type: "separator" as const },
+  { type: "title" as const, label: "Conta"},
+  { href: "/admin/profile", label: "Perfil", icon: "User" as const, type: "link" as const },
+  { href: "/admin/settings", label: "Configurações", icon: "Settings" as const, type: "link" as const },
 ];
 
 
