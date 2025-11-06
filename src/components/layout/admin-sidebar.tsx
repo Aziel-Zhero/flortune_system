@@ -46,7 +46,7 @@ const totalRevenue = 25340.50;
 export function AdminSidebar() {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
-  const { isPrivateMode } = useAppSettings();
+  const { togglePrivateMode } = useAppSettings();
   
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -98,7 +98,6 @@ export function AdminSidebar() {
               <TooltipContent side="right" align="center">
                 <p className="font-semibold">Receita Mensal</p>
                 <p><PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} /></p>
-                <p className="text-xs mt-1">({isPrivateMode ? "Modo privado ativo" : "Modo privado inativo"})</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -108,10 +107,19 @@ export function AdminSidebar() {
                 <span className="font-bold text-lg text-sidebar-accent-foreground">
                     <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                 </span>
-                <SidebarTrigger className="h-7 w-7 text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground" />
+                <LucideIcons.EyeOff
+                    className="h-5 w-5 text-sidebar-accent-foreground/70 cursor-pointer hover:text-sidebar-accent-foreground"
+                    onClick={togglePrivateMode}
+                />
              </div>
           </div>
         </div>
+
+        {/* Botão de recolher/expandir abaixo da receita */}
+        <div className="px-3 group-data-[collapsible=icon]:px-0 flex justify-center mt-2 group-data-[collapsible=icon]:hidden">
+           <SidebarTrigger className="h-7 w-7" />
+        </div>
+
 
         <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
 
