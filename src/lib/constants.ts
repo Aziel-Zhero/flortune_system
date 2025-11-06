@@ -48,9 +48,9 @@ export const ADMIN_NAV_LINKS_CONFIG = [
   { href: "/admin/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "Integração" },
-  { href: "#", label: "API's", icon: "Code" as const, type: "link" as const },
-  { href: "#", label: "Telegram", icon: "Send" as const, type: "link" as const },
-  { href: "#", label: "Whatsapp", icon: "Bot" as const, type: "link" as const },
+  { href: "#apis", label: "API's", icon: "Code" as const, type: "link" as const },
+  { href: "#telegram", label: "Telegram", icon: "Send" as const, type: "link" as const },
+  { href: "#whatsapp", label: "Whatsapp", icon: "Bot" as const, type: "link" as const },
 ];
 
 
