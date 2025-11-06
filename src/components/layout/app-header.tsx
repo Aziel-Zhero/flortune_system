@@ -55,18 +55,6 @@ export function AppHeader() {
             </form>
           )}
 
-          {isAdminArea && (
-            <div className="hidden sm:flex items-center gap-2 border-l pl-4 ml-4">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground -mb-1">Receita Total</span>
-                    <span className="font-bold text-lg text-primary">
-                        <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
-                    </span>
-                </div>
-            </div>
-          )}
-
           <Button
             variant="ghost"
             size="icon"
@@ -83,19 +71,6 @@ export function AppHeader() {
           <UserNav isAdmin={isAdminArea} />
         </div>
       </div>
-      {isAdminArea && (
-        <div className="container mx-auto px-4 pb-2 sm:hidden">
-            <div className="flex items-center gap-2 border-t pt-2">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground -mb-1">Receita Total</span>
-                    <span className="font-bold text-lg text-primary">
-                        <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
-                    </span>
-                </div>
-            </div>
-        </div>
-      )}
     </header>
   );
 }
