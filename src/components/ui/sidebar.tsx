@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft, PanelRight, Circle } from "lucide-react"
+import { PanelLeft, PanelRight, Circle, ChevronsLeft, ChevronsRight } from "lucide-react"
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden"
 
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -270,21 +270,28 @@ const SidebarTrigger = React.forwardRef<
   const { toggleSidebar, open } = useSidebar()
 
   return (
-    <Button
-      ref={ref}
-      data-sidebar="trigger"
-      variant="ghost"
-      size="icon"
-      className={cn("h-7 w-7", className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
-      {...props}
-    >
-      {open ? <PanelLeft /> : <PanelRight />}
-      <span className="sr-only">Toggle Sidebar</span>
-    </Button>
+     <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          ref={ref}
+          data-sidebar="trigger"
+          variant="ghost"
+          size="icon"
+          className={cn("h-7 w-7", className)}
+          onClick={(event) => {
+            onClick?.(event)
+            toggleSidebar()
+          }}
+          {...props}
+        >
+          {open ? <ChevronsLeft /> : <ChevronsRight />}
+          <span className="sr-only">Toggle Sidebar</span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+          <p>{open ? 'Ocultar menu' : 'Expandir menu'}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 })
 SidebarTrigger.displayName = "SidebarTrigger"
