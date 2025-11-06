@@ -259,7 +259,7 @@ export default function LPEditorPage() {
                                 <div className="space-y-2 p-4 border rounded-md">
                                   <Label className="font-semibold">Agendamento de Exibição</Label>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                      <div>
+                                      <div className="space-y-2">
                                           <Label htmlFor={`${popupKey}-date-range`}>Período de Validade</Label>
                                            <Popover>
                                               <PopoverTrigger asChild>

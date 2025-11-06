@@ -26,7 +26,7 @@
     --secondary: 175 50% 80%; 
     --secondary-foreground: 175 50% 25%;
 
-    --accent: 45 95% 51%; 
+    --accent: 24 9.8% 10%; 
     --accent-foreground: 45 95% 15%; 
 
     --destructive: 0 84.2% 60.2%;
@@ -51,6 +51,7 @@
     --chart-4: 170 60% 30%; 
     --chart-5: 45 80% 45%;  
 
+    /* Variáveis para o tema Amanhecer */
     --amanhecer-rosa: 330 90% 70%;
     --amanhecer-roxo: 280 80% 65%;
     --amanhecer-laranja: 30 95% 60%;
