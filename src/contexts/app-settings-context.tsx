@@ -7,8 +7,19 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { toast } from '@/hooks/use-toast';
 import type { QuoteData } from '@/services/quote.service';
 import { usePathname } from 'next/navigation';
+import * as LucideIcons from "lucide-react";
+
 
 // --- Tipos ---
+
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  read: boolean;
+  createdAt: Date;
+  icon?: React.ElementType;
+}
 
 interface WeatherData {
   city: string;
@@ -18,7 +29,7 @@ interface WeatherData {
 }
 
 export type CampaignTheme = 'black-friday' | 'flash-sale' | 'super-promocao' | 'aniversario' | null;
-export type PopupType = 'maintenance' | 'promotion' | 'newsletter'; // Removido 'null' para ser usado como chave
+export type PopupType = 'maintenance' | 'promotion' | 'newsletter';
 
 export interface PopupConfig {
   title: string;
@@ -70,6 +81,14 @@ export interface AppSettingsProviderValue {
   setPopupConfigs: Dispatch<SetStateAction<Record<PopupType, PopupConfig>>>;
   activePopup: PopupType | null;
   setActivePopup: (popup: PopupType | null) => void;
+
+  // Notificações
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
+  clearNotifications: () => void;
+  hasUnreadNotifications: boolean;
 }
 
 // --- Contexto ---
@@ -122,9 +141,35 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [landingPageContent, setLandingPageContent] = useState<LandingPageContent>(defaultLpContent);
   const [popupConfigs, setPopupConfigs] = useState<Record<PopupType, PopupConfig>>(defaultPopupConfigs);
   const [activePopup, setActivePopupState] = useState<PopupType | null>(null);
+  
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const hasUnreadNotifications = notifications.some(n => !n.read);
 
   const pathname = usePathname();
   const isAdminArea = pathname.startsWith('/admin') || pathname.startsWith('/dashboard-admin');
+  
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: `notif_${Date.now()}_${Math.random()}`,
+      createdAt: new Date(),
+      read: false,
+    };
+    setNotifications(prev => [newNotification, ...prev].slice(0, 20)); // Keep last 20
+  }, []);
+
+  const markNotificationAsRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  }, []);
+
+  const markAllNotificationsAsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  }, []);
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
 
   const loadQuotes = useCallback(async (quoteList: string[]) => {
     setIsLoadingQuotes(true);
@@ -265,7 +310,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       applyTheme(storedTheme);
       
-      // Conditionally load data based on route
       if (!isAdminArea) {
         const storedCity = localStorage.getItem('flortune-weather-city');
         if (storedCity) {
@@ -277,7 +321,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         setSelectedQuotesState(initialQuotes);
         loadQuotes(initialQuotes);
       } else {
-        // Ensure data is cleared/not loaded for admin area
         setIsLoadingQuotes(false);
         setIsLoadingWeather(false);
       }
@@ -308,6 +351,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       landingPageContent, setLandingPageContent,
       popupConfigs, setPopupConfigs,
       activePopup, setActivePopup,
+      notifications, addNotification, markNotificationAsRead, markAllNotificationsAsRead, clearNotifications, hasUnreadNotifications,
     }}>
       {children}
     </AppSettingsContext.Provider>

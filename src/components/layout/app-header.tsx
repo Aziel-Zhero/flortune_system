@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeOff, Search, Bell, Menu } from "lucide-react";
+import { Eye, EyeOff, Search, Bell, Menu, BellRing, Circle } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,21 @@ import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export function AppHeader() {
-  const { isPrivateMode, togglePrivateMode } = useAppSettings();
+  const { 
+    isPrivateMode, 
+    togglePrivateMode, 
+    notifications,
+    hasUnreadNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    clearNotifications,
+  } = useAppSettings();
   const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
   
@@ -52,15 +64,62 @@ export function AppHeader() {
             </form>
           )}
           
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-9 w-9"
-            onClick={() => toast({ title: 'Notificações', description: 'Nenhuma nova notificação no momento.'})}
-          >
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notificações</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+               <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-9 w-9 relative"
+              >
+                <Bell className="h-5 w-5" />
+                {hasUnreadNotifications && (
+                   <span className="absolute top-1.5 right-1.5 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
+                <span className="sr-only">Notificações</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80" align="end">
+              <DropdownMenuLabel className="flex justify-between items-center">
+                <span>Notificações</span>
+                {notifications.length > 0 && (
+                  <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={markAllNotificationsAsRead}>Marcar todas como lidas</Button>
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <ScrollArea className="h-[300px]">
+                {notifications.length > 0 ? (
+                  notifications.map(n => {
+                    const Icon = n.icon || BellRing;
+                    return (
+                      <DropdownMenuItem key={n.id} className="flex items-start gap-2 cursor-pointer" onSelect={() => markNotificationAsRead(n.id)}>
+                        {!n.read && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary" />}
+                        <Icon className={cn("h-4 w-4 mt-1", n.read ? "text-muted-foreground" : "")}/>
+                        <div className="flex-1">
+                           <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
+                           <p className="text-xs text-muted-foreground">{n.description}</p>
+                           <p className="text-xs text-muted-foreground/70 mt-1">{formatDistanceToNow(n.createdAt, { addSuffix: true, locale: ptBR })}</p>
+                        </div>
+                      </DropdownMenuItem>
+                    )
+                  })
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground py-4">Nenhuma notificação nova.</p>
+                )}
+              </ScrollArea>
+               {notifications.length > 0 && (
+                 <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="justify-center" onSelect={clearNotifications}>
+                    Limpar Notificações
+                  </DropdownMenuItem>
+                 </>
+               )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           
           <UserNav isAdmin={isAdminArea} />
         </div>

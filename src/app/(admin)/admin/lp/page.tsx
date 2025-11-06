@@ -50,6 +50,7 @@ export default function LPEditorPage() {
     setActivePopup,
     popupConfigs,
     setPopupConfigs,
+    addNotification
   } = useAppSettings();
 
   const [previewPopup, setPreviewPopup] = useState<PopupType | null>(null);
@@ -113,9 +114,14 @@ export default function LPEditorPage() {
   
   const handleNotifyPopup = (popupKey: PopupType) => {
     const config = popupConfigs[popupKey];
+    addNotification({
+        title: `Teste: ${config.title}`,
+        description: `Esta é uma notificação de teste para o pop-up de ${config.title.toLowerCase()}.`,
+        icon: getLucideIcon(config.icon),
+    });
     toast({
-      title: `Notificação de Teste: ${config.title}`,
-      description: "Esta é uma simulação de como a notificação apareceria para os usuários.",
+      title: "Notificação de Teste Enviada",
+      description: "Verifique o ícone de sino no cabeçalho.",
     });
   };
 
