@@ -4,21 +4,20 @@
 import { useEffect } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle, Zap, Shield, TrendingUp, XCircle, Bot } from "lucide-react";
-import { APP_NAME } from "@/lib/constants";
+import { MessageSquare, Zap, XCircle, Bot } from "lucide-react";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 export default function WhatsappOfficialPage() {
   useEffect(() => {
-    document.title = `Integração WhatsApp (Oficial) - ${APP_NAME}`;
+    document.title = `Integração WhatsApp (Oficial) - Flortune`;
   }, []);
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Integração com WhatsApp (API Oficial)"
-        icon={<CheckCircle />}
+        icon={<MessageSquare />}
         description="Entenda como usar a API oficial do WhatsApp através de um provedor."
       />
 
