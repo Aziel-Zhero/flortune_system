@@ -95,13 +95,13 @@ export default function AdminSettingsPage() {
                       className={cn("h-auto p-4 flex flex-col items-start text-left space-y-2 transition-all duration-200 justify-between", currentTheme === theme.id && "ring-2 ring-primary ring-offset-background ring-offset-2")}
                       onClick={() => handleThemeChange(theme.id)}
                     >
-                       <div className="flex-grow w-full">
+                      <div className="flex w-full flex-col">
                         <div className="flex items-center gap-3 w-full mb-2">
                           <IconComponent className={cn("h-5 w-5", theme.iconClassName || 'text-muted-foreground')} />
                           <span className="font-semibold">{theme.name}</span>
                           {currentTheme === theme.id && <CheckSquare className="h-5 w-5 text-primary-foreground ml-auto" />}
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-3 min-h-[60px]">{theme.description}</p>
+                        <p className="text-xs text-muted-foreground whitespace-normal">{theme.description}</p>
                       </div>
                     </Button>
                   );
