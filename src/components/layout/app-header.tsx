@@ -51,27 +51,28 @@ export function AppHeader() {
 
         <div className="flex flex-1 items-center justify-end space-x-2 md:space-x-4">
           {!isAdminArea && (
-             <form className="hidden md:flex flex-1 max-w-sm">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar transações, orçamentos..."
-                  className="pl-10 h-9"
-                />
-              </div>
-            </form>
+            <>
+              <form className="hidden md:flex flex-1 max-w-sm">
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Buscar transações, orçamentos..."
+                    className="pl-10 h-9"
+                  />
+                </div>
+              </form>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePrivateMode}
+                aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
+                className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
+              >
+                {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </Button>
+            </>
           )}
-
-           <Button
-            variant="ghost"
-            size="icon"
-            onClick={togglePrivateMode}
-            aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
-            className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
-          >
-            {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-          </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
