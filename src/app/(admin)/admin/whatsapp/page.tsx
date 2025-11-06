@@ -59,7 +59,7 @@ export default function WahaWhatsappPage() {
 
       <Card className="shadow-lg">
         <CardHeader className="flex flex-col md:flex-row items-start gap-4">
-          <Image src="/Hana.png" alt="Hana AI Assistant" width={80} height={80} className="rounded-full border-2 border-primary/50" />
+          <Image src="/assistent.png" alt="Hana AI Assistant" width={80} height={80} className="rounded-full border-2 border-primary/50" />
           <div className="flex-1">
             <CardTitle className="font-headline flex items-center gap-2">
               <Bot className="h-6 w-6 text-primary" />
