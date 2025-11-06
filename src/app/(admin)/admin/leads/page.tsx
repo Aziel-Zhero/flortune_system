@@ -76,18 +76,20 @@ export default function LeadsPage() {
   };
 
   const handleToggleStatus = (leadId: string) => {
-    setLeads(prevLeads =>
-      prevLeads.map(lead => {
-        if (lead.id === leadId) {
-          const newStatus = lead.status === 'active' ? 'do_not_contact' : 'active';
-          toast({
-            title: newStatus === 'do_not_contact' ? "Lead Marcado" : "Lead Reativado",
-            description: `O usuário ${lead.name} foi atualizado.`,
-          });
-          return { ...lead, status: newStatus };
-        }
-        return lead;
-      })
+    setLeads(prevLeads => {
+        const newLeads = prevLeads.map(lead => {
+          if (lead.id === leadId) {
+            const newStatus = lead.status === 'active' ? 'do_not_contact' : 'active';
+            toast({
+              title: newStatus === 'do_not_contact' ? "Lead Marcado" : "Lead Reativado",
+              description: `O usuário ${lead.name} foi atualizado.`,
+            });
+            return { ...lead, status: newStatus };
+          }
+          return lead;
+        });
+        return newLeads;
+      }
     );
   };
 
@@ -126,8 +128,8 @@ export default function LeadsPage() {
                 <TableHeader>
                     <TableRow>
                     <TableHead className="min-w-[250px]">Usuário</TableHead>
-                    <TableHead className="min-w-[150px]">Data de Inscrição</TableHead>
-                    <TableHead className="min-w-[150px]">Última Atividade</TableHead>
+                    <TableHead className="min-w-[150px] hidden md:table-cell">Data de Inscrição</TableHead>
+                    <TableHead className="min-w-[150px] hidden md:table-cell">Última Atividade</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -141,13 +143,17 @@ export default function LeadsPage() {
                             <AvatarFallback>{lead.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                            <p className="font-semibold text-sm">{lead.name}</p>
-                            <p className="text-xs text-muted-foreground">{lead.email}</p>
+                                <p className="font-semibold text-sm">{lead.name}</p>
+                                <p className="text-xs text-muted-foreground">{lead.email}</p>
+                                <div className="mt-1 flex flex-col md:hidden text-xs text-muted-foreground">
+                                    <span>Inscrito em: {lead.joinDate}</span>
+                                    <span>Atividade: {lead.lastActivity}</span>
+                                </div>
                             </div>
                         </div>
                         </TableCell>
-                        <TableCell>{lead.joinDate}</TableCell>
-                        <TableCell>{lead.lastActivity}</TableCell>
+                        <TableCell className="hidden md:table-cell">{lead.joinDate}</TableCell>
+                        <TableCell className="hidden md:table-cell">{lead.lastActivity}</TableCell>
                         <TableCell className="text-right">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
