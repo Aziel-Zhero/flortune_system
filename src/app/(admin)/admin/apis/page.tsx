@@ -11,6 +11,7 @@ import { Code, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
+import { getQuotes } from '@/services/quote.service';
 
 type ApiStatus = 'operational' | 'degraded' | 'down';
 
@@ -24,7 +25,7 @@ interface ApiService {
 
 const initialApiServices: ApiService[] = [
   { id: 'weather', name: 'OpenWeatherMap', description: 'API de Clima e Tempo', status: 'operational', lastChecked: 'N/A' },
-  { id: 'quotes', name: 'AwesomeAPI/ExchangeRate', description: 'API de Cotações de Moeda', status: 'operational', lastChecked: 'N/A' },
+  { id: 'quotes', name: 'AwesomeAPI', description: 'API de Cotações de Moeda', status: 'operational', lastChecked: 'N/A' },
 ];
 
 export default function ApisPage() {
@@ -37,11 +38,37 @@ export default function ApisPage() {
   
   const handleTestApi = async (apiId: 'weather' | 'quotes') => {
     setTestingId(apiId);
-    
-    // Simulação de chamada de API
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-    
-    const isSuccess = Math.random() > 0.15; // 85% de chance de sucesso
+    let isSuccess = false;
+    let errorMessage = 'Falha ao contatar a API.';
+
+    if (apiId === 'weather') {
+      const city = prompt("Digite uma cidade para testar (ex: London):");
+      if (city) {
+        try {
+          const response = await fetch(`/api/weather?city=${city}`);
+          isSuccess = response.ok;
+          if (!isSuccess) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || `Erro ${response.status}`;
+          }
+        } catch (error: any) {
+          errorMessage = error.message;
+        }
+      } else {
+        setTestingId(null);
+        return;
+      }
+    } else if (apiId === 'quotes') {
+      try {
+        const result = await getQuotes(['USD-BRL']);
+        isSuccess = !result.error;
+        if (result.error) {
+          errorMessage = result.error;
+        }
+      } catch (error: any) {
+        errorMessage = error.message;
+      }
+    }
     
     setApiServices(prev => prev.map(api => 
       api.id === apiId 
@@ -51,7 +78,7 @@ export default function ApisPage() {
     
     toast({
       title: `Teste da API ${apiId === 'weather' ? 'de Clima' : 'de Cotações'}`,
-      description: isSuccess ? 'A API respondeu com sucesso.' : 'Falha ao contatar a API.',
+      description: isSuccess ? 'A API respondeu com sucesso.' : errorMessage,
       variant: isSuccess ? 'default' : 'destructive'
     });
 
