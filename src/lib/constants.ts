@@ -46,11 +46,11 @@ export const ADMIN_NAV_LINKS_CONFIG = [
   { href: "/admin/leads", label: "Leads", icon: "Users" as const, type: "link" as const },
   { href: "/admin/campaigns", label: "Campanhas", icon: "ShoppingBag" as const, type: "link" as const },
   { href: "/admin/forms", label: "Formulários", icon: "ClipboardList" as const, type: "link" as const },
-  { type: "separator" as const },
+  { type: "separator" as const, key: "sep-admin-integ" },
   { type: "title" as const, label: "Integração" },
-  { href: "#apis", label: "API's", icon: "Code" as const, type: "link" as const },
-  { href: "#telegram", label: "Telegram", icon: "Send" as const, type: "link" as const },
-  { href: "#whatsapp", label: "Whatsapp", icon: "Bot" as const, type: "link" as const },
+  { href: "/admin/apis", label: "API's", icon: "Code" as const, type: "link" as const },
+  { href: "/admin/telegram", label: "Telegram", icon: "Send" as const, type: "link" as const },
+  { href: "/admin/whatsapp", label: "Whatsapp", icon: "Bot" as const, type: "link" as const },
 ];
 
 
