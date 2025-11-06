@@ -112,7 +112,6 @@ export default function AdminDashboardPage() {
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
                             </Pie>
-                            <ChartLegend content={<ChartLegendContent />} />
                         </PieChartRecharts>
                     </ResponsiveContainer>
                 </ChartContainer>
