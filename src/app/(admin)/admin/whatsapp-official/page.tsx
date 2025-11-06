@@ -4,9 +4,10 @@
 import { useEffect } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle, Construction } from "lucide-react";
+import { CheckCircle, Zap, Shield, TrendingUp, XCircle, Bot } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 
 export default function WhatsappOfficialPage() {
   useEffect(() => {
@@ -18,7 +19,7 @@ export default function WhatsappOfficialPage() {
       <PageHeader
         title="Integração com WhatsApp (API Oficial)"
         icon={<CheckCircle />}
-        description="Gerencie a futura integração com a API oficial do WhatsApp."
+        description="Entenda como usar a API oficial do WhatsApp através de um provedor."
       />
 
        <Card className="shadow-lg">
@@ -26,18 +27,49 @@ export default function WhatsappOfficialPage() {
           <Image src="/Hana.png" alt="Hana AI Assistant" width={80} height={80} className="rounded-full border-2 border-primary/50" />
           <div className="flex-1">
             <CardTitle className="font-headline flex items-center gap-2">
-              <Construction className="h-6 w-6 text-amber-500" />
-              Página em Construção
+              <Bot className="h-6 w-6 text-primary" />
+              Guia de Integração com Hana
             </CardTitle>
             <CardDescription className="mt-1">
-              Olá! A integração direta com a API Oficial do WhatsApp está em nosso roadmap. Em breve, esta página permitirá que você conecte sua conta do WhatsApp Business para notificações avançadas, automação e muito mais. Fique de olho nas atualizações!
+              Olá! Usar a API Oficial do WhatsApp é a forma mais robusta e segura de integrar o WhatsApp. Diferente do WAHA, você não precisa de um servidor próprio, pois usaremos um **Provedor de Soluções de Negócios (BSP)**.
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-            <p className="text-muted-foreground text-sm">
-                Enquanto isso, você pode utilizar a integração com o <a href="/admin/whatsapp" className="text-primary underline">WAHA (WhatsApp HTTP API)</a> para automações via self-hosting.
-            </p>
+        <CardContent className="space-y-6">
+            <div>
+                <h3 className="font-semibold text-lg mb-2">O que é um Provedor de Soluções de Negócios (BSP)?</h3>
+                <p className="text-sm text-muted-foreground">São empresas parceiras da Meta que gerenciam a infraestrutura da API do WhatsApp para você. Você simplesmente consome a API deles, que é muito mais simples, e eles cuidam de toda a complexidade por trás.</p>
+            </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center gap-2"><Zap className="h-5 w-5 text-emerald-500"/>Vantagens</h4>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                        <li><strong className="text-foreground">Oficial e Estável:</strong> Aprovado pela Meta, sem riscos de bloqueio.</li>
+                        <li><strong className="text-foreground">Escalável:</strong> Preparado para alto volume de mensagens.</li>
+                        <li><strong className="text-foreground">Sem Servidor Próprio:</strong> Não precisa se preocupar com Docker ou VPS.</li>
+                        <li><strong className="text-foreground">Suporte Dedicado:</strong> Os provedores oferecem suporte técnico.</li>
+                    </ul>
+                </div>
+                 <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center gap-2"><XCircle className="h-5 w-5 text-destructive"/>Desvantagens</h4>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                        <li><strong className="text-foreground">Custo:</strong> Geralmente há um custo por conversa ou uma mensalidade.</li>
+                        <li><strong className="text-foreground">Setup Inicial:</strong> Exige um processo de verificação da sua empresa (Facebook Business Manager).</li>
+                        <li><strong className="text-foreground">Modelos de Mensagem:</strong> Para iniciar conversas, você precisa ter modelos de mensagem pré-aprovados pela Meta.</li>
+                    </ul>
+                </div>
+            </div>
+             <div>
+                <h3 className="font-semibold text-lg mb-2">Provedores Populares</h3>
+                <p className="text-sm text-muted-foreground mb-4">Abaixo estão alguns dos provedores mais conhecidos que oferecem acesso à API Oficial do WhatsApp. Cada um tem seus próprios preços e funcionalidades.</p>
+                <div className="flex flex-wrap gap-4">
+                    <Button asChild variant="outline"><a href="https://www.twilio.com/whatsapp" target="_blank" rel="noopener noreferrer">Twilio</a></Button>
+                    <Button asChild variant="outline"><a href="https://www.messagebird.com/pt-br/whatsapp" target="_blank" rel="noopener noreferrer">MessageBird</a></Button>
+                    <Button asChild variant="outline"><a href="https://www.vonage.com/communications-apis/whatsapp/" target="_blank" rel="noopener noreferrer">Vonage</a></Button>
+                    <Button asChild variant="outline"><a href="https://www.zenvia.com/produtos/api-whatsapp-business/" target="_blank" rel="noopener noreferrer">Zenvia</a></Button>
+                </div>
+            </div>
         </CardContent>
       </Card>
     </div>
