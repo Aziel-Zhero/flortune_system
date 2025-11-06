@@ -24,7 +24,6 @@ import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PrivateValue } from "../shared/private-value";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { Button } from "../ui/button";
 import { useAppSettings } from "@/contexts/app-settings-context";
 
 const getIcon = (iconName?: string): React.ElementType => {
@@ -47,7 +46,7 @@ const totalRevenue = 25340.50;
 export function AdminSidebar() {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
-  const { isPrivateMode, togglePrivateMode } = useAppSettings();
+  const { isPrivateMode } = useAppSettings();
   
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -72,7 +71,6 @@ export function AdminSidebar() {
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{`${APP_NAME} WS`}</span>
                 </Link>
             </div>
-             <SidebarTrigger className="h-7 w-7 mt-1" />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
@@ -110,15 +108,7 @@ export function AdminSidebar() {
                 <span className="font-bold text-lg text-sidebar-accent-foreground">
                     <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                 </span>
-                 <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={togglePrivateMode}
-                    aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
-                    className={cn("h-7 w-7 text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50", isPrivateMode && "text-accent hover:text-accent/90")}
-                  >
-                    {isPrivateMode ? <LucideIcons.EyeOff className="h-4 w-4" /> : <LucideIcons.Eye className="h-4 w-4" />}
-                  </Button>
+                <SidebarTrigger className="h-7 w-7 text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground" />
              </div>
           </div>
         </div>
@@ -164,7 +154,6 @@ export function AdminSidebar() {
         </SidebarContent>
 
         <SidebarFooter className="p-2 mt-auto">
-          {/* O SidebarTrigger foi movido para o header */}
         </SidebarFooter>
     </Sidebar>
   );
