@@ -1,3 +1,4 @@
+
 // src/contexts/app-settings-context.tsx
 
 "use client";
@@ -178,7 +179,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingQuotes(true);
     setQuotesError(null);
     try {
-      // Usaremos BRL como base para obter as taxas para as outras moedas
       const result = await getQuotes(validQuotes, 'BRL');
       if (result.error) throw new Error(result.error);
       
@@ -330,7 +330,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
           loadWeatherForCity(storedCity);
         }
         const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD', 'EUR', 'GBP', 'JPY', 'CAD'];
+        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : []; // Default to empty array
         setSelectedQuotesState(initialQuotes);
         loadQuotes(initialQuotes);
       } else {
