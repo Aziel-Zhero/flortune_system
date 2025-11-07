@@ -1,4 +1,3 @@
-
 // src/components/auth/signup-form.tsx
 "use client";
 
@@ -7,6 +6,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AlertTriangle, UserPlus, KeyRound, Mail, Building, User, Phone, FileText, Fingerprint, Eye, EyeOff, CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" className="mr-2">
@@ -39,13 +40,32 @@ const signupSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string(),
   phone: z.string().optional(),
-  cpf: z.string().optional(),
   cnpj: z.string().optional(),
-  rg: z.string().optional(),
+  terms: z.boolean().refine(val => val === true, {
+    message: "Você deve aceitar os termos e condições."
+  })
 }).refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem.",
   path: ["confirmPassword"],
+}).refine(data => {
+    if (data.accountType === 'empresa') {
+      return !!data.cnpj && data.cnpj.replace(/\D/g, '').length === 14;
+    }
+    return true;
+}, {
+    message: "CNPJ é obrigatório e deve ser válido (14 dígitos) para pessoa jurídica.",
+    path: ["cnpj"],
+})
+.refine(data => {
+    if (data.accountType === 'empresa') {
+        return !!data.phone && data.phone.trim() !== '' && data.phone.replace(/\D/g, '').length >= 10;
+    }
+    return true;
+}, {
+    message: "Telefone é obrigatório e deve ser válido para pessoa jurídica.",
+    path: ["phone"],
 });
+
 
 type SignupFormData = z.infer<typeof signupSchema>;
 
@@ -136,13 +156,6 @@ export function SignupForm() {
           </div>
         )}
         
-        {accountType === 'pessoa' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label htmlFor="cpf">CPF</Label><div className="relative"><FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="cpf" {...register("cpf")} className="pl-10"/></div>{errors.cpf && <p className="text-sm text-destructive mt-1">{errors.cpf.message}</p>}</div>
-            <div className="space-y-2"><Label htmlFor="rg">RG (Opcional)</Label><div className="relative"><Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="rg" {...register("rg")} className="pl-10"/></div></div>
-          </div>
-        )}
-        
         <div className="space-y-2"><Label htmlFor="email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="email" type="email" {...register("email")} className="pl-10"/></div>{errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}</div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -177,6 +190,20 @@ export function SignupForm() {
                 ))}
             </div>
         )}
+        
+        <div className="flex items-center space-x-2">
+          <Controller name="terms" control={control} render={({ field }) => (
+              <Checkbox id="terms" checked={field.value} onCheckedChange={field.onChange} />
+          )} />
+          <div className="grid gap-1.5 leading-none">
+            <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Eu aceito os{" "}
+              <Link href="#" className="underline text-primary">Termos de Serviço</Link> e a{" "}
+              <Link href="#" className="underline text-primary">Política de Privacidade</Link>.
+            </label>
+            {errors.terms && <p className="text-sm text-destructive">{errors.terms.message}</p>}
+          </div>
+        </div>
 
         {formError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Erro no Cadastro</AlertTitle><AlertDescription>{formError}</AlertDescription></Alert>}
 
