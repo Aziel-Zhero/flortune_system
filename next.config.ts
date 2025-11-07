@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'openweathermap.org',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   env: {
@@ -25,4 +31,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
