@@ -1,12 +1,11 @@
 
-
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, X } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -69,6 +68,7 @@ export default function DashboardPage() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
     { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: true },
@@ -77,6 +77,18 @@ export default function DashboardPage() {
     { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
     { title: "Meta Principal", value: null, icon: PiggyBank, unit: "%", trend: "Nenhuma meta ativa", trendColor: "text-emerald-500", isLoading: true },
   ]);
+
+  useEffect(() => {
+    const welcomeSeen = localStorage.getItem('flortune-welcome-seen');
+    if (!welcomeSeen) {
+      setShowWelcome(true);
+    }
+  }, []);
+
+  const handleDismissWelcome = () => {
+    localStorage.setItem('flortune-welcome-seen', 'true');
+    setShowWelcome(false);
+  }
 
   const fetchDashboardData = useCallback(async () => {
     const mockUserId = "mock-user-id";
@@ -260,6 +272,31 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+       {showWelcome && (
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring" }}>
+            <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30 shadow-lg relative">
+                <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={handleDismissWelcome}>
+                    <X className="h-4 w-4 text-muted-foreground"/>
+                </Button>
+                <CardHeader>
+                    <CardTitle className="font-headline text-primary flex items-center">
+                        <Sprout className="mr-2 h-6 w-6"/>
+                        Bem-vindo(a) ao Flortune!
+                    </CardTitle>
+                    <CardDescription>Estamos felizes em ter você aqui. Flortune é seu novo parceiro para cultivar um futuro financeiro mais próspero.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <h4 className="font-semibold text-sm">Primeiros Passos:</h4>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 space-y-1">
+                        <li>Adicione sua primeira transação clicando no botão no topo da página.</li>
+                        <li>Crie um orçamento para uma categoria de gastos na página <Link href="/budgets" className="underline font-medium">Orçamentos</Link>.</li>
+                        <li>Defina sua primeira meta financeira na página <Link href="/goals" className="underline font-medium">Metas</Link>.</li>
+                    </ul>
+                </CardContent>
+            </Card>
+        </motion.div>
+      )}
+
       <PageHeader
         title={`Bem-vindo(a) de volta, ${welcomeName}!`}
         description="Aqui está seu resumo financeiro."
