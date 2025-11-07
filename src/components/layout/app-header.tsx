@@ -74,9 +74,9 @@ export function AppHeader() {
                 size="icon"
                 onClick={togglePrivateMode}
                 aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
-                className={cn("h-9 w-9", isPrivateMode && "text-accent hover:text-accent/90")}
+                className="h-9 w-9"
               >
-                {isPrivateMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {isPrivateMode ? <EyeOff className="h-5 w-5 text-accent" /> : <Eye className="h-5 w-5" />}
               </Button>
             </>
           )}
