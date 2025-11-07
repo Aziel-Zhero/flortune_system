@@ -1,4 +1,3 @@
-
 // src/app/(app)/plans/page.tsx
 "use client";
 
@@ -11,9 +10,11 @@ import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constan
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import * as LucideIcons from "lucide-react";
+import { FlowerPotIcon } from "@/components/icons/flower-pot-icon";
 
 const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
   if (!iconName) return Gem;
+  if (iconName === 'Flower') return FlowerPotIcon;
   const IconComponent = (LucideIcons as any)[iconName];
   return IconComponent || Gem;
 };

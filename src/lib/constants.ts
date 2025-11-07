@@ -93,7 +93,7 @@ export const PRICING_TIERS = [
       'Suporte prioritário'
     ],
     featured: true,
-    icon: "BrainCircuit",
+    icon: "Flower",
     stripePriceId: "price_1PMEpLAt9gV2x1d6lXv9z4aO",
   },
     {
