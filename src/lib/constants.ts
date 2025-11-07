@@ -1,4 +1,5 @@
 
+
 export const APP_NAME = "Flortune";
 export const NO_ICON_VALUE = "__NO_ICON__";
 
@@ -134,15 +135,18 @@ export const PRICING_TIERS = [
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
 
 
-// Lista de cotações disponíveis
+// Lista de cotações disponíveis na API ExchangeRate-API
 export const AVAILABLE_QUOTES = [
+  { name: "Real Brasileiro", code: "BRL" },
   { name: "Dólar Americano", code: "USD" },
   { name: "Euro", code: "EUR" },
-  { name: "Real Brasileiro", code: "BRL" },
   { name: "Libra Esterlina", code: "GBP" },
   { name: "Iene Japonês", code: "JPY" },
   { name: "Dólar Australiano", code: "AUD" },
   { name: "Dólar Canadense", code: "CAD" },
   { name: "Franco Suíço", code: "CHF" },
   { name: "Yuan Chinês", code: "CNY" },
+  { name: "Peso Argentino", code: "ARS" },
+  { name: "Lira Turca", code: "TRY" },
+  { name: "Rublo Russo", code: "RUB" },
 ];

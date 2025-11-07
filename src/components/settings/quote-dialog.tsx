@@ -1,3 +1,4 @@
+
 // src/components/settings/quote-dialog.tsx
 "use client";
 
@@ -58,14 +59,6 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   };
 
   const handleSave = () => {
-    if (localSelection.length !== MAX_QUOTES) {
-       toast({
-        title: "Seleção Incompleta",
-        description: `Por favor, selecione exatamente ${MAX_QUOTES} cotações.`,
-        variant: "destructive",
-      });
-      return;
-    }
     setSelectedQuotes(localSelection);
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
@@ -82,13 +75,13 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
             Configurar Cotações do Painel
           </DialogTitle>
           <DialogDescription>
-            Escolha exatamente {MAX_QUOTES} cotações para acompanhar no seu dashboard.
+            Escolha até {MAX_QUOTES} cotações para acompanhar no seu dashboard.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Selecione {MAX_QUOTES} cotações</AlertTitle>
+            <AlertTitle>Selecione até {MAX_QUOTES} cotações</AlertTitle>
             <AlertDescription>
               Você selecionou {localSelection.length} de {MAX_QUOTES}.
             </AlertDescription>
