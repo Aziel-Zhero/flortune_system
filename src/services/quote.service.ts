@@ -1,4 +1,3 @@
-
 // src/services/quote.service.ts
 "use server";
 import axios from 'axios';
@@ -31,9 +30,6 @@ export async function getQuotes(
   const uniqueQuotes = [...new Set(quotes)];
   const query = uniqueQuotes.join(',');
   const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
-  
-  // A chave da API AWESOMEAPI_API_KEY não é usada aqui para manter a simplicidade do acesso público gratuito da API.
-  // A documentação indica que a chave é para evitar cache, mas a rota 'last' já tem um cache curto.
 
   try {
     const response = await axios.get<ApiResponse>(apiUrl);
