@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
@@ -35,8 +36,8 @@ const mockUser = {
     avatarFallback: "U",
 }
 
-// Mock de quais módulos estão compartilhados com o usuário atual.
-const sharedModulesWithMe: string[] = [];
+// Simulação de quais seções têm conteúdo compartilhado
+const sharedSections: string[] = ['budgets', 'transactions', 'todos'];
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -107,7 +108,8 @@ export function AppSidebar() {
                   }
                   const IconComponent = getIcon(item.icon);
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-                  const isShared = sharedModulesWithMe.includes(item.href);
+                  const sectionKey = item.href.split('/').pop();
+                  const isShared = sectionKey && sharedSections.includes(sectionKey);
 
                   return (
                     <SidebarMenuItem key={item.href}>
@@ -122,7 +124,12 @@ export function AppSidebar() {
                           <IconComponent />
                           <span>{item.label}</span>
                            {isShared && (
-                            <LucideIcons.Share2 className="ml-auto h-3 w-3 text-yellow-500 animate-pulse-gold" />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                 <LucideIcons.Share2 className="ml-auto h-3 w-3 text-amber-500" />
+                              </TooltipTrigger>
+                              <TooltipContent side="right"><p>Contém itens compartilhados</p></TooltipContent>
+                            </Tooltip>
                           )}
                         </Link>
                       </SidebarMenuButton>

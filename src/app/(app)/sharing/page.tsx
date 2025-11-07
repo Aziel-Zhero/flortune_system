@@ -29,7 +29,8 @@ import {
   NotebookPen,
   CalendarDays,
   Users2,
-  KanbanSquare
+  KanbanSquare,
+  MoreHorizontal
 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
@@ -37,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface SharedAccess {
   id: string;
@@ -53,7 +55,8 @@ interface Module {
   sections: ModuleSection[];
   createdAt: string;
   updatedAt: string;
-  owner: 'me' | 'other'; // To distinguish between tabs
+  owner: 'me' | 'other';
+  ownerName?: string; 
 }
 
 const sectionConfig: Record<ModuleSection, { label: string; icon: React.ElementType }> = {
@@ -76,6 +79,7 @@ const initialModules: Module[] = [
     createdAt: "2024-07-20T10:00:00Z",
     updatedAt: "2024-07-25T14:30:00Z",
     owner: 'me',
+    ownerName: "Você"
   },
   { 
     id: "mod_2", 
@@ -88,6 +92,7 @@ const initialModules: Module[] = [
     createdAt: "2024-06-15T09:00:00Z",
     updatedAt: "2024-07-22T11:00:00Z",
     owner: 'me',
+    ownerName: "Você"
   },
   {
     id: "mod_3",
@@ -97,6 +102,7 @@ const initialModules: Module[] = [
     createdAt: "2024-05-10T18:00:00Z",
     updatedAt: "2024-05-10T18:00:00Z",
     owner: 'other',
+    ownerName: "Ana S."
   }
 ];
 
@@ -113,6 +119,7 @@ export default function SharingPage() {
   const [invitePermission, setInvitePermission] = useState<"view" | "edit">("view");
 
   const [isKanbanConfirmOpen, setIsKanbanConfirmOpen] = useState(false);
+  const [moduleToLeave, setModuleToLeave] = useState<Module | null>(null);
 
   useEffect(() => {
     document.title = `Meus Módulos - ${APP_NAME}`;
@@ -142,6 +149,7 @@ export default function SharingPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         owner: 'me',
+        ownerName: "Você"
     };
     setModules(prev => [newModule, ...prev]);
     toast({ title: "Módulo Criado!", description: `O módulo "${newModuleName}" foi criado com sucesso.`});
@@ -177,9 +185,11 @@ export default function SharingPage() {
     }
   }
 
-  const handleRevokeAccess = (moduleId: string, accessId: string) => {
-    setModules(prev => prev.map(m => m.id === moduleId ? {...m, sharedWith: m.sharedWith.filter(s => s.id !== accessId)} : m));
-    toast({ title: "Acesso Revogado" });
+  const handleLeaveModuleConfirm = () => {
+    if(!moduleToLeave) return;
+    setModules(prev => prev.filter(m => m.id !== moduleToLeave.id));
+    toast({ title: "Você saiu do módulo", description: `Você não tem mais acesso a "${moduleToLeave.name}".`});
+    setModuleToLeave(null);
   }
   
   const modulesByMe = modules.filter(m => m.owner === 'me');
@@ -200,10 +210,10 @@ export default function SharingPage() {
             <TabsTrigger value="shared-with-me">Compartilhados comigo ({modulesWithMe.length})</TabsTrigger>
           </TabsList>
           <TabsContent value="my-modules" className="flex-grow mt-4">
-            <ModuleTable modules={modulesByMe} openInviteModal={openInviteModal} title="Módulos Criados por Você"/>
+            <ModuleTable modules={modulesByMe} onInvite={openInviteModal} title="Módulos Criados por Você"/>
           </TabsContent>
           <TabsContent value="shared-with-me" className="flex-grow mt-4">
-            <ModuleTable modules={modulesWithMe} openInviteModal={openInviteModal} title="Módulos que Outros Compartilharam com Você"/>
+            <ModuleTable modules={modulesWithMe} onLeave={setModuleToLeave} title="Módulos que Outros Compartilharam com Você"/>
           </TabsContent>
         </Tabs>
       </div>
@@ -260,6 +270,23 @@ export default function SharingPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!moduleToLeave} onOpenChange={(open) => !open && setModuleToLeave(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do Módulo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem certeza que deseja sair do módulo "{moduleToLeave?.name}"? Você perderá o acesso a todos os seus dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveModuleConfirm} variant="destructive">
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </TooltipProvider>
   );
 }
@@ -267,11 +294,12 @@ export default function SharingPage() {
 
 interface ModuleTableProps {
   modules: Module[];
-  openInviteModal: (module: Module) => void;
+  onInvite?: (module: Module) => void;
+  onLeave?: (module: Module) => void;
   title: string;
 }
 
-function ModuleTable({ modules, openInviteModal, title }: ModuleTableProps) {
+function ModuleTable({ modules, onInvite, onLeave, title }: ModuleTableProps) {
   if (modules.length === 0) {
     return (
       <Card className="flex flex-col items-center justify-center text-center p-8 border-dashed h-full">
@@ -288,20 +316,16 @@ function ModuleTable({ modules, openInviteModal, title }: ModuleTableProps) {
         <CardTitle className="font-headline">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Mobile View: Cards */}
-        <div className="grid gap-4 md:hidden">
+        <div className="md:hidden grid gap-4">
           {modules.map(module => (
             <div key={module.id} className="p-4 border rounded-lg space-y-3">
               <div className="flex justify-between items-start">
                 <p className="font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary"/>{module.name}</p>
-                <Button variant="outline" size="sm" onClick={() => openInviteModal(module)}>
-                  <Users className="mr-2 h-4 w-4"/>Gerenciar
-                </Button>
+                <ModuleActions module={module} onInvite={onInvite} onLeave={onLeave} />
               </div>
               <div className="space-y-1 text-sm text-muted-foreground">
-                <div className="flex justify-between"><span>Status:</span> <Badge variant="secondary">Ativo</Badge></div>
-                <div className="flex justify-between"><span>Criação:</span> <span>{format(new Date(module.createdAt), "dd/MM/yy")}</span></div>
-                <div className="flex justify-between"><span>Alteração:</span> <span>{format(new Date(module.updatedAt), "dd/MM/yy")}</span></div>
+                <div className="flex justify-between"><span>Proprietário:</span> <span className="font-medium">{module.ownerName}</span></div>
+                <div className="flex justify-between"><span>Alterado:</span> <span>{format(new Date(module.updatedAt), "dd/MM/yy")}</span></div>
                 <div>
                   <span className="font-medium">Itens:</span>
                   <div className="flex gap-2 flex-wrap mt-1">
@@ -316,15 +340,13 @@ function ModuleTable({ modules, openInviteModal, title }: ModuleTableProps) {
           ))}
         </div>
         
-        {/* Desktop View: Table */}
         <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome do Módulo</TableHead>
                 <TableHead>Itens</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Criação</TableHead>
+                <TableHead>Proprietário</TableHead>
                 <TableHead>Alteração</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -341,13 +363,10 @@ function ModuleTable({ modules, openInviteModal, title }: ModuleTableProps) {
                       })}
                     </div>
                   </TableCell>
-                  <TableCell><Badge variant="secondary">Ativo</Badge></TableCell>
-                  <TableCell>{format(new Date(module.createdAt), "dd/MM/yy")}</TableCell>
-                  <TableCell>{format(new Date(module.updatedAt), "dd/MM/yy")}</TableCell>
+                  <TableCell>{module.ownerName}</TableCell>
+                  <TableCell>{format(new Date(module.updatedAt), "dd/MM/yyyy")}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" onClick={() => openInviteModal(module)}>
-                      <Users className="mr-2 h-4 w-4"/>Gerenciar
-                    </Button>
+                    <ModuleActions module={module} onInvite={onInvite} onLeave={onLeave} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -357,4 +376,24 @@ function ModuleTable({ modules, openInviteModal, title }: ModuleTableProps) {
       </CardContent>
     </Card>
   );
+}
+
+function ModuleActions({module, onInvite, onLeave}: {module: Module, onInvite?: (m: Module) => void, onLeave?: (m: Module) => void}) {
+  if(module.owner === 'me') {
+    return (
+      <Button variant="outline" size="sm" onClick={() => onInvite?.(module)}>
+        <Users className="mr-2 h-4 w-4"/>Convidar
+      </Button>
+    )
+  }
+  return (
+    <DropdownMenu>
+        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onSelect={() => onLeave?.(module)} className="text-destructive focus:text-destructive">
+            <Trash2 className="mr-2 h-4 w-4"/>Sair do Módulo
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
