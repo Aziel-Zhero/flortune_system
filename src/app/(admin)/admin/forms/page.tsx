@@ -48,10 +48,7 @@ export default function AdminFormsPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<FormQuestion | null>(null);
   const [deletingQuestion, setDeletingQuestion] = useState<FormQuestion | null>(null);
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 30),
-  });
+  const [date, setDate] = useState<DateRange | undefined>();
   
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
@@ -61,6 +58,10 @@ export default function AdminFormsPage() {
 
   useEffect(() => {
     setIsClient(true);
+    setDate({
+        from: new Date(),
+        to: addDays(new Date(), 30),
+    });
     document.title = "Gestão de Formulários - Flortune";
     try {
         const stored = localStorage.getItem("flortune-admin-form-questions");
