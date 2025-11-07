@@ -20,6 +20,9 @@ interface ApiResponse {
   [key: string]: QuoteData;
 }
 
+// Helper to check if a code is an index
+const isIndex = (code: string) => !code.includes('-');
+
 export async function getQuotes(
   quotes: string[]
 ): Promise<{ data: QuoteData[] | null; error: string | null }> {
@@ -28,7 +31,25 @@ export async function getQuotes(
   }
 
   const uniqueQuotes = [...new Set(quotes)];
-  const query = uniqueQuotes.join(',');
+  
+  // Separate currency pairs from indices
+  const currencyPairs = uniqueQuotes.filter(q => !isIndex(q));
+  const indices = uniqueQuotes.filter(q => isIndex(q));
+
+  const queryParts: string[] = [];
+  if (currencyPairs.length > 0) {
+    queryParts.push(...currencyPairs);
+  }
+  if (indices.length > 0) {
+    // For indices, the API expects them to be appended with ",All" if mixed
+    queryParts.push(...indices);
+  }
+  
+  const query = queryParts.join(',');
+  if (!query) {
+      return { data: [], error: null };
+  }
+
   const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
 
   try {
@@ -37,10 +58,7 @@ export async function getQuotes(
     const responseData = response.data;
     const dataArray: QuoteData[] = [];
 
-    // Itera sobre as cotações solicitadas para construir o array de resposta na ordem correta
-    // e para lidar com respostas de API que podem não incluir todas as cotações solicitadas (ex: IBOV)
     uniqueQuotes.forEach(quoteCode => {
-      // A API retorna "USDBRL" para a query "USD-BRL", então normalizamos a chave de busca
       const responseKey = quoteCode.replace('-', '');
       if (responseData && responseData[responseKey]) {
         dataArray.push(responseData[responseKey]);
