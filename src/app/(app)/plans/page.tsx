@@ -33,7 +33,7 @@ export default function PlansPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 items-stretch">
         {PRICING_TIERS.map((tier) => {
           const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
-          const isPaidPlan = tier.stripePriceId !== null;
+          const isPaidPlan = tier.priceMonthly !== 'Grátis';
           return (
             <Card
               key={tier.id}
@@ -80,20 +80,22 @@ export default function PlansPage() {
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter>
-                <Button
-                  asChild
-                  size="lg"
-                  className={cn(
-                    "w-full",
-                    tier.featured ? buttonVariants({variant: "default"}) : buttonVariants({variant: "outline"})
-                  )}
-                >
-                  <Link href={tier.href} target={isPaidPlan ? "_blank" : "_self"}>
-                    {isPaidPlan ? 'Assinar Plano' : 'Começar Agora'}
-                  </Link>
-                </Button>
-              </CardFooter>
+              {isPaidPlan && (
+                <CardFooter>
+                  <Button
+                    asChild
+                    size="lg"
+                    className={cn(
+                      "w-full",
+                      tier.featured ? buttonVariants({variant: "default"}) : buttonVariants({variant: "outline"})
+                    )}
+                  >
+                    <Link href={tier.href} target="_blank">
+                      {tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}
+                    </Link>
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           );
         })}
@@ -106,7 +108,7 @@ export default function PlansPage() {
         <CardContent className="space-y-4 text-center text-muted-foreground">
           <p><strong>Posso cancelar quando quiser?</strong> Sim, você pode cancelar sua assinatura a qualquer momento.</p>
           <p><strong>Como funciona o suporte?</strong> O plano Mestre Jardineiro e Corporativo oferecem suporte prioritário e dedicado, respectivamente.</p>
-          <p><strong>Preciso de ajuda para escolher um plano?</strong> <Link href="#" className="text-primary hover:underline" onClick={(e) => {e.preventDefault(); alert("Página de contato em desenvolvimento.")}}>Entre em contato conosco!</Link></p>
+          <p><strong>Preciso de ajuda para escolher um plano?</strong> <Link href="/help" className="text-primary hover:underline">Entre em contato conosco!</Link></p>
         </CardContent>
       </Card>
     </div>
