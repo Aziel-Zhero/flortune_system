@@ -65,6 +65,8 @@ import {
   Brush
 } from "recharts";
 import type { PieSectorDataItem } from 'recharts/types/polar/Pie';
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 interface CategoryData {
   name: string;
@@ -296,7 +298,7 @@ export default function AnalysisPage() {
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
                 <CardContent className="h-80 sm:h-96">
-                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full">
+                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
                                 <RechartsTooltip content={<RealDataPieCustomTooltip />} />
@@ -311,7 +313,7 @@ export default function AnalysisPage() {
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
                  <CardContent className="h-80 sm:h-96">
-                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full">
+                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
                                 <RechartsTooltip content={<RealDataPieCustomTooltip />} />
@@ -325,11 +327,13 @@ export default function AnalysisPage() {
             </Card>
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 3 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
-                <CardContent className="h-80 sm:h-96 overflow-y-auto">
+                <CardContent className="h-80">
+                  <ScrollArea className="h-full pr-2">
                     <Table size="sm">
                         <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
-                        <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs break-words max-w-[150px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
                     </Table>
+                  </ScrollArea>
                 </CardContent>
             </Card>
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
