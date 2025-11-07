@@ -5,7 +5,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import type { QuoteData } from '@/services/quote.service';
+import { getQuotes, type QuoteData } from '@/services/quote.service';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from "lucide-react";
 
@@ -102,14 +102,6 @@ const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(u
 
 // --- Dados Padrão ---
 
-const mockQuotes: QuoteData[] = [
-  { code: "USD-BRL", codein: 'BRL', name: 'Dólar Comercial', high: '5.45', low: '5.40', varBid: '0.01', pctChange: '0.18', bid: '5.42', ask: '5.42', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: "EUR-BRL", codein: 'BRL', name: 'Euro', high: '5.85', low: '5.80', varBid: '0.02', pctChange: '0.34', bid: '5.83', ask: '5.83', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: "BTC-BRL", codein: 'BRL', name: 'Bitcoin', high: '340000', low: '330000', varBid: '5000', pctChange: '1.50', bid: '335000', ask: '335100', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: "IBOV", codein: 'BRL', name: 'Ibovespa', high: '125000', low: '124000', varBid: '500', pctChange: '0.40', bid: '124500', ask: '124500', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-  { code: "NASDAQ", codein: 'BRL', name: 'Nasdaq', high: '18000', low: '17900', varBid: '100', pctChange: '0.55', bid: '17950', ask: '17950', timestamp: String(Date.now()), create_date: new Date().toISOString() },
-];
-
 const defaultLpContent: LandingPageContent = {
   heroTitle: 'Cultive Suas Finanças e Projetos com Inteligência.',
   heroDescription: 'Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.',
@@ -177,23 +169,25 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
 
   const loadQuotes = useCallback(async (quoteList: string[]) => {
-    setIsLoadingQuotes(true);
-    setQuotesError(null);
     const validQuotes = quoteList.filter(q => q && q.trim() !== '');
     if (validQuotes.length === 0) {
       setQuotes([]);
       setIsLoadingQuotes(false);
       return;
     }
+    setIsLoadingQuotes(true);
+    setQuotesError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const result = await getQuotes(validQuotes);
+      if (result.error) throw new Error(result.error);
       const orderedQuotes = validQuotes
-        .map(code => mockQuotes.find(mq => mq.code === code))
+        .map(code => result.data?.find(d => d.code === code.split('-')[0] && d.codein === code.split('-')[1]))
         .filter((q): q is QuoteData => !!q);
       setQuotes(orderedQuotes);
-    } catch (error) {
-      setQuotesError('Erro ao carregar cotações');
-      console.error('Error loading quotes:', error);
+    } catch (err: any) {
+      setQuotesError(err.message);
+      setQuotes([]);
+       console.error('Error loading quotes:', err);
     } finally {
       setIsLoadingQuotes(false);
     }
