@@ -333,7 +333,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           {(isLoadingQuotes ? Array(5).fill(0) : quotes.length > 0 ? quotes : Array(5).fill({name: 'Indisponível', pctChange: '0', bid: '0'})).slice(0,5).map((quote, index) => {
               const isLoading = quote === 0;
-              const isAvailable = 'name' in quote && quote.name !== 'Indisponível';
+              const isAvailable = !isLoading && typeof quote === 'object' && 'name' in quote && quote.name !== 'Indisponível';
               const pctChange = isAvailable ? parseFloat(quote.pctChange) : 0;
               const isPositive = pctChange >= 0;
               const quoteName = isAvailable ? (quote.name ? quote.name.split('/')[0] : `Cotação ${index + 1}`) : 'Indisponível';
