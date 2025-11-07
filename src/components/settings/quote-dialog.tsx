@@ -1,4 +1,3 @@
-
 // src/components/settings/quote-dialog.tsx
 "use client";
 
@@ -32,6 +31,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   const MAX_QUOTES = 5;
 
   useEffect(() => {
+    // Garante que o estado local seja inicializado corretamente quando o modal abre
     if (isOpen) {
       setLocalSelection(selectedQuotes);
     }
@@ -39,8 +39,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
 
   const handleCheckedChange = (checked: boolean, code: string) => {
     setLocalSelection(prev => {
-      const isCurrentlySelected = prev.includes(code);
-      if (checked && !isCurrentlySelected) {
+      if (checked) {
         if (prev.length < MAX_QUOTES) {
           return [...prev, code];
         } else {
@@ -49,12 +48,11 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
             description: "Desmarque uma cotação para selecionar outra.",
             variant: "destructive"
           });
-          return prev;
+          return prev; // Não permite adicionar mais que o limite
         }
-      } else if (!checked && isCurrentlySelected) {
+      } else {
         return prev.filter(item => item !== code);
       }
-      return prev;
     });
   };
 
@@ -65,6 +63,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   };
   
   const canSelectMore = localSelection.length >= MAX_QUOTES;
+  const canSave = localSelection.length > 0 && localSelection.length <= MAX_QUOTES;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -79,9 +78,9 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <Alert>
+          <Alert variant={canSelectMore ? "destructive" : "default"}>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Selecione até {MAX_QUOTES} cotações</AlertTitle>
+            <AlertTitle>Selecione suas cotações</AlertTitle>
             <AlertDescription>
               Você selecionou {localSelection.length} de {MAX_QUOTES}.
             </AlertDescription>
@@ -112,7 +111,9 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
           <DialogClose asChild>
             <Button type="button" variant="outline">Cancelar</Button>
           </DialogClose>
-          <Button type="button" onClick={handleSave}>Salvar</Button>
+          <Button type="button" onClick={handleSave} disabled={!canSave}>
+            Salvar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
