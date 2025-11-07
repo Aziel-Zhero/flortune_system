@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { AVAILABLE_QUOTES } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface QuoteSettingsDialogProps {
   isOpen: boolean;
@@ -30,7 +31,6 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   const [localSelection, setLocalSelection] = useState<string[]>([]);
   const MAX_QUOTES = 5;
 
-  // Efeito para sincronizar o estado local com o global quando o modal é aberto
   useEffect(() => {
     if (isOpen) {
       setLocalSelection(selectedQuotes);
@@ -39,20 +39,21 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
 
   const handleCheckedChange = (checked: boolean, code: string) => {
     setLocalSelection(prev => {
-      if (checked) {
-        if (prev.length < MAX_QUOTES) {
-          return [...prev, code];
-        } else {
+      const isCurrentlySelected = prev.includes(code);
+      if (checked && !isCurrentlySelected) {
+        if (prev.length >= MAX_QUOTES) {
           toast({
             title: `Limite de ${MAX_QUOTES} cotações atingido`,
             description: "Desmarque uma cotação para selecionar outra.",
             variant: "destructive"
           });
-          return prev; // Não permite adicionar mais que o limite
+          return prev;
         }
-      } else {
+        return [...prev, code];
+      } else if (!checked && isCurrentlySelected) {
         return prev.filter(item => item !== code);
       }
+      return prev;
     });
   };
 
@@ -63,9 +64,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   };
   
   const canSelectMore = localSelection.length >= MAX_QUOTES;
-  
-  // O botão salvar fica ativo se houver entre 1 e 5 cotações
-  const canSave = localSelection.length >= 1 && localSelection.length <= MAX_QUOTES;
+  const canSave = localSelection.length > 0 && localSelection.length <= MAX_QUOTES;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -87,27 +86,29 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
               Você selecionou {localSelection.length} de {MAX_QUOTES}.
             </AlertDescription>
           </Alert>
-          <div className="grid grid-cols-2 gap-4 mt-4 max-h-60 overflow-y-auto pr-2">
-            {AVAILABLE_QUOTES.map(q => {
-              const isChecked = localSelection.includes(q.code);
-              return (
-                <div key={q.code} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`quote-check-${q.code}`}
-                    checked={isChecked}
-                    onCheckedChange={(checked) => handleCheckedChange(Boolean(checked), q.code)}
-                    disabled={!isChecked && canSelectMore}
-                  />
-                  <Label
-                    htmlFor={`quote-check-${q.code}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {q.name} ({q.code})
-                  </Label>
-                </div>
-              )
-            })}
-          </div>
+          <ScrollArea className="h-60 mt-4 pr-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {AVAILABLE_QUOTES.map(q => {
+                const isChecked = localSelection.includes(q.code);
+                return (
+                  <div key={q.code} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`quote-check-${q.code}`}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => handleCheckedChange(Boolean(checked), q.code)}
+                      disabled={!isChecked && canSelectMore}
+                    />
+                    <Label
+                      htmlFor={`quote-check-${q.code}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {q.name} ({q.code})
+                    </Label>
+                  </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
         </div>
         <DialogFooter>
           <DialogClose asChild>
