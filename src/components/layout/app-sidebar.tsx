@@ -126,7 +126,7 @@ export function AppSidebar() {
                            {isShared && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                 <LucideIcons.Share2 className="ml-auto h-3 w-3 text-amber-500" />
+                                 <LucideIcons.Share2 className="ml-auto h-3 w-3 text-amber-500 animate-pulse" />
                               </TooltipTrigger>
                               <TooltipContent side="right"><p>Contém itens compartilhados</p></TooltipContent>
                             </Tooltip>
