@@ -14,15 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat, PlusCircle, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
-import { getCategories } from "@/services/category.service";
+import { getCategories, addCategory } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
-import { DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const transactionFormSchema = z.object({
@@ -40,6 +40,11 @@ const transactionFormSchema = z.object({
 
 type TransactionFormData = z.infer<typeof transactionFormSchema>;
 
+const newCategorySchema = z.object({
+  name: z.string().min(2, "Nome da categoria deve ter no mínimo 2 caracteres.").max(50, "Nome da categoria muito longo."),
+});
+type NewCategoryFormData = z.infer<typeof newCategorySchema>;
+
 interface TransactionFormProps {
   onTransactionCreated: () => void;
   initialData?: Partial<TransactionFormData>;
@@ -48,11 +53,13 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
+  const { control, handleSubmit, register, formState: { errors }, reset, watch, setValue } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionFormSchema),
     defaultValues: initialData || {
       type: "expense",
@@ -60,6 +67,10 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       date: new Date(),
       is_recurring: false,
     },
+  });
+  
+  const { handleSubmit: handleCategorySubmit, register: categoryFormRegister, formState: { errors: categoryFormErrors }, reset: resetCategoryForm } = useForm<NewCategoryFormData>({
+    resolver: zodResolver(newCategorySchema),
   });
 
   const transactionType = watch("type");
@@ -123,8 +134,23 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       setIsSubmitting(false);
     }
   };
+  
+  const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
+    const { data: newCategory, error } = await addCategory({ name: data.name, type: transactionType });
 
-  const filteredCategories = categories.filter(cat => cat.type === transactionType || cat.is_default);
+    if (error) {
+        toast({ title: "Erro ao criar categoria", description: error.message, variant: "destructive" });
+    } else if (newCategory) {
+        setCategories(prev => [...prev, newCategory]);
+        setValue("category_id", newCategory.id, { shouldValidate: true });
+        toast({ title: "Categoria Criada!", description: `Categoria "${data.name}" criada.` });
+        resetCategoryForm();
+        setIsCategoryModalOpen(false);
+    }
+  };
+
+
+  const filteredCategories = categories.filter(cat => cat.type === transactionType || (cat.is_default && cat.type !== 'income'));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
@@ -176,7 +202,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                         <PopoverContent className="w-auto p-0">
                             <Calendar
                             mode="single"
-                            selected={field.value}
+                            selected={field.value as Date}
                             onSelect={field.onChange}
                             initialFocus
                             locale={ptBR}
@@ -216,27 +242,49 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
 
         <div className="space-y-2">
             <Label htmlFor="category_id">Categoria</Label>
-            <Controller
-                name="category_id"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
-                    <SelectTrigger id="category_id">
-                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria de ${transactionType === 'income' ? 'receita' : 'despesa'}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                      {filteredCategories.length === 0 && !isLoadingCategories && (
-                        <div className="p-4 text-sm text-muted-foreground">Nenhuma categoria encontrada para este tipo.</div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
-            />
+            <div className="flex items-center gap-2">
+              <Controller
+                  name="category_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
+                      <SelectTrigger id="category_id" className="flex-grow">
+                        <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria de ${transactionType === 'income' ? 'receita' : 'despesa'}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                        {filteredCategories.length === 0 && !isLoadingCategories && (
+                          <div className="p-4 text-sm text-center text-muted-foreground">Nenhuma categoria encontrada para este tipo. Crie uma!</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+              />
+              <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+                  <DialogTrigger asChild><Button type="button" variant="outline" size="icon"><PlusCircle className="h-4 w-4" /></Button></DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="font-headline flex items-center"><Settings2 className="mr-2 h-5 w-5 text-primary"/>Nova Categoria de {transactionType === 'income' ? 'Receita' : 'Despesa'}</DialogTitle>
+                      <DialogDescription>Crie uma nova categoria para suas transações.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCategorySubmit(onCategorySubmit)} className="space-y-4 py-2">
+                      <div>
+                        <Label htmlFor="new_cat_name">Nome da Categoria</Label>
+                        <Input id="new_cat_name" {...categoryFormRegister("name")} />
+                        {categoryFormErrors.name && <p className="text-sm text-destructive mt-1">{categoryFormErrors.name.message}</p>}
+                      </div>
+                      <DialogFooter className="pt-2">
+                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                        <Button type="submit">Criar Categoria</Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+              </Dialog>
+            </div>
             {errors.category_id && <p className="text-sm text-destructive mt-1">{errors.category_id.message}</p>}
         </div>
 

@@ -21,15 +21,14 @@ export async function getCategories(userId: string): Promise<ServiceListResponse
   return { data: userCategories, error: null };
 }
 
-export type NewCategoryData = Omit<Category, 'id' | 'created_at' | 'updated_at' | 'is_default' | 'user_id'> & {
-    user_id?: string | null;
-};
+export type NewCategoryData = Omit<Category, 'id' | 'created_at' | 'updated_at' | 'is_default' | 'user_id'>;
 
-export async function addCategory(userId: string, categoryData: Omit<NewCategoryData, 'user_id'>): Promise<ServiceResponse<Category>> {
-    console.log(`Adding mock category for user ${userId}`, categoryData);
+export async function addCategory(categoryData: NewCategoryData): Promise<ServiceResponse<Category>> {
+    const mockUserId = "mock-user-id";
+    console.log(`Adding mock category for user ${mockUserId}`, categoryData);
     const newCategory: Category = {
         id: `cat_${Date.now()}`,
-        user_id: userId,
+        user_id: mockUserId,
         name: categoryData.name,
         type: categoryData.type,
         is_default: false,
