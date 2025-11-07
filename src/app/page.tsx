@@ -333,9 +333,9 @@ export default function LandingPage() {
           <div className="container mx-auto text-center text-sm text-foreground/60">
             <p>&copy; {new Date().getFullYear()} {APP_NAME}. Todos os direitos reservados.</p>
             <nav className="mt-2">
-                <Link href="#" className="hover:text-foreground/80 px-2">Termos de Serviço</Link>
+                <Link href="/terms" className="hover:text-foreground/80 px-2">Termos de Serviço</Link>
                 <span className="px-1">|</span>
-                <Link href="#" className="hover:text-foreground/80 px-2">Política de Privacidade</Link>
+                <Link href="/policy" className="hover:text-foreground/80 px-2">Política de Privacidade</Link>
                 <span className="px-1">|</span>
                 <Link href="/login-admin" className="hover:text-foreground/80 px-2">Admin</Link>
             </nav>
