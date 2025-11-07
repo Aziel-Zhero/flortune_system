@@ -43,7 +43,6 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
         if (prev.length < MAX_QUOTES) {
           return [...prev, code];
         } else {
-          // Exibe um aviso se tentar exceder o limite
           toast({
             title: `Limite de ${MAX_QUOTES} cotações atingido`,
             description: "Desmarque uma cotação para selecionar outra.",
@@ -71,8 +70,8 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
   };
-
-  const canSelectMore = localSelection.length < MAX_QUOTES;
+  
+  const canSelectMore = localSelection.length >= MAX_QUOTES;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -103,7 +102,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
                     id={`quote-check-${q.code}`}
                     checked={isChecked}
                     onCheckedChange={(checked) => handleCheckedChange(Boolean(checked), q.code)}
-                    disabled={!isChecked && !canSelectMore}
+                    disabled={!isChecked && canSelectMore}
                   />
                   <Label
                     htmlFor={`quote-check-${q.code}`}
