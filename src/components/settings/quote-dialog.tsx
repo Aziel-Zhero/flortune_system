@@ -40,6 +40,8 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   const handleCheckedChange = (checked: boolean, code: string) => {
     setLocalSelection(prev => {
       const isCurrentlySelected = prev.includes(code);
+
+      // Se está marcando uma cotação
       if (checked && !isCurrentlySelected) {
         if (prev.length >= MAX_QUOTES) {
           toast({
@@ -50,7 +52,9 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
           return prev;
         }
         return [...prev, code];
-      } else if (!checked && isCurrentlySelected) {
+      } 
+      // Se está desmarcando uma cotação
+      else if (!checked && isCurrentlySelected) {
         return prev.filter(item => item !== code);
       }
       return prev;
@@ -62,8 +66,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
     toast({ title: "Cotações Atualizadas!", description: "Seu painel foi atualizado com as novas cotações." });
     onOpenChange(false);
   };
-  
-  const canSelectMore = localSelection.length >= MAX_QUOTES;
+
   const canSave = localSelection.length > 0 && localSelection.length <= MAX_QUOTES;
 
   return (
@@ -79,7 +82,7 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <Alert variant={canSelectMore ? "destructive" : "default"}>
+          <Alert variant={localSelection.length >= MAX_QUOTES ? "destructive" : "default"}>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Selecione suas cotações</AlertTitle>
             <AlertDescription>
@@ -90,13 +93,15 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               {AVAILABLE_QUOTES.map(q => {
                 const isChecked = localSelection.includes(q.code);
+                const isDisabled = localSelection.length >= MAX_QUOTES && !isChecked;
+
                 return (
                   <div key={q.code} className="flex items-center space-x-2">
                     <Checkbox
                       id={`quote-check-${q.code}`}
                       checked={isChecked}
                       onCheckedChange={(checked) => handleCheckedChange(Boolean(checked), q.code)}
-                      disabled={!isChecked && canSelectMore}
+                      disabled={isDisabled}  // Desabilita apenas quando o limite foi atingido e a cotação não está selecionada
                     />
                     <Label
                       htmlFor={`quote-check-${q.code}`}
