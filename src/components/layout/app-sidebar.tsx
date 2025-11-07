@@ -1,4 +1,3 @@
-
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -36,7 +35,7 @@ const mockUser = {
 }
 
 // Mock de quais módulos estão compartilhados com o usuário atual.
-const sharedModulesWithMe = ['/transactions', '/goals'];
+const sharedModulesWithMe: string[] = [];
 
 export function AppSidebar() {
   const pathname = usePathname();
