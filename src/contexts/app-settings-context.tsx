@@ -179,7 +179,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingQuotes(true);
     setQuotesError(null);
     try {
-      const result = await getQuotes(validQuotes, 'BRL');
+      const result = await getQuotes(validQuotes);
       if (result.error) throw new Error(result.error);
       
       const orderedQuotes = validQuotes
@@ -330,7 +330,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
           loadWeatherForCity(storedCity);
         }
         const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : []; // Default to empty array
+        const defaultQuotes = ['BRL', 'USD', 'JPY', 'EUR', 'ARS'];
+        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : defaultQuotes;
         setSelectedQuotesState(initialQuotes);
         loadQuotes(initialQuotes);
       } else {
