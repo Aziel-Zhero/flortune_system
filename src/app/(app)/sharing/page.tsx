@@ -276,61 +276,85 @@ function ModuleTable({ modules, openInviteModal, title }: ModuleTableProps) {
     return (
       <Card className="flex flex-col items-center justify-center text-center p-8 border-dashed h-full">
          <Info className="h-10 w-10 text-muted-foreground mb-2"/>
-        <h3 className="font-semibold text-lg">{title}</h3>
-        <p className="text-muted-foreground text-sm">Nenhum módulo para exibir aqui.</p>
+        <h3 className="font-semibold text-lg">{title === "Módulos Criados por Você" ? "Você ainda não criou módulos" : "Nenhum módulo compartilhado com você"}</h3>
+        <p className="text-muted-foreground text-sm">Crie um módulo para começar a compartilhar.</p>
       </Card>
     );
   }
 
   return (
     <Card className="shadow-md h-full">
-        <CardHeader>
-            <CardTitle className="font-headline">{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nome do Módulo</TableHead>
-                        <TableHead>Itens</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Criação</TableHead>
-                        <TableHead>Alteração</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {modules.map(module => (
-                        <TableRow key={module.id}>
-                            <TableCell className="font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary"/>{module.name}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                {module.sections.map(sectionKey => {
-                                  const config = sectionConfig[sectionKey];
-                                  return (
-                                     <Tooltip key={sectionKey}>
-                                      <TooltipTrigger>
-                                        <config.icon className="h-4 w-4 text-muted-foreground"/>
-                                      </TooltipTrigger>
-                                      <TooltipContent><p>{config.label}</p></TooltipContent>
-                                    </Tooltip>
-                                  )
-                                })}
-                              </div>
-                            </TableCell>
-                            <TableCell><Badge variant="secondary">Ativo</Badge></TableCell>
-                            <TableCell>{format(new Date(module.createdAt), "dd/MM/yy")}</TableCell>
-                            <TableCell>{format(new Date(module.updatedAt), "dd/MM/yy")}</TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="outline" size="sm" onClick={() => openInviteModal(module)}>
-                                    <Users className="mr-2 h-4 w-4"/>Gerenciar
-                                </Button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </CardContent>
+      <CardHeader>
+        <CardTitle className="font-headline">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Mobile View: Cards */}
+        <div className="grid gap-4 md:hidden">
+          {modules.map(module => (
+            <div key={module.id} className="p-4 border rounded-lg space-y-3">
+              <div className="flex justify-between items-start">
+                <p className="font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary"/>{module.name}</p>
+                <Button variant="outline" size="sm" onClick={() => openInviteModal(module)}>
+                  <Users className="mr-2 h-4 w-4"/>Gerenciar
+                </Button>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div className="flex justify-between"><span>Status:</span> <Badge variant="secondary">Ativo</Badge></div>
+                <div className="flex justify-between"><span>Criação:</span> <span>{format(new Date(module.createdAt), "dd/MM/yy")}</span></div>
+                <div className="flex justify-between"><span>Alteração:</span> <span>{format(new Date(module.updatedAt), "dd/MM/yy")}</span></div>
+                <div>
+                  <span className="font-medium">Itens:</span>
+                  <div className="flex gap-2 flex-wrap mt-1">
+                    {module.sections.map(sectionKey => {
+                      const config = sectionConfig[sectionKey];
+                      return <Tooltip key={sectionKey}><TooltipTrigger><config.icon className="h-4 w-4"/></TooltipTrigger><TooltipContent><p>{config.label}</p></TooltipContent></Tooltip>;
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Desktop View: Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome do Módulo</TableHead>
+                <TableHead>Itens</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Criação</TableHead>
+                <TableHead>Alteração</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {modules.map(module => (
+                <TableRow key={module.id}>
+                  <TableCell className="font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary"/>{module.name}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {module.sections.map(sectionKey => {
+                        const config = sectionConfig[sectionKey];
+                        return <Tooltip key={sectionKey}><TooltipTrigger><config.icon className="h-4 w-4 text-muted-foreground"/></TooltipTrigger><TooltipContent><p>{config.label}</p></TooltipContent></Tooltip>;
+                      })}
+                    </div>
+                  </TableCell>
+                  <TableCell><Badge variant="secondary">Ativo</Badge></TableCell>
+                  <TableCell>{format(new Date(module.createdAt), "dd/MM/yy")}</TableCell>
+                  <TableCell>{format(new Date(module.updatedAt), "dd/MM/yy")}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => openInviteModal(module)}>
+                      <Users className="mr-2 h-4 w-4"/>Gerenciar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
     </Card>
-  )
+  );
 }
