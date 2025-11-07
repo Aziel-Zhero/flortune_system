@@ -1,15 +1,22 @@
+
 // src/app/(app)/help/page.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LifeBuoy, Info, Mail, Phone, MessageSquare } from "lucide-react";
+import { LifeBuoy, Info, Mail, Phone, MessageSquare, Send } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
+
 
 const faqItems = [
   {
@@ -68,9 +75,32 @@ function SupportContactItem({
 }
 
 export default function HelpPage() {
+  const [isEmailFormOpen, setIsEmailFormOpen] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
+
   useEffect(() => {
     document.title = `Central de Ajuda - ${APP_NAME}`;
   }, []);
+  
+  const handleSendEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    if(emailMessage.trim().length < 10) {
+        toast({
+            title: "Mensagem muito curta",
+            description: "Por favor, descreva sua dúvida com mais detalhes.",
+            variant: "destructive",
+        });
+        return;
+    }
+    // Simulação de envio
+    console.log("Mensagem para suporte:", emailMessage);
+    toast({
+        title: "Mensagem Enviada!",
+        description: "Sua mensagem foi enviada para nossa equipe de suporte. Responderemos em breve!",
+    });
+    setEmailMessage("");
+    setIsEmailFormOpen(false);
+  }
 
   return (
     <div className="space-y-8">
@@ -124,25 +154,39 @@ export default function HelpPage() {
           <CardDescription>Precisa de mais ajuda? Entre em contato conosco através dos canais abaixo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SupportContactItem
-            icon={Mail}
-            title="Email"
-            description="Para dúvidas gerais, sugestões ou problemas técnicos."
-          >
-            <a
-              href="mailto:flortune_@outlook.com"
-              className={cn(buttonVariants({ variant: "link" }), "p-0 h-auto text-primary")}
-            >
-              suporte@flortune.com
-            </a>
-          </SupportContactItem>
-
-          <SupportContactItem
-            icon={Phone}
-            title="Telefone"
-            description="Um canal de voz para suporte em tempo real estará disponível em breve para planos selecionados."
-            disabled
-          />
+            <Dialog open={isEmailFormOpen} onOpenChange={setIsEmailFormOpen}>
+                <SupportContactItem
+                    icon={Mail}
+                    title="Email"
+                    description="Para dúvidas gerais, sugestões ou problemas técnicos."
+                >
+                    <DialogTrigger asChild>
+                        <Button variant="link" className="p-0 h-auto text-primary">Clique aqui para enviar um e-mail</Button>
+                    </DialogTrigger>
+                </SupportContactItem>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="font-headline">Enviar Mensagem para o Suporte</DialogTitle>
+                        <DialogDescription>Descreva sua dúvida, sugestão ou problema abaixo. Nossa equipe responderá o mais breve possível.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSendEmail} className="space-y-4 py-2">
+                        <div>
+                            <Label htmlFor="email-message" className="sr-only">Sua Mensagem</Label>
+                            <Textarea 
+                                id="email-message"
+                                placeholder="Digite sua mensagem aqui..."
+                                value={emailMessage}
+                                onChange={(e) => setEmailMessage(e.target.value)}
+                                rows={8}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                            <Button type="submit"><Send className="mr-2 h-4 w-4"/>Enviar Mensagem</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
           <SupportContactItem
             icon={MessageSquare}
@@ -154,11 +198,7 @@ export default function HelpPage() {
       </Card>
       
        <p className="text-sm text-muted-foreground text-center mt-6">
-        Ainda tem dúvidas? Envie um email para{" "}
-        <a href="mailto:suporte@flortune.com" className="underline text-primary">
-          suporte@flortune.com
-        </a>
-        .
+        Ainda tem dúvidas? Ficaremos felizes em ajudar.
       </p>
     </div>
   );
