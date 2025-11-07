@@ -2,6 +2,7 @@
 "use server";
 
 import { z } from "zod";
+import axios from 'axios';
 
 const currencyConversionSchema = z.object({
   amount: z.number().positive(),
@@ -9,12 +10,24 @@ const currencyConversionSchema = z.object({
   toCurrency: z.string().length(3),
 });
 
-interface V6ApiResponse {
-  result: 'success' | 'error';
-  conversion_result?: number;
-  conversion_rate?: number;
-  time_last_update_utc?: string;
-  'error-type'?: string;
+// Estrutura de resposta da API APILayer
+interface APILayerResponse {
+  success: boolean;
+  query: {
+    from: string;
+    to: string;
+    amount: number;
+  };
+  info: {
+    timestamp: number;
+    rate: number;
+  };
+  date: string; // "YYYY-MM-DD"
+  result: number;
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 interface ConversionResult {
@@ -36,8 +49,6 @@ export async function convertCurrency(
 
   const { amount: validAmount, fromCurrency: validFrom, toCurrency: validTo } = validation.data;
   
-  // Nota: A API Key fornecida é para a API `v6.exchangerate-api.com`. 
-  // Esta função está configurada para essa API.
   const apiKey = process.env.EXCHANGERATE_API_KEY;
 
   if (!apiKey) {
@@ -46,35 +57,39 @@ export async function convertCurrency(
     return { data: null, error: "Serviço de conversão indisponível." };
   }
   
-  const apiUrl = `https://v6.exchangerate-api.com/v6/${apiKey}/pair/${validFrom}/${validTo}/${validAmount}`;
+  // Endpoint da APILayer para conversão
+  const apiUrl = `https://api.apilayer.com/exchangerates_data/convert?to=${validTo}&from=${validFrom}&amount=${validAmount}`;
 
   try {
-    const response = await fetch(apiUrl, { next: { revalidate: 3600 } }); // Cache de 1 hora
+    const response = await axios.get<APILayerResponse>(apiUrl, {
+      headers: {
+        'apikey': apiKey,
+        'Accept': 'application/json'
+      },
+      // Revalidação de cache (específico do Next.js/Fetch, axios não usa diretamente, mas a lógica se mantém)
+    });
     
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`API error (${response.status}): ${errorBody}`);
-      return { data: null, error: `Falha ao obter cotação da API (status: ${response.status}). Tente novamente mais tarde.` };
-    }
+    const data = response.data;
 
-    const data: V6ApiResponse = await response.json();
-
-    if (data.result === 'success' && data.conversion_result && data.conversion_rate && data.time_last_update_utc) {
+    if (data.success && data.result) {
       return { 
           data: { 
-              convertedAmount: data.conversion_result, 
-              rate: data.conversion_rate, 
-              date: data.time_last_update_utc 
+              convertedAmount: data.result, 
+              rate: data.info.rate, 
+              date: new Date(data.info.timestamp * 1000).toUTCString(),
           }, 
           error: null 
       };
     } else {
-      const errorMessage = data['error-type'] || "Resposta da API inválida ou incompleta.";
+      const errorMessage = data.error?.message || "Resposta da API inválida ou incompleta.";
       console.error("API response error:", data);
       return { data: null, error: `Erro da API de conversão: ${errorMessage}` };
     }
   } catch (error: any) {
     console.error("Network or other error in convertCurrency action:", error);
+    if (axios.isAxiosError(error) && error.response) {
+      return { data: null, error: `Erro da API: ${error.response.data?.message || error.message}` };
+    }
     return { data: null, error: error.message || "Erro de rede ou ao processar a solicitação." };
   }
 }

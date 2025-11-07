@@ -2,65 +2,83 @@
 "use server";
 import axios from 'axios';
 
+// A resposta da APILayer para o endpoint /latest
+// não retorna todos esses campos. Ajustamos a interface para
+// corresponder ao que é realmente retornado.
 export interface QuoteData {
-  code: string;
-  codein: string;
-  name: string;
-  high: string;
-  low: string;
-  varBid: string;
-  pctChange: string;
-  bid: string;
-  ask: string;
-  timestamp: string;
-  create_date: string;
+  code: string;       // ex: "USD"
+  codein: string;     // ex: "BRL"
+  name: string;       // ex: "Dólar Americano/Real Brasileiro"
+  bid: string;        // A taxa de conversão
+  pctChange?: string; // Não fornecido por esta API
+  varBid?: string;    // Não fornecido por esta API
 }
 
-interface ApiResponse {
-  [key: string]: QuoteData;
+interface APILayerLatestResponse {
+  success: boolean;
+  timestamp: number;
+  base: string;
+  date: string; // "YYYY-MM-DD"
+  rates: {
+    [key: string]: number; // ex: { "BRL": 5.45, "EUR": 0.92 }
+  };
+  error?: {
+    code: number;
+    message: string;
+  };
 }
-
-// Helper to check if a code is an index
-const isIndex = (code: string) => !code.includes('-');
 
 export async function getQuotes(
-  quotes: string[]
+  symbols: string[],
+  base: string = 'BRL'
 ): Promise<{ data: QuoteData[] | null; error: string | null }> {
-  if (!quotes || quotes.length === 0) {
+  if (!symbols || symbols.length === 0) {
     return { data: [], error: null };
   }
 
-  const uniqueQuotes = [...new Set(quotes)];
-  
-  const query = uniqueQuotes.join(',');
-  if (!query) {
-      return { data: [], error: null };
+  const uniqueSymbols = [...new Set(symbols)];
+  const querySymbols = uniqueSymbols.join(',');
+  const apiKey = process.env.EXCHANGERATE_API_KEY;
+
+  if (!apiKey) {
+    const errorMsg = "A chave da API de conversão de moeda (EXCHANGERATE_API_KEY) não está configurada no servidor.";
+    console.error(errorMsg);
+    return { data: null, error: "Serviço de cotações indisponível." };
   }
 
-  const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
+  const apiUrl = `https://api.apilayer.com/exchangerates_data/latest?symbols=${querySymbols}&base=${base}`;
 
   try {
-    const response = await axios.get<ApiResponse>(apiUrl);
-    
-    const responseData = response.data;
-    const dataArray: QuoteData[] = [];
-
-    uniqueQuotes.forEach(quoteCode => {
-      const responseKey = quoteCode.replace('-', '');
-      if (responseData && responseData[responseKey]) {
-        dataArray.push(responseData[responseKey]);
+    const response = await axios.get<APILayerLatestResponse>(apiUrl, {
+      headers: {
+        'apikey': apiKey,
+        'Accept': 'application/json'
       }
     });
 
-    if (dataArray.length === 0 && uniqueQuotes.length > 0) {
-        return { data: null, error: `Nenhuma das cotações solicitadas (${query}) foi encontrada na API.` };
+    const apiData = response.data;
+    if (!apiData.success || !apiData.rates) {
+      throw new Error(apiData.error?.message || 'Resposta inválida da API de cotações.');
     }
-    
+
+    const dataArray: QuoteData[] = Object.entries(apiData.rates).map(([code, rate]) => {
+        // A API retorna a cotação em relação à base. Para exibir, precisamos inverter.
+        // Se a base é BRL e queremos USD, a API dá BRL->USD. O usuário espera USD->BRL.
+        const inverseRate = 1 / rate;
+        
+        return {
+            code: code,
+            codein: base,
+            name: `${code}/${base}`,
+            bid: inverseRate.toFixed(4), // O valor de 1 Unidade da Moeda em BRL
+        };
+    });
+
     return { data: dataArray, error: null };
   } catch (error: any) {
-    console.error('Erro ao buscar cotações na API:', error.message);
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return { data: null, error: `Uma ou mais cotações (${query}) não foram encontradas. Verifique os códigos.` };
+    console.error('Erro ao buscar cotações na API (APILayer):', error.message);
+    if (axios.isAxiosError(error) && error.response) {
+      return { data: null, error: `Erro da API: ${error.response.data?.message || error.message}` };
     }
     return { data: null, error: 'Falha ao buscar dados das cotações na API externa.' };
   }

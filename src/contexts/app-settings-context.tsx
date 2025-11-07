@@ -178,17 +178,13 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingQuotes(true);
     setQuotesError(null);
     try {
-      const result = await getQuotes(validQuotes);
+      const result = await getQuotes(validQuotes, 'BRL');
       if (result.error) throw new Error(result.error);
       
       const orderedQuotes = validQuotes
-        .map(code => {
-          // A API retorna 'USDBRL' para a query 'USD-BRL', então precisamos normalizar
-          const responseKey = code.replace('-', '');
-          return result.data?.find(d => d.code + d.codein === responseKey || d.code === responseKey);
-        })
+        .map(code => result.data?.find(d => d.code === code))
         .filter((q): q is QuoteData => !!q);
-
+        
       setQuotes(orderedQuotes);
     } catch (err: any) {
       setQuotesError(err.message);
@@ -333,7 +329,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
           loadWeatherForCity(storedCity);
         }
         const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
+        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD', 'EUR', 'GBP', 'JPY', 'CAD'];
         setSelectedQuotesState(initialQuotes);
         loadQuotes(initialQuotes);
       } else {
