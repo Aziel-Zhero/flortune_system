@@ -30,8 +30,8 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   const [localSelection, setLocalSelection] = useState<string[]>([]);
   const MAX_QUOTES = 5;
 
+  // Efeito para sincronizar o estado local com o global quando o modal é aberto
   useEffect(() => {
-    // Garante que o estado local seja inicializado corretamente quando o modal abre
     if (isOpen) {
       setLocalSelection(selectedQuotes);
     }
@@ -63,7 +63,9 @@ export function QuoteSettingsDialog({ isOpen, onOpenChange }: QuoteSettingsDialo
   };
   
   const canSelectMore = localSelection.length >= MAX_QUOTES;
-  const canSave = localSelection.length > 0 && localSelection.length <= MAX_QUOTES;
+  
+  // O botão salvar fica ativo se houver entre 1 e 5 cotações
+  const canSave = localSelection.length >= 1 && localSelection.length <= MAX_QUOTES;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
