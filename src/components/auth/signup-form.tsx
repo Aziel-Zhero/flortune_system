@@ -1,3 +1,4 @@
+
 // src/components/auth/signup-form.tsx
 "use client";
 
@@ -6,7 +7,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, UserPlus, KeyRound, Mail, Building, User, Phone, FileText, Fingerprint } from "lucide-react";
+import { AlertTriangle, UserPlus, KeyRound, Mail, Building, User, Phone, FileText, Fingerprint, Eye, EyeOff, CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -23,12 +24,19 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const passwordSchema = z.string()
+  .min(8, "A senha deve ter no mínimo 8 caracteres.")
+  .regex(/[a-z]/, "A senha deve conter pelo menos uma letra minúscula.")
+  .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula.")
+  .regex(/[0-9]/, "A senha deve conter pelo menos um número.")
+  .regex(/[^a-zA-Z0-9]/, "A senha deve conter pelo menos um caractere especial.");
+
 const signupSchema = z.object({
   accountType: z.enum(['pessoa', 'empresa'], { required_error: "Selecione o tipo de conta." }),
   fullName: z.string().min(2, "Nome/Razão Social é obrigatório."),
   displayName: z.string().min(2, "Nome de Exibição/Fantasia é obrigatório."),
   email: z.string().email("Email inválido."),
-  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres."),
+  password: passwordSchema,
   confirmPassword: z.string(),
   phone: z.string().optional(),
   cpf: z.string().optional(),
@@ -41,16 +49,39 @@ const signupSchema = z.object({
 
 type SignupFormData = z.infer<typeof signupSchema>;
 
+interface PasswordRequirement {
+  id: "length" | "uppercase" | "lowercase" | "number" | "special";
+  text: string;
+  regex: RegExp;
+}
+
+const passwordRequirements: PasswordRequirement[] = [
+  { id: "length", text: "Pelo menos 8 caracteres", regex: /.{8,}/ },
+  { id: "uppercase", text: "Uma letra maiúscula (A-Z)", regex: /[A-Z]/ },
+  { id: "lowercase", text: "Uma letra minúscula (a-z)", regex: /[a-z]/ },
+  { id: "number", text: "Um número (0-9)", regex: /[0-9]/ },
+  { id: "special", text: "Um caractere especial (!@#$...)", regex: /[^a-zA-Z0-9]/ },
+];
+
 export function SignupForm() {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { control, handleSubmit, register, watch, formState: { errors } } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { accountType: 'pessoa' }
+    defaultValues: { accountType: 'pessoa' },
+    mode: "onBlur"
   });
   
   const accountType = watch("accountType");
+  const passwordValue = watch("password", "");
+  
+  const passwordCheck = passwordRequirements.map(req => ({
+      ...req,
+      met: req.regex.test(passwordValue)
+  }));
+
 
   const handleMockSignup = (data: SignupFormData) => {
     console.log("Signup Data (Simulação):", data);
@@ -113,10 +144,39 @@ export function SignupForm() {
         )}
         
         <div className="space-y-2"><Label htmlFor="email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="email" type="email" {...register("email")} className="pl-10"/></div>{errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}</div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2"><Label htmlFor="password">Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="password" type="password" {...register("password")} className="pl-10"/></div>{errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}</div>
-          <div className="space-y-2"><Label htmlFor="confirmPassword">Confirme a Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="confirmPassword" type="password" {...register("confirmPassword")} className="pl-10"/></div>{errors.confirmPassword && <p className="text-sm text-destructive mt-1">{errors.confirmPassword.message}</p>}</div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <div className="relative">
+              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+              <Input id="password" type={showPassword ? "text" : "password"} {...register("password")} className="pl-10 pr-10"/>
+              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)}>
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+            {errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirme a Senha</Label>
+            <div className="relative">
+              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+              <Input id="confirmPassword" type={showPassword ? "text" : "password"} {...register("confirmPassword")} className="pl-10 pr-10"/>
+            </div>
+            {errors.confirmPassword && <p className="text-sm text-destructive mt-1">{errors.confirmPassword.message}</p>}
+          </div>
         </div>
+
+        {passwordValue && (
+            <div className="space-y-1 text-xs">
+                {passwordCheck.map(req => (
+                    <div key={req.id} className={cn("flex items-center gap-2", req.met ? "text-emerald-600" : "text-muted-foreground")}>
+                        <CheckCircle className="h-3 w-3"/>
+                        <span>{req.text}</span>
+                    </div>
+                ))}
+            </div>
+        )}
 
         {formError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Erro no Cadastro</AlertTitle><AlertDescription>{formError}</AlertDescription></Alert>}
 
