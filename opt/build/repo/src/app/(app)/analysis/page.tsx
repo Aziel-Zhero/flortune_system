@@ -38,7 +38,6 @@ import {
   ChartTooltipContent,
   type ChartConfig
 } from "@/components/ui/chart";
-
 import {
   AreaChart, 
   Area,      
@@ -65,6 +64,7 @@ import {
   RadialBar,
   Brush
 } from "recharts";
+import type { PieSectorDataItem } from 'recharts/types/polar/Pie';
 
 interface CategoryData {
   name: string;
@@ -93,8 +93,6 @@ const chartColors = [
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
 ];
-
-// --- MOCK DATA PARA GRÁFICOS PRINCIPAIS ---
 
 const mockSpendingByCategory: CategoryData[] = [
   { name: "Moradia", value: 1850.55, fill: chartColors[0] },
@@ -130,9 +128,6 @@ const mockMonthlyEvolution: MonthlyEvolutionData[] = [
   { month: "Nov/24", Receitas: 0, Despesas: 0 },
   { month: "Dez/24", Receitas: 0, Despesas: 0 },
 ];
-// --- FIM DOS MOCK DATA ---
-
-// --- NOVOS MOCK DATA PARA A GALERIA DE NEGÓCIOS ---
 const mockClientProjectData = [
   { month: "Jan", clientes: 5, projetos: 3 },
   { month: "Fev", clientes: 6, projetos: 4 },
@@ -189,8 +184,6 @@ const mockComparativeData = [
   { month: 'Q3', '2023': 5000, '2024': 6200 },
   { month: 'Q4', '2023': 4500, '2024': 7100 },
 ];
-// --- FIM DOS NOVOS MOCK DATA ---
-
 
 const RealDataCustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -241,6 +234,29 @@ const businessChartConfig: ChartConfig = {
   imposto: { label: "Imposto", color: "hsl(var(--chart-2))" },
 };
 
+const PieLabel = (props: PieSectorDataItem) => {
+    const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, name, percent, fill } = props;
+    if (!name || !percent || !outerRadius) return null;
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + 25;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    const textAnchor = x > cx ? 'start' : 'end';
+    
+    return (
+        <text
+            x={x}
+            y={y}
+            textAnchor={textAnchor}
+            dominantBaseline="central"
+            className="text-xs fill-foreground"
+        >
+            <tspan x={x} dy="-0.6em" fill={fill} className="font-semibold">{name}</tspan>
+            <tspan x={x} dy="1.1em">{`(${(percent * 100).toFixed(0)}%)`}</tspan>
+        </text>
+    );
+};
+
 export default function AnalysisPage() {
   const [timePeriod, setTimePeriod] = useState("monthly");
 
@@ -279,15 +295,14 @@ export default function AnalysisPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
-                <CardContent className="h-[320px] sm:h-80">
-                    <ChartContainer config={{}} className="min-h-[200px] w-full">
+                <CardContent className="h-80 sm:h-96">
+                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
+                            <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
                                 <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>
                                     {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
                                 </Pie>
-                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                             </PieChart>
                         </ResponsiveContainer>
                     </ChartContainer>
@@ -295,15 +310,14 @@ export default function AnalysisPage() {
             </Card>
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
-                <CardContent className="h-[320px] sm:h-80">
-                    <ChartContainer config={{}} className="min-h-[200px] w-full">
+                 <CardContent className="h-80 sm:h-96">
+                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
+                            <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
                                 <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (percent && name ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                                <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>
                                     {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
                                 </Pie>
-                                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                             </PieChart>
                         </ResponsiveContainer>
                     </ChartContainer>
@@ -311,10 +325,10 @@ export default function AnalysisPage() {
             </Card>
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 3 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
-                <CardContent className="h-[320px] sm:h-80 overflow-y-auto">
+                <CardContent className="h-80 overflow-y-auto">
                     <Table size="sm">
                         <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
-                        <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs truncate max-w-[120px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs break-words max-w-[150px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -416,7 +430,7 @@ export default function AnalysisPage() {
             <ChartContainer config={businessChartConfig} className="w-full max-w-[250px] aspect-square">
               <PieChart>
                 <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                <Pie data={mockOverallSpendingData} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} labelLine={{stroke: "hsl(var(--muted-foreground))"}}/>
+                <Pie data={mockOverallSpendingData} dataKey="value" nameKey="name" label={<PieLabel />} labelLine={{stroke: "hsl(var(--muted-foreground))"}}/>
               </PieChart>
             </ChartContainer>
           </CardContent>
