@@ -178,6 +178,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingQuotes(true);
     setQuotesError(null);
     try {
+      // Usaremos BRL como base para obter as taxas para as outras moedas
       const result = await getQuotes(validQuotes, 'BRL');
       if (result.error) throw new Error(result.error);
       
