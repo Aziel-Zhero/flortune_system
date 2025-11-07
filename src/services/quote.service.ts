@@ -32,20 +32,7 @@ export async function getQuotes(
 
   const uniqueQuotes = [...new Set(quotes)];
   
-  // Separate currency pairs from indices
-  const currencyPairs = uniqueQuotes.filter(q => !isIndex(q));
-  const indices = uniqueQuotes.filter(q => isIndex(q));
-
-  const queryParts: string[] = [];
-  if (currencyPairs.length > 0) {
-    queryParts.push(...currencyPairs);
-  }
-  if (indices.length > 0) {
-    // For indices, the API expects them to be appended with ",All" if mixed
-    queryParts.push(...indices);
-  }
-  
-  const query = queryParts.join(',');
+  const query = uniqueQuotes.join(',');
   if (!query) {
       return { data: [], error: null };
   }

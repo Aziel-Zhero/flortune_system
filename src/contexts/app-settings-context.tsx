@@ -180,9 +180,15 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const result = await getQuotes(validQuotes);
       if (result.error) throw new Error(result.error);
+      
       const orderedQuotes = validQuotes
-        .map(code => result.data?.find(d => d.code === code.split('-')[0] && d.codein === code.split('-')[1]))
+        .map(code => {
+          // A API retorna 'USDBRL' para a query 'USD-BRL', então precisamos normalizar
+          const responseKey = code.replace('-', '');
+          return result.data?.find(d => d.code + d.codein === responseKey || d.code === responseKey);
+        })
         .filter((q): q is QuoteData => !!q);
+
       setQuotes(orderedQuotes);
     } catch (err: any) {
       setQuotesError(err.message);
