@@ -181,12 +181,12 @@ export default function CalendarPage() {
         description="Visualize e gerencie seus eventos de forma interativa."
         icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
       />
-      <div className="flex flex-1 flex-col lg:flex-row gap-6 overflow-hidden">
-        <div className="flex-1 bg-card border rounded-lg shadow-sm overflow-hidden min-w-0">
+      <div className="flex flex-1 flex-col lg:flex-row gap-6">
+        <div className="flex-1 bg-card border rounded-lg shadow-sm min-h-[500px] min-w-0">
             {isLoading ? (
                 <div className="p-4 space-y-4">
                     <Skeleton className="h-10 w-1/2" />
-                    <Skeleton className="h-full w-full" />
+                    <Skeleton className="h-full w-full aspect-video" />
                 </div>
             ) : (
                 <FullCalendar
@@ -210,7 +210,7 @@ export default function CalendarPage() {
                 />
             )}
         </div>
-        <Card className="lg:flex lg:flex-col shadow-sm w-full lg:w-[320px] xl:w-[384px] shrink-0 mt-6 lg:mt-0">
+        <Card className="lg:flex lg:flex-col shadow-sm w-full lg:w-[320px] xl:w-[384px] shrink-0">
           <CardHeader>
               <CardTitle className="font-headline text-lg">
                   {selectedDay ? `Eventos de ${format(selectedDay, "d 'de' MMMM", {locale: ptBR})}` : `Eventos de ${format(currentDate, "MMMM", {locale: ptBR})}`}
