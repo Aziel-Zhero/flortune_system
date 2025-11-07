@@ -21,6 +21,7 @@ import {
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;
   const IconComponent = (LucideIcons as any)[iconName as keyof typeof LucideIcons];
@@ -66,7 +67,6 @@ export function AppSidebar() {
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
                 </Link>
             </div>
-            <SidebarTrigger className="h-7 w-7 mt-2" />
         </SidebarHeader>
         
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
@@ -81,6 +81,11 @@ export function AppSidebar() {
             </div>
           </Link>
         </div>
+
+        <div className="px-3 mt-2 flex justify-end group-data-[collapsible=icon]:justify-center">
+           <SidebarTrigger />
+        </div>
+
 
         <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
 
