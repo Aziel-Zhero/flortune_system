@@ -5,7 +5,7 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Check, Gem, Leaf, BrainCircuit, Briefcase, Code } from "lucide-react";
+import { Check, Gem } from "lucide-react";
 import Link from "next/link";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ export default function PlansPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 items-stretch">
         {PRICING_TIERS.map((tier) => {
           const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
+          const isPaidPlan = tier.stripePriceId !== null;
           return (
             <Card
               key={tier.id}
@@ -88,8 +89,8 @@ export default function PlansPage() {
                     tier.featured ? buttonVariants({variant: "default"}) : buttonVariants({variant: "outline"})
                   )}
                 >
-                  <Link href={tier.href}>
-                    {tier.priceMonthly === 'Grátis' ? 'Começar Agora' : tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}
+                  <Link href={tier.href} target={isPaidPlan ? "_blank" : "_self"}>
+                    {isPaidPlan ? 'Assinar Plano' : 'Começar Agora'}
                   </Link>
                 </Button>
               </CardFooter>

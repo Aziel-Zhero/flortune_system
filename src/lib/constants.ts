@@ -1,5 +1,4 @@
 
-
 export const APP_NAME = "Flortune";
 export const NO_ICON_VALUE = "__NO_ICON__";
 
@@ -78,11 +77,12 @@ export const PRICING_TIERS = [
     ],
     featured: false,
     icon: "Leaf",
+    stripePriceId: null,
   },
   {
     name: 'Mestre Jardineiro',
     id: 'tier-mestre',
-    href: '/signup?plan=mestre',
+    href: 'https://buy.stripe.com/test_5kA5m32yP67x1i8cMM',
     priceMonthly: 'R$19,90',
     description: 'Desbloqueie todo o potencial do Flortune com análises avançadas e IA.',
     features: [
@@ -94,11 +94,12 @@ export const PRICING_TIERS = [
     ],
     featured: true,
     icon: "BrainCircuit",
+    stripePriceId: "price_1PMEpLAt9gV2x1d6lXv9z4aO",
   },
     {
     name: 'Flortune para DEVs',
     id: 'tier-dev',
-    href: '/signup?plan=dev',
+    href: 'https://buy.stripe.com/test_14k15R0qLg8X1i8dQS',
     priceMonthly: 'R$119,90',
     priceAnnotation: 'por usuário/mês',
     description: 'Ferramentas de gestão de projetos e clientes para freelancers e pequenas equipes de desenvolvimento.',
@@ -110,11 +111,12 @@ export const PRICING_TIERS = [
     ],
     featured: false,
     icon: "Code",
+    stripePriceId: "price_1PMEqNAt9gV2x1d6mpkQzPno",
   },
   {
     name: 'Flortune Corporativo',
     id: 'tier-corporativo',
-    href: '/signup?plan=corporativo',
+    href: 'https://buy.stripe.com/test_8wM15R1uP7bB0e4eV1',
     priceMonthly: 'R$139,90',
     priceAnnotation: 'para 3 usuários. Usuários adicionais cobrados à parte.',
     description: 'Soluções financeiras e de gestão para pequenas e médias equipes.',
@@ -126,6 +128,7 @@ export const PRICING_TIERS = [
     ],
     featured: false,
     icon: "Briefcase",
+    stripePriceId: "price_1PMEr4At9gV2x1d6d8v0yWzG",
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
