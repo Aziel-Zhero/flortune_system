@@ -137,16 +137,29 @@ export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
 
 // Lista de cotações disponíveis na API ExchangeRate-API
 export const AVAILABLE_QUOTES = [
+  // Principais Moedas
   { name: "Real Brasileiro", code: "BRL" },
   { name: "Dólar Americano", code: "USD" },
   { name: "Euro", code: "EUR" },
   { name: "Libra Esterlina", code: "GBP" },
   { name: "Iene Japonês", code: "JPY" },
-  { name: "Dólar Australiano", code: "AUD" },
-  { name: "Dólar Canadense", code: "CAD" },
-  { name: "Franco Suíço", code: "CHF" },
   { name: "Yuan Chinês", code: "CNY" },
+  { name: "Franco Suíço", code: "CHF" },
+  
+  // Moedas da América
+  { name: "Dólar Canadense", code: "CAD" },
+  { name: "Dólar Australiano", code: "AUD" },
   { name: "Peso Argentino", code: "ARS" },
+  { name: "Peso Chileno", code: "CLP" },
+  { name: "Peso Colombiano", code: "COP" },
+  { name: "Peso Mexicano", code: "MXN" },
+
+  // Outras moedas globais
   { name: "Lira Turca", code: "TRY" },
   { name: "Rublo Russo", code: "RUB" },
+  { name: "Rúpia Indiana", code: "INR" },
+  { name: "Dólar de Singapura", code: "SGD" },
+  { name: "Dólar de Hong Kong", code: "HKD" },
+  { name: "Dólar Neozelandês", code: "NZD" },
+  { name: "Rand Sul-Africano", code: "ZAR" },
 ];
