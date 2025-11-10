@@ -1,56 +1,80 @@
--- ----------------------------------------------------------------
--- Arquivo de Schema do Banco de Dados para Flortune
--- Versão: 3.0
--- Descrição: Script completo para criar todas as tabelas, schemas,
---            triggers, e políticas de segurança (RLS) para a aplicação.
--- ----------------------------------------------------------------
+-- =============================================================================
+-- ||| FLORTUNE DATABASE SCHEMA
+-- ||| Version: 1.2
+-- ||| Description: Complete schema for the Flortune application, including
+-- |||              user profiles, core financial tables, dev tools, and
+-- |||              admin management tables.
+-- =============================================================================
 
--- =================================================================
--- Habilitar Extensões Essenciais
--- =================================================================
--- Habilita a funcionalidade de UUID no schema extensions para organização.
+-- Habilita a extensão para gerar UUIDs, caso não esteja habilitada.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
--- =================================================================
--- Schema 'public' - Tabelas Principais da Aplicação
--- =================================================================
+-- =============================================================================
+-- ||| SCHEMA: public - Core Application Tables
+-- =============================================================================
 
--- Tabela para armazenar os perfis dos usuários (complementa a tabela auth.users)
+-- Tabela de Perfis de Usuário
+-- Armazena informações detalhadas dos usuários, complementando a tabela `auth.users` do Supabase.
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY NOT NULL, -- Referencia auth.users.id
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT,
     display_name TEXT,
     email TEXT UNIQUE NOT NULL,
     phone TEXT,
     avatar_url TEXT,
-    account_type TEXT NOT NULL DEFAULT 'pessoa' CHECK (account_type IN ('pessoa', 'empresa', 'admin')),
-    plan_id TEXT NOT NULL DEFAULT 'tier-cultivador', -- Novo campo para o plano do usuário
+    account_type TEXT NOT NULL CHECK (account_type IN ('pessoa', 'empresa', 'admin')) DEFAULT 'pessoa',
+    plan_id TEXT NOT NULL DEFAULT 'tier-cultivador', -- ID do plano de assinatura (ex: 'tier-mestre')
     cpf_cnpj TEXT UNIQUE,
     rg TEXT,
-    has_seen_welcome_message BOOLEAN DEFAULT FALSE, -- Novo campo para a mensagem de boas-vindas
+    has_seen_welcome_message BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.profiles IS 'Armazena detalhes do perfil do usuário, complementando a tabela de autenticação.';
-COMMENT ON COLUMN public.profiles.account_type IS 'Distingue entre contas de pessoa física, jurídica ou administrador para lógicas fiscais e de permissão.';
-COMMENT ON COLUMN public.profiles.plan_id IS 'Identifica o plano de assinatura atual do usuário (ex: tier-cultivador, tier-mestre).';
-COMMENT ON COLUMN public.profiles.has_seen_welcome_message IS 'Controla se o pop-up de boas-vindas já foi exibido para o usuário.';
+COMMENT ON TABLE public.profiles IS 'Stores user profile information, extending the base auth.users table.';
 
+-- Tabela de Assinaturas (Subscriptions)
+-- Gerencia os planos pagos dos usuários, integrada com o Stripe.
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    plan_id TEXT NOT NULL, -- ex: 'tier-mestre', 'tier-dev'
+    stripe_subscription_id TEXT UNIQUE,
+    status TEXT NOT NULL CHECK (status IN ('active', 'canceled', 'past_due', 'incomplete')),
+    current_period_start TIMESTAMPTZ NOT NULL,
+    current_period_end TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE public.subscriptions IS 'Manages user subscriptions and billing plans.';
 
--- Tabela de Categorias para transações (padrão e do usuário)
+-- Tabela de Faturas (Invoices)
+-- Armazena o histórico de faturamento para emissão de notas fiscais e controle.
+CREATE TABLE IF NOT EXISTS public.invoices (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE SET NULL,
+    amount NUMERIC(10, 2) NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('paid', 'pending', 'failed')),
+    due_date DATE,
+    paid_at TIMESTAMPTZ,
+    nf_data JSONB, -- Armazena dados da Nota Fiscal eletrônica (XML, URL, etc.)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE public.invoices IS 'Stores billing history and invoice data for users.';
+
+-- Tabela de Categorias de Transação
 CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE, -- Nulo para categorias padrão
     name TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
     icon TEXT,
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(user_id, name, type)
+    UNIQUE(user_id, name)
 );
-COMMENT ON TABLE public.categories IS 'Categorias de receitas e despesas, incluindo padrões do sistema e personalizadas por usuário.';
-COMMENT ON COLUMN public.categories.user_id IS 'Nulo para categorias padrão do sistema.';
+COMMENT ON TABLE public.categories IS 'Stores transaction categories, both default and user-defined.';
 
 -- Tabela de Transações
 CREATE TABLE IF NOT EXISTS public.transactions (
@@ -58,38 +82,38 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
     description TEXT NOT NULL,
-    amount NUMERIC(15, 2) NOT NULL,
+    amount NUMERIC(10, 2) NOT NULL,
     date DATE NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
     notes TEXT,
-    is_recurring BOOLEAN DEFAULT FALSE,
+    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.transactions IS 'Registro de todas as movimentações financeiras do usuário.';
+COMMENT ON TABLE public.transactions IS 'Core table for all user financial transactions.';
 
 -- Tabela de Orçamentos
 CREATE TABLE IF NOT EXISTS public.budgets (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
-    limit_amount NUMERIC(15, 2) NOT NULL,
-    spent_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    limit_amount NUMERIC(10, 2) NOT NULL,
+    spent_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
     period_start_date DATE NOT NULL,
     period_end_date DATE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, category_id, period_start_date)
 );
-COMMENT ON TABLE public.budgets IS 'Orçamentos de gastos definidos pelos usuários para categorias específicas.';
+COMMENT ON TABLE public.budgets IS 'Stores user-defined spending limits for categories.';
 
 -- Tabela de Metas Financeiras
 CREATE TABLE IF NOT EXISTS public.financial_goals (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    target_amount NUMERIC(15, 2) NOT NULL,
-    current_amount NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    target_amount NUMERIC(10, 2) NOT NULL,
+    current_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
     deadline_date DATE,
     icon TEXT,
     status TEXT NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'achieved', 'cancelled')),
@@ -97,7 +121,7 @@ CREATE TABLE IF NOT EXISTS public.financial_goals (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.financial_goals IS 'Metas financeiras dos usuários, como viagens ou compra de bens.';
+COMMENT ON TABLE public.financial_goals IS 'Stores user financial goals and tracks their progress.';
 
 -- Tabela de Lista de Tarefas (Todos)
 CREATE TABLE IF NOT EXISTS public.todos (
@@ -109,9 +133,9 @@ CREATE TABLE IF NOT EXISTS public.todos (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.todos IS 'Lista de tarefas simples para os usuários.';
+COMMENT ON TABLE public.todos IS 'Simple to-do list for users.';
 
--- Tabela de Anotações
+-- Tabela de Anotações (Notepad)
 CREATE TABLE IF NOT EXISTS public.notes (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -122,180 +146,235 @@ CREATE TABLE IF NOT EXISTS public.notes (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.notes IS 'Anotações e lembretes dos usuários.';
+COMMENT ON TABLE public.notes IS 'Stores user notes for the notepad feature.';
 
--- Tabela de Assinaturas (Stripe, etc.)
-CREATE TABLE IF NOT EXISTS public.subscriptions (
+-- =============================================================================
+-- ||| SCHEMA: dev - Developer Tools Tables
+-- =============================================================================
+
+CREATE SCHEMA IF NOT EXISTS dev;
+
+-- Tabela de Clientes e Projetos (para DEV)
+CREATE TABLE IF NOT EXISTS dev.clients (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID UNIQUE NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    plan_id TEXT NOT NULL, -- ex: 'tier-mestre', 'tier-dev'
-    stripe_subscription_id TEXT UNIQUE,
-    status TEXT NOT NULL CHECK (status IN ('active', 'canceled', 'incomplete', 'past_due')),
-    current_period_start TIMESTAMPTZ NOT NULL,
-    current_period_end TIMESTAMPTZ NOT NULL,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    service_type TEXT,
+    status TEXT DEFAULT 'planning' CHECK (status IN ('planning', 'in_progress', 'delivered', 'on_hold', 'delayed')),
+    priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+    start_date DATE,
+    deadline DATE,
+    total_price NUMERIC(10, 2),
+    notes TEXT,
+    tasks TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.subscriptions IS 'Gerencia as assinaturas dos planos pagos dos usuários.';
+COMMENT ON TABLE dev.clients IS 'Stores client and project data for the developer tools section.';
 
--- Tabela de Faturas/Notas Fiscais
-CREATE TABLE IF NOT EXISTS public.invoices (
+-- Tabela de Serviços Web (para DEV)
+CREATE TABLE IF NOT EXISTS dev.web_services (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE SET NULL,
-    amount NUMERIC(10, 2) NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('paid', 'pending', 'failed')),
-    due_date DATE,
-    nf_data JSONB, -- Para armazenar dados da NF-e (número, chave, etc.)
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('Dominio', 'VPS', 'Host', 'SaaS', 'Outro')),
+    provider TEXT,
+    monthly_cost NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    renewal_date DATE,
+    is_client_service BOOLEAN NOT NULL DEFAULT FALSE,
+    client_id UUID REFERENCES dev.clients(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE dev.web_services IS 'Stores web service subscriptions like domains and hosting for the dev tools.';
+
+-- =============================================================================
+-- ||| SCHEMA: admin - Admin Panel Tables
+-- =============================================================================
+
+CREATE SCHEMA IF NOT EXISTS admin;
+
+-- Tabela de Perguntas para Formulários
+CREATE TABLE IF NOT EXISTS admin.form_questions (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    text TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('text', 'textarea', 'rating', 'boolean')),
+    category TEXT NOT NULL,
+    "order" INTEGER,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.invoices IS 'Registra faturas e informações para emissão de notas fiscais.';
+COMMENT ON TABLE admin.form_questions IS 'Stores questions for user feedback forms, managed by admins.';
 
--- Tabela de Integrações (Telegram, etc.)
+-- Tabela de Respostas dos Formulários
+CREATE TABLE IF NOT EXISTS admin.form_responses (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    question_id UUID NOT NULL REFERENCES admin.form_questions(id) ON DELETE CASCADE,
+    response_value TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE admin.form_responses IS 'Stores user responses to feedback forms.';
+
+-- Tabela de Campanhas Promocionais
+CREATE TABLE IF NOT EXISTS admin.campaigns (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    theme_name TEXT UNIQUE NOT NULL,
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    discounts JSONB, -- Ex: {"tier-mestre": 20, "tier-dev": 15} (20% e 15% off)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE admin.campaigns IS 'Stores promotional campaign settings managed by admins.';
+
+-- Tabela de Integrações (ex: Telegram)
 CREATE TABLE IF NOT EXISTS public.integrations (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID UNIQUE NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE, -- Geralmente configurado por um admin
+    user_id UUID NOT NULL UNIQUE REFERENCES public.profiles(id) ON DELETE CASCADE, -- Ligado ao admin que configurou
     telegram_bot_token TEXT,
     telegram_chat_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.integrations IS 'Armazena credenciais e configurações para integrações com serviços de terceiros.';
+COMMENT ON TABLE public.integrations IS 'Stores credentials for third-party integrations like Telegram.';
 
 
--- =================================================================
--- Policies de Segurança (RLS - Row Level Security)
--- =================================================================
+-- =============================================================================
+-- ||| TRIGGERS & FUNCTIONS
+-- =============================================================================
 
--- Helper function para obter o ID do usuário autenticado
-CREATE OR REPLACE FUNCTION auth.current_user_id()
-RETURNS UUID AS $$
-BEGIN
-  RETURN (SELECT id FROM auth.users WHERE id = auth.uid());
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- --- Policies para a tabela `profiles` ---
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Usuários podem ver seu próprio perfil." ON public.profiles;
-CREATE POLICY "Usuários podem ver seu próprio perfil."
-    ON public.profiles FOR SELECT
-    USING (id = auth.current_user_id());
-DROP POLICY IF EXISTS "Usuários podem atualizar seu próprio perfil." ON public.profiles;
-CREATE POLICY "Usuários podem atualizar seu próprio perfil."
-    ON public.profiles FOR UPDATE
-    USING (id = auth.current_user_id())
-    WITH CHECK (id = auth.current_user_id());
-
--- --- Policies para as outras tabelas ---
--- Função genérica para habilitar RLS em uma tabela
-CREATE OR REPLACE PROCEDURE enable_rls_for_user_table(table_name TEXT)
+-- Função para criar um perfil público quando um novo usuário se cadastra no Supabase Auth.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', table_name);
-    
-    EXECUTE format('DROP POLICY IF EXISTS "Usuários podem gerenciar seus próprios dados." ON public.%I;', table_name);
-    EXECUTE format('CREATE POLICY "Usuários podem gerenciar seus próprios dados." ON public.%I FOR ALL USING (user_id = auth.current_user_id()) WITH CHECK (user_id = auth.current_user_id());', table_name);
-    
-    -- Para categorias padrão
-    IF table_name = 'categories' THEN
-      EXECUTE format('DROP POLICY IF EXISTS "Usuários podem ver categorias padrão." ON public.%I;', table_name);
-      EXECUTE format('CREATE POLICY "Usuários podem ver categorias padrão." ON public.%I FOR SELECT USING (is_default = true);', table_name);
-    END IF;
-END;
-$$;
-
--- Habilitar RLS para todas as tabelas relevantes
-CALL enable_rls_for_user_table('categories');
-CALL enable_rls_for_user_table('transactions');
-CALL enable_rls_for_user_table('budgets');
-CALL enable_rls_for_user_table('financial_goals');
-CALL enable_rls_for_user_table('todos');
-CALL enable_rls_for_user_table('notes');
-CALL enable_rls_for_user_table('subscriptions');
-CALL enable_rls_for_user_table('invoices');
-CALL enable_rls_for_user_table('integrations');
-
--- =================================================================
--- Triggers e Funções
--- =================================================================
-
--- Trigger para criar um perfil público quando um novo usuário se cadastra no Supabase Auth
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type, cpf_cnpj, rg, phone)
+  INSERT INTO public.profiles (id, email, full_name, display_name, avatar_url, account_type, cpf_cnpj, rg, plan_id)
   VALUES (
     NEW.id,
     NEW.email,
-    NEW.raw_user_meta_data->>'display_name',
-    NEW.raw_user_meta_data->>'full_name',
-    NEW.raw_user_meta_data->>'avatar_url',
-    NEW.raw_user_meta_data->>'account_type',
-    NEW.raw_user_meta_data->>'cpf_cnpj',
-    NEW.raw_user_meta_data->>'rg',
-    NEW.raw_user_meta_data->>'phone'
-  );
+    NEW.raw_user_meta_data ->> 'full_name',
+    NEW.raw_user_meta_data ->> 'display_name',
+    NEW.raw_user_meta_data ->> 'avatar_url',
+    COALESCE(NEW.raw_user_meta_data ->> 'account_type', 'pessoa')::text,
+    NEW.raw_user_meta_data ->> 'cpf_cnpj',
+    NEW.raw_user_meta_data ->> 'rg',
+    'tier-cultivador' -- Plano padrão inicial
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- Dropa o trigger se ele já existir para garantir que a versão mais nova seja criada
+-- Trigger que chama a função handle_new_user
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
--- Cria o trigger que executa a função acima após um novo usuário ser inserido em auth.users
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- Trigger para atualizar o campo `updated_at` automaticamente
+  
+-- Função para atualizar o timestamp 'updated_at' automaticamente
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
    NEW.updated_at = NOW();
-   RETURN NEW; 
+   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Função para aplicar o trigger de `updated_at` em uma tabela
-CREATE OR REPLACE PROCEDURE apply_updated_at_trigger(table_name TEXT)
-LANGUAGE plpgsql
-AS $$
+-- Aplicar o trigger de updated_at para todas as tabelas relevantes
+DO $$
+DECLARE
+    t_name TEXT;
 BEGIN
-    EXECUTE format('DROP TRIGGER IF EXISTS on_%I_update ON public.%I;', table_name, table_name);
-    EXECUTE format('CREATE TRIGGER on_%I_update BEFORE UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();', table_name, table_name);
+    FOR t_name IN 
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema IN ('public', 'dev') 
+          AND table_name IN ('profiles', 'categories', 'transactions', 'budgets', 'financial_goals', 'todos', 'notes', 'subscriptions', 'integrations', 'clients', 'web_services')
+    LOOP
+        EXECUTE format('DROP TRIGGER IF EXISTS set_timestamp ON %I.%I;', table_schema, t_name);
+        EXECUTE format('CREATE TRIGGER set_timestamp BEFORE UPDATE ON %I.%I FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();', table_schema, t_name);
+    END LOOP;
 END;
 $$;
 
--- Aplicar o trigger a todas as tabelas relevantes
-CALL apply_updated_at_trigger('profiles');
-CALL apply_updated_at_trigger('categories');
-CALL apply_updated_at_trigger('transactions');
-CALL apply_updated_at_trigger('budgets');
-CALL apply_updated_at_trigger('financial_goals');
-CALL apply_updated_at_trigger('todos');
-CALL apply_updated_at_trigger('notes');
-CALL apply_updated_at_trigger('subscriptions');
-CALL apply_updated_at_trigger('integrations');
 
--- =================================================================
--- Dados Iniciais (Seed Data)
--- =================================================================
+-- =============================================================================
+-- ||| ROW LEVEL SECURITY (RLS) - Políticas de Acesso
+-- =============================================================================
 
--- Inserir categorias padrão se não existirem
-INSERT INTO public.categories (name, type, icon, is_default) VALUES
-    ('Salário', 'income', 'DollarSign', TRUE),
-    ('Rendimentos', 'income', 'TrendingUp', TRUE),
-    ('Outras Receitas', 'income', 'PlusCircle', TRUE),
-    ('Moradia', 'expense', 'Home', TRUE),
-    ('Alimentação', 'expense', 'Utensils', TRUE),
-    ('Transporte', 'expense', 'Car', TRUE),
-    ('Lazer', 'expense', 'Gamepad2', TRUE),
-    ('Saúde', 'expense', 'HeartPulse', TRUE),
-    ('Educação', 'expense', 'BookOpen', TRUE),
-    ('Compras', 'expense', 'ShoppingBag', TRUE),
-    ('Serviços', 'expense', 'Receipt', TRUE),
-    ('Impostos', 'expense', 'Landmark', TRUE),
-    ('Outras Despesas', 'expense', 'MinusCircle', TRUE)
-ON CONFLICT (user_id, name, type) WHERE user_id IS NULL DO NOTHING;
+-- Habilitar RLS em todas as tabelas de usuário
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.integrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dev.clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dev.web_services ENABLE ROW LEVEL SECURITY;
+
+-- Limpar políticas existentes para garantir um estado limpo
+DROP POLICY IF EXISTS "Users can view their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Users can view and manage their own subscriptions." ON public.subscriptions;
+DROP POLICY IF EXISTS "Users can view their own invoices." ON public.invoices;
+DROP POLICY IF EXISTS "Users can manage their own categories." ON public.categories;
+DROP POLICY IF EXISTS "Users can view public categories." ON public.categories;
+DROP POLICY IF EXISTS "Users can manage their own transactions." ON public.transactions;
+DROP POLICY IF EXISTS "Users can manage their own budgets." ON public.budgets;
+DROP POLICY IF EXISTS "Users can manage their own financial goals." ON public.financial_goals;
+DROP POLICY IF EXISTS "Users can manage their own todos." ON public.todos;
+DROP POLICY IF EXISTS "Users can manage their own notes." ON public.notes;
+DROP POLICY IF EXISTS "Users can manage their own integrations." ON public.integrations;
+DROP POLICY IF EXISTS "Users can manage their own dev clients." ON dev.clients;
+DROP POLICY IF EXISTS "Users can manage their own web services." ON dev.web_services;
+
+
+-- Políticas para a tabela `profiles`
+CREATE POLICY "Users can view their own profile." ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Políticas para `subscriptions` e `invoices`
+CREATE POLICY "Users can view and manage their own subscriptions." ON public.subscriptions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own invoices." ON public.invoices FOR ALL USING (auth.uid() = user_id);
+
+-- Políticas para `categories`
+CREATE POLICY "Users can manage their own categories." ON public.categories FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can view public categories." ON public.categories FOR SELECT USING (is_default = TRUE);
+
+-- Políticas para tabelas financeiras principais
+CREATE POLICY "Users can manage their own transactions." ON public.transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own budgets." ON public.budgets FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own financial goals." ON public.financial_goals FOR ALL USING (auth.uid() = user_id);
+
+-- Políticas para tabelas de utilidades
+CREATE POLICY "Users can manage their own todos." ON public.todos FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own notes." ON public.notes FOR ALL USING (auth.uid() = user_id);
+
+-- Políticas para `integrations`
+CREATE POLICY "Users can manage their own integrations." ON public.integrations FOR ALL USING (auth.uid() = user_id);
+
+-- Políticas para o schema `dev`
+CREATE POLICY "Users can manage their own dev clients." ON dev.clients FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own web services." ON dev.web_services FOR ALL USING (auth.uid() = user_id);
+
+-- =============================================================================
+-- ||| ADMIN MANAGEMENT
+-- ||| Como promover um usuário a administrador
+-- =============================================================================
+-- Para transformar um usuário comum em administrador, execute o seguinte comando
+-- no SQL Editor do seu painel Supabase, substituindo pelo email do usuário.
+--
+-- 1. Certifique-se de que o usuário já criou uma conta no aplicativo.
+-- 2. Execute o comando abaixo.
+--
+-- UPDATE public.profiles
+-- SET account_type = 'admin'
+-- WHERE email = 'seu-email-de-admin@exemplo.com';
+-- =============================================================================
