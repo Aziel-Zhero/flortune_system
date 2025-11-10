@@ -13,8 +13,6 @@ import {
   AreaChart as AreaIconLucide,
   BarChart3 as BarIconLucide, 
   Radar as RadarIconLucide, 
-  Target as RadialIconLucide,
-  LineChart as LineIconLucideReal,
   Users2,
   Trophy,
   DollarSign,
@@ -66,6 +64,10 @@ import {
 } from "recharts";
 import type { PieSectorDataItem } from 'recharts/types/polar/Pie';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getTransactions } from "@/services/transaction.service";
+import { useSession } from "next-auth/react";
+import { toast } from "@/hooks/use-toast";
+import type { Transaction } from "@/types/database.types";
 
 
 interface CategoryData {
@@ -80,14 +82,6 @@ interface MonthlyEvolutionData {
   Despesas: number;
 }
 
-interface TopExpense {
-  id: string;
-  description: string;
-  amount: number;
-  date: string;
-  categoryName?: string;
-}
-
 const chartColors = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -96,40 +90,6 @@ const chartColors = [
   "hsl(var(--chart-5))",
 ];
 
-const mockSpendingByCategory: CategoryData[] = [
-  { name: "Moradia", value: 1850.55, fill: chartColors[0] },
-  { name: "Alimentação", value: 1230.70, fill: chartColors[1] },
-  { name: "Lazer", value: 680.00, fill: chartColors[2] },
-  { name: "Transporte", value: 430.50, fill: chartColors[3] },
-  { name: "Outros", value: 250.00, fill: chartColors[4] },
-];
-
-const mockIncomeBySource: CategoryData[] = [
-  { name: "Salário", value: 7500.00, fill: chartColors[0] },
-  { name: "Freelance", value: 2100.00, fill: chartColors[1] },
-  { name: "Rendimentos", value: 350.00, fill: chartColors[2] },
-];
-
-const mockTopExpenses: TopExpense[] = [
-  { id: '1', description: 'Aluguel & Condomínio', amount: 1800.00, date: '05/07/2024', categoryName: 'Moradia' },
-  { id: '2', description: 'Compras do Mês', amount: 850.20, date: '02/07/2024', categoryName: 'Alimentação' },
-  { id: '3', description: 'Show da Banda X', amount: 350.00, date: '15/07/2024', categoryName: 'Lazer' },
-];
-
-const mockMonthlyEvolution: MonthlyEvolutionData[] = [
-  { month: "Jan/24", Receitas: 6800, Despesas: 4500 },
-  { month: "Fev/24", Receitas: 7100, Despesas: 4800 },
-  { month: "Mar/24", Receitas: 7200, Despesas: 4700 },
-  { month: "Abr/24", Receitas: 6900, Despesas: 5100 },
-  { month: "Mai/24", Receitas: 7800, Despesas: 5500 },
-  { month: "Jun/24", Receitas: 8200, Despesas: 5300 },
-  { month: "Jul/24", Receitas: 9600, Despesas: 4500 },
-  { month: "Ago/24", Receitas: 0, Despesas: 0 },
-  { month: "Set/24", Receitas: 0, Despesas: 0 },
-  { month: "Out/24", Receitas: 0, Despesas: 0 },
-  { month: "Nov/24", Receitas: 0, Despesas: 0 },
-  { month: "Dez/24", Receitas: 0, Despesas: 0 },
-];
 const mockClientProjectData = [
   { month: "Jan", clientes: 5, projetos: 3 },
   { month: "Fev", clientes: 6, projetos: 4 },
@@ -260,16 +220,86 @@ const PieLabel = (props: PieSectorDataItem) => {
 };
 
 export default function AnalysisPage() {
+  const { data: session } = useSession();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
-  }, []);
+    if(session?.user?.id) {
+        setIsLoading(true);
+        getTransactions(session.user.id).then(({data, error}) => {
+            if(error) toast({title: "Erro ao buscar dados", description: error.message, variant: "destructive"});
+            else setTransactions(data || []);
+            setIsLoading(false);
+        })
+    } else {
+      setIsLoading(false);
+    }
+  }, [session]);
 
-  const spendingByCategory = mockSpendingByCategory;
-  const incomeBySource = mockIncomeBySource;
-  const monthlyEvolution = mockMonthlyEvolution;
-  const topExpenses = mockTopExpenses;
+  const { spendingByCategory, incomeBySource, topExpenses, monthlyEvolution } = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getUTCMonth();
+    const currentYear = now.getUTCFullYear();
+    
+    const spendingMap = new Map<string, number>();
+    const incomeMap = new Map<string, number>();
+    
+    const monthlyEvolutionMap = new Map<string, { Receitas: number; Despesas: number }>();
+    for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getUTCFullYear(), now.getUTCMonth() - i, 1);
+        const monthKey = `${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
+        monthlyEvolutionMap.set(monthKey, { Receitas: 0, Despesas: 0 });
+    }
+
+    const filteredTransactions = transactions.filter(tx => {
+        if (!tx.date) return false;
+        const txDate = new Date(tx.date + 'T00:00:00Z');
+        if (timePeriod === 'monthly') return txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear;
+        if (timePeriod === 'yearly') return txDate.getUTCFullYear() === currentYear;
+        return true;
+    });
+
+    for(const tx of transactions) { // Monthly evolution uses all transactions
+        if(!tx.date) continue;
+        const txDate = new Date(tx.date + 'T00:00:00Z');
+        const monthKey = `${txDate.getUTCMonth() + 1}/${txDate.getUTCFullYear()}`;
+        const monthData = monthlyEvolutionMap.get(monthKey);
+        if (monthData) {
+            if(tx.type === 'income') monthData.Receitas += tx.amount;
+            else if(tx.type === 'expense') monthData.Despesas += tx.amount;
+        }
+    }
+    
+    for (const tx of filteredTransactions) {
+      if (tx.type === 'expense' && tx.category) {
+        spendingMap.set(tx.category.name, (spendingMap.get(tx.category.name) || 0) + tx.amount);
+      } else if (tx.type === 'income' && tx.category) {
+        incomeMap.set(tx.category.name, (incomeMap.get(tx.category.name) || 0) + tx.amount);
+      }
+    }
+
+    const topExpenses = [...filteredTransactions]
+      .filter(tx => tx.type === 'expense')
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5)
+      .map(tx => ({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date, categoryName: tx.category?.name }));
+
+    return {
+      spendingByCategory: Array.from(spendingMap.entries()).map(([name, value], i) => ({ name, value, fill: chartColors[i % chartColors.length] })),
+      incomeBySource: Array.from(incomeMap.entries()).map(([name, value], i) => ({ name, value, fill: chartColors[i % chartColors.length] })),
+      topExpenses,
+      monthlyEvolution: Array.from(monthlyEvolutionMap.entries()).map(([month, data]) => {
+          const [m, y] = month.split('/');
+          const shortYear = y.substring(2);
+          const monthName = new Date(Number(y), Number(m)-1, 1).toLocaleString('pt-BR', { month: 'short' });
+          return { month: `${monthName}/${shortYear}`, ...data };
+      }),
+    };
+  }, [transactions, timePeriod]);
+
 
   const realDataChartConfig = useMemo(() => ({
     Receitas: { label: "Receitas", color: "hsl(var(--chart-1))" },
@@ -326,7 +356,7 @@ export default function AnalysisPage() {
                 </CardContent>
             </Card>
             <Card className="shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 3 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
                 <CardContent className="h-80">
                   <ScrollArea className="h-full pr-2">
                     <Table size="sm">
