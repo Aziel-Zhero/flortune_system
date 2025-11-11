@@ -1,12 +1,13 @@
 // src/components/auth/signup-form.tsx
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { AlertTriangle, UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -18,9 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { OAuthButton } from "./oauth-button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { signupUser, type SignupFormState } from "@/app/actions/auth.actions";
-import { useFormState } from "react-dom";
 import { toast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 
 
 const passwordSchema = z.string()
@@ -72,7 +71,7 @@ const passwordRequirements: PasswordRequirement[] = [
 
 export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formState, formAction] = useFormState(signupUser, { message: "", success: false });
+  const [formState, formAction] = useActionState(signupUser, { message: "", success: false });
 
   const { control, register, watch, formState: { errors } } = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
