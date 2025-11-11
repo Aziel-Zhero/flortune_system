@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { WeatherSettingsDialog } from '@/components/settings/weather-dialog';
 import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
 import { useRouter } from 'next/navigation';
+import { signOut } from '@/contexts/auth-context';
 
 interface ThemeOption {
   name: string;
@@ -59,9 +60,9 @@ export default function SettingsPage() {
     toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.`, action: <CheckSquare className="text-green-500"/> });
   };
   
-  const handleLogout = () => {
-    toast({ title: "Saindo...", description: "Você está sendo desconectado (simulação)." });
-    router.push('/login');
+  const handleLogout = async () => {
+    toast({ title: "Saindo...", description: "Você está sendo desconectado." });
+    await signOut({ callbackUrl: '/login' }); 
   };
 
   return (

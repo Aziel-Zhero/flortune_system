@@ -366,7 +366,6 @@ export default function DashboardPage() {
                 let bid = '0';
 
                 if (isAvailable) {
-                    // A API agora pode não retornar pctChange, então tratamos isso
                     pctChange = quote.pctChange ? parseFloat(quote.pctChange) : 0;
                     isPositive = pctChange >= 0;
                     quoteName = quote.name ? quote.name.split('/')[0] : 'Cotação';

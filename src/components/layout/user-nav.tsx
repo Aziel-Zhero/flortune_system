@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { signOut, useSession } from "@/contexts/auth-context";
+import { useSession, signOut } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {

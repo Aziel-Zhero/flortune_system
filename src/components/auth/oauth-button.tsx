@@ -1,7 +1,7 @@
 // src/components/auth/oauth-button.tsx
 "use client";
 import { Button } from "@/components/ui/button";
-import { signIn } from "@/contexts/auth-context";
+import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 
 interface OAuthButtonProps {
