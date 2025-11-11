@@ -15,12 +15,9 @@ const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos
 const signupSchema = z.object({
   fullName: z.string().min(2, { message: "O nome completo deve ter pelo menos 2 caracteres." }),
   displayName: z.string().min(2, { message: "O nome de exibição deve ter pelo menos 2 caracteres." }),
-  phone: z.string().optional(),
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: passwordSchema,
-  cpf: z.string().optional(),
-  rg: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
@@ -32,12 +29,9 @@ export type SignupFormState = {
   errors?: {
     fullName?: string[];
     displayName?: string[];
-    phone?: string[];
     email?: string[];
     password?: string[];
     confirmPassword?: string[];
-    cpf?: string[];
-    rg?: string[];
     _form?: string[];
   };
   success?: boolean;
@@ -49,7 +43,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
-    const errorMsg = "Serviço de autenticação indisponível. Configuração do servidor incompleta.";
+    const errorMsg = "Serviço de autenticação indisponível. As variáveis de ambiente do Supabase não foram configuradas corretamente no servidor.";
     console.error(`[Signup Action] Error: ${errorMsg}`);
     return { message: errorMsg, success: false, errors: { _form: [errorMsg] } };
   }
@@ -69,9 +63,8 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       };
     }
 
-    const { email, password, fullName, displayName, phone, cpf, rg } = validatedFields.data;
+    const { email, password, fullName, displayName } = validatedFields.data;
     
-    // Sempre cria como 'pessoa' e plano 'cultivador'
     const accountType = 'pessoa';
     const planId = 'tier-cultivador';
     
@@ -82,13 +75,10 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         data: {
           full_name: fullName,
           display_name: displayName,
-          phone: phone ? phone.replace(/\D/g, '') : null,
           account_type: accountType,
-          cpf_cnpj: cpf ? cpf.replace(/\D/g, '') : null,
-          rg: rg ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
           avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
           plan_id: planId,
-          has_seen_welcome_message: false, // Novo campo
+          has_seen_welcome_message: false,
         }
       }
     });
