@@ -1,16 +1,15 @@
 // src/app/api/auth/[...nextauth]/route.ts
-
-import NextAuth, { type NextAuthConfig } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from "next-auth/providers/google";
+import NextAuth from "@auth/core";
+import { type NextAuthConfig } from "@auth/core";
+import Credentials from "@auth/core/providers/credentials";
+import Google from "@auth/core/providers/google";
 import jwt from "jsonwebtoken";
 import { createClient } from '@supabase/supabase-js'; 
 import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
-export const runtime = 'nodejs'; // Força o runtime para Node.js
+export const runtime = 'nodejs';
 
-// --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
@@ -22,9 +21,8 @@ if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseJwtSecret || !nextAuthSe
   console.error("⚠️ FATAL: Missing crucial Supabase or NextAuth environment variables.");
 }
 
-// --- Provider Configuration ---
 const providers: NextAuthConfig['providers'] = [
-  CredentialsProvider({
+  Credentials({
     name: 'Credentials',
     credentials: {
       email: { label: 'Email', type: 'email' },
@@ -50,7 +48,7 @@ const providers: NextAuthConfig['providers'] = [
 
 if (googleClientId && googleClientSecret) {
   providers.push(
-    GoogleProvider({
+    Google({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true, 
@@ -58,7 +56,6 @@ if (googleClientId && googleClientSecret) {
   );
 }
 
-// --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
   providers,
   session: { strategy: 'jwt' },
@@ -77,7 +74,6 @@ export const authConfig: NextAuthConfig = {
           const { hashed_password, ...safeProfile } = dbProfile;
           token.profile = safeProfile;
         } else if (account.provider === 'google' && user.email) {
-          // If profile doesn't exist (e.g., first-time Google login), create it.
           const { data: newProfile, error } = await supabaseAdmin
             .from('profiles')
             .insert({
@@ -86,8 +82,8 @@ export const authConfig: NextAuthConfig = {
               display_name: user.name,
               full_name: user.name,
               avatar_url: user.image,
-              account_type: 'pessoa', // Always default to 'pessoa'
-              plan_id: 'tier-cultivador', // Always default to free plan
+              account_type: 'pessoa',
+              plan_id: 'tier-cultivador',
               has_seen_welcome_message: false,
             })
             .select()
@@ -99,7 +95,7 @@ export const authConfig: NextAuthConfig = {
             token.profile = newProfile;
           }
         } else if (user.profile) {
-            // For credentials provider, the profile is passed directly from authorize
+            // For credentials provider
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hashed_password, ...safeProfile } = user.profile;
             token.profile = safeProfile;
@@ -141,4 +137,6 @@ export const authConfig: NextAuthConfig = {
   secret: nextAuthSecret,
 };
 
-export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
+const handler = NextAuth(authConfig);
+
+export { handler as GET, handler as POST };
