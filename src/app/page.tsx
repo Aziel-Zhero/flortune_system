@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare, Star } from "lucide-react";
+import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare, Star, Origami, Code, Briefcase, Leaf } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
@@ -291,6 +291,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 items-stretch">
                 {PRICING_TIERS.map((tier) => {
                   const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
+                  const isPaidPlan = tier.priceMonthly !== 'Grátis';
                   return (
                     <Card key={tier.id} className={cn("flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:shadow-primary/20 pricing-card", tier.featured ? "border-primary ring-2 ring-primary" : "")}>
                       <CardHeader className="pb-4">
@@ -305,8 +306,8 @@ export default function LandingPage() {
                       </CardContent>
                       <CardFooter>
                         <Button asChild size="lg" className={cn("w-full", !tier.featured && "bg-accent hover:bg-accent/90 text-accent-foreground", tier.featured && buttonVariants({variant: "default"}))}>
-                          <Link href={session ? (tier.stripePriceId ? `/billing?plan=${tier.id}` : '/plans') : tier.href}>
-                            {session ? (tier.stripePriceId ? 'Fazer Upgrade' : 'Plano Atual') : (tier.priceMonthly === 'Grátis' ? 'Começar Agora' : (tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'))}
+                          <Link href={tier.href}>
+                            {tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}
                           </Link>
                         </Button>
                       </CardFooter>
