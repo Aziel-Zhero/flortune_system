@@ -32,6 +32,8 @@ import { toast } from "@/hooks/use-toast";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
+import { getTransactions } from "@/services/transaction.service";
 
 interface CalendarEvent extends EventInput {
   id: string;
@@ -57,17 +59,8 @@ const getEventTypeConfig = (typeValue: string) => {
   return eventTypes.find(t => t.value === typeValue) || eventTypes[0];
 };
 
-
-// --- MOCK DATA ---
-const sampleEvents: CalendarEvent[] = [
-    { id: 'tx-1', title: 'Salário', start: '2024-07-01', allDay: true, extendedProps: { type: 'recebimento', description: 'R$ 7.500,00 - Salário', source: 'transaction' }, backgroundColor: getEventTypeConfig('recebimento').color, borderColor: getEventTypeConfig('recebimento').color },
-    { id: 'tx-2', title: 'Aluguel', start: '2024-07-05', allDay: true, extendedProps: { type: 'pagamento', description: 'R$ 1.800,00 - Moradia', source: 'transaction' }, backgroundColor: getEventTypeConfig('pagamento').color, borderColor: getEventTypeConfig('pagamento').color },
-    { id: 'manual-1', title: 'Reunião de Equipe', start: '2024-07-10T14:00:00', end: '2024-07-10T15:00:00', allDay: false, extendedProps: { type: 'evento', description: 'Discussão do projeto X', source: 'manual' }, backgroundColor: getEventTypeConfig('evento').color, borderColor: getEventTypeConfig('evento').color },
-    { id: 'manual-2', title: 'Pagar fatura do cartão', start: '2024-07-15', allDay: true, extendedProps: { type: 'lembrete', description: 'Cartão final 1234', source: 'manual' }, backgroundColor: getEventTypeConfig('lembrete').color, borderColor: getEventTypeConfig('lembrete').color },
-];
-// --- END MOCK DATA ---
-
 export default function CalendarPage() {
+  const { data: session } = useSession();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -80,18 +73,36 @@ export default function CalendarPage() {
   
   useEffect(() => {
     setIsLoading(true);
-    try {
-        const storedManualEvents = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
-        // Combine mock transaction events with stored manual events
-        const combined = [...sampleEvents.filter(se => !storedManualEvents.some((me: CalendarEvent) => me.id === se.id)), ...storedManualEvents];
-        setEvents(combined);
-    } catch (e) {
-        console.error("Failed to load manual events from localStorage", e);
-        setEvents(sampleEvents); // Fallback to just sample data
-    } finally {
+    const storedManualEvents: CalendarEvent[] = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
+    
+    if (session?.user?.id) {
+      getTransactions(session.user.id).then(({ data: transactions, error }) => {
+        if (error) {
+          toast({ title: "Erro ao buscar transações", variant: "destructive" });
+          setEvents(storedManualEvents);
+        } else {
+          const transactionEvents: CalendarEvent[] = (transactions || []).map(tx => ({
+            id: `tx-${tx.id}`,
+            title: tx.description,
+            start: tx.date,
+            allDay: true,
+            extendedProps: {
+              type: tx.type === 'income' ? 'recebimento' : 'pagamento',
+              description: `R$ ${tx.amount.toLocaleString('pt-BR')}`,
+              source: 'transaction',
+            },
+            backgroundColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
+            borderColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
+          }));
+          setEvents([...transactionEvents, ...storedManualEvents]);
+        }
+        setIsLoading(false);
+      });
+    } else {
+        setEvents(storedManualEvents);
         setIsLoading(false);
     }
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     document.title = `Calendário Financeiro - ${APP_NAME}`;
@@ -99,7 +110,7 @@ export default function CalendarPage() {
   
   const manualEvents = useMemo(() => events.filter(e => e.extendedProps.source === 'manual'), [events]);
   useEffect(() => {
-    if(!isLoading) { // Only save to localStorage after initial load
+    if(!isLoading) {
       localStorage.setItem('flortune-manual-events', JSON.stringify(manualEvents));
     }
   }, [manualEvents, isLoading]);

@@ -1,7 +1,7 @@
 // src/app/(app)/analysis/page.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,6 +19,7 @@ import {
   Banknote,
   Percent,
   TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Select,
@@ -68,6 +69,7 @@ import { getTransactions } from "@/services/transaction.service";
 import { useSession } from "next-auth/react";
 import { toast } from "@/hooks/use-toast";
 import type { Transaction } from "@/types/database.types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 interface CategoryData {
@@ -90,62 +92,45 @@ const chartColors = [
   "hsl(var(--chart-5))",
 ];
 
+// Mock data for business gallery, as it's a demo section
 const mockClientProjectData = [
-  { month: "Jan", clientes: 5, projetos: 3 },
-  { month: "Fev", clientes: 6, projetos: 4 },
-  { month: "Mar", clientes: 8, projetos: 5 },
-  { month: "Abr", clientes: 7, projetos: 6 },
-  { month: "Mai", clientes: 9, projetos: 8 },
-  { month: "Jun", clientes: 11, projetos: 9 },
+  { month: "Jan", clientes: 5, projetos: 3 }, { month: "Fev", clientes: 6, projetos: 4 },
+  { month: "Mar", clientes: 8, projetos: 5 }, { month: "Abr", clientes: 7, projetos: 6 },
+  { month: "Mai", clientes: 9, projetos: 8 }, { month: "Jun", clientes: 11, projetos: 9 },
 ];
 const mockGoalsData = [
-  { month: "Jan", meta: 10000, atingido: 8000 },
-  { month: "Fev", meta: 10000, atingido: 8500 },
-  { month: "Mar", meta: 12000, atingido: 11000 },
-  { month: "Abr", meta: 12000, atingido: 12500 },
-  { month: "Mai", meta: 15000, atingido: 14000 },
-  { month: "Jun", meta: 15000, atingido: 16000 },
+  { month: "Jan", meta: 10000, atingido: 8000 }, { month: "Fev", meta: 10000, atingido: 8500 },
+  { month: "Mar", meta: 12000, atingido: 11000 }, { month: "Abr", meta: 12000, atingido: 12500 },
+  { month: "Mai", meta: 15000, atingido: 14000 }, { month: "Jun", meta: 15000, atingido: 16000 },
 ];
 const mockAccumulatedData = [
-  { name: 'Projetos', value: 125000 },
-  { name: 'Orçamento', value: 85000 },
-  { name: 'Metas', value: 45000 },
+  { name: 'Projetos', value: 125000 }, { name: 'Orçamento', value: 85000 }, { name: 'Metas', value: 45000 },
 ];
 const mockSpendingTimelineData = [
-  { date: '01/07', gastos: 250 },
-  { date: '05/07', gastos: 450 },
-  { date: '10/07', gastos: 300 },
-  { date: '15/07', gastos: 600 },
-  { date: '20/07', gastos: 550 },
-  { date: '25/07', gastos: 700 },
+  { date: '01/07', gastos: 250 }, { date: '05/07', gastos: 450 }, { date: '10/07', gastos: 300 },
+  { date: '15/07', gastos: 600 }, { date: '20/07', gastos: 550 }, { date: '25/07', gastos: 700 },
 ];
 const mockOverallSpendingData = [
-  { name: 'Serviços', value: 4500, fill: chartColors[0] },
-  { name: 'Marketing', value: 2500, fill: chartColors[1] },
-  { name: 'Infraestrutura', value: 1800, fill: chartColors[2] },
-  { name: 'Equipe', value: 8000, fill: chartColors[3] },
+  { name: 'Serviços', value: 4500, fill: chartColors[0] }, { name: 'Marketing', value: 2500, fill: chartColors[1] },
+  { name: 'Infraestrutura', value: 1800, fill: chartColors[2] }, { name: 'Equipe', value: 8000, fill: chartColors[3] },
   { name: 'Outros', value: 1200, fill: chartColors[4] },
 ];
 const mockRadarGeneralData = [
-  { subject: 'Receita', A: 85, fullMark: 100 },
-  { subject: 'Lucratividade', A: 70, fullMark: 100 },
-  { subject: 'Satisfação', A: 90, fullMark: 100 },
-  { subject: 'Novos Clientes', A: 60, fullMark: 100 },
+  { subject: 'Receita', A: 85, fullMark: 100 }, { subject: 'Lucratividade', A: 70, fullMark: 100 },
+  { subject: 'Satisfação', A: 90, fullMark: 100 }, { subject: 'Novos Clientes', A: 60, fullMark: 100 },
   { subject: 'Retenção', A: 80, fullMark: 100 },
 ];
 const mockTop3SpendingData = [
-  { name: 'Equipe', value: 8000, fill: chartColors[3] },
-  { name: 'Serviços', value: 4500, fill: chartColors[0] },
+  { name: 'Equipe', value: 8000, fill: chartColors[3] }, { name: 'Serviços', value: 4500, fill: chartColors[0] },
   { name: 'Marketing', value: 2500, fill: chartColors[1] },
 ];
 const mockYieldData = { value: 8.5 };
 const mockTaxData = { value: 22.5 };
 const mockComparativeData = [
-  { month: 'Q1', '2023': 4000, '2024': 5500 },
-  { month: 'Q2', '2023': 3000, '2024': 4800 },
-  { month: 'Q3', '2023': 5000, '2024': 6200 },
-  { month: 'Q4', '2023': 4500, '2024': 7100 },
+  { month: 'Q1', '2023': 4000, '2024': 5500 }, { month: 'Q2', '2023': 3000, '2024': 4800 },
+  { month: 'Q3', '2023': 5000, '2024': 6200 }, { month: 'Q4', '2023': 4500, '2024': 7100 },
 ];
+
 
 const RealDataCustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -225,19 +210,26 @@ export default function AnalysisPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
 
+  const fetchTransactions = useCallback(async (userId: string) => {
+    setIsLoading(true);
+    const { data, error } = await getTransactions(userId);
+    if (error) {
+      toast({ title: "Erro ao buscar dados", description: error.message, variant: "destructive" });
+    } else {
+      setTransactions(data || []);
+    }
+    setIsLoading(false);
+  }, []);
+
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
-    if(session?.user?.id) {
-        setIsLoading(true);
-        getTransactions(session.user.id).then(({data, error}) => {
-            if(error) toast({title: "Erro ao buscar dados", description: error.message, variant: "destructive"});
-            else setTransactions(data || []);
-            setIsLoading(false);
-        })
-    } else {
+    if (session?.user?.id) {
+      fetchTransactions(session.user.id);
+    } else if (session === null) {
       setIsLoading(false);
+      setTransactions([]);
     }
-  }, [session]);
+  }, [session, fetchTransactions]);
 
   const { spendingByCategory, incomeBySource, topExpenses, monthlyEvolution } = useMemo(() => {
     const now = new Date();
@@ -306,6 +298,18 @@ export default function AnalysisPage() {
     Despesas: { label: "Despesas", color: "hsl(var(--chart-2))" },
   }), []);
 
+  const renderEmptyState = (title: string, message: string) => (
+      <Card className="shadow-sm h-full flex flex-col">
+          <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />{title}</CardTitle></CardHeader>
+          <CardContent className="flex-grow flex items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                  <AlertTriangle className="mx-auto h-8 w-8 mb-2" />
+                  <p className="font-semibold">{message}</p>
+              </div>
+          </CardContent>
+      </Card>
+  );
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -313,7 +317,7 @@ export default function AnalysisPage() {
         description="Explore seus padrões de gastos, receitas e tendências ao longo do tempo."
         icon={<Wallet className="h-6 w-6 text-primary"/>}
         actions={
-          <Select value={timePeriod} onValueChange={setTimePeriod}>
+          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isLoading}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Selecionar período" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="monthly">Este Mês</SelectItem>
@@ -325,72 +329,58 @@ export default function AnalysisPage() {
       />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
-                <CardContent className="h-80 sm:h-96">
-                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
-                                <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                <Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>
-                                    {spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}
-                                </Pie>
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
-            <Card className="shadow-sm">
-                <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
-                 <CardContent className="h-80 sm:h-96">
-                    <ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
-                                <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                                <Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>
-                                    {incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}
-                                </Pie>
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
+            {isLoading ? <Skeleton className="h-96" /> : spendingByCategory.length === 0 ? renderEmptyState("Gastos por Categoria", "Nenhum gasto no período.") : (
+              <Card className="shadow-sm">
+                  <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
+                  <CardContent className="h-80 sm:h-96"><ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square"><ResponsiveContainer width="100%" height="100%"><PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}><RechartsTooltip content={<RealDataPieCustomTooltip />} /><Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>{spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}</Pie></PieChart></ResponsiveContainer></ChartContainer></CardContent>
+              </Card>
+            )}
+             {isLoading ? <Skeleton className="h-96" /> : incomeBySource.length === 0 ? renderEmptyState("Fontes de Renda", "Nenhuma receita no período.") : (
+                <Card className="shadow-sm">
+                    <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
+                    <CardContent className="h-80 sm:h-96"><ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square"><ResponsiveContainer width="100%" height="100%"><PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}><RechartsTooltip content={<RealDataPieCustomTooltip />} /><Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>{incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}</Pie></PieChart></ResponsiveContainer></ChartContainer></CardContent>
+                </Card>
+             )}
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
                 <CardContent className="h-80">
                   <ScrollArea className="h-full pr-2">
-                    <Table size="sm">
-                        <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
-                        <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs break-words max-w-[150px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
-                    </Table>
+                    {isLoading ? Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-10 mb-2" />) : topExpenses.length === 0 ? (<div className="flex items-center justify-center h-full text-muted-foreground text-sm">Nenhuma despesa.</div>) : (
+                      <Table size="sm">
+                          <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+                          <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs break-words max-w-[150px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
+                      </Table>
+                    )}
                   </ScrollArea>
                 </CardContent>
             </Card>
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-80 sm:h-96 overflow-hidden">
-                    <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
-                        <ResponsiveContainer width="99%" height="100%">
-                            <AreaChart accessibilityLayer data={monthlyEvolution} margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
-                                <defs>
-                                    <linearGradient id="fillReceitasEvolution" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Receitas)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Receitas)" stopOpacity={0.1}/></linearGradient>
-                                    <linearGradient id="fillDespesasEvolution" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Despesas)" stopOpacity={0.7}/><stop offset="95%" stopColor="var(--color-Despesas)" stopOpacity={0.1}/></linearGradient>
-                                </defs>
-                                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={-45} textAnchor="end" height={80} dy={10} tick={{ fontSize: '0.65rem' }} />
-                                <YAxis tickFormatter={(value) => `R$${Number(value / 1000).toFixed(0)}k`} tick={{ fontSize: '0.65rem' }} tickLine={false} axisLine={false} tickMargin={5} dx={-5} width={60} />
-                                <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
-                                <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
-                                <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitasEvolution)" stackId="1" name="Receitas" />
-                                <Area type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" fillOpacity={1} fill="url(#fillDespesasEvolution)" stackId="2" name="Despesas" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                    {isLoading ? <Skeleton className="w-full h-full" /> : (
+                      <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
+                          <ResponsiveContainer width="99%" height="100%">
+                              <AreaChart accessibilityLayer data={monthlyEvolution} margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>
+                                  <defs>
+                                      <linearGradient id="fillReceitasEvolution" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Receitas)" stopOpacity={0.8}/><stop offset="95%" stopColor="var(--color-Receitas)" stopOpacity={0.1}/></linearGradient>
+                                      <linearGradient id="fillDespesasEvolution" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-Despesas)" stopOpacity={0.7}/><stop offset="95%" stopColor="var(--color-Despesas)" stopOpacity={0.1}/></linearGradient>
+                                  </defs>
+                                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                                  <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={-45} textAnchor="end" height={80} dy={10} tick={{ fontSize: '0.65rem' }} />
+                                  <YAxis tickFormatter={(value) => `R$${Number(value / 1000).toFixed(0)}k`} tick={{ fontSize: '0.65rem' }} tickLine={false} axisLine={false} tickMargin={5} dx={-5} width={60} />
+                                  <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
+                                  <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
+                                  <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitasEvolution)" stackId="1" name="Receitas" />
+                                  <Area type="monotone" dataKey="Despesas" stroke="var(--color-Despesas)" fillOpacity={1} fill="url(#fillDespesasEvolution)" stackId="2" name="Despesas" />
+                              </AreaChart>
+                          </ResponsiveContainer>
+                      </ChartContainer>
+                    )}
                 </CardContent>
             </Card>
       </div>
 
-      <PageHeader title="Galeria de Análises de Negócio" description="Demonstração de métricas de projetos e clientes." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
+      <PageHeader title="Galeria de Análises de Negócio" description="Demonstração de métricas de projetos e clientes (usando dados de exemplo)." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader><CardTitle className="font-headline flex items-center"><Users2 className="mr-2 h-5 w-5 text-primary"/>Clientes e Projetos</CardTitle><CardDescription>Evolução de novos clientes e projetos.</CardDescription></CardHeader>
