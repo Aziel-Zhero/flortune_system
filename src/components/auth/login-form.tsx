@@ -16,6 +16,23 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const formError = searchParams.get("error");
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const result = await signIn("credentials", {
+      redirect: false,
+      email: formData.get("email"),
+      password: formData.get("password"),
+    });
+
+    if (result?.error) {
+      router.push('/login?error=CredentialsSignin');
+    } else {
+      router.push(searchParams.get("callbackUrl") || "/dashboard");
+      router.refresh();
+    }
+  }
   
   return (
     <div className="space-y-6">
@@ -37,20 +54,7 @@ export function LoginForm() {
         </Alert>
       )}
 
-      <form action={async (formData) => {
-        const result = await signIn("credentials", {
-          redirect: false,
-          email: formData.get("email"),
-          password: formData.get("password"),
-        });
-
-        if (result?.error) {
-          router.push('/login?error=CredentialsSignin');
-        } else {
-          router.push(searchParams.get("callbackUrl") || "/dashboard");
-          router.refresh();
-        }
-      }} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
