@@ -32,12 +32,24 @@ const providers: NextAuthOptions['providers'] = [
       }
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
       const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
-      if (!profile || !profile.hashed_password) return null;
+      
+      if (!profile || !profile.hashed_password) {
+        return null;
+      }
+      
       const passwordsMatch = await bcrypt.compare(credentials.password, profile.hashed_password);
+      
       if (passwordsMatch) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { hashed_password, ...userProfile } = profile;
-        return { id: userProfile.id, email: userProfile.email, name: userProfile.display_name, image: userProfile.avatar_url, profile: userProfile };
+        return {
+          id: userProfile.id, // Adicionando o ID aqui, que é crucial
+          email: userProfile.email,
+          name: userProfile.display_name,
+          image: userProfile.avatar_url,
+          // Passando o perfil completo para o callback JWT
+          profile: userProfile 
+        };
       }
       return null;
     },
@@ -57,54 +69,28 @@ export const authOptions: NextAuthOptions = {
   providers,
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, account }) {
+      // O 'user' aqui vem do 'authorize' ou do provedor OAuth
       if (account && user) {
-        if (!supabaseUrl || !supabaseServiceRoleKey) throw new Error("Supabase credentials missing for JWT callback");
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-        const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('email', user.email).single();
-
-        if (dbProfile) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { hashed_password, ...safeProfile } = dbProfile;
-          token.profile = safeProfile;
-          token.sub = safeProfile.id; // Ensure subject is the UUID from our profiles table
-        } else if (account.provider === 'google' && user.email) {
-          const { data: newProfile, error } = await supabaseAdmin
-            .from('profiles')
-            .insert({
-              id: user.id, // Use the ID from the provider for the first time
-              email: user.email,
-              display_name: user.name,
-              full_name: user.name,
-              avatar_url: user.image,
-              account_type: 'pessoa',
-              plan_id: 'tier-cultivador',
-              has_seen_welcome_message: false,
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.error("Error creating profile for Google user:", error);
-          } else if (newProfile) {
-            token.profile = newProfile;
-            token.sub = newProfile.id;
-          }
+        token.accessToken = account.access_token;
+        token.sub = user.id; // sub é o ID do usuário para o token
+        if ('profile' in user) {
+          token.profile = user.profile;
         }
       }
       return token;
     },
     async session({ session, token }) {
-      if (token.sub) session.user.id = token.sub;
-      if (token.profile) session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
-
-      if (session.user.profile) {
-        session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
-        session.user.image = session.user.profile.avatar_url || session.user.image;
-        session.user.email = session.user.profile.email || session.user.email;
+      if (token.sub) {
+        session.user.id = token.sub;
       }
-      
+      if (token.profile) {
+        session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
+        session.user.name = (token.profile as AppProfile).display_name || (token.profile as AppProfile).full_name;
+        session.user.email = (token.profile as AppProfile).email;
+        session.user.image = (token.profile as AppProfile).avatar_url;
+      }
+
       if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
@@ -121,7 +107,7 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async signIn({ user, account }) {
+     async signIn({ user, account }) {
       if (account?.provider === 'google' && user.email) {
           if (!supabaseUrl || !supabaseServiceRoleKey) {
             console.error("Supabase config missing for Google sign-in check");
@@ -136,7 +122,7 @@ export const authOptions: NextAuthOptions = {
           }
           if (!dbProfile) {
               const { error: creationError } = await supabaseAdmin.from('profiles').insert({
-                  id: user.id,
+                  id: user.id, // O ID do provedor é usado aqui
                   email: user.email,
                   display_name: user.name,
                   full_name: user.name,
