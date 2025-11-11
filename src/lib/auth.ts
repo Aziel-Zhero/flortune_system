@@ -4,7 +4,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from "next-auth/providers/google";
 import jwt from "jsonwebtoken";
 import { createClient } from '@supabase/supabase-js'; 
-import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
 // --- Environment Variable Reading ---
@@ -31,9 +30,6 @@ const providers: NextAuthOptions['providers'] = [
         return null;
       }
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-      const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
-      
-      if (!profile) return null;
       
       const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
         email: credentials.email,
@@ -42,7 +38,18 @@ const providers: NextAuthOptions['providers'] = [
 
       if (authError || !authData.user) {
         console.error('Supabase signIn error:', authError?.message);
-        return null; // As credenciais são inválidas
+        return null;
+      }
+
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+      
+      if (profileError || !profile) {
+          console.error("Profile not found for user:", authData.user.id, profileError);
+          return null;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -72,14 +79,17 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, account }) {
-      if (account && user) {
-        token.accessToken = account.access_token;
-        token.sub = user.id;
-        if ('profile' in user) {
-          token.profile = user.profile;
+        if (account && user) {
+            token.accessToken = account.access_token;
+            token.sub = user.id;
+
+            const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceRoleKey!);
+            const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
+            if (profile) {
+                token.profile = profile;
+            }
         }
-      }
-      return token;
+        return token;
     },
     async session({ session, token }) {
       if (token.sub) {
@@ -122,18 +132,22 @@ export const authOptions: NextAuthOptions = {
               return false;
           }
           if (!dbProfile) {
-              const { error: creationError } = await supabaseAdmin.from('profiles').insert({
-                  id: user.id, // O ID do provedor é usado aqui
+              const { data: authUser, error: creationError } = await supabaseAdmin.auth.createUser({
                   email: user.email,
-                  display_name: user.name,
-                  full_name: user.name,
-                  avatar_url: user.image,
-                  account_type: 'pessoa',
-                  plan_id: 'tier-cultivador',
-                  has_seen_welcome_message: false
+                  password: Math.random().toString(36).slice(-12), // Generate random password for OAuth users
+                  email_confirm: true, // Auto-confirm email for OAuth users
+                  user_metadata: {
+                    full_name: user.name,
+                    display_name: user.name,
+                    avatar_url: user.image,
+                    account_type: 'pessoa',
+                    plan_id: 'tier-cultivador',
+                    has_seen_welcome_message: false
+                  }
               });
-              if(creationError) {
-                  console.error("Error auto-creating profile for Google user:", creationError);
+
+              if(creationError || !authUser.user) {
+                  console.error("Error auto-creating Supabase Auth user for Google:", creationError);
                   return false;
               }
           }
