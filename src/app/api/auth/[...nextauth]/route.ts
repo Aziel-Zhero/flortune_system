@@ -6,7 +6,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from "next-auth/providers/google";
 import jwt from "jsonwebtoken";
 import { createClient } from '@supabase/supabase-js'; 
-import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
 export const runtime = 'nodejs'; // Força o runtime para Node.js
@@ -42,27 +41,30 @@ export const authConfig: NextAuthConfig = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.error("Authorize: Faltando email ou senha.");
           return null;
         }
 
-        const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
-        
-        if (!profile || !profile.hashed_password) {
-          return null;
+        // Usar o Supabase Auth para verificar as credenciais
+        const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+            email: credentials.email,
+            password: credentials.password,
+        });
+
+        if (error || !data.user) {
+            console.error("Authorize: Erro no signInWithPassword do Supabase:", error?.message);
+            return null;
         }
         
-        const passwordsMatch = await bcrypt.compare(credentials.password, profile.hashed_password);
-        
-        if (passwordsMatch) {
-          // Retornando os dados do perfil que o adapter espera
-          return {
-            id: profile.id,
-            email: profile.email,
-            name: profile.display_name,
-            image: profile.avatar_url,
-          };
-        }
-        return null;
+        // Se o login for bem-sucedido, o Supabase retorna o usuário.
+        // O SupabaseAdapter cuidará de encontrar ou criar o usuário no banco de dados.
+        // Apenas retornamos os dados essenciais que o NextAuth espera.
+        return {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.display_name || data.user.user_metadata?.name,
+          image: data.user.user_metadata?.avatar_url,
+        };
       },
     }),
     // Adiciona o Google Provider apenas se as chaves estiverem configuradas
@@ -100,11 +102,9 @@ export const authConfig: NextAuthConfig = {
           .single();
 
         if (profile) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { hashed_password, ...safeProfile } = profile;
-          session.user.profile = safeProfile;
-          session.user.name = safeProfile.display_name || safeProfile.full_name;
-          session.user.image = safeProfile.avatar_url;
+          session.user.profile = profile as Omit<AppProfile, 'hashed_password'>;
+          session.user.name = profile.display_name || profile.full_name;
+          session.user.image = profile.avatar_url;
         }
       }
       

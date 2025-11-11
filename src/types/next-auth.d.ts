@@ -1,5 +1,5 @@
 import type { DefaultSession, User as NextAuthDefaultUser } from 'next-auth';
-import type { JWT as NextAuthDefaultJWT } from "@auth/core/jwt";
+import type { JWT as NextAuthDefaultJWT } from "next-auth/jwt";
 import type { Profile as CustomAppProfile } from '@/types/database.types';
 
 declare module 'next-auth' {
@@ -16,7 +16,7 @@ declare module 'next-auth' {
   }
 }
 
-declare module '@auth/core/jwt' {
+declare module 'next-auth/jwt' {
   interface JWT extends NextAuthDefaultJWT {
     profile?: Omit<CustomAppProfile, 'hashed_password'> | null;
   }

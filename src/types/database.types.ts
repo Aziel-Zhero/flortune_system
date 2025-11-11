@@ -4,7 +4,6 @@ export interface Profile {
   full_name?: string | null;
   display_name?: string | null;
   email: string; // Unique
-  hashed_password?: string | null;
   phone?: string | null;
   avatar_url?: string | null;
   account_type?: 'pessoa' | 'empresa' | null;

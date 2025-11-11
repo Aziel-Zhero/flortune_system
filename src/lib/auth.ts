@@ -33,24 +33,31 @@ const providers: NextAuthOptions['providers'] = [
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
       const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
       
-      if (!profile || !profile.hashed_password) {
+      // A coluna 'hashed_password' não existe mais; a verificação é feita pelo Supabase Auth
+      if (!profile) {
         return null;
       }
       
-      const passwordsMatch = await bcrypt.compare(credentials.password, profile.hashed_password);
-      
-      if (passwordsMatch) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { hashed_password, ...userProfile } = profile;
-        return {
-          id: userProfile.id,
-          email: userProfile.email,
-          name: userProfile.display_name || userProfile.full_name,
-          image: userProfile.avatar_url,
-          profile: userProfile 
-        };
+      // Em vez de comparar a senha aqui, delegamos ao Supabase Auth
+      const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
+
+      if (authError || !authData.user) {
+        console.error('Supabase signIn error:', authError?.message);
+        return null; // As credenciais são inválidas
       }
-      return null;
+
+      // Se o login for bem-sucedido, retorne os dados do perfil
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      return {
+        id: profile.id,
+        email: profile.email,
+        name: profile.display_name || profile.full_name,
+        image: profile.avatar_url,
+        profile: profile 
+      };
     },
   }),
 ];
