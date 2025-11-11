@@ -1,4 +1,3 @@
-
 // src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthConfig } from 'next-auth';
@@ -61,11 +60,10 @@ export const authConfig: NextAuthConfig = {
   providers,
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user, account, profile: oauthProfile }) {
+    async jwt({ token, user, account }) {
       if (user) token.sub = user.id;
 
       if (account && user) {
-        // This is the key part: ensure a profile exists in our DB for every auth user.
         if (!supabaseUrl || !supabaseServiceRoleKey) throw new Error("Supabase credentials missing for JWT callback");
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
@@ -85,15 +83,15 @@ export const authConfig: NextAuthConfig = {
               display_name: user.name,
               full_name: user.name,
               avatar_url: user.image,
-              account_type: 'pessoa', // Default
-              plan_id: 'tier-cultivador' // Default free plan
+              account_type: 'pessoa', // Always default to 'pessoa'
+              plan_id: 'tier-cultivador', // Always default to free plan
+              has_seen_welcome_message: false,
             })
             .select()
             .single();
 
           if (error) {
             console.error("Error creating profile for Google user:", error);
-            // Don't block login, but log the error.
           } else if (newProfile) {
             token.profile = newProfile;
           }
@@ -110,7 +108,6 @@ export const authConfig: NextAuthConfig = {
       if (token.sub) session.user.id = token.sub;
       if (token.profile) session.user.profile = token.profile as Omit<AppProfile, 'hashed_password'>;
 
-      // Update session user details from the profile
       if (session.user.profile) {
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
         session.user.image = session.user.profile.avatar_url || session.user.image;

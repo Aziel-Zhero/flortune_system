@@ -10,6 +10,8 @@ export interface Profile {
   account_type?: 'pessoa' | 'empresa' | null;
   cpf_cnpj?: string | null; // Unique
   rg?: string | null;
+  plan_id?: string;
+  has_seen_welcome_message?: boolean;
   created_at: string; // Timestamptz
   updated_at: string; // Timestamptz
 }

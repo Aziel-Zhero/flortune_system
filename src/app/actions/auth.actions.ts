@@ -1,4 +1,4 @@
-
+// src/app/actions/auth.actions.ts
 "use server";
 
 import { z } from "zod";
@@ -12,60 +12,18 @@ const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos
   .regex(/[0-9]/, { message: "A senha deve conter pelo menos um número." })
   .regex(/[^a-zA-Z0-9]/, { message: "A senha deve conter pelo menos um caractere especial." });
 
-const signupSchemaBase = z.object({
-  fullName: z.string().min(2, { message: "O nome completo/razão social deve ter pelo menos 2 caracteres." }),
-  displayName: z.string().min(2, { message: "O nome de exibição/fantasia deve ter pelo menos 2 caracteres." }),
+const signupSchema = z.object({
+  fullName: z.string().min(2, { message: "O nome completo deve ter pelo menos 2 caracteres." }),
+  displayName: z.string().min(2, { message: "O nome de exibição deve ter pelo menos 2 caracteres." }),
   phone: z.string().optional(),
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: passwordSchema,
-  accountType: z.enum(['pessoa', 'empresa'], { required_error: "Selecione o tipo de conta." }),
   cpf: z.string().optional(),
-  cnpj: z.string().optional(),
   rg: z.string().optional(),
-});
-
-const signupSchema = signupSchemaBase.refine(data => data.password === data.confirmPassword, {
+}).refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
-})
-.refine(data => {
-    if (data.accountType === 'pessoa' && data.cpf) {
-      const cpfCleaned = data.cpf.replace(/\D/g, '');
-      return cpfCleaned.length === 11;
-    }
-    return true;
-  }, {
-    message: "Se fornecido, o CPF deve ser válido (11 dígitos).",
-    path: ["cpf"],
-})
-.refine(data => {
-    if (data.accountType === 'empresa') {
-      return !!data.cnpj && data.cnpj.replace(/\D/g, '').length === 14;
-    }
-    return true;
-  }, {
-    message: "CNPJ é obrigatório e deve ser válido (14 dígitos) para pessoa jurídica.",
-    path: ["cnpj"],
-})
-.refine(data => {
-    if (data.accountType === 'empresa') {
-        return !!data.phone && data.phone.trim() !== '' && data.phone.replace(/\D/g, '').length >= 10;
-    }
-    return true;
-}, {
-    message: "Telefone é obrigatório e deve ser válido para pessoa jurídica.",
-    path: ["phone"],
-})
-.refine(data => {
-    if (data.accountType === 'pessoa' && data.rg) {
-        const rgCleaned = data.rg.replace(/[^0-9Xx]/gi, '');
-        return rgCleaned.length >= 5 && rgCleaned.length <= 10;
-    }
-    return true;
-}, {
-    message: "Se fornecido, o RG deve ser válido.",
-    path: ["rg"],
 });
 
 
@@ -78,9 +36,7 @@ export type SignupFormState = {
     email?: string[];
     password?: string[];
     confirmPassword?: string[];
-    accountType?: string[];
     cpf?: string[];
-    cnpj?: string[];
     rg?: string[];
     _form?: string[];
   };
@@ -113,7 +69,11 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       };
     }
 
-    const { email, password, fullName, displayName, phone, accountType, cpf, cnpj, rg } = validatedFields.data;
+    const { email, password, fullName, displayName, phone, cpf, rg } = validatedFields.data;
+    
+    // Sempre cria como 'pessoa' e plano 'cultivador'
+    const accountType = 'pessoa';
+    const planId = 'tier-cultivador';
     
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.signUp({
       email,
@@ -124,9 +84,11 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
           display_name: displayName,
           phone: phone ? phone.replace(/\D/g, '') : null,
           account_type: accountType,
-          cpf_cnpj: (accountType === 'pessoa' && cpf) ? cpf.replace(/\D/g, '') : (accountType === 'empresa' && cnpj) ? cnpj.replace(/\D/g, '') : null,
-          rg: (accountType === 'pessoa' && rg) ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
+          cpf_cnpj: cpf ? cpf.replace(/\D/g, '') : null,
+          rg: rg ? rg.replace(/[^0-9Xx]/gi, '').toUpperCase() : null,
           avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
+          plan_id: planId,
+          has_seen_welcome_message: false, // Novo campo
         }
       }
     });

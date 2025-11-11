@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,9 +37,7 @@ const signupFormSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string(),
   phone: z.string().optional(),
-  accountType: z.enum(['pessoa', 'empresa'], { required_error: "Selecione o tipo de conta." }),
   cpf: z.string().optional(),
-  cnpj: z.string().optional(),
   rg: z.string().optional(),
   terms: z.boolean().refine(val => val === true, {
     message: "Você deve aceitar os termos e condições."
@@ -46,10 +45,6 @@ const signupFormSchema = z.object({
 }).refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem.",
   path: ["confirmPassword"],
-})
-.refine(data => data.accountType === 'empresa' ? !!data.cnpj && data.cnpj.replace(/\D/g, '').length === 14 : true, {
-  message: "CNPJ é obrigatório para pessoa jurídica.",
-  path: ["cnpj"],
 });
 
 
@@ -76,13 +71,9 @@ export function SignupForm() {
   const { control, register, watch, formState: { errors } } = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
     mode: "onBlur",
-    defaultValues: {
-      accountType: 'pessoa'
-    }
   });
 
   const passwordValue = watch("password", "");
-  const accountType = watch("accountType");
 
   const passwordCheck = passwordRequirements.map(req => ({
       ...req,
@@ -102,40 +93,17 @@ export function SignupForm() {
   return (
     <div className="space-y-6">
       <form action={formAction} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Tipo de Conta</Label>
-            <Controller
-                name="accountType"
-                control={control}
-                render={({ field }) => (
-                  <RadioGroup onValueChange={field.onChange} value={field.value} className="flex space-x-4">
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="pessoa" id="pessoa" /><Label htmlFor="pessoa" className="font-normal">Pessoa Física</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="empresa" id="empresa" /><Label htmlFor="empresa" className="font-normal">Pessoa Jurídica</Label></div>
-                  </RadioGroup>
-                )}
-              />
-              {errors.accountType && <p className="text-sm text-destructive mt-1">{errors.accountType.message}</p>}
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="fullName">{accountType === 'pessoa' ? 'Nome Completo' : 'Razão Social'}</Label><Input id="fullName" {...register("fullName")} />{errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}</div>
-              <div className="space-y-2"><Label htmlFor="displayName">{accountType === 'pessoa' ? 'Nome de Exibição' : 'Nome Fantasia'}</Label><Input id="displayName" {...register("displayName")} />{errors.displayName && <p className="text-sm text-destructive mt-1">{errors.displayName.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="fullName">Nome Completo</Label><Input id="fullName" {...register("fullName")} />{errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="displayName">Nome de Exibição</Label><Input id="displayName" {...register("displayName")} />{errors.displayName && <p className="text-sm text-destructive mt-1">{errors.displayName.message}</p>}</div>
           </div>
           
           <div className="space-y-2"><Label htmlFor="email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="email" type="email" {...register("email")} className="pl-10"/></div>{(errors.email || formState?.errors?.email) && <p className="text-sm text-destructive mt-1">{errors.email?.message || formState?.errors?.email?.[0]}</p>}</div>
         
-          {accountType === 'pessoa' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="space-y-2"><Label htmlFor="cpf">CPF</Label><Input id="cpf" {...register("cpf")} />{errors.cpf && <p className="text-sm text-destructive mt-1">{errors.cpf.message}</p>}</div>
-               <div className="space-y-2"><Label htmlFor="rg">RG (Opcional)</Label><Input id="rg" {...register("rg")} /></div>
-            </div>
-          )}
-           {accountType === 'empresa' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" {...register("cnpj")} />{errors.cnpj && <p className="text-sm text-destructive mt-1">{errors.cnpj.message}</p>}</div>
-               <div className="space-y-2"><Label htmlFor="phone">Telefone</Label><Input id="phone" type="tel" {...register("phone")} />{errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone.message}</p>}</div>
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="space-y-2"><Label htmlFor="cpf">CPF (Opcional)</Label><Input id="cpf" {...register("cpf")} />{errors.cpf && <p className="text-sm text-destructive mt-1">{errors.cpf.message}</p>}</div>
+             <div className="space-y-2"><Label htmlFor="rg">RG (Opcional)</Label><Input id="rg" {...register("rg")} /></div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2"><Label htmlFor="password">Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="password" type={showPassword ? "text" : "password"} {...register("password")} className="pl-10 pr-10"/><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)}><EyeOff className={cn("h-4 w-4", { "hidden": !showPassword })} /><Eye className={cn("h-4 w-4", { "hidden": showPassword })} /></Button></div>{errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}</div>
