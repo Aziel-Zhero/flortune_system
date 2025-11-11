@@ -32,7 +32,6 @@ import { toast } from "@/hooks/use-toast";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useSession } from "next-auth/react";
 import { getTransactions } from "@/services/transaction.service";
 
 interface CalendarEvent extends EventInput {
@@ -60,7 +59,6 @@ const getEventTypeConfig = (typeValue: string) => {
 };
 
 export default function CalendarPage() {
-  const { data: session } = useSession();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -74,35 +72,31 @@ export default function CalendarPage() {
   useEffect(() => {
     setIsLoading(true);
     const storedManualEvents: CalendarEvent[] = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
+    const mockUserId = "mock-user-id";
     
-    if (session?.user?.id) {
-      getTransactions(session.user.id).then(({ data: transactions, error }) => {
-        if (error) {
-          toast({ title: "Erro ao buscar transações", variant: "destructive" });
-          setEvents(storedManualEvents);
-        } else {
-          const transactionEvents: CalendarEvent[] = (transactions || []).map(tx => ({
-            id: `tx-${tx.id}`,
-            title: tx.description,
-            start: tx.date,
-            allDay: true,
-            extendedProps: {
-              type: tx.type === 'income' ? 'recebimento' : 'pagamento',
-              description: `R$ ${tx.amount.toLocaleString('pt-BR')}`,
-              source: 'transaction',
-            },
-            backgroundColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
-            borderColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
-          }));
-          setEvents([...transactionEvents, ...storedManualEvents]);
-        }
-        setIsLoading(false);
-      });
-    } else {
+    getTransactions(mockUserId).then(({ data: transactions, error }) => {
+      if (error) {
+        toast({ title: "Erro ao buscar transações", variant: "destructive" });
         setEvents(storedManualEvents);
-        setIsLoading(false);
-    }
-  }, [session]);
+      } else {
+        const transactionEvents: CalendarEvent[] = (transactions || []).map(tx => ({
+          id: `tx-${tx.id}`,
+          title: tx.description,
+          start: tx.date,
+          allDay: true,
+          extendedProps: {
+            type: tx.type === 'income' ? 'recebimento' : 'pagamento',
+            description: `R$ ${tx.amount.toLocaleString('pt-BR')}`,
+            source: 'transaction',
+          },
+          backgroundColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
+          borderColor: getEventTypeConfig(tx.type === 'income' ? 'recebimento' : 'pagamento').color,
+        }));
+        setEvents([...transactionEvents, ...storedManualEvents]);
+      }
+      setIsLoading(false);
+    });
+  }, []);
 
   useEffect(() => {
     document.title = `Calendário Financeiro - ${APP_NAME}`;
