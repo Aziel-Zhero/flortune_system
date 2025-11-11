@@ -18,22 +18,19 @@ import { toast } from "@/hooks/use-toast";
 import type { Budget } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BudgetForm } from "./budget-form";
+import { useSession } from "@/contexts/auth-context";
 
 // MOCK FUNCTIONS - Substitua pelas suas chamadas de API reais
 async function getBudgets(userId: string): Promise<{ data: Budget[], error: null | Error }> {
-  console.log("Fetching mock budgets for user:", userId);
-  // Simula um atraso de rede
+  console.log("Fetching budgets for user:", userId);
+  // Em um app real, aqui viria a chamada ao Supabase
   await new Promise(resolve => setTimeout(resolve, 500));
-  const sampleBudgets: Budget[] = [
-    { id: '1', user_id: 'mock', category_id: 'cat-1', limit_amount: 1000, spent_amount: 750.50, period_start_date: '2024-07-01', period_end_date: '2024-07-31', created_at: '', updated_at: '', category: { id: 'cat-1', name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-    { id: '2', user_id: 'mock', category_id: 'cat-2', limit_amount: 500, spent_amount: 550.00, period_start_date: '2024-07-01', period_end_date: '2024-07-31', created_at: '', updated_at: '', category: { id: 'cat-2', name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-    { id: '3', user_id: 'mock', category_id: 'cat-3', limit_amount: 300, spent_amount: 150.00, period_start_date: '2024-07-01', period_end_date: '2024-07-31', created_at: '', updated_at: '', category: { id: 'cat-3', name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' } },
-  ];
-  return { data: sampleBudgets, error: null };
+  // Retornando vazio para refletir um banco de dados real
+  return { data: [], error: null };
 }
 
 async function deleteBudget(budgetId: string): Promise<{ error: null | Error }> {
-  console.log("Deleting mock budget:", budgetId);
+  console.log("Deleting budget:", budgetId);
   await new Promise(resolve => setTimeout(resolve, 300));
   return { error: null };
 }
@@ -41,27 +38,36 @@ async function deleteBudget(budgetId: string): Promise<{ error: null | Error }> 
 
 
 export default function BudgetsPage() {
+  const { data: session, status } = useSession();
   const [currentBudgets, setCurrentBudgets] = useState<Budget[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; name: string } | null }>({ isOpen: false, item: null });
   const [editDialog, setEditDialog] = useState<{ isOpen: boolean; budget: Budget | null }>({ isOpen: false, budget: null });
 
   const fetchBudgetsData = useCallback(async () => {
+    if (!session?.user?.id) {
+        setIsLoadingData(false);
+        return;
+    }
     setIsLoadingData(true);
-    // Em um app real, o ID do usuário viria da sessão (useSession)
-    const { data, error } = await getBudgets("mock-user-id");
+    const { data, error } = await getBudgets(session.user.id);
     if (error) {
       toast({ title: "Erro ao carregar orçamentos", description: error.message, variant: "destructive" });
     } else {
       setCurrentBudgets(data || []);
     }
     setIsLoadingData(false);
-  }, []);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     document.title = `Orçamentos - ${APP_NAME}`;
-    fetchBudgetsData();
-  }, [fetchBudgetsData]);
+    if (status === 'authenticated') {
+      fetchBudgetsData();
+    } else if (status === 'unauthenticated') {
+        setIsLoadingData(false);
+        setCurrentBudgets([]);
+    }
+  }, [status, fetchBudgetsData]);
 
   const handleDeleteClick = (budget: Budget) => {
     setDeleteDialog({ isOpen: true, item: { id: budget.id, name: budget.category?.name || 'desconhecido' }});

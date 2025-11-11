@@ -1,7 +1,7 @@
 // src/app/(app)/todos/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,8 +18,9 @@ import { toast } from "@/hooks/use-toast";
 import type { Todo } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useSession } from "@/contexts/auth-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,15 +39,27 @@ const todoFormSchema = z.object({
 type TodoFormData = z.infer<typeof todoFormSchema>;
 
 
-// --- MOCK DATA ---
-const sampleTodos: Todo[] = [
-    { id: '1', user_id: 'mock', description: 'Pagar fatura do cartão de crédito', is_completed: false, due_date: '2024-07-25', created_at: '2024-07-20T10:00:00Z', updated_at: '' },
-    { id: '2', user_id: 'mock', description: 'Revisar orçamento mensal', is_completed: false, due_date: '2024-07-28', created_at: '2024-07-20T11:00:00Z', updated_at: '' },
-    { id: '3', user_id: 'mock', description: 'Declarar imposto de renda', is_completed: true, due_date: '2024-04-30', created_at: '2024-04-01T09:00:00Z', updated_at: '' },
-];
-// --- END MOCK DATA ---
+// MOCK FUNCTIONS to be replaced with real API calls
+async function getTodos(userId: string): Promise<{ data: Todo[] | null, error: Error | null }> {
+    console.log("Fetching todos for", userId);
+    return new Promise(res => setTimeout(() => res({ data: [], error: null }), 500));
+}
+async function addTodo(userId: string, data: Omit<Todo, 'id'|'user_id'|'created_at'|'updated_at'>): Promise<{ data: Todo | null, error: Error | null }> {
+    const newTodo: Todo = { id: `todo_${Date.now()}`, user_id: userId, ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    return new Promise(res => setTimeout(() => res({ data: newTodo, error: null }), 300));
+}
+async function updateTodo(id: string, updates: Partial<Todo>): Promise<{ error: Error | null }> {
+    console.log(`Updating todo ${id}`, updates);
+    return new Promise(res => setTimeout(() => res({ error: null }), 200));
+}
+async function deleteTodo(id: string): Promise<{ error: Error | null }> {
+    console.log(`Deleting todo ${id}`);
+    return new Promise(res => setTimeout(() => res({ error: null }), 200));
+}
+// END MOCK FUNCTIONS
 
 export default function TodosPage() {
+  const { data: session, status } = useSession();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [itemToDelete, setItemToDelete] = useState<Todo | null>(null);
@@ -67,39 +80,58 @@ export default function TodosPage() {
     defaultValues: { description: "", due_date: null },
   });
 
+  const fetchTodos = useCallback(async () => {
+    if (!session?.user?.id) return;
+    setIsLoading(true);
+    const { data, error } = await getTodos(session.user.id);
+    if (error) {
+      toast({ title: "Erro ao buscar tarefas", description: error.message, variant: "destructive" });
+    } else {
+      const sortedTodos = (data || []).sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() );
+      setTodos(sortedTodos);
+    }
+    setIsLoading(false);
+  }, [session?.user?.id]);
+  
   useEffect(() => {
     document.title = `Lista de Tarefas - ${APP_NAME}`;
-    // Simulate fetching data
-    setTimeout(() => {
-        const sortedTodos = sampleTodos.sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() );
-        setTodos(sortedTodos);
+    if(status === 'authenticated') {
+        fetchTodos();
+    } else if (status === 'unauthenticated') {
         setIsLoading(false);
-    }, 500);
-  }, []);
+        setTodos([]);
+    }
+  }, [status, fetchTodos]);
 
   const onAddTodoSubmit: SubmitHandler<TodoFormData> = async (data) => {
+    if(!session?.user?.id) return;
     setIsSubmitting(true);
-    const newTodo: Todo = {
-      id: `todo_${Date.now()}`,
-      user_id: 'mock-user',
-      description: data.description,
-      is_completed: false,
-      due_date: data.due_date ? format(data.due_date, "yyyy-MM-dd") : undefined,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 300));
-    setTodos(prev => [newTodo, ...prev].sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
-    toast({ title: "Tarefa Adicionada (Simulação)!", description: `"${newTodo.description}" foi adicionada.` });
-    reset();
+    const { data: newTodo, error } = await addTodo(session.user.id, {
+        description: data.description,
+        due_date: data.due_date ? format(data.due_date, 'yyyy-MM-dd') : undefined,
+        is_completed: false,
+    });
+    
+    if (error) {
+        toast({ title: "Erro ao adicionar tarefa", variant: "destructive" });
+    } else if (newTodo) {
+        setTodos(prev => [newTodo, ...prev].sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
+        toast({ title: "Tarefa Adicionada!", description: `"${newTodo.description}" foi adicionada.` });
+        reset();
+    }
     setIsSubmitting(false);
   };
 
   const handleToggleComplete = async (todo: Todo) => {
+    const originalTodos = [...todos];
     const updatedTodo = { ...todo, is_completed: !todo.is_completed };
     setTodos(prev => prev.map(t => t.id === todo.id ? updatedTodo : t).sort((a,b) => Number(a.is_completed) - Number(b.is_completed) || (a.due_date && b.due_date ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime() : a.due_date ? -1 : b.due_date ? 1 : 0) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ));
+    const { error } = await updateTodo(todo.id, { is_completed: !todo.is_completed });
+    if (error) {
+        toast({ title: "Erro ao atualizar", variant: "destructive" });
+        setTodos(originalTodos);
+    }
   };
 
   const handleDeleteClick = (todo: Todo) => {
@@ -108,8 +140,13 @@ export default function TodosPage() {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    setTodos(prev => prev.filter(t => t.id !== itemToDelete.id));
-    toast({ title: "Tarefa Deletada (Simulação)", description: `"${itemToDelete.description}" foi deletada.` });
+    const { error } = await deleteTodo(itemToDelete.id);
+    if (error) {
+        toast({ title: "Erro ao deletar", variant: "destructive" });
+    } else {
+        setTodos(prev => prev.filter(t => t.id !== itemToDelete.id));
+        toast({ title: "Tarefa Deletada", description: `"${itemToDelete.description}" foi deletada.` });
+    }
     setItemToDelete(null);
   };
   
