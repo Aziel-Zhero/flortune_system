@@ -1,5 +1,5 @@
 // src/lib/auth.ts
-import type { NextAuthConfig } from 'next-auth';
+import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from "next-auth/providers/google";
 import jwt from "jsonwebtoken";
@@ -19,8 +19,7 @@ if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseJwtSecret || !nextAuthSe
   console.error("⚠️ FATAL: Missing crucial Supabase or NextAuth environment variables.");
 }
 
-// --- Provider Configuration ---
-const providers: NextAuthConfig['providers'] = [
+const providers: NextAuthOptions['providers'] = [
   CredentialsProvider({
     name: 'Credentials',
     credentials: {
@@ -50,41 +49,37 @@ if (googleClientId && googleClientSecret) {
     GoogleProvider({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
-      allowDangerousEmailAccountLinking: true, 
     })
   );
 }
 
-// --- Main NextAuth Configuration ---
-export const authConfig: NextAuthConfig = {
+export const authOptions: NextAuthOptions = {
   providers,
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) token.sub = user.id;
-
+    async jwt({ token, user, account, profile }) {
       if (account && user) {
         if (!supabaseUrl || !supabaseServiceRoleKey) throw new Error("Supabase credentials missing for JWT callback");
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-        const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
+        const { data: dbProfile } = await supabaseAdmin.from('profiles').select('*').eq('email', user.email).single();
 
         if (dbProfile) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { hashed_password, ...safeProfile } = dbProfile;
           token.profile = safeProfile;
+          token.sub = safeProfile.id; // Ensure subject is the UUID from our profiles table
         } else if (account.provider === 'google' && user.email) {
-          // If profile doesn't exist (e.g., first-time Google login), create it.
           const { data: newProfile, error } = await supabaseAdmin
             .from('profiles')
             .insert({
-              id: user.id,
+              id: user.id, // Use the ID from the provider for the first time
               email: user.email,
               display_name: user.name,
               full_name: user.name,
               avatar_url: user.image,
-              account_type: 'pessoa', // Always default to 'pessoa'
-              plan_id: 'tier-cultivador', // Always default to free plan
+              account_type: 'pessoa',
+              plan_id: 'tier-cultivador',
               has_seen_welcome_message: false,
             })
             .select()
@@ -94,12 +89,8 @@ export const authConfig: NextAuthConfig = {
             console.error("Error creating profile for Google user:", error);
           } else if (newProfile) {
             token.profile = newProfile;
+            token.sub = newProfile.id;
           }
-        } else if (user.profile) {
-            // For credentials provider, the profile is passed directly from authorize
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { hashed_password, ...safeProfile } = user.profile;
-            token.profile = safeProfile;
         }
       }
       return token;
@@ -113,7 +104,7 @@ export const authConfig: NextAuthConfig = {
         session.user.image = session.user.profile.avatar_url || session.user.image;
         session.user.email = session.user.profile.email || session.user.email;
       }
-
+      
       if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
@@ -129,6 +120,38 @@ export const authConfig: NextAuthConfig = {
         }
       }
       return session;
+    },
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+          if (!supabaseUrl || !supabaseServiceRoleKey) {
+            console.error("Supabase config missing for Google sign-in check");
+            return false;
+          }
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+          const { data: dbProfile, error } = await supabaseAdmin.from('profiles').select('id').eq('email', user.email).single();
+
+          if (error && error.code !== 'PGRST116') { // 'PGRST116' is "No rows found"
+              console.error("Error checking profile on Google sign-in:", error);
+              return false;
+          }
+          if (!dbProfile) {
+              const { error: creationError } = await supabaseAdmin.from('profiles').insert({
+                  id: user.id,
+                  email: user.email,
+                  display_name: user.name,
+                  full_name: user.name,
+                  avatar_url: user.image,
+                  account_type: 'pessoa',
+                  plan_id: 'tier-cultivador',
+                  has_seen_welcome_message: false
+              });
+              if(creationError) {
+                  console.error("Error auto-creating profile for Google user:", creationError);
+                  return false;
+              }
+          }
+      }
+      return true;
     },
   },
   pages: {
