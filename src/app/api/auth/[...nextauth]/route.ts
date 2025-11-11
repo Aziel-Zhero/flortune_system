@@ -10,6 +10,7 @@ import type { Profile as AppProfile } from '@/types/database.types';
 
 export const runtime = 'nodejs';
 
+// --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
@@ -21,6 +22,7 @@ if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseJwtSecret || !nextAuthSe
   console.error("⚠️ FATAL: Missing crucial Supabase or NextAuth environment variables.");
 }
 
+// --- Provider Configuration ---
 const providers: NextAuthConfig['providers'] = [
   CredentialsProvider({
     name: 'Credentials',
@@ -56,6 +58,7 @@ if (googleClientId && googleClientSecret) {
   );
 }
 
+// --- Main NextAuth Configuration ---
 export const authConfig: NextAuthConfig = {
   providers,
   session: { strategy: 'jwt' },
