@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import type { Category, Budget } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { getCategories, addCategory } from "@/services/category.service";
+import { useSession } from "@/contexts/auth-context";
 
 
 const budgetFormSchema = z.object({
@@ -49,6 +50,7 @@ interface BudgetFormProps {
 }
 
 export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
+  const { data: session } = useSession();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,9 +82,9 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   });
   
   const fetchCategories = useCallback(async () => {
-    const mockUserId = "mock-user-id"; // Placeholder
+    if (!session?.user?.id) return;
     setIsLoadingCategories(true);
-    const { data, error } = await getCategories(mockUserId);
+    const { data, error } = await getCategories(session.user.id);
     if (error) {
       toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
     } else {
@@ -90,7 +92,7 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
       setCategories(expenseCategories);
     }
     setIsLoadingCategories(false);
-  }, []);
+  }, [session?.user?.id]);
   
   useEffect(() => {
       fetchCategories();
@@ -107,7 +109,8 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   };
 
   const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
-    const { data: newCategory, error } = await addCategory({ name: data.name, type: 'expense' });
+    if (!session?.user?.id) return;
+    const { data: newCategory, error } = await addCategory({ name: data.name, type: 'expense' }, session.user.id);
 
     if (error) {
         toast({ title: "Erro ao criar categoria", description: error.message, variant: "destructive" });

@@ -121,7 +121,7 @@ export function SignupForm() {
           
           <div className="flex items-center space-x-2">
             <Controller name="terms" control={control} render={({ field }) => (<Checkbox id="terms" checked={field.value} onCheckedChange={field.onChange} />)} />
-            <div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Eu aceito os{" "}<Link href="/terms" className="underline text-primary" target="_blank">Termos de Serviço</Link> e a{" "}<Link href="/policy" className="underline text-primary" target="_blank">Política de Privacidade</Link>.</label>{errors.terms && <p className="text-sm text-destructive">{errors.terms.message}</p>}</div>
+            <div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Eu aceito os{" "}<Link href="/terms" className="underline text-primary" target="_blank">Termos de Serviço</Link> e a{" "}<Link href="/policy" className="underline text-primary" target="_blank">Política de Privacidade</Link>.</label>{errors.terms && <p className="text-sm text-destructive mt-1">{errors.terms.message}</p>}</div>
           </div>
 
           <Button type="submit" className="w-full" disabled={isPending}>
