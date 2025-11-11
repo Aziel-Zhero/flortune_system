@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { signIn } from "@/contexts/auth-context";
+import { signIn } from "next-auth/react";
 import { OAuthButton } from "./oauth-button";
 
 export function LoginForm() {
