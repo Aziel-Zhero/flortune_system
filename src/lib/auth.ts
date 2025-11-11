@@ -33,12 +33,8 @@ const providers: NextAuthOptions['providers'] = [
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
       const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('email', credentials.email).single();
       
-      // A coluna 'hashed_password' não existe mais; a verificação é feita pelo Supabase Auth
-      if (!profile) {
-        return null;
-      }
+      if (!profile) return null;
       
-      // Em vez de comparar a senha aqui, delegamos ao Supabase Auth
       const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password
@@ -49,14 +45,14 @@ const providers: NextAuthOptions['providers'] = [
         return null; // As credenciais são inválidas
       }
 
-      // Se o login for bem-sucedido, retorne os dados do perfil
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      return {
-        id: profile.id,
-        email: profile.email,
-        name: profile.display_name || profile.full_name,
-        image: profile.avatar_url,
-        profile: profile 
+      const { ...userProfile } = profile;
+      return { 
+        id: userProfile.id, 
+        email: userProfile.email, 
+        name: userProfile.display_name, 
+        image: userProfile.avatar_url, 
+        profile: userProfile 
       };
     },
   }),
@@ -76,10 +72,9 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, account }) {
-      // O 'user' aqui vem do 'authorize' ou do provedor OAuth
       if (account && user) {
         token.accessToken = account.access_token;
-        token.sub = user.id; // sub é o ID do usuário para o token
+        token.sub = user.id;
         if ('profile' in user) {
           token.profile = user.profile;
         }
