@@ -43,11 +43,10 @@ const providers: NextAuthOptions['providers'] = [
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { hashed_password, ...userProfile } = profile;
         return {
-          id: userProfile.id, // Adicionando o ID aqui, que é crucial
+          id: userProfile.id,
           email: userProfile.email,
-          name: userProfile.display_name,
+          name: userProfile.display_name || userProfile.full_name,
           image: userProfile.avatar_url,
-          // Passando o perfil completo para o callback JWT
           profile: userProfile 
         };
       }
