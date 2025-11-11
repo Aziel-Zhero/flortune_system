@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { getTransactions, deleteTransaction } from "@/services/transaction.service";
 import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings } from "@/contexts/app-settings-context";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';

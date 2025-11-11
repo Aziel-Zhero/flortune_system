@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { useSession } from "@/contexts/auth-context";
 import { getFinancialGoals, deleteFinancialGoal } from "@/services/goal.service";
 import type { FinancialGoal } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,16 +44,24 @@ const getLucideIcon = (iconName?: string | null): React.ElementType => {
 };
 
 export default function GoalsPage() {
+  const { data: session, status: authStatus } = useSession();
+  const authLoading = authStatus === "loading";
+  const user = session?.user;
+
   const [currentGoals, setCurrentGoals] = useState<FinancialGoal[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; name: string } | null }>({ isOpen: false, item: null });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchGoalsData = useCallback(async () => {
-    const mockUserId = "mock-user-id";
+    if (!user?.id) {
+        setIsLoadingData(false);
+        setCurrentGoals([]);
+        return;
+    }
     setIsLoadingData(true);
     try {
-      const { data, error } = await getFinancialGoals(mockUserId);
+      const { data, error } = await getFinancialGoals(user.id);
       if (error) {
         toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
         setCurrentGoals([]);
@@ -65,24 +74,28 @@ export default function GoalsPage() {
     } finally {
       setIsLoadingData(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
-    fetchGoalsData();
-  }, [fetchGoalsData]);
+    if (user?.id && authStatus === "authenticated") {
+      fetchGoalsData();
+    } else if (authStatus === "unauthenticated") {
+      setIsLoadingData(false);
+      setCurrentGoals([]);
+    }
+  }, [user?.id, authStatus, fetchGoalsData]);
 
   const handleDeleteClick = (goalId: string, goalName: string) => {
     setDeleteDialog({ isOpen: true, item: { id: goalId, name: goalName } });
   };
 
   const handleConfirmDelete = async () => {
-    const mockUserId = "mock-user-id";
-    if (deleteDialog.item) {
+    if (deleteDialog.item && user?.id) {
       const originalGoals = [...currentGoals];
       setCurrentGoals(prevGoals => prevGoals.filter(g => g.id !== deleteDialog.item!.id));
       
-      const { error } = await deleteFinancialGoal(deleteDialog.item.id, mockUserId);
+      const { error } = await deleteFinancialGoal(deleteDialog.item.id, user.id);
       if (error) {
         toast({
           title: "Erro ao Deletar",
@@ -125,16 +138,15 @@ export default function GoalsPage() {
     }),
   };
   
-  if (isLoadingData) {
+  if (authLoading || (isLoadingData && !!user)) {
     return (
-      <div className="flex flex-col h-full">
+      <div>
         <PageHeader
           title="Metas Financeiras"
           description="Defina, acompanhe e alcance suas aspirações financeiras."
           icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={<Skeleton className="h-10 w-44 rounded-md" />}
         />
-        <div className="flex-1 overflow-y-auto">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array(3).fill(0).map((_, index) => (
             <Card key={index} className="shadow-sm h-full">
@@ -167,29 +179,27 @@ export default function GoalsPage() {
             </Button>
           </Card>
         </div>
-        </div>
       </div>
     );
   }
 
   return (
     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-      <div className="flex flex-col h-full">
+      <div>
         <PageHeader
           title="Metas Financeiras"
           description="Defina, acompanhe e alcance suas aspirações financeiras."
           icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={
             <DialogTrigger asChild>
-              <Button> 
+              <Button disabled={authLoading || !user}> 
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Definir Nova Meta
               </Button>
             </DialogTrigger>
           }
         />
-        <div className="flex-1 overflow-y-auto">
-        {currentGoals.length === 0 && !isLoadingData && (
+        {currentGoals.length === 0 && !isLoadingData && !authLoading && (
           <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
               <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-xl font-semibold font-headline mb-2">Nenhuma Meta Definida Ainda</h3>
@@ -197,7 +207,7 @@ export default function GoalsPage() {
                 Metas financeiras são o mapa para seus sonhos. Comece definindo sua primeira meta e veja seu progresso florescer!
               </p>
               <DialogTrigger asChild>
-                  <Button size="lg">
+                  <Button size="lg" disabled={authLoading || !user}>
                     <PlusCircle className="mr-2 h-5 w-5" />
                     Definir Minha Primeira Meta
                   </Button>
@@ -282,11 +292,11 @@ export default function GoalsPage() {
               </motion.div>
             );
           })}
-           {currentGoals.length > 0 && !isLoadingData && (
+           {currentGoals.length > 0 && !isLoadingData && !authLoading && (
               <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
                   <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
                      <DialogTrigger asChild>
-                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none"> 
+                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none" disabled={authLoading || !user}> 
                           <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
                           <p className="font-semibold">Definir Nova Meta Financeira</p>
                        </button>
@@ -295,7 +305,7 @@ export default function GoalsPage() {
               </motion.div>
            )}
         </div>
-        </div>
+
         <AlertDialog open={deleteDialog.isOpen} onOpenChange={(isOpen) => setDeleteDialog(prev => ({...prev, isOpen}))}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -321,7 +331,15 @@ export default function GoalsPage() {
             Defina um novo objetivo para suas finanças e acompanhe seu progresso.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />}
+        {isCreateModalOpen && session?.user && authStatus === "authenticated" && (
+          <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />
+        )}
+        {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
+            <div className="py-8 text-center">
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
+                <p className="text-muted-foreground">Carregando formulário...</p>
+            </div>
+        )}
       </DialogContent>
     </Dialog>
   );

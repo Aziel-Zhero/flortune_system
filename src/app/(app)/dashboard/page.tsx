@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTransactions } from "@/services/transaction.service";
 import { getFinancialGoals } from "@/services/goal.service";

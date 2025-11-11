@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "../ui/button";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;

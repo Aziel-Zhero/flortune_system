@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
 import { getCategories } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
