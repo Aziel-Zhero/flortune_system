@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seu Link de Acesso - Flortune</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Inter:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f1f8f7; color: #1a4d45; }
+    .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 5px solid #20a381; }
+    .header { background-color: #20a381; padding: 30px; text-align: center; }
+    .header h1 { color: #ffffff; font-family: 'Poppins', sans-serif; margin: 0; font-size: 28px; }
+    .content { padding: 30px 40px; }
+    .content h2 { font-family: 'Poppins', sans-serif; font-size: 22px; color: #1a4d45; margin-top: 0; }
+    .content p { line-height: 1.6; margin: 15px 0; font-size: 16px; }
+    .button-container { text-align: center; margin: 30px 0; }
+    .button { background-color: #f5b947; color: #111827; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-weight: 500; font-size: 16px; display: inline-block; }
+    .footer { background-color: #e6f2f0; padding: 20px 40px; text-align: center; font-size: 12px; color: #527a74; }
+    .footer a { color: #20a381; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Flortune</h1>
+    </div>
+    <div class="content">
+      <h2>Seu Link de Acesso Mágico</h2>
+      <p>Olá,</p>
+      <p>Clique no botão abaixo para entrar na sua conta Flortune de forma segura. Este link é de uso único e expira em breve.</p>
+      <div class="button-container">
+        <a href="{{ .ConfirmationURL }}" class="button">Entrar no Flortune</a>
+      </div>
+      <p>Se você não solicitou este link, por favor, ignore este e-mail.</p>
+      <p>Atenciosamente,<br>Equipe Flortune</p>
+    </div>
+    <div class="footer">
+      <p>&copy; {{ .Year }} Flortune. Todos os direitos reservados.</p>
+      <p>Se o botão não funcionar, copie e cole este link no seu navegador:<br><a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a></p>
+    </div>
+  </div>
+</body>
+</html>
