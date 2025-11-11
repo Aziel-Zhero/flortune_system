@@ -1,4 +1,4 @@
-
+// src/app/login/page.tsx
 import { Suspense } from 'react';
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { LoginForm } from "@/components/auth/login-form";

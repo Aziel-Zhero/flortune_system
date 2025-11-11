@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTransactions } from "@/services/transaction.service";
 import { getFinancialGoals } from "@/services/goal.service";
@@ -67,10 +68,15 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const authIsLoading = status === "loading";
+  const user = session?.user;
+  const profile = user?.profile;
+
   const { quotes, isLoadingQuotes } = useAppSettings();
+
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
@@ -82,26 +88,35 @@ export default function DashboardPage() {
   ]);
 
   useEffect(() => {
-    const welcomeSeen = localStorage.getItem('flortune-welcome-seen');
-    if (!welcomeSeen) {
+    // A lógica para verificar se a mensagem de boas-vindas já foi vista agora deve vir do banco
+    if (profile && profile.has_seen_welcome_message === false) {
       setIsWelcomeOpen(true);
     }
-  }, []);
+  }, [profile]);
 
-  const handleDismissWelcome = () => {
-    localStorage.setItem('flortune-welcome-seen', 'true');
+  const handleDismissWelcome = async () => {
+    if (!user?.id) return;
+    // Em uma app real, isso faria uma chamada para atualizar o banco de dados
+    // supabase.from('profiles').update({ has_seen_welcome_message: true }).eq('id', user.id);
+    toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
     setIsWelcomeOpen(false);
   }
 
   const fetchDashboardData = useCallback(async () => {
-    const mockUserId = "mock-user-id";
+    if (!user?.id) {
+        setTransactionsLoading(false);
+        setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false, value: s.title.includes("Saldo") ? 0 : null })));
+        setAllTransactions([]);
+        return;
+    }
+
     setTransactionsLoading(true);
     setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: true })));
 
     try {
       const [transactionsRes, goalsRes] = await Promise.all([
-        getTransactions(mockUserId),
-        getFinancialGoals(mockUserId)
+        getTransactions(user.id),
+        getFinancialGoals(user.id)
       ]);
       
       if (transactionsRes.error) {
@@ -166,14 +181,19 @@ export default function DashboardPage() {
       toast({ title: "Erro de Dados", description: "Não foi possível carregar todos os dados do painel.", variant: "destructive" });
     } finally {
       setTransactionsLoading(false);
-      setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     document.title = `Painel - ${APP_NAME}`;
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    if (user?.id && !authIsLoading) {
+      fetchDashboardData();
+    } else if (!authIsLoading && !user?.id) {
+      setAllTransactions([]);
+      setSummaryValues(prev => prev.map(s => ({ ...s, value: null, isLoading: false })));
+      setTransactionsLoading(false);
+    }
+  }, [user, authIsLoading, fetchDashboardData]);
 
   const recentTransactions = useMemo(() => {
     if (!Array.isArray(allTransactions)) return [];
@@ -207,7 +227,7 @@ export default function DashboardPage() {
   }, [allTransactions, transactionsLoading]);
 
 
-  const welcomeName = "Usuário"; // Placeholder
+  const welcomeName = profile?.display_name || profile?.full_name?.split(" ")[0] || session?.user?.name?.split(" ")[0] || "Usuário";
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -218,7 +238,7 @@ export default function DashboardPage() {
     }),
   };
   
-  if (isLoading) {
+  if (authIsLoading) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
@@ -271,6 +291,10 @@ export default function DashboardPage() {
         </div>
       </div>
     );
+  }
+  
+  if (!session) { 
+    return null; // O layout já está tratando o redirecionamento
   }
 
   return (

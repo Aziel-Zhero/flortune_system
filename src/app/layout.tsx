@@ -1,6 +1,7 @@
-
+// src/app/layout.tsx
 import type { Metadata } from 'next';
 import { AppSettingsProvider } from '@/contexts/app-settings-context';
+import { SessionProvider } from 'next-auth/react';
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css'; 
 
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Flortune - Seu Jardineiro Financeiro',
   description: 'Cultive suas finanças com o Flortune. Acompanhe, analise e faça seu patrimônio crescer com insights inteligentes e ferramentas intuitivas.',
   icons: {
-    icon: '/icon.svg', 
+    icon: '/Logo.png', 
   }
 };
 
@@ -26,10 +27,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
+        <SessionProvider>
           <AppSettingsProvider>
             {children}
             <Toaster />
           </AppSettingsProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,34 +22,29 @@ import { QuoteSettingsDialog } from "@/components/settings/quote-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 
-const mockUser = {
-  displayName: "Usuário",
-  userEmail: "usuario@exemplo.com",
-  fallbackInitial: "U",
-  avatarUrl: `https://placehold.co/100x100.png?text=U`,
-};
-const mockAdmin = {
-  displayName: "Admin",
-  userEmail: "admin@flortune.com",
-  fallbackInitial: "A",
-  avatarUrl: `https://placehold.co/100x100/fca5a5/1e293b?text=A`,
-};
-
-
 interface UserNavProps {
   isAdmin?: boolean;
 }
 
 export function UserNav({ isAdmin = false }: UserNavProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const profile = user?.profile;
+  
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   
-  const user = isAdmin ? mockAdmin : mockUser;
+  const displayName = profile?.display_name || user?.name || "Usuário";
+  const userEmail = profile?.email || user?.email || "";
+  const avatarUrl = profile?.avatar_url || user?.image;
+  const fallbackInitial = displayName?.charAt(0).toUpperCase() || 'U';
 
-  const handleLogout = () => {
-    toast({ title: "Logout simulado", description: "Você será redirecionado para a página de login."});
+
+  const handleLogout = async () => {
+    toast({ title: "Saindo...", description: "Você está sendo desconectado."});
     const logoutUrl = isAdmin ? '/login-admin' : '/login';
+    await signOut({ redirect: false });
     router.push(logoutUrl);
   };
   
@@ -61,17 +57,17 @@ export function UserNav({ isAdmin = false }: UserNavProps) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={user.avatarUrl} alt={user.displayName} data-ai-hint="user avatar" />
-              <AvatarFallback>{user.fallbackInitial}</AvatarFallback>
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar" />}
+              <AvatarFallback>{fallbackInitial}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none font-headline">{user.displayName}</p>
+              <p className="text-sm font-medium leading-none font-headline">{displayName}</p>
               <p className="text-xs leading-none text-muted-foreground">
-                {user.userEmail}
+                {userEmail}
               </p>
             </div>
           </DropdownMenuLabel>

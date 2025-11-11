@@ -1,7 +1,7 @@
 // src/app/(app)/goals/goal-form.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,12 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Trophy, Briefcase, Car, Plane, Home, ShoppingBag, Gift, Heart, Save, AlertTriangle, Loader2 } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, BookOpen, Laptop, Heart, Save, AlertTriangle, Loader2 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
 import { addFinancialGoal, type NewFinancialGoalData } from "@/services/goal.service";
 import { DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,23 +39,23 @@ const goalFormSchema = z.object({
 type GoalFormData = z.infer<typeof goalFormSchema>;
 
 const availableIcons = [
-  { name: "Nenhum", value: NO_ICON_VALUE, icon: Trophy },
+  { name: "Nenhum", value: NO_ICON_VALUE, icon: Tag },
   { name: "Viagem", value: "Plane", icon: Plane },
   { name: "Casa", value: "Home", icon: Home },
   { name: "Carro", value: "Car", icon: Car },
-  { name: "Educação", value: "BookOpen", icon: LucideIcons.BookOpen },
-  { name: "Eletrônicos", value: "Laptop", icon: LucideIcons.Laptop },
+  { name: "Educação", value: "BookOpen", icon: BookOpen },
+  { name: "Eletrônicos", value: "Laptop", icon: Laptop },
   { name: "Compras", value: "ShoppingBag", icon: ShoppingBag },
   { name: "Presente", value: "Gift", icon: Gift },
   { name: "Saúde", value: "Heart", icon: Heart },
   { name: "Negócios", value: "Briefcase", icon: Briefcase },
-  { name: "Conquista", value: "Trophy", icon: Trophy },
+  { name: "Troféu", value: "Trophy", icon: Trophy },
 ];
 
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
-  if (!iconName || iconName === NO_ICON_VALUE) return Trophy;
+  if (!iconName || iconName === NO_ICON_VALUE) return Tag;
   const IconComponent = (LucideIcons as any)[iconName];
-  return IconComponent || Trophy;
+  return IconComponent || Tag;
 };
 
 interface FinancialGoalFormProps {
@@ -65,21 +66,23 @@ interface FinancialGoalFormProps {
 
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
+  const { data: session, status: authStatus } = useSession();
+  const user = session?.user;
+  const isAuthLoading = authStatus === "loading";
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<GoalFormData>({
     resolver: zodResolver(goalFormSchema),
     defaultValues: initialData || { name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" },
   });
 
-  useEffect(() => {
-    // Simulate loading session data
-    setTimeout(() => setIsLoading(false), 300);
-  }, []);
-
   const onSubmit: SubmitHandler<GoalFormData> = async (data) => {
-    const mockUserId = "mock-user-id";
+    if (!user?.id) {
+      toast({ title: "Erro de Autenticação", description: "Usuário não encontrado. Por favor, faça login novamente.", variant: "destructive" });
+      setIsSubmitting(false); 
+      return;
+    }
     setIsSubmitting(true);
     const newGoalData: NewFinancialGoalData = {
       name: data.name, 
@@ -89,7 +92,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
       notes: data.notes,
     };
     try {
-      const result = await addFinancialGoal(mockUserId, newGoalData);
+      const result = await addFinancialGoal(user.id, newGoalData);
       if (result.error) throw result.error;
       toast({ title: "Meta Criada!", description: `Sua meta "${data.name}" foi criada com sucesso.`, action: <CheckCircle className="text-green-500" />, });
       reset({ name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" }); 
@@ -102,11 +105,24 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     }
   };
 
-  if (isLoading) { 
+  if (isAuthLoading && !user) { 
     return (
       <div className="space-y-4 py-4 flex flex-col items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Carregando formulário...</p>
+        <p className="text-muted-foreground">Carregando dados da sessão...</p>
+      </div>
+    );
+  }
+
+  if (!user && !isAuthLoading) { 
+    return (
+      <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
+        <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground mb-4"/>
+        <p className="text-muted-foreground font-semibold">Você precisa estar logado para criar uma meta.</p>
+        <p className="text-sm text-muted-foreground">Por favor, faça login e tente novamente.</p>
+         <DialogFooter className="pt-4">
+            {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting || isAuthLoading || !user}>Cancelar</Button></DialogClose>}
+          </DialogFooter>
       </div>
     );
   }
@@ -115,7 +131,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
       <div className="space-y-2">
         <Label htmlFor="goal-form-name">Nome da Meta</Label>
-        <Input id="goal-form-name" placeholder="Ex: Viagem de Férias, Reserva de Emergência" {...register("name")} disabled={isSubmitting} />
+        <Input id="goal-form-name" placeholder="Ex: Viagem de Férias, Reserva de Emergência" {...register("name")} disabled={isSubmitting || isAuthLoading} />
         {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
       </div>
 
@@ -123,7 +139,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
         <Label htmlFor="goal-form-target_amount">Valor Alvo (R$)</Label>
         <div className="relative">
           <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input id="goal-form-target_amount" type="number" step="0.01" placeholder="Ex: 5000,00" {...register("target_amount")} className="pl-10" disabled={isSubmitting} />
+          <Input id="goal-form-target_amount" type="number" step="0.01" placeholder="Ex: 5000,00" {...register("target_amount")} className="pl-10" disabled={isSubmitting || isAuthLoading} />
         </div>
         {errors.target_amount && <p className="text-sm text-destructive mt-1">{errors.target_amount.message}</p>}
       </div>
@@ -134,7 +150,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
           <Controller name="deadline_date" control={control} render={({ field }) => (
             <Popover>
               <PopoverTrigger asChild>
-                <Button id="goal-form-deadline_date-trigger" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting}>
+                <Button id="goal-form-deadline_date-trigger" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting || isAuthLoading}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                 </Button>
@@ -152,7 +168,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
               <Select
                 onValueChange={field.onChange}
                 value={field.value ?? NO_ICON_VALUE}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isAuthLoading}
               >
                 <SelectTrigger id="goal-form-icon">
                   <SelectValue>
@@ -181,13 +197,13 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
 
       <div className="space-y-2">
         <Label htmlFor="goal-form-notes">Notas Adicionais (Opcional)</Label>
-        <Textarea id="goal-form-notes" placeholder="Detalhes sobre a meta, estratégias de economia, etc." {...register("notes")} rows={3} disabled={isSubmitting} />
+        <Textarea id="goal-form-notes" placeholder="Detalhes sobre a meta, estratégias de economia, etc." {...register("notes")} rows={3} disabled={isSubmitting || isAuthLoading} />
         {errors.notes && <p className="text-sm text-destructive mt-1">{errors.notes.message}</p>}
       </div>
 
       <DialogFooter className="pt-4">
-        {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>}
-        <Button type="submit" disabled={isSubmitting}>
+        {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting || isAuthLoading || !user}>Cancelar</Button></DialogClose>}
+        <Button type="submit" disabled={isSubmitting || isAuthLoading || !user}>
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isSubmitting ? "Salvando..." : "Salvar Meta"}
         </Button>

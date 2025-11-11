@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings } from "@/contexts/app-settings-context";
+import { useSession } from "next-auth/react";
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -139,6 +140,7 @@ const ReviewCard: FC<(typeof mockReviews)[0]> = ({ quote, author, role, avatar, 
 
 
 export default function LandingPage() {
+  const { data: session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
   const getCampaignProps = () => {
@@ -240,8 +242,8 @@ export default function LandingPage() {
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>
             <nav className="flex items-center gap-2">
-              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }), "text-foreground hover:bg-foreground/10 hover:text-foreground")}>Login</Link>
-              <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Conta Grátis</Link>
+              <Link href={session ? "/dashboard" : "/login"} className={cn(buttonVariants({ variant: 'ghost' }), "text-foreground hover:bg-foreground/10 hover:text-foreground")}>{session ? "Acessar Painel" : "Login"}</Link>
+              {!session && <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Criar Conta Grátis</Link>}
             </nav>
           </div>
         </header>
@@ -301,7 +303,13 @@ export default function LandingPage() {
                           {tier.features.map((feature) => (<li key={feature} className="flex gap-x-3 items-start"><Check className={cn("h-5 w-5 flex-none mt-0.5", tier.featured ? "text-primary" : "text-green-500")} aria-hidden="true" /><span>{feature}</span></li>))}
                         </ul>
                       </CardContent>
-                      <CardFooter><Button asChild size="lg" className={cn("w-full", tier.featured ? buttonVariants({variant: "default"}) : buttonVariants({variant: "outline"}))}><Link href={tier.href}>{tier.priceMonthly === 'Grátis' ? 'Começar Agora' : tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}</Link></Button></CardFooter>
+                      <CardFooter>
+                        <Button asChild size="lg" className={cn("w-full", !tier.featured && "bg-accent hover:bg-accent/90 text-accent-foreground", tier.featured && buttonVariants({variant: "default"}))}>
+                          <Link href={session ? (tier.stripePriceId ? `/billing?plan=${tier.id}` : '/plans') : tier.href}>
+                            {session ? (tier.stripePriceId ? 'Fazer Upgrade' : 'Plano Atual') : (tier.priceMonthly === 'Grátis' ? 'Começar Agora' : (tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'))}
+                          </Link>
+                        </Button>
+                      </CardFooter>
                     </Card>
                   );
                 })}

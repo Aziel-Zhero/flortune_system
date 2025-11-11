@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "../ui/button";
+import { useSession } from "next-auth/react";
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;
@@ -31,15 +32,6 @@ const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   return IconComponent || LucideIcons.HelpCircle;
 };
 
-// Mock user data since authentication is disabled
-const mockUser = {
-    displayName: "Usuário",
-    avatarUrl: `https://placehold.co/40x40.png?text=U`,
-    avatarFallback: "U",
-}
-
-// Simulação de quais seções têm conteúdo compartilhado
-const sharedSections: string[] = ['budgets', 'transactions', 'todos'];
 
 function WeatherDisplay() {
     const { weatherData, isLoadingWeather, weatherCity, setWeatherCity } = useAppSettings();
@@ -91,13 +83,36 @@ function WeatherDisplay() {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const profile = user?.profile;
   const { isMobile, setOpenMobile } = useSidebar();
+
+  const displayName = profile?.display_name || user?.name || "Usuário";
+  const avatarUrl = profile?.avatar_url || user?.image;
+  const avatarFallback = displayName?.charAt(0).toUpperCase() || "U";
   
   const closeMobileSidebar = () => {
     if (isMobile) {
       setOpenMobile(false);
     }
   };
+
+  const userPlan = profile?.plan_id || 'tier-cultivador';
+
+  const filteredNavLinks = NAV_LINKS_CONFIG.filter(item => {
+    if (item.type !== 'link') return true; // Always show separators and titles
+    const isDevRoute = item.href.startsWith('/dev');
+    const isCorpRoute = item.href.startsWith('/corporate');
+    
+    if (isDevRoute && userPlan !== 'tier-dev' && userPlan !== 'tier-corporativo') {
+      return false;
+    }
+    if (isCorpRoute && userPlan !== 'tier-corporativo') {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <Sidebar 
@@ -107,7 +122,7 @@ export function AppSidebar() {
     >
         <SidebarHeader className="p-4 flex items-center justify-between group-data-[collapsible=icon]:justify-center">
             <div className="flex items-center gap-2 flex-grow">
-                <Link 
+                 <Link 
                   href="/dashboard" 
                   className={cn(
                     "flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity",
@@ -123,12 +138,12 @@ export function AppSidebar() {
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
           <Link href="/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
             <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
-                <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar"/>
-                <AvatarFallback>{mockUser.avatarFallback}</AvatarFallback>
+                {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar"/>}
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{mockUser.displayName}</span>
-                <span className="text-xs text-muted-foreground">Conta Local</span>
+                <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{displayName}</span>
+                <span className="text-xs text-muted-foreground">{profile?.email || user?.email}</span>
             </div>
           </Link>
         </div>
@@ -147,7 +162,7 @@ export function AppSidebar() {
 
         <SidebarContent className="p-2">
           <SidebarMenu>
-            {NAV_LINKS_CONFIG.map((item, index) => {
+            {filteredNavLinks.map((item, index) => {
                   if (item.type === "separator") {
                     return <Separator key={`sep-${index}`} className="my-2 mx-2 group-data-[collapsible=icon]:hidden" />;
                   }
@@ -163,8 +178,6 @@ export function AppSidebar() {
                   }
                   const IconComponent = getIcon(item.icon);
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-                  const sectionKey = item.href.split('/').pop();
-                  const isShared = sectionKey && sharedSections.includes(sectionKey);
 
                   return (
                     <SidebarMenuItem key={item.href}>
@@ -178,14 +191,6 @@ export function AppSidebar() {
                         <Link href={item.href}>
                           <IconComponent />
                           <span>{item.label}</span>
-                           {isShared && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                 <LucideIcons.Share2 className="ml-auto h-3 w-3 text-amber-500 animate-pulse" />
-                              </TooltipTrigger>
-                              <TooltipContent side="right"><p>Contém itens compartilhados</p></TooltipContent>
-                            </Tooltip>
-                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
