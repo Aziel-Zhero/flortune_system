@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Smartphone, FileText, Fingerprint, Save } from "lucide-react";
+import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare } from "lucide-react";
 import { useSession } from "@/contexts/auth-context";
 import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
@@ -60,30 +60,27 @@ export default function ProfilePage() {
     }
     setIsSavingProfile(true);
     try {
-      // Em um app real, isso seria uma chamada para uma server action
-      // que atualiza o banco de dados.
-      console.log("Simulating profile save for user:", userFromSession.id);
+      // In a real app, this would be a server action call to Supabase
+      console.log("Simulating profile save...");
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const updatedProfile = {
-          ...profileFromSession,
-          full_name: fullName,
-          display_name: displayName,
-          phone,
-          cpf_cnpj: cpfCnpj,
-          rg,
+      const updatedProfile: Partial<Profile> = {
+        full_name: fullName,
+        display_name: displayName,
+        phone,
+        cpf_cnpj: cpfCnpj,
+        rg,
       };
-      
+
       await updateSession({
         ...session, 
         user: { 
           ...session?.user,
           name: displayName || fullName, 
-          profile: updatedProfile, 
+          profile: { ...profileFromSession, ...updatedProfile }, 
         }
       });
-      
-      toast({ title: "Perfil Atualizado (Simulação)", description: "Suas informações de perfil foram salvas." });
+      toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso (simulação).", action: <CheckSquare className="text-green-500"/> });
 
     } catch (error: any) {
       console.error("Error saving profile:", error);
@@ -130,11 +127,11 @@ export default function ProfilePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="fullName">Nome Completo / Razão Social</Label>
+                <Label htmlFor="fullName">Nome Completo</Label>
                 <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="displayName">Nome de Exibição / Fantasia</Label>
+                <Label htmlFor="displayName">Nome de Exibição</Label>
                 <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               </div>
             </div>
@@ -170,15 +167,13 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-            {profileFromSession?.account_type === 'empresa' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+             {profileFromSession?.account_type === 'empresa' && (
+              <div>
                   <Label htmlFor="cpfCnpj">CNPJ</Label>
                   <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
-                </div>
               </div>
             )}
           </CardContent>

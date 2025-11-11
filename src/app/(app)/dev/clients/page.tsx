@@ -1,7 +1,7 @@
 // src/app/(app)/dev/clients/page.tsx
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, type FC } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,8 +22,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
-  DialogTrigger
+  DialogClose
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -41,7 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileSpreadsheet, AlertTriangle, Calculator, Loader2, CalendarIcon } from "lucide-react";
+import { Users2, PlusCircle, Edit, Trash2, Download, Circle, Search, Filter, FileJson, FileSpreadsheet, AlertTriangle, Loader2, CalendarIcon } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";

@@ -44,7 +44,7 @@ import {
 import type { PieSectorDataItem } from 'recharts/types/polar/Pie';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getTransactions } from "@/services/transaction.service";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { toast } from "@/hooks/use-toast";
 import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,27 +124,35 @@ const PieLabel = (props: PieSectorDataItem) => {
 };
 
 export default function AnalysisPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
 
   const fetchTransactions = useCallback(async () => {
-    const mockUserId = "mock-user-id";
+    if (!session?.user?.id) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
-    const { data, error } = await getTransactions(mockUserId);
+    const { data, error } = await getTransactions(session.user.id);
     if (error) {
       toast({ title: "Erro ao buscar dados", description: error.message, variant: "destructive" });
     } else {
       setTransactions(data || []);
     }
     setIsLoading(false);
-  }, []);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
-    fetchTransactions();
-  }, [fetchTransactions]);
+    if (status === "authenticated") {
+      fetchTransactions();
+    } else if (status === "unauthenticated") {
+      setIsLoading(false);
+      setTransactions([]);
+    }
+  }, [status, fetchTransactions]);
 
   const { spendingByCategory, incomeBySource, topExpenses, monthlyEvolution } = useMemo(() => {
     const now = new Date();

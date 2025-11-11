@@ -4,9 +4,9 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Esta página foi desativada e seu link removido do menu.
-// O foco foi movido para as ferramentas Kanban.
-// Redirecionamos para o quadro Kanban como um padrão sensato.
+// This page has been deprecated and its link removed from the menu.
+// The focus has shifted to Kanban tools.
+// We redirect to the Kanban board as a sensible default.
 export default function ObsoleteScrumPage() {
   const router = useRouter();
   useEffect(() => {

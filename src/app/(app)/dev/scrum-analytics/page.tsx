@@ -4,8 +4,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Esta página foi desativada para centralizar as análises no Quadro Kanban.
-// Redirecionamos para a página de análise do Kanban como um padrão.
+// This page was deprecated to centralize analytics in the Kanban board.
+// Redirecting to the Kanban analytics page as a sensible default.
 export default function ObsoleteScrumAnalyticsPage() {
   const router = useRouter();
   useEffect(() => {
