@@ -1,5 +1,2 @@
-import { config } from 'dotenv';
-config();
-
-import '@/ai/flows/suggest-spending-limits.ts';
-import '@/ai/flows/auto-categorize-transactions.ts';
+// This file is temporarily cleared to resolve dependency conflicts.
+// The Genkit functionality can be restored later with compatible versions.
