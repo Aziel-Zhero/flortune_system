@@ -6,23 +6,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LayoutDashboard, Users, Percent, Share2, Star, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as BarChartRecharts, Line, LineChart as LineChartRecharts, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Pie, PieChart as PieChartRecharts, Cell } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { PieSectorDataItem } from "recharts/types/polar/Pie";
-
-const newUsersData: any[] = [
-  // Dados removidos para carregar de um backend no futuro
-];
-
-const subscribersData: any[] = [
-  // Dados removidos
-];
-
-const shareDistributionData: any[] = [
-    // Dados removidos
-];
 
 export default function AdminDashboardPage() {
   const isMobile = useIsMobile();

@@ -11,14 +11,6 @@ import {
   Wallet, 
   TrendingDown,
   AreaChart as AreaIconLucide,
-  BarChart3 as BarIconLucide, 
-  Radar as RadarIconLucide, 
-  Users2,
-  Trophy,
-  DollarSign,
-  Banknote,
-  Percent,
-  TrendingUp,
   AlertTriangle,
 } from "lucide-react";
 import {
@@ -34,14 +26,11 @@ import {
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig
 } from "@/components/ui/chart";
 import {
   AreaChart, 
   Area,      
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -50,18 +39,7 @@ import {
   Pie,
   Cell,
   Tooltip as RechartsTooltip,
-  Legend,
-  BarChart, 
-  Bar,
-  LabelList,
-  RadarChart, 
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar, 
-  RadialBarChart, 
-  RadialBar,
-  Brush
+  Legend
 } from "recharts";
 import type { PieSectorDataItem } from 'recharts/types/polar/Pie';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -78,12 +56,6 @@ interface CategoryData {
   fill: string;
 }
 
-interface MonthlyEvolutionData {
-  month: string;
-  Receitas: number;
-  Despesas: number;
-}
-
 const chartColors = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -91,46 +63,6 @@ const chartColors = [
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
 ];
-
-// Mock data for business gallery, as it's a demo section
-const mockClientProjectData = [
-  { month: "Jan", clientes: 5, projetos: 3 }, { month: "Fev", clientes: 6, projetos: 4 },
-  { month: "Mar", clientes: 8, projetos: 5 }, { month: "Abr", clientes: 7, projetos: 6 },
-  { month: "Mai", clientes: 9, projetos: 8 }, { month: "Jun", clientes: 11, projetos: 9 },
-];
-const mockGoalsData = [
-  { month: "Jan", meta: 10000, atingido: 8000 }, { month: "Fev", meta: 10000, atingido: 8500 },
-  { month: "Mar", meta: 12000, atingido: 11000 }, { month: "Abr", meta: 12000, atingido: 12500 },
-  { month: "Mai", meta: 15000, atingido: 14000 }, { month: "Jun", meta: 15000, atingido: 16000 },
-];
-const mockAccumulatedData = [
-  { name: 'Projetos', value: 125000 }, { name: 'Orçamento', value: 85000 }, { name: 'Metas', value: 45000 },
-];
-const mockSpendingTimelineData = [
-  { date: '01/07', gastos: 250 }, { date: '05/07', gastos: 450 }, { date: '10/07', gastos: 300 },
-  { date: '15/07', gastos: 600 }, { date: '20/07', gastos: 550 }, { date: '25/07', gastos: 700 },
-];
-const mockOverallSpendingData = [
-  { name: 'Serviços', value: 4500, fill: chartColors[0] }, { name: 'Marketing', value: 2500, fill: chartColors[1] },
-  { name: 'Infraestrutura', value: 1800, fill: chartColors[2] }, { name: 'Equipe', value: 8000, fill: chartColors[3] },
-  { name: 'Outros', value: 1200, fill: chartColors[4] },
-];
-const mockRadarGeneralData = [
-  { subject: 'Receita', A: 85, fullMark: 100 }, { subject: 'Lucratividade', A: 70, fullMark: 100 },
-  { subject: 'Satisfação', A: 90, fullMark: 100 }, { subject: 'Novos Clientes', A: 60, fullMark: 100 },
-  { subject: 'Retenção', A: 80, fullMark: 100 },
-];
-const mockTop3SpendingData = [
-  { name: 'Equipe', value: 8000, fill: chartColors[3] }, { name: 'Serviços', value: 4500, fill: chartColors[0] },
-  { name: 'Marketing', value: 2500, fill: chartColors[1] },
-];
-const mockYieldData = { value: 8.5 };
-const mockTaxData = { value: 22.5 };
-const mockComparativeData = [
-  { month: 'Q1', '2023': 4000, '2024': 5500 }, { month: 'Q2', '2023': 3000, '2024': 4800 },
-  { month: 'Q3', '2023': 5000, '2024': 6200 }, { month: 'Q4', '2023': 4500, '2024': 7100 },
-];
-
 
 const RealDataCustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -168,19 +100,6 @@ const RealDataPieCustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-const businessChartConfig: ChartConfig = {
-  clientes: { label: "Clientes", color: "hsl(var(--chart-1))" },
-  projetos: { label: "Projetos", color: "hsl(var(--chart-2))" },
-  meta: { label: "Meta", color: "hsl(var(--muted-foreground))" },
-  atingido: { label: "Atingido", color: "hsl(var(--chart-1))" },
-  gastos: { label: "Gastos", color: "hsl(var(--chart-2))" },
-  '2023': { label: '2023', color: 'hsl(var(--chart-3))' },
-  '2024': { label: '2024', color: 'hsl(var(--chart-1))' },
-  performance: { label: "Performance", color: "hsl(var(--chart-1))" },
-  rendimento: { label: "Rendimento", color: "hsl(var(--chart-1))"},
-  imposto: { label: "Imposto", color: "hsl(var(--chart-2))" },
-};
-
 const PieLabel = (props: PieSectorDataItem) => {
     const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, name, percent, fill } = props;
     if (!name || !percent || !outerRadius) return null;
@@ -210,9 +129,10 @@ export default function AnalysisPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
 
-  const fetchTransactions = useCallback(async (userId: string) => {
+  const fetchTransactions = useCallback(async () => {
+    const mockUserId = "mock-user-id";
     setIsLoading(true);
-    const { data, error } = await getTransactions(userId);
+    const { data, error } = await getTransactions(mockUserId);
     if (error) {
       toast({ title: "Erro ao buscar dados", description: error.message, variant: "destructive" });
     } else {
@@ -223,13 +143,8 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
-    if (session?.user?.id) {
-      fetchTransactions(session.user.id);
-    } else if (session === null) {
-      setIsLoading(false);
-      setTransactions([]);
-    }
-  }, [session, fetchTransactions]);
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   const { spendingByCategory, incomeBySource, topExpenses, monthlyEvolution } = useMemo(() => {
     const now = new Date();
@@ -343,7 +258,7 @@ export default function AnalysisPage() {
              )}
             <Card className="shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
-                <CardContent className="h-80">
+                <CardContent className="h-80 sm:h-96">
                   <ScrollArea className="h-full pr-2">
                     {isLoading ? Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-10 mb-2" />) : topExpenses.length === 0 ? (<div className="flex items-center justify-center h-full text-muted-foreground text-sm">Nenhuma despesa.</div>) : (
                       <Table size="sm">
@@ -378,163 +293,6 @@ export default function AnalysisPage() {
                     )}
                 </CardContent>
             </Card>
-      </div>
-
-      <PageHeader title="Galeria de Análises de Negócio" description="Demonstração de métricas de projetos e clientes (usando dados de exemplo)." icon={<BarIconLucide className="h-6 w-6 text-primary"/>} />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><Users2 className="mr-2 h-5 w-5 text-primary"/>Clientes e Projetos</CardTitle><CardDescription>Evolução de novos clientes e projetos.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={businessChartConfig} className="w-full h-full">
-              <AreaChart accessibilityLayer data={mockClientProjectData} margin={{left: 0, right: 12}}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
-                <YAxis />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Area dataKey="clientes" type="natural" fill="var(--color-clientes)" fillOpacity={0.4} stroke="var(--color-clientes)" stackId="a" />
-                <Area dataKey="projetos" type="natural" fill="var(--color-projetos)" fillOpacity={0.4} stroke="var(--color-projetos)" stackId="b" />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><Trophy className="mr-2 h-5 w-5 text-primary"/>Progresso de Metas</CardTitle><CardDescription>Valores atingidos vs. metas mensais.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={businessChartConfig} className="w-full h-full">
-              <AreaChart accessibilityLayer data={mockGoalsData} margin={{left: 0, right: 12}}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
-                <YAxis tickFormatter={(value) => `${(value / 1000)}k`} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <defs>
-                  <linearGradient id="fillAtingido" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-atingido)" stopOpacity={0.8} /><stop offset="95%" stopColor="var(--color-atingido)" stopOpacity={0.1} /></linearGradient>
-                </defs>
-                <Line dataKey="meta" type="monotone" stroke="var(--color-meta)" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-                <Area dataKey="atingido" type="natural" fill="url(#fillAtingido)" stroke="var(--color-atingido)" stackId="a" />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><DollarSign className="mr-2 h-5 w-5 text-primary"/>Totais Acumulados</CardTitle><CardDescription>Valores totais de projetos e orçamentos.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={businessChartConfig} className="w-full h-full">
-              <BarChart accessibilityLayer data={mockAccumulatedData} layout="vertical" margin={{right: 30, left: 10}}>
-                <CartesianGrid horizontal={false} />
-                <YAxis dataKey="name" type="category" tickLine={false} tickMargin={5} axisLine={false} className="capitalize text-xs"/>
-                <XAxis type="number" hide />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar dataKey="value" layout="vertical" fill="var(--color-clientes)" radius={4}>
-                  <LabelList dataKey="value" position="right" offset={8} className="fill-foreground" fontSize={12} formatter={(value: number) => `R$${(value / 1000)}k`} />
-                </Bar>
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><Banknote className="mr-2 h-5 w-5 text-primary"/>Orçamento Atingido</CardTitle><CardDescription>Acompanhamento de gastos ao longo do tempo.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={businessChartConfig} className="w-full h-full">
-              <LineChart accessibilityLayer data={mockSpendingTimelineData} margin={{top: 20, left: 0, right: 12}}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickFormatter={(value) => `R$${value}`}/>
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Line dataKey="gastos" type="monotone" stroke="var(--color-gastos)" strokeWidth={2} dot={{fill: "var(--color-gastos)"}} activeDot={{ r: 6 }}>
-                   <LabelList dataKey="gastos" position="top" offset={12} className="fill-foreground" fontSize={12} formatter={(value: number) => `R$${value}`} />
-                </Line>
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><PieIconLucide className="mr-2 h-5 w-5 text-primary"/>Gastos Gerais</CardTitle><CardDescription>Distribuição geral de despesas do negócio.</CardDescription></CardHeader>
-          <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={businessChartConfig} className="w-full max-w-[250px] aspect-square">
-              <PieChart>
-                <RechartsTooltip content={<RealDataPieCustomTooltip />} />
-                <Pie data={mockOverallSpendingData} dataKey="value" nameKey="name" label={<PieLabel />} labelLine={{stroke: "hsl(var(--muted-foreground))"}}/>
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><RadarIconLucide className="mr-2 h-5 w-5 text-primary"/>Visão Geral do Negócio</CardTitle><CardDescription>Indicadores de performance chave.</CardDescription></CardHeader>
-          <CardContent className="h-72">
-            <ChartContainer config={businessChartConfig} className="w-full h-full">
-              <RadarChart data={mockRadarGeneralData}>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <PolarGrid gridType="polygon" />
-                <PolarAngleAxis dataKey="subject" />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                <Radar name="Performance" dataKey="A" stroke="var(--color-performance)" fill="var(--color-performance)" fillOpacity={0.6} />
-              </RadarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><TrendingDown className="mr-2 h-5 w-5 text-destructive"/>Top 3 Maiores Gastos</CardTitle><CardDescription>Focos de despesa do período.</CardDescription></CardHeader>
-          <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={businessChartConfig} className="w-full max-w-[250px] aspect-square">
-              <RadialBarChart data={mockTop3SpendingData} innerRadius="30%" outerRadius="80%" startAngle={90} endAngle={450}>
-                <PolarAngleAxis type="number" domain={[0, 8000]} dataKey="value" tick={false} />
-                <RadialBar dataKey="value" background>
-                  <LabelList position="insideStart" dataKey="name" className="fill-white text-xs" fontSize={10}/>
-                </RadialBar>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" hideIndicator />} />
-              </RadialBarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><TrendingUp className="mr-2 h-5 w-5 text-emerald-500"/>Rendimento Médio</CardTitle><CardDescription>Percentual de rendimento médio.</CardDescription></CardHeader>
-          <CardContent className="h-72 flex items-center justify-center">
-            <ChartContainer config={businessChartConfig} className="w-full max-w-[250px] aspect-square">
-              <RadialBarChart data={[mockYieldData]} cx="50%" cy="50%" innerRadius="60%" outerRadius="80%" barSize={10} startAngle={90} endAngle={450}>
-                <PolarAngleAxis type="number" domain={[0, 10]} dataKey="value" tick={false} />
-                <RadialBar dataKey="value" background cornerRadius={5} fill="var(--color-rendimento)" />
-                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-2xl font-semibold">
-                  {`${mockYieldData.value.toFixed(1)}%`}
-                </text>
-              </RadialBarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="font-headline flex items-center"><Percent className="mr-2 h-5 w-5 text-primary"/>Alíquota de Imposto</CardTitle><CardDescription>Simulação de alíquota efetiva.</CardDescription></CardHeader>
-          <CardContent className="h-72 flex items-center justify-center">
-             <ChartContainer config={businessChartConfig} className="w-full max-w-[300px] aspect-square">
-               <RadialBarChart data={[mockTaxData, {value: 100-mockTaxData.value}]} innerRadius={50} outerRadius={100} barSize={10} startAngle={90} endAngle={450}>
-                <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                <RadialBar dataKey="value" cornerRadius={5}>
-                    <Cell fill="var(--color-imposto)" />
-                    <Cell fill="var(--color-muted)" />
-                </RadialBar>
-                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-2xl font-semibold">
-                  {`${mockTaxData.value.toFixed(1)}%`}
-                </text>
-              </RadialBarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-3">
-          <CardHeader><CardTitle className="font-headline flex items-center"><BarIconLucide className="mr-2 h-5 w-5 text-primary"/>Comparativo Anual (Trimestral)</CardTitle><CardDescription>Comparação de performance entre 2023 e 2024.</CardDescription></CardHeader>
-          <CardContent className="h-80">
-            <ChartContainer config={businessChartConfig} className="w-full h-full">
-              <BarChart accessibilityLayer data={mockComparativeData}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
-                <YAxis tickFormatter={(value) => `R$${(value / 1000)}k`}/>
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dashed" />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="2023" fill="var(--color-2023)" radius={4} />
-                <Bar dataKey="2024" fill="var(--color-2024)" radius={4} />
-                <Brush dataKey="month" height={30} stroke="hsl(var(--muted-foreground))" travellerWidth={20} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
