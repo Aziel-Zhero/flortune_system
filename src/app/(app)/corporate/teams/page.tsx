@@ -14,11 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
-import { Users, UserPlus, FileDown, Briefcase, Package, Clock, Settings, Edit, PlusCircle, CalendarIcon, ListTodo, KanbanSquare } from "lucide-react";
+import { Users, UserPlus, FileDown, Package, Clock, Settings, Edit, PlusCircle, CalendarIcon, KanbanSquare } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { Area, AreaChart as AreaChartRecharts, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
-import { PrivateValue } from "@/components/shared/private-value";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -59,21 +56,6 @@ const assignActivitySchema = z.object({
 type AssignActivityFormData = z.infer<typeof assignActivitySchema>;
 
 
-const initialTeamMembers = [
-  { id: 'usr_1', name: 'Ana Silva', email: 'ana.silva@example.com', role: 'Gerente de Projetos', avatar: 'https://placehold.co/40x40/a2d2ff/333?text=AS', activeProjects: 3, lastActivity: '2 horas atrás', taskProgress: 85 },
-  { id: 'usr_2', name: 'Bruno Costa', email: 'bruno.costa@example.com', role: 'Desenvolvedor Sênior', avatar: 'https://placehold.co/40x40/bde0fe/333?text=BC', activeProjects: 2, lastActivity: '30 minutos atrás', taskProgress: 95 },
-  { id: 'usr_3', name: 'Carla Dias', email: 'carla.dias@example.com', role: 'Desenvolvedora Pleno', avatar: 'https://placehold.co/40x40/ffafcc/333?text=CD', activeProjects: 2, lastActivity: '5 horas atrás', taskProgress: 70 },
-  { id: 'usr_4', name: 'Daniel Alves', email: 'daniel.alves@example.com', role: 'UX/UI Designer', avatar: 'https://placehold.co/40x40/caffbf/333?text=DA', activeProjects: 4, lastActivity: 'Ontem', taskProgress: 90 },
-  { id: 'usr_5', name: 'Eduarda Lima', email: 'eduarda.lima@example.com', role: 'Estagiária', avatar: 'https://placehold.co/40x40/ffc8dd/333?text=EL', activeProjects: 1, lastActivity: 'Hoje', taskProgress: 60 },
-];
-
-const initialProjects = [
-    { id: 'proj_1', name: 'Sistema de E-commerce', client: 'Loja Fashion', status: 'in_progress' as const, deadline: '2024-08-30', value: 50000, cost: 20000, team: ['usr_2', 'usr_3', 'usr_4'] },
-    { id: 'proj_2', name: 'Aplicativo Mobile de Saúde', client: 'Clínica Bem-Estar', status: 'in_progress' as const, deadline: '2024-09-15', value: 80000, cost: 35000, team: ['usr_1', 'usr_2', 'usr_4'] },
-    { id: 'proj_3', name: 'Manutenção de CRM Interno', client: 'Soluções Tech', status: 'delayed' as const, deadline: '2024-07-25', value: 15000, cost: 8000, team: ['usr_3'] },
-    { id: 'proj_4', name: 'Website Institucional', client: 'Advocacia & Lei', status: 'completed' as const, deadline: '2024-07-10', value: 25000, cost: 10000, team: ['usr_4', 'usr_5'] },
-];
-
 interface Activity {
   id: string;
   description: string;
@@ -83,17 +65,10 @@ interface Activity {
   projectId?: string | null;
 }
 
-const initialActivities: Activity[] = [
-    { id: 'act-1', description: 'Revisar documentação da API de pagamentos', dueDate: '2024-08-05', status: 'available', projectId: null },
-    { id: 'act-2', description: 'Criar protótipos de baixa fidelidade para nova feature', dueDate: '2024-08-10', status: 'available', projectId: null },
-    { id: 'act-3', description: 'Configurar ambiente de staging para o Projeto X', dueDate: null, status: 'available', projectId: null },
-    { id: 'act-4', description: 'Atualizar dependências do projeto principal', dueDate: null, status: 'assigned', assignedTo: 'usr_2', projectId: 'proj_1' },
-]
-
 export default function TeamsPage() {
-  const [teamMembers, setTeamMembers] = useState(initialTeamMembers);
-  const [projects, setProjects] = useState(initialProjects);
-  const [activities, setActivities] = useState(initialActivities);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
   const [isLimitAlertOpen, setIsLimitAlertOpen] = useState(false);
@@ -240,15 +215,17 @@ export default function TeamsPage() {
             <Table>
               <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Projetos Ativos</TableHead><TableHead>Progresso de Tarefas</TableHead><TableHead>Última Atividade</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
               <TableBody>
-                {teamMembers.map(member => (
+                {teamMembers.length > 0 ? teamMembers.map(member => (
                   <TableRow key={member.id}>
-                    <TableCell><div className="flex items-center gap-3"><Avatar className="h-9 w-9"><AvatarImage src={member.avatar} data-ai-hint="user avatar" /><AvatarFallback>{member.name.split(' ').map(n=>n[0]).join('')}</AvatarFallback></Avatar><div><p className="font-semibold">{member.name}</p><p className="text-xs text-muted-foreground">{member.role}</p></div></div></TableCell>
+                    <TableCell><div className="flex items-center gap-3"><Avatar className="h-9 w-9"><AvatarImage src={member.avatar} data-ai-hint="user avatar" /><AvatarFallback>{member.name.split(' ').map((n:string)=>n[0]).join('')}</AvatarFallback></Avatar><div><p className="font-semibold">{member.name}</p><p className="text-xs text-muted-foreground">{member.role}</p></div></div></TableCell>
                     <TableCell className="text-center"><Badge variant="secondary">{member.activeProjects}</Badge></TableCell>
                     <TableCell><Progress value={member.taskProgress} className="h-2" /></TableCell>
                     <TableCell className="text-muted-foreground">{member.lastActivity}</TableCell>
                     <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenMemberDialog(member)}><Edit className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum membro na equipe.</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -256,51 +233,57 @@ export default function TeamsPage() {
         
         <div className="space-y-4">
           <PageHeader title="Visão Geral de Projetos" description="Acompanhe a saúde e o andamento de todos os projetos ativos." icon={<Package className="h-6 w-6 text-primary" />} />
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {projects.map(p => {
-                  const profit = p.value - p.cost;
-                  const margin = p.value > 0 ? (profit / p.value) * 100 : 0;
-                  return (
-                      <Card key={p.id}>
-                          <CardHeader>
-                              <div className="flex justify-between items-start">
-                                  <CardTitle className="font-headline">{p.name}</CardTitle>
-                                  <div className="flex items-center -mr-2">
-                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenAssignDialog(p)}><UserPlus className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Atribuir atividade a este projeto</p></TooltipContent></Tooltip>
-                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenProjectDialog(p)}><Settings className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Editar projeto</p></TooltipContent></Tooltip>
-                                  </div>
-                              </div>
-                              <CardDescription>Cliente: {p.client}</CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                              <div className="flex justify-between text-sm">
-                                  <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
-                                  <span>{format(parseISO(p.deadline), 'dd/MM/yyyy', { locale: ptBR })}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                  <span className="text-muted-foreground">Rentabilidade:</span>
-                                  <span className={margin < 30 ? 'text-destructive font-semibold' : 'text-emerald-500 font-semibold'}>{margin.toFixed(1)}%</span>
-                              </div>
-                               {getProjectStatusBadge(p.status)}
-                          </CardContent>
-                           <CardFooter className="pt-2 border-t">
-                             <div className="flex items-center justify-between w-full">
-                                  <span className="text-sm text-muted-foreground">Equipe:</span>
-                                  <div className="flex -space-x-2">
-                                  {p.team.map(memberId => {
-                                      const member = teamMembers.find(m => m.id === memberId);
-                                      if (!member) return null;
-                                      return (
-                                          <Tooltip key={member.id}><TooltipTrigger asChild><Avatar className="h-7 w-7 border-2 border-card"><AvatarImage src={member.avatar} data-ai-hint="user avatar"/><AvatarFallback>{member.name.charAt(0)}</AvatarFallback></Avatar></TooltipTrigger><TooltipContent><p>{member.name}</p></TooltipContent></Tooltip>
-                                      )
-                                  })}
-                                  </div>
-                              </div>
-                          </CardFooter>
-                      </Card>
-                  )
-              })}
-          </div>
+          {projects.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {projects.map(p => {
+                    const profit = p.value - p.cost;
+                    const margin = p.value > 0 ? (profit / p.value) * 100 : 0;
+                    return (
+                        <Card key={p.id}>
+                            <CardHeader>
+                                <div className="flex justify-between items-start">
+                                    <CardTitle className="font-headline">{p.name}</CardTitle>
+                                    <div className="flex items-center -mr-2">
+                                      <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenAssignDialog(p)}><UserPlus className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Atribuir atividade a este projeto</p></TooltipContent></Tooltip>
+                                      <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenProjectDialog(p)}><Settings className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Editar projeto</p></TooltipContent></Tooltip>
+                                    </div>
+                                </div>
+                                <CardDescription>Cliente: {p.client}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-4 w-4"/>Prazo:</span>
+                                    <span>{format(parseISO(p.deadline), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Rentabilidade:</span>
+                                    <span className={margin < 30 ? 'text-destructive font-semibold' : 'text-emerald-500 font-semibold'}>{margin.toFixed(1)}%</span>
+                                </div>
+                                 {getProjectStatusBadge(p.status)}
+                            </CardContent>
+                             <CardFooter className="pt-2 border-t">
+                               <div className="flex items-center justify-between w-full">
+                                    <span className="text-sm text-muted-foreground">Equipe:</span>
+                                    <div className="flex -space-x-2">
+                                    {p.team.map((memberId: string) => {
+                                        const member = teamMembers.find(m => m.id === memberId);
+                                        if (!member) return null;
+                                        return (
+                                            <Tooltip key={member.id}><TooltipTrigger asChild><Avatar className="h-7 w-7 border-2 border-card"><AvatarImage src={member.avatar} data-ai-hint="user avatar"/><AvatarFallback>{member.name.charAt(0)}</AvatarFallback></Avatar></TooltipTrigger><TooltipContent><p>{member.name}</p></TooltipContent></Tooltip>
+                                        )
+                                    })}
+                                    </div>
+                                </div>
+                            </CardFooter>
+                        </Card>
+                    )
+                })}
+            </div>
+          ) : (
+            <Card className="text-center py-12 border-dashed">
+                <CardHeader><CardTitle>Nenhum projeto cadastrado.</CardTitle></CardHeader>
+            </Card>
+          )}
         </div>
       </div>
 

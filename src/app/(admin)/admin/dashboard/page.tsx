@@ -12,24 +12,16 @@ import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { PieSectorDataItem } from "recharts/types/polar/Pie";
 
-const newUsersData = [
-  { month: "Jan", users: 150, free: 130, paid: 20 }, 
-  { month: "Fev", users: 220, free: 180, paid: 40 },
-  { month: "Mar", users: 180, free: 140, paid: 40 }, 
-  { month: "Abr", users: 300, free: 250, paid: 50 },
-  { month: "Mai", users: 250, free: 200, paid: 50 }, 
-  { month: "Jun", users: 400, free: 320, paid: 80 },
+const newUsersData: any[] = [
+  // Dados removidos para carregar de um backend no futuro
 ];
 
-const subscribersData = [
-  { month: "Jan", subscribers: 20 }, { month: "Fev", subscribers: 35 },
-  { month: "Mar", subscribers: 50 }, { month: "Abr", subscribers: 80 },
-  { month: "Mai", subscribers: 110 }, { month: "Jun", subscribers: 150 },
+const subscribersData: any[] = [
+  // Dados removidos
 ];
 
-const shareDistributionData = [
-    { name: 'Usuários Gratuitos', value: 40, fill: 'hsl(var(--chart-1))' },
-    { name: 'Assinantes', value: 60, fill: 'hsl(var(--chart-2))' },
+const shareDistributionData: any[] = [
+    // Dados removidos
 ];
 
 export default function AdminDashboardPage() {
@@ -96,25 +88,25 @@ export default function AdminDashboardPage() {
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Taxa de Conversão (Mês)</CardTitle><Percent className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent className="flex-grow"><div className="text-2xl font-bold text-emerald-500">4.2%</div><p className="text-xs text-muted-foreground">+1.1% vs. mês anterior</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold text-emerald-500">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
           </Card>
         </motion.div>
         <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Crescimento (Gratuitos)</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent className="flex-grow"><div className="text-2xl font-bold">+180</div><p className="text-xs text-muted-foreground">Novos usuários gratuitos este mês</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
           </Card>
         </motion.div>
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Módulos Compartilhados</CardTitle><Share2 className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent className="flex-grow"><div className="text-2xl font-bold">87</div><p className="text-xs text-muted-foreground">Total de módulos com acesso compartilhado</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
           </Card>
         </motion.div>
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Compart. por Assinantes</CardTitle><Star className="h-4 w-4 text-muted-foreground"/></CardHeader>
-            <CardContent className="flex-grow"><div className="text-2xl font-bold">52</div><p className="text-xs text-muted-foreground">Módulos compartilhados por usuários pagantes</p></CardContent>
+            <CardContent className="flex-grow"><div className="text-2xl font-bold">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
           </Card>
         </motion.div>
       </div>
@@ -127,16 +119,7 @@ export default function AdminDashboardPage() {
               <CardDescription>Total de novos usuários (gratuitos e pagantes).</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-                <ChartContainer config={{ users: { label: "Total" }, free: {label: "Gratuitos"}, paid: {label: "Pagantes"} }} className="w-full h-full">
-                  <BarChartRecharts data={newUsersData}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8}/>
-                    <YAxis />
-                    <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <Bar dataKey="free" fill="hsl(var(--chart-2))" radius={4} stackId="a" />
-                    <Bar dataKey="paid" fill="hsl(var(--chart-1))" radius={4} stackId="a" />
-                  </BarChartRecharts>
-              </ChartContainer>
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">Nenhum dado para exibir.</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -147,15 +130,7 @@ export default function AdminDashboardPage() {
               <CardDescription>Evolução do número de usuários pagantes.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-                <ChartContainer config={{ subscribers: { label: "Assinantes", color: "hsl(var(--primary))" } }} className="w-full h-full">
-                  <LineChartRecharts data={subscribersData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                    <YAxis />
-                    <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="subscribers" stroke="hsl(var(--primary))" strokeWidth={2} activeDot={{ r: 8 }} />
-                  </LineChartRecharts>
-              </ChartContainer>
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">Nenhum dado para exibir.</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -166,18 +141,7 @@ export default function AdminDashboardPage() {
               <CardDescription>Proporção de módulos compartilhados por tipo de usuário.</CardDescription>
             </CardHeader>
             <CardContent className="h-80 flex justify-center">
-              <ChartContainer config={{}} className="w-full h-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChartRecharts>
-                        <RechartsTooltip cursor={true} content={<ChartTooltipContent hideLabel />} />
-                        <Pie data={shareDistributionData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={isMobile ? 70 : 90} labelLine={false} label={renderResponsivePieLabel}>
-                            {shareDistributionData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                        </Pie>
-                    </PieChartRecharts>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground">Nenhum dado para exibir.</div>
             </CardContent>
           </Card>
         </motion.div>

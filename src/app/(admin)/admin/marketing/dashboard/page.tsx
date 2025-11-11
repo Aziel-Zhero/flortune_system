@@ -10,22 +10,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Bar, BarChart as BarChartRecharts, Pie, PieChart as PieChartRecharts, ResponsiveContainer, Cell, Sector, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
 import type { PieSectorDataItem } from "recharts/types/polar/Pie";
 
-// --- MOCK DATA ---
-const mockResponses = [
-  { id: 1, questionId: 'q1', rating: 5, comment: 'Adorei a nova funcionalidade de metas!', userName: 'Ana P.' },
-  { id: 2, questionId: 'q1', rating: 4, comment: 'O app é bom, mas poderia ser mais rápido.', userName: 'Bruno C.' },
-  { id: 3, questionId: 'q1', rating: 5, comment: 'Melhor app de finanças que já usei.', userName: 'Carla D.' },
-  { id: 4, questionId: 'q1', rating: 2, comment: 'Achei a interface confusa no começo.', userName: 'Daniel A.' },
-  { id: 5, questionId: 'q1', rating: 3, comment: 'Funciona, mas não tem nada de especial.', userName: 'Eduarda L.' },
-  { id: 6, questionId: 'q1', rating: 5, comment: '', userName: 'Fernanda M.' },
-  { id: 7, questionId: 'q1', rating: 1, comment: 'Não consegui importar minhas transações.', userName: 'Gustavo H.' },
-  { id: 8, questionId: 'q1', rating: 4, comment: 'Gosto dos gráficos de análise.', userName: 'Heloísa R.' },
-  { id: 9, questionId: 'q1', rating: 5, comment: 'Super intuitivo e bonito.', userName: 'Igor S.' },
-  { id: 10, questionId: 'q1', rating: 4, comment: '', userName: 'Juliana T.' },
-  { id: 11, questionId: 'q1', rating: 5, comment: 'Me ajudou a economizar de verdade.', userName: 'Lucas V.' },
-  { id: 12, questionId: 'q1', rating: 2, comment: 'Faltam integrações com outros bancos.', userName: 'Mariana B.' },
-];
-
+// --- MOCK DATA REMOVIDO ---
+const mockResponses: any[] = [];
 
 const ActiveShape = (props: PieSectorDataItem) => {
   const RADIAN = Math.PI / 180;
@@ -76,9 +62,9 @@ export default function MarketingDashboardPage() {
   }, []);
 
   const npsData = useMemo(() => {
-    const promoters = mockResponses.filter(r => r.rating === 5).length;
-    const passives = mockResponses.filter(r => r.rating === 4).length;
-    const detractors = mockResponses.filter(r => r.rating <= 3).length;
+    const promoters = mockResponses.filter(r => r.rating >= 9).length;
+    const passives = mockResponses.filter(r => r.rating >= 7 && r.rating <= 8).length;
+    const detractors = mockResponses.filter(r => r.rating <= 6).length;
     const total = mockResponses.length;
     
     if (total === 0) return { score: 0, promoters: 0, passives: 0, detractors: 0, total: 0 };
@@ -88,7 +74,7 @@ export default function MarketingDashboardPage() {
   }, []);
 
   const responseDistribution = useMemo(() => {
-    const distribution = Array(5).fill(0).map((_, i) => ({
+    const distribution = Array(10).fill(0).map((_, i) => ({
         rating: i + 1,
         count: mockResponses.filter(r => r.rating === i + 1).length,
     }));
@@ -123,26 +109,7 @@ export default function MarketingDashboardPage() {
             <Card className="h-full flex flex-col">
               <CardHeader><CardTitle className="font-headline text-lg">NPS Score</CardTitle><CardDescription>Promotores % - Detratores %</CardDescription></CardHeader>
               <CardContent className="flex-1 flex items-center justify-center">
-                  <ChartContainer config={{}} className="w-full h-[150px]">
-                      <PieChartRecharts margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                          <Pie
-                            data={[{ value: npsData.score }, { value: 100 - Math.max(-100, npsData.score) }]}
-                            dataKey="value"
-                            startAngle={180}
-                            endAngle={0}
-                            innerRadius={70}
-                            outerRadius={90}
-                            cy="100%"
-                            paddingAngle={2}
-                            activeIndex={0}
-                            activeShape={ActiveShape}
-                            onMouseEnter={onPieEnter}
-                           >
-                              <Cell fill={npsGaugeColor} />
-                              <Cell fill="hsl(var(--muted))" />
-                          </Pie>
-                      </PieChartRecharts>
-                  </ChartContainer>
+                  <p className="text-4xl font-bold">{npsData.total > 0 ? npsData.score : 'N/A'}</p>
               </CardContent>
             </Card>
         </motion.div>
@@ -150,10 +117,10 @@ export default function MarketingDashboardPage() {
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total de Respostas</CardTitle><Users className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">{npsData.total}</div></CardContent></Card>
         </motion.div>
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Promotores (Nota 5)</CardTitle><TrendingUp className="h-4 w-4 text-emerald-500"/></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-500">{npsData.promoters}</div></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Promotores (Nota 9-10)</CardTitle><TrendingUp className="h-4 w-4 text-emerald-500"/></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-500">{npsData.promoters}</div></CardContent></Card>
         </motion.div>
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Detratores (Nota 1-3)</CardTitle><TrendingDown className="h-4 w-4 text-destructive"/></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{npsData.detractors}</div></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Detratores (Nota 0-6)</CardTitle><TrendingDown className="h-4 w-4 text-destructive"/></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{npsData.detractors}</div></CardContent></Card>
         </motion.div>
       </div>
 
@@ -164,20 +131,24 @@ export default function MarketingDashboardPage() {
               <CardTitle>Distribuição de Respostas</CardTitle>
               <CardDescription>Quantidade de respostas para cada nota da avaliação.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ChartContainer config={{ count: { label: "Respostas", color: "hsl(var(--chart-1))" } }} className="w-full h-72">
-                  <BarChartRecharts data={responseDistribution} margin={{ left: -20 }}>
-                      <CartesianGrid vertical={false} />
-                      <XAxis dataKey="rating" label={{ value: "Nota", position: "insideBottom", offset: -5 }}/>
-                      <YAxis dataKey="count" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="count" radius={4}>
-                         {responseDistribution.map((entry) => (
-                           <Cell key={`cell-${entry.rating}`} fill={entry.rating === 5 ? "hsl(var(--chart-2))" : entry.rating === 4 ? "hsl(var(--chart-3))" : "hsl(var(--destructive))"} />
-                         ))}
-                      </Bar>
-                  </BarChartRecharts>
-              </ChartContainer>
+            <CardContent className="h-72 flex items-center justify-center">
+              {npsData.total > 0 ? (
+                <ChartContainer config={{ count: { label: "Respostas", color: "hsl(var(--chart-1))" } }} className="w-full h-full">
+                    <BarChartRecharts data={responseDistribution} margin={{ left: -20 }}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="rating" label={{ value: "Nota", position: "insideBottom", offset: -5 }}/>
+                        <YAxis dataKey="count" />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="count" radius={4}>
+                          {responseDistribution.map((entry) => (
+                            <Cell key={`cell-${entry.rating}`} fill={entry.rating >= 9 ? "hsl(var(--chart-2))" : entry.rating >= 7 ? "hsl(var(--chart-3))" : "hsl(var(--destructive))"} />
+                          ))}
+                        </Bar>
+                    </BarChartRecharts>
+                </ChartContainer>
+              ) : (
+                <p className="text-muted-foreground">Nenhum dado para exibir.</p>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -188,15 +159,17 @@ export default function MarketingDashboardPage() {
                     <CardDescription>Últimos comentários deixados pelos usuários.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 max-h-80 overflow-y-auto">
-                    {mockResponses.filter(r => r.comment).map(response => (
-                        <div key={response.id} className="p-3 border-l-4 rounded-r-md bg-muted/50" style={{ borderLeftColor: response.rating === 5 ? "hsl(var(--chart-2))" : response.rating === 4 ? "hsl(var(--chart-3))" : "hsl(var(--destructive))" }}>
+                    {mockResponses.filter(r => r.comment).length > 0 ? mockResponses.filter(r => r.comment).map(response => (
+                        <div key={response.id} className="p-3 border-l-4 rounded-r-md bg-muted/50" style={{ borderLeftColor: response.rating >= 9 ? "hsl(var(--chart-2))" : response.rating >= 7 ? "hsl(var(--chart-3))" : "hsl(var(--destructive))" }}>
                             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                               <p className="font-semibold">{response.userName}</p>
                               <div className="flex items-center gap-1"><Star className="h-3 w-3"/> Nota: {response.rating}</div>
                             </div>
                             <p className="text-sm italic">"{response.comment}"</p>
                         </div>
-                    ))}
+                    )) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum comentário recente.</p>
+                    )}
                 </CardContent>
             </Card>
         </motion.div>

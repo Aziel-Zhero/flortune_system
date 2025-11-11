@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Store, Edit, Check, PlusCircle, Trash2 } from "lucide-react";
-import { APP_NAME, PRICING_TIERS as INITIAL_PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
+import { APP_NAME, type PricingTierIconName } from "@/lib/constants";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -55,14 +55,13 @@ const tierSchema = z.object({
 });
 type TierFormData = z.infer<typeof tierSchema>;
 
-const defaultTierIds = INITIAL_PRICING_TIERS.map(t => t.id);
-
 export default function MarketplacePage() {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<Tier | null>(null);
   const [deletingTier, setDeletingTier] = useState<Tier | null>(null);
+  const [defaultTierIds, setDefaultTierIds] = useState<string[]>([]);
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<TierFormData>({
     resolver: zodResolver(tierSchema)
@@ -76,12 +75,18 @@ export default function MarketplacePage() {
       if (storedTiers) {
         setTiers(JSON.parse(storedTiers));
       } else {
-        const initialTiersWithStatus = INITIAL_PRICING_TIERS.map(tier => ({...tier, active: true}));
+        // Se nada no local storage, buscar dos constants
+        const initialTiersWithStatus = (JSON.parse(JSON.stringify(require('@/lib/constants').PRICING_TIERS))).map((tier: any) => ({...tier, active: true}));
         setTiers(initialTiersWithStatus);
       }
+
+      const defaultIds = (JSON.parse(JSON.stringify(require('@/lib/constants').PRICING_TIERS))).map((t: any) => t.id);
+      setDefaultTierIds(defaultIds);
+
     } catch (e) {
       console.error("Falha ao carregar tiers do localStorage", e);
-      setTiers(INITIAL_PRICING_TIERS.map(tier => ({...tier, active: true})));
+      const initialTiersWithStatus = (JSON.parse(JSON.stringify(require('@/lib/constants').PRICING_TIERS))).map((tier: any) => ({...tier, active: true}));
+      setTiers(initialTiersWithStatus);
     }
   }, []);
 

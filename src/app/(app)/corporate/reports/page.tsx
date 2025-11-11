@@ -11,26 +11,10 @@ import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as BarChartRecharts, Pie, PieChart as PieChartRecharts, Tooltip as RechartsTooltip, Cell, XAxis, YAxis, CartesianGrid } from "recharts";
 
-const dailyProductivityData = [
-    { day: "Seg", tasks: 8 }, { day: "Ter", tasks: 12 }, { day: "Qua", tasks: 7 },
-    { day: "Qui", tasks: 15 }, { day: "Sex", tasks: 10 }, { day: "Sáb", tasks: 3 },
-    { day: "Dom", tasks: 1 },
-];
-const productivityChartConfig = {
-    tasks: { label: "Tarefas Concluídas", color: "hsl(var(--chart-1))" },
-};
 
-const teamMembers = [
-  { id: 'usr_1', name: 'Ana Silva', performance: { completed: 15, in_progress: 5, pending: 2 } },
-  { id: 'usr_2', name: 'Bruno Costa', performance: { completed: 20, in_progress: 3, pending: 1 } },
-  { id: 'usr_3', name: 'Carla Dias', performance: { completed: 12, in_progress: 8, pending: 5 } },
-];
-
-const recentActivities = [
-    { id: 1, user: "Bruno Costa", action: "finalizou a tarefa", subject: "API de Autenticação", time: "15 min atrás", icon: CheckCircle },
-    { id: 2, user: "Carla Dias", action: "moveu para Revisão", subject: "Componente de Gráfico", time: "1 hora atrás", icon: GitCommit },
-    { id: 3, user: "Daniel Alves", action: "iniciou a tarefa", subject: "Design da Landing Page V2", time: "3 horas atrás", icon: Workflow },
-];
+const mockDailyProductivityData: any[] = [];
+const mockTeamMembers: any[] = [];
+const mockRecentActivities: any[] = [];
 
 const performanceColors = {
     completed: "hsl(var(--chart-2))",
@@ -40,7 +24,7 @@ const performanceColors = {
 
 
 export default function CorporateReportsPage() {
-  const [selectedMemberId, setSelectedMemberId] = useState(teamMembers[0].id);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
 
   useEffect(() => {
     document.title = `Relatórios Corporativos - ${APP_NAME}`;
@@ -52,7 +36,7 @@ export default function CorporateReportsPage() {
   };
   
   const selectedMemberPerformance = useMemo(() => {
-    const member = teamMembers.find(m => m.id === selectedMemberId);
+    const member = mockTeamMembers.find(m => m.id === selectedMemberId);
     if (!member) return [];
     return [
       { name: "Concluídas", value: member.performance.completed, fill: performanceColors.completed },
@@ -74,16 +58,8 @@ export default function CorporateReportsPage() {
           <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
             <Card>
               <CardHeader><CardTitle className="font-headline flex items-center gap-2">Produtividade Diária da Equipe</CardTitle><CardDescription>Acompanhe o número de tarefas concluídas a cada dia da semana.</CardDescription></CardHeader>
-              <CardContent className="h-80">
-                <ChartContainer config={productivityChartConfig} className="w-full h-full">
-                  <BarChartRecharts accessibilityLayer data={dailyProductivityData}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
-                    <YAxis />
-                    <RechartsTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <Bar dataKey="tasks" fill="var(--color-tasks)" radius={4} />
-                  </BarChartRecharts>
-                </ChartContainer>
+              <CardContent className="h-80 flex items-center justify-center text-muted-foreground">
+                  Nenhum dado de produtividade disponível.
               </CardContent>
             </Card>
           </motion.div>
@@ -95,37 +71,39 @@ export default function CorporateReportsPage() {
                               <CardTitle className="font-headline flex items-center gap-2"><PieChartIcon className="h-5 w-5"/>Performance Individual</CardTitle>
                               <CardDescription>Análise da distribuição de tarefas por membro.</CardDescription>
                           </div>
-                          <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                          <Select value={selectedMemberId} onValueChange={setSelectedMemberId} disabled={mockTeamMembers.length === 0}>
                               <SelectTrigger className="w-full sm:w-[220px]">
                                   <SelectValue placeholder="Selecione um membro..." />
                               </SelectTrigger>
                               <SelectContent>
-                                  {teamMembers.map(member => (
+                                  {mockTeamMembers.map(member => (
                                       <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
                                   ))}
                               </SelectContent>
                           </Select>
                       </div>
                   </CardHeader>
-                  <CardContent className="h-80 flex items-center justify-center">
-                      <ChartContainer config={{}} className="w-full h-full">
-                          <PieChartRecharts>
-                              <RechartsTooltip cursor={true} content={<ChartTooltipContent />} />
-                              <Pie
-                                  data={selectedMemberPerformance}
-                                  dataKey="value"
-                                  nameKey="name"
-                                  cx="50%"
-                                  cy="50%"
-                                  outerRadius={100}
-                                  label={({ name, value }) => `${name}: ${value}`}
-                              >
-                                  {selectedMemberPerformance.map((entry) => (
-                                      <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                                  ))}
-                              </Pie>
-                          </PieChartRecharts>
-                      </ChartContainer>
+                  <CardContent className="h-80 flex items-center justify-center text-muted-foreground">
+                      {selectedMemberPerformance.length > 0 ? (
+                        <ChartContainer config={{}} className="w-full h-full">
+                            <PieChartRecharts>
+                                <RechartsTooltip cursor={true} content={<ChartTooltipContent />} />
+                                <Pie
+                                    data={selectedMemberPerformance}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={100}
+                                    label={({ name, value }) => `${name}: ${value}`}
+                                >
+                                    {selectedMemberPerformance.map((entry) => (
+                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                    ))}
+                                </Pie>
+                            </PieChartRecharts>
+                        </ChartContainer>
+                      ) : "Nenhum membro selecionado ou sem dados."}
                   </CardContent>
               </Card>
           </motion.div>
@@ -133,7 +111,7 @@ export default function CorporateReportsPage() {
             <Card>
                 <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Users className="h-5 w-5"/>Feed de Atividades da Equipe</CardTitle><CardDescription>O que sua equipe está trabalhando agora.</CardDescription></CardHeader>
                 <CardContent className="space-y-4 max-h-80 overflow-y-auto">
-                    {recentActivities.map(act => {
+                    {mockRecentActivities.length > 0 ? mockRecentActivities.map(act => {
                         const Icon = act.icon;
                         return (
                             <div key={act.id} className="flex items-start gap-3">
@@ -144,7 +122,7 @@ export default function CorporateReportsPage() {
                                 </div>
                             </div>
                         )
-                    })}
+                    }) : <p className="text-sm text-center text-muted-foreground py-4">Nenhuma atividade recente.</p>}
                 </CardContent>
             </Card>
           </motion.div>

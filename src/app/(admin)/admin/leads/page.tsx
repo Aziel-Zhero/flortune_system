@@ -36,13 +36,8 @@ interface ProposedLead extends Lead {
   proposalExpiresAt: string; // ISO string
 }
 
-const mockLeads: Lead[] = [
-  { id: 'lead_1', name: 'João da Silva', email: 'joao.silva@emailaleatorio.com', avatar: 'https://placehold.co/40x40/a2d2ff/333?text=JS', joinDate: '20/07/2024', lastActivity: '3 dias atrás', status: 'active' },
-  { id: 'lead_2', name: 'Maria Oliveira', email: 'maria.oliveira@emailaleatorio.com', avatar: 'https://placehold.co/40x40/bde0fe/333?text=MO', joinDate: '15/07/2024', lastActivity: 'Hoje', status: 'active' },
-  { id: 'lead_3', name: 'Pedro Santos', email: 'pedro.santos@emailaleatorio.com', avatar: 'https://placehold.co/40x40/ffafcc/333?text=PS', joinDate: '01/07/2024', lastActivity: '1 semana atrás', status: 'do_not_contact' },
-  { id: 'lead_4', name: 'Ana Costa', email: 'ana.costa@emailaleatorio.com', avatar: 'https://placehold.co/40x40/caffbf/333?text=AC', joinDate: '25/06/2024', lastActivity: '2 semanas atrás', status: 'active' },
-  { id: 'lead_5', name: 'Lucas Pereira', email: 'lucas.pereira@emailaleatorio.com', avatar: 'https://placehold.co/40x40/ffc8dd/333?text=LP', joinDate: '10/06/2024', lastActivity: '1 mês atrás', status: 'active' },
-];
+// MOCK DATA REMOVED
+const mockLeads: Lead[] = [];
 
 const availablePaidPlans = PRICING_TIERS.filter(tier => tier.priceMonthly !== 'Grátis');
 
