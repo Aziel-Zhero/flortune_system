@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import type { Profile as AppProfile } from '@/types/database.types';
 
-export const runtime = 'nodejs';
+export const runtime = 'nodejs'; // Força o runtime para Node.js
 
 // --- Environment Variable Reading ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
