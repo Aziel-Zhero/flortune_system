@@ -18,11 +18,16 @@ const signupSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   confirmPassword: passwordSchema,
+  phone: z.string().optional(),
+  cpf: z.string().optional(),
+  rg: z.string().optional(),
+  terms: z.boolean().refine(val => val === true, {
+    message: "Você deve aceitar os termos e condições."
+  })
 }).refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
 });
-
 
 export type SignupFormState = {
   message?: string;
@@ -32,11 +37,14 @@ export type SignupFormState = {
     email?: string[];
     password?: string[];
     confirmPassword?: string[];
+    phone?: string[];
+    cpf?: string[];
+    rg?: string[];
+    terms?: string[];
     _form?: string[];
   };
   success?: boolean;
 };
-
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -63,24 +71,27 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
       };
     }
 
-    const { email, password, fullName, displayName } = validatedFields.data;
+    const { email, password, fullName, displayName, phone, cpf, rg } = validatedFields.data;
     
-    const accountType = 'pessoa';
-    const planId = 'tier-cultivador';
+    // Dados que serão passados para o Supabase Auth e posteriormente para o trigger
+    const authOptions = {
+      data: {
+        full_name: fullName,
+        display_name: displayName,
+        account_type: 'pessoa',
+        plan_id: 'tier-cultivador',
+        has_seen_welcome_message: false,
+        phone: phone || null,
+        cpf_cnpj: cpf || null,
+        rg: rg || null,
+        avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
+      }
+    };
     
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-          display_name: displayName,
-          account_type: accountType,
-          avatar_url: `https://placehold.co/100x100.png?text=${displayName?.charAt(0)?.toUpperCase() || 'U'}`,
-          plan_id: planId,
-          has_seen_welcome_message: false,
-        }
-      }
+      options: authOptions
     });
 
     if (signUpError) {
@@ -97,7 +108,7 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         return { message: errorMsg, success: false, errors: { _form: ["Falha ao obter dados do novo usuário."]}};
     }
     
-    console.log("[Signup Action] User created successfully. Redirecting to login for email confirmation.");
+    console.log("[Signup Action] User created successfully. Awaiting email confirmation.");
     redirect('/login?signup=success');
 
   } catch (error: any) {

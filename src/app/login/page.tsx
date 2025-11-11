@@ -5,6 +5,8 @@ import { LoginForm } from "@/components/auth/login-form";
 import { APP_NAME } from "@/lib/constants";
 import type { Metadata } from 'next';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { MailCheck } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: `Bem-vindo de Volta! - ${APP_NAME}`,
@@ -39,7 +41,10 @@ function LoginFormSkeleton() {
   );
 }
 
-export default function LoginPage() {
+// O componente da página agora recebe `searchParams` como prop
+export default function LoginPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+  const showSignupSuccess = searchParams?.signup === 'success';
+
   return (
     <AuthLayout
       title="Bem-vindo de Volta!"
@@ -48,6 +53,15 @@ export default function LoginPage() {
       footerLinkText="Inscreva-se"
       footerLinkHref="/signup"
     >
+      {showSignupSuccess && (
+        <Alert variant="default" className="mb-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700">
+          <MailCheck className="h-4 w-4 text-emerald-600" />
+          <AlertTitle className="text-emerald-700 dark:text-emerald-300">Confirme seu E-mail</AlertTitle>
+          <AlertDescription className="text-emerald-600 dark:text-emerald-400">
+            Cadastro realizado com sucesso! Enviamos um link de confirmação para seu e-mail. Por favor, verifique sua caixa de entrada.
+          </AlertDescription>
+        </Alert>
+      )}
       <Suspense fallback={<LoginFormSkeleton />}>
         <LoginForm />
       </Suspense>

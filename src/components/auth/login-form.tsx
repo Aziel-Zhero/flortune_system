@@ -2,7 +2,6 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { toast } from "@/hooks/use-toast";
 import { signIn } from "next-auth/react";
 import { OAuthButton } from "./oauth-button";
 
@@ -19,16 +17,6 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const formError = searchParams.get("error");
   
-  useEffect(() => {
-    if (searchParams.get('signup') === 'success') {
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Você já pode fazer o login com suas credenciais.",
-        variant: "default",
-      });
-    }
-  }, [searchParams]);
-
   return (
     <div className="space-y-6">
       {formError === "OAuthAccountNotLinked" && (

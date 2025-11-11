@@ -7,18 +7,16 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { AlertTriangle, UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OAuthButton } from "./oauth-button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { signupUser, type SignupFormState } from "@/app/actions/auth.actions";
 import { toast } from "@/hooks/use-toast";
 
@@ -66,7 +64,7 @@ const passwordRequirements: PasswordRequirement[] = [
 
 export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formState, formAction] = useActionState(signupUser, { message: "", success: false });
+  const [formState, formAction, isPending] = useActionState(signupUser, { message: "", success: false });
 
   const { control, register, watch, formState: { errors } } = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
@@ -126,8 +124,8 @@ export function SignupForm() {
             <div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Eu aceito os{" "}<Link href="/terms" className="underline text-primary" target="_blank">Termos de Serviço</Link> e a{" "}<Link href="/policy" className="underline text-primary" target="_blank">Política de Privacidade</Link>.</label>{errors.terms && <p className="text-sm text-destructive">{errors.terms.message}</p>}</div>
           </div>
 
-          <Button type="submit" className="w-full">
-            Criar Conta <UserPlus className="ml-2 h-4 w-4" />
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? 'Criando conta...' : 'Criar Conta'} <UserPlus className="ml-2 h-4 w-4" />
           </Button>
       </form>
       
