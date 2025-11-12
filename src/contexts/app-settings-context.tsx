@@ -1,4 +1,3 @@
-
 // src/contexts/app-settings-context.tsx
 
 "use client";
@@ -294,7 +293,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'theme-aniversario');
+    document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'aniversario');
     if (activeCampaignTheme) {
       document.body.classList.add(`theme-${activeCampaignTheme}`);
     }
@@ -313,43 +312,52 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  // Effect to load all settings from localStorage on initial mount
   useEffect(() => {
     try {
-      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
-      if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
+      // Load Theme and Mode
       const storedDarkMode = localStorage.getItem('flortune-dark-mode');
       const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(darkModeEnabled);
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
       applyTheme(storedTheme);
+
+      // Load Private Mode
+      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
+      if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
       
+      // Load Quotes and Weather only if not in admin area
       if (!isAdminArea) {
         const storedCity = localStorage.getItem('flortune-weather-city');
         if (storedCity) {
           setWeatherCityState(storedCity);
           loadWeatherForCity(storedCity);
         }
+        
         const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-        const defaultQuotes = ['BRL', 'USD', 'JPY', 'EUR', 'ARS'];
+        const defaultQuotes = ['USD', 'EUR', 'JPY', 'GBP', 'ARS']; // Using codes compatible with exchangerate-api
         const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : defaultQuotes;
         setSelectedQuotesState(initialQuotes);
-        loadQuotes(initialQuotes);
+        // loadQuotes is called by setSelectedQuotes now
+        
       } else {
         setIsLoadingQuotes(false);
         setIsLoadingWeather(false);
       }
 
+      // Load Marketing/LP settings
       const storedCampaign = localStorage.getItem('flortune-active-campaign');
       if (storedCampaign) setActiveCampaignThemeState(storedCampaign as CampaignTheme);
+      
       const storedLpContent = localStorage.getItem('flortune-lp-content');
       if (storedLpContent) setLandingPageContent(JSON.parse(storedLpContent));
+      
       const storedPopup = localStorage.getItem('flortune-active-popup');
       if (storedPopup) setActivePopupState(storedPopup as PopupType);
       
       const storedPopupConfigs = localStorage.getItem('flortune-popup-configs');
       if (storedPopupConfigs) {
         const parsedConfigs = JSON.parse(storedPopupConfigs);
-        // Dates are stored as strings, need to convert back to Date objects
         Object.keys(parsedConfigs).forEach(key => {
             const k = key as PopupType;
             if(parsedConfigs[k].startDate) parsedConfigs[k].startDate = new Date(parsedConfigs[k].startDate);
@@ -361,7 +369,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
         console.error("Failed to access localStorage or parse settings:", error);
     }
-  }, [applyTheme, loadWeatherForCity, loadQuotes, isAdminArea]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminArea]); // Run only when isAdminArea changes (once on mount)
+
 
   return (
     <AppSettingsContext.Provider value={{ 

@@ -5,7 +5,6 @@ import axios from 'axios';
 // A resposta da exchangerate-api.com para o endpoint /latest
 export interface QuoteData {
   code: string;       // ex: "USD"
-  codein: string;     // ex: "BRL"
   name: string;       // ex: "USD/BRL"
   bid: string;        // A taxa de conversão
   pctChange?: string; // Não fornecido por esta API
@@ -38,9 +37,6 @@ export async function getQuotes(
     return { data: null, error: "Serviço de cotações indisponível." };
   }
   
-  // A API gratuita da ExchangeRate-API não permite mudar a base em um único request para múltiplos símbolos.
-  // A estratégia é pegar as cotações em relação ao USD (base comum) e depois converter para BRL.
-  // No entanto, para simplificar e usar a chave gratuita, vamos buscar a cotação de BRL para as outras moedas.
   const apiUrl = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${base}`;
 
   try {
@@ -55,12 +51,13 @@ export async function getQuotes(
     const requestedRates = symbols
       .map(symbol => {
           if (apiData.conversion_rates[symbol]) {
+              // A API nos dá quanto 1 BRL vale em USD. O usuário quer o contrário (1 USD = ? BRL)
+              // Portanto, a taxa correta é 1 / rate
+              const rate = 1 / apiData.conversion_rates[symbol];
               return {
                   code: symbol,
-                  codein: base,
                   name: `${symbol}/${base}`,
-                  // A API nos dá quanto 1 BRL vale em USD. O usuário quer o contrário.
-                  bid: (1 / apiData.conversion_rates[symbol]).toFixed(4), 
+                  bid: rate.toFixed(4), 
               };
           }
           return null;
@@ -71,11 +68,17 @@ export async function getQuotes(
 
   } catch (error: any) {
     console.error('Erro ao buscar cotações na API (ExchangeRate-API):', error.message);
+    let errorMessage = "Falha ao buscar dados das cotações na API externa.";
     if (axios.isAxiosError(error) && error.response) {
-       const apiError = error.response.data['error-type'];
-       if (apiError === 'unsupported-code') return { data: null, error: `Moeda de base (${base}) não suportada no plano atual.`};
-       return { data: null, error: `Erro da API: ${apiError || error.message}` };
+       const apiError = error.response.data?.['error-type'];
+       if (apiError === 'unsupported-code') {
+           errorMessage = `Moeda de base (${base}) não suportada no plano atual da API.`;
+       } else if (apiError) {
+           errorMessage = `Erro da API: ${apiError}`;
+       } else {
+           errorMessage = `Erro de rede: ${error.message}`;
+       }
     }
-    return { data: null, error: 'Falha ao buscar dados das cotações na API externa.' };
+    return { data: null, error: errorMessage };
   }
 }

@@ -28,6 +28,12 @@ export const authConfig: NextAuthConfig = {
         const email = credentials.email as string;
         const password = credentials.password as string;
 
+        // Use the server-side admin client
+        if (!supabaseAdmin) {
+          console.error("Supabase admin client not initialized. Check server environment variables.");
+          return null;
+        }
+
         const { data: profile, error } = await supabaseAdmin
           .from('profiles')
           .select('*')
@@ -67,32 +73,34 @@ export const authConfig: NextAuthConfig = {
         if (user.profile) {
           token.profile = user.profile;
         } else if (account?.provider === 'google' && user.email) {
-          const { data: dbProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (dbProfile) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { hashed_password, ...safeProfile } = dbProfile;
-            token.profile = safeProfile;
-          } else {
-             const { data: newProfile, error } = await supabaseAdmin
+          if (supabaseAdmin) {
+            const { data: dbProfile } = await supabaseAdmin
               .from('profiles')
-              .insert({
-                id: user.id,
-                email: user.email,
-                display_name: user.name,
-                full_name: user.name,
-                avatar_url: user.image,
-                account_type: 'pessoa',
-                plan_id: 'tier-cultivador',
-                has_seen_welcome_message: false,
-              })
-              .select()
+              .select('*')
+              .eq('id', user.id)
               .single();
-            if(newProfile) token.profile = newProfile;
+
+            if (dbProfile) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { hashed_password, ...safeProfile } = dbProfile;
+              token.profile = safeProfile;
+            } else {
+               const { data: newProfile, error } = await supabaseAdmin
+                .from('profiles')
+                .insert({
+                  id: user.id,
+                  email: user.email,
+                  display_name: user.name,
+                  full_name: user.name,
+                  avatar_url: user.image,
+                  account_type: 'pessoa',
+                  plan_id: 'tier-cultivador',
+                  has_seen_welcome_message: false,
+                })
+                .select()
+                .single();
+              if(newProfile) token.profile = newProfile;
+            }
           }
         }
       }
