@@ -1,7 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next';
-import { AppSettingsProvider } from '@/contexts/app-settings-context';
 import { AuthProvider } from "@/contexts/auth-context";
+import { AppSettingsProvider } from '@/contexts/app-settings-context';
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css'; 
 
