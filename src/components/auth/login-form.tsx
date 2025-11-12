@@ -48,7 +48,7 @@ export function LoginForm() {
           router.push('/login?error=CredentialsSignin');
         } else {
           router.push(searchParams.get("callbackUrl") || "/dashboard");
-          router.refresh();
+          router.refresh(); // Force a refresh to fetch the new session
         }
       }} className="space-y-4">
         <div className="space-y-2">
