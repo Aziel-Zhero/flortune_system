@@ -8,6 +8,90 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { Profile } from '@/types/database.types';
 import bcrypt from 'bcryptjs';
 
+// Este é um novo provedor, exclusivo para a Server Action de admin.
+// Ele não é chamado diretamente pelo cliente.
+const adminCredentialsProvider = CredentialsProvider({
+  id: "admin-credentials",
+  name: "Admin Credentials",
+  credentials: {
+    email: { label: "Email", type: "email" },
+    // Adicionamos um campo 'role' para garantir que apenas admins possam usar este fluxo
+    role: { label: "Role", type: "text" }, 
+  },
+  async authorize(credentials) {
+    if (credentials?.role === 'admin') {
+      // A validação da senha já foi feita na Server Action.
+      // Aqui, apenas buscamos os dados para criar a sessão.
+      if (!supabaseAdmin) return null;
+      const { data: adminUser } = await supabaseAdmin
+        .from('admins')
+        .select('*')
+        .eq('email', credentials.email)
+        .single();
+      
+      if (adminUser) {
+        return {
+          id: adminUser.id,
+          email: adminUser.email,
+          name: adminUser.full_name,
+          profile: {
+            id: adminUser.id,
+            email: adminUser.email,
+            display_name: adminUser.full_name,
+            role: 'admin',
+          }
+        };
+      }
+    }
+    return null; // Não autoriza se não for um admin
+  }
+});
+
+
+const userCredentialsProvider = CredentialsProvider({
+  id: "credentials",
+  name: "Credentials",
+  credentials: {
+    email: { label: "Email", type: "email" },
+    password: { label: "Password", type: "password" },
+  },
+  async authorize(credentials) {
+    if (!credentials?.email || !credentials.password || !supabaseAdmin) {
+      return null;
+    }
+    
+    const email = credentials.email as string;
+    const password = credentials.password as string;
+
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error || !data.user) {
+      console.error("Credentials Authorize Error (User):", error?.message);
+      return null;
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (!profile) return null;
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.display_name || profile.full_name,
+      image: profile.avatar_url,
+      profile: profile,
+    };
+  },
+});
+
+
 export const authConfig: NextAuthConfig = {
   providers: [
     GoogleProvider({
@@ -15,73 +99,8 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
     }),
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials.password || !supabaseAdmin) {
-          return null;
-        }
-        
-        const email = credentials.email as string;
-        const password = credentials.password as string;
-
-        // 1. Tentar fazer login como Administrador primeiro
-        const { data: adminUser } = await supabaseAdmin
-            .from('admins')
-            .select('*')
-            .eq('email', email)
-            .single();
-
-        if (adminUser) {
-            const passwordMatches = await bcrypt.compare(password, adminUser.hashed_password);
-            if (passwordMatches) {
-                // É um admin, retorna o perfil de admin
-                return {
-                    id: adminUser.id,
-                    email: adminUser.email,
-                    name: adminUser.full_name,
-                    profile: { // Criando um objeto de perfil compatível
-                        id: adminUser.id,
-                        email: adminUser.email,
-                        display_name: adminUser.full_name,
-                        role: 'admin',
-                    }
-                };
-            }
-        }
-
-        // 2. Se não for admin, tentar fazer login como usuário normal
-        const { data, error } = await supabaseAdmin.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error || !data.user) {
-          console.error("Credentials Authorize Error (User):", error?.message);
-          return null; // As credenciais são inválidas para admin e usuário
-        }
-
-        const { data: profile } = await supabaseAdmin
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (!profile) return null;
-
-        return {
-          id: profile.id,
-          email: profile.email,
-          name: profile.display_name || profile.full_name,
-          image: profile.avatar_url,
-          profile: profile,
-        };
-      },
-    }),
+    userCredentialsProvider,
+    adminCredentialsProvider, // Adicionando o provedor de admin
   ],
   session: {
     strategy: 'jwt',
@@ -124,7 +143,7 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
       if (token.profile) {
-        session.user.profile = token.profile as Omit<Profile, 'hashed_password'>;
+        session.user.profile = token.profile as Omit<Profile, 'hashed_password'> & { role?: string }; // Adicionando role opcional
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
         session.user.image = session.user.profile.avatar_url || session.user.image;
         session.user.email = session.user.profile.email || session.user.email;

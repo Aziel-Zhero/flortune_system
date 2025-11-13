@@ -3,73 +3,67 @@
 
 import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useFormState } from "react-dom";
 import { LogIn, KeyRound, Mail, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { signIn } from "next-auth/react";
 import { toast } from "@/hooks/use-toast";
+import { adminLogin, type AdminLoginFormState } from "@/app/actions/admin-auth.actions";
+import { SubmitButton } from "./submit-button";
+
+const initialState: AdminLoginFormState = {
+  success: false,
+  message: "",
+};
 
 export function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const error = searchParams.get("error");
-  const callbackUrl = "/dashboard-admin";
+  const formError = searchParams.get("error");
+
+  const [state, formAction] = useFormState(adminLogin, initialState);
 
   useEffect(() => {
-    if (error === "CredentialsSignin") {
+    if (formError === "CredentialsSignin") {
       toast({
-        title: "Erro no Login",
+        title: "Erro de Login",
         description: "Credenciais de administrador inválidas.",
         variant: "destructive",
       });
-      // Limpa o erro da URL para não mostrar o toast novamente no refresh
       router.replace('/login-admin', { scroll: false });
     }
-  }, [error, router]);
+  }, [formError, router]);
+  
+  useEffect(() => {
+    if (state.success === false && state.message) {
+      toast({
+        title: "Falha no Login",
+        description: state.message,
+        variant: "destructive"
+      });
+    } else if (state.success === true) {
+       toast({
+          title: "Login Bem-sucedido!",
+          description: "Redirecionando para o painel de administração...",
+        });
+       router.push('/dashboard-admin');
+    }
+  }, [state, router]);
 
   return (
     <form
-      action={async (formData) => {
-        try {
-          const result = await signIn("credentials", {
-            redirect: false,
-            email: formData.get("email"),
-            password: formData.get("password"),
-            callbackUrl,
-          });
-          
-          if (result?.error) {
-            console.error("Erro de autenticação:", result.error);
-            toast({
-              title: "Falha no Login",
-              description: "Verifique suas credenciais de administrador.",
-              variant: "destructive"
-            });
-          } else if (result?.ok) {
-            toast({
-              title: "Login Bem-sucedido!",
-              description: "Redirecionando para o painel de administração...",
-            });
-            router.push(callbackUrl);
-          }
-        } catch (err) {
-          console.error("Erro inesperado no login:", err);
-          toast({
-            title: "Erro Inesperado",
-            description: "Não foi possível conectar ao servidor. Tente novamente.",
-            variant: "destructive"
-          });
-        }
-      }}
+      action={formAction}
       className="space-y-4"
     >
-      {error && (
+      {(formError || (state && !state.success && state.message)) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Falha no Login</AlertTitle>
-          <AlertDescription>Email ou senha de administrador inválidos.</AlertDescription>
+          <AlertDescription>
+            {state?.message || "Email ou senha de administrador inválidos."}
+          </AlertDescription>
         </Alert>
       )}
       <div className="space-y-2">
@@ -86,9 +80,9 @@ export function AdminLoginForm() {
           <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" required />
         </div>
       </div>
-      <Button type="submit" className="w-full">
+      <SubmitButton pendingText="Entrando...">
         Entrar no Painel <LogIn className="ml-2 h-4 w-4" />
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
