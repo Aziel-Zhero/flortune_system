@@ -7,7 +7,6 @@ import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { signIn } from "next-auth/react";
 import { OAuthButton } from "./oauth-button";
@@ -37,15 +36,16 @@ export function LoginForm() {
         </Alert>
       )}
 
-      <form action={async (formData) => {
-        // Ação simplificada: Deixa o next-auth gerenciar o redirecionamento.
-        // Isso garante que a sessão seja atualizada corretamente na página seguinte.
-        await signIn("credentials", {
-          email: formData.get("email"),
-          password: formData.get("password"),
-          callbackUrl, // Informa ao next-auth para onde ir após o sucesso.
-        });
-      }} className="space-y-4">
+      <form 
+        action={async (formData) => {
+          await signIn("credentials", {
+            email: formData.get("email"),
+            password: formData.get("password"),
+            redirectTo: callbackUrl, // Usar redirectTo para forçar o reload
+          });
+        }} 
+        className="space-y-4"
+      >
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
@@ -69,13 +69,22 @@ export function LoginForm() {
           Entrar <LogIn className="ml-2 h-4 w-4" />
         </Button>
       </form>
-      <Separator />
-      <div className="space-y-2">
-         <OAuthButton
-            providerName="Google"
-            buttonText="Entrar com Google"
-          />
+      
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Ou continue com
+          </span>
+        </div>
       </div>
+      
+      <OAuthButton
+        providerName="Google"
+        buttonText="Entrar com Google"
+      />
     </div>
   );
 }

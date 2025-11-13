@@ -1,12 +1,12 @@
 // src/lib/supabase/admin.ts
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-// --- Helper function to check for valid URL ---
+// Helper function to check for valid URL
 function isValidSupabaseUrl(url: string | undefined): url is string {
   return !!url && url.startsWith('http') && !url.includes('<');
 }
 
-// --- Initialize Supabase Admin Client ---
+// Initialize Supabase Admin Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -25,5 +25,4 @@ if (isValidSupabaseUrl(supabaseUrl) && supabaseServiceRoleKey) {
   );
 }
 
-// --- Export the potentially null client ---
-export const supabaseAdmin = supabaseAdminInstance as SupabaseClient;
+export const supabaseAdmin = supabaseAdminInstance;
