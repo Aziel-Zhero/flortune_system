@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, Send, Save, KeyRound } from "lucide-react";
+import { Bot, Send, Save, KeyRound, Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { CodeBlock } from '@/components/shared/code-block';
+import { getIntegration, updateIntegration } from '@/services/integration.service';
 
 interface MessageTemplates {
   newSubscriber: string;
@@ -23,6 +23,9 @@ interface MessageTemplates {
 export default function TelegramPage() {
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [messageTemplates, setMessageTemplates] = useState<MessageTemplates>({
     newSubscriber: "🎉 Novo assinante! O usuário {userName} acabou de assinar o plano {planName}. Parabéns!",
     paymentFailed: "⚠️ Falha de pagamento para o usuário {userName} no plano {planName}. Ação necessária.",
@@ -31,13 +34,34 @@ export default function TelegramPage() {
 
   useEffect(() => {
     document.title = `Integração Telegram - ${APP_NAME}`;
+    
+    async function loadCredentials() {
+        setIsLoading(true);
+        const { data, error } = await getIntegration('telegram');
+        if (error) {
+            toast({ title: "Erro ao carregar credenciais", description: error.message, variant: "destructive" });
+        } else if (data?.credentials) {
+            setBotToken(data.credentials.bot_token || "");
+            setChatId(data.credentials.chat_id || "");
+        }
+        setIsLoading(false);
+    }
+    loadCredentials();
   }, []);
 
-  const handleSaveCredentials = () => {
-    toast({
-      title: "Configuração Salva (Simulação)",
-      description: "As credenciais do bot do Telegram foram salvas com sucesso."
+  const handleSaveCredentials = async () => {
+    setIsSaving(true);
+    const { error } = await updateIntegration({
+        service: 'telegram',
+        credentials: { bot_token: botToken, chat_id: chatId }
     });
+
+    if (error) {
+        toast({ title: "Erro ao Salvar", description: error.message, variant: "destructive" });
+    } else {
+        toast({ title: "Configuração Salva!", description: "As credenciais do bot do Telegram foram salvas com sucesso." });
+    }
+    setIsSaving(false);
   };
 
   const handleSaveMessages = () => {
@@ -56,7 +80,6 @@ export default function TelegramPage() {
   };
   
   const handleTestSend = (template: string) => {
-    // Simula a substituição de variáveis e o envio
     const sampleMessage = template
         .replace('{userName}', 'Alex Green')
         .replace('{planName}', 'Mestre Jardineiro')
@@ -111,24 +134,30 @@ export default function TelegramPage() {
           <div>
             <h3 className="font-semibold mb-2">Passo 3: Configure as Credenciais</h3>
             <div className="space-y-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor="botToken">Token de API do Bot</Label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="botToken" type="password" placeholder="Cole seu token aqui" value={botToken} onChange={(e) => setBotToken(e.target.value)} className="pl-10" />
+             {isLoading ? (
+                <div className="space-y-4"><Loader2 className="h-6 w-6 animate-spin" /><p className="text-sm text-muted-foreground">Carregando credenciais...</p></div>
+             ) : (
+                <>
+                <div className="space-y-2">
+                    <Label htmlFor="botToken">Token de API do Bot</Label>
+                    <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="botToken" type="password" placeholder="Cole seu token aqui" value={botToken} onChange={(e) => setBotToken(e.target.value)} className="pl-10" />
+                    </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="chatId">Seu ID do Chat</Label>
-                <div className="relative">
-                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="chatId" placeholder="Cole seu Chat ID aqui" value={chatId} onChange={(e) => setChatId(e.target.value)} className="pl-10"/>
+                <div className="space-y-2">
+                    <Label htmlFor="chatId">Seu ID do Chat</Label>
+                    <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="chatId" placeholder="Cole seu Chat ID aqui" value={chatId} onChange={(e) => setChatId(e.target.value)} className="pl-10"/>
+                    </div>
                 </div>
-              </div>
-               <Button onClick={handleSaveCredentials}>
-                <Save className="mr-2 h-4 w-4" />
-                Salvar Credenciais
-              </Button>
+                <Button onClick={handleSaveCredentials} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? "Salvando..." : "Salvar Credenciais"}
+                </Button>
+                </>
+             )}
             </div>
           </div>
         </CardContent>
