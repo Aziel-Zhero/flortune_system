@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS public.profiles;
 -- Stores public information for each user. Linked to auth.users by ID.
 CREATE TABLE public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     full_name TEXT,
     display_name TEXT,
     email TEXT UNIQUE NOT NULL,
@@ -29,10 +30,9 @@ CREATE TABLE public.profiles (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.profiles IS 'Stores public-facing profile information for each user.';
+COMMENT ON TABLE public.profiles IS 'Stores public-facing profile information for each user, including their role.';
 
 -- Categories Table
--- Stores transaction categories. Can be default or user-specific.
 CREATE TABLE public.categories (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -47,7 +47,6 @@ CREATE TABLE public.categories (
 COMMENT ON TABLE public.categories IS 'Stores categories for transactions. Default categories have a NULL user_id.';
 
 -- Transactions Table
--- Stores all financial transactions for each user.
 CREATE TABLE public.transactions (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -64,7 +63,6 @@ CREATE TABLE public.transactions (
 COMMENT ON TABLE public.transactions IS 'Records all income and expense transactions for users.';
 
 -- Budgets Table
--- Stores monthly or periodic budgets for specific categories.
 CREATE TABLE public.budgets (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -80,7 +78,6 @@ CREATE TABLE public.budgets (
 COMMENT ON TABLE public.budgets IS 'Defines spending limits for categories over a specific period.';
 
 -- Financial Goals Table
--- Stores user's financial goals.
 CREATE TABLE public.financial_goals (
     id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -97,7 +94,20 @@ CREATE TABLE public.financial_goals (
 COMMENT ON TABLE public.financial_goals IS 'Tracks user financial goals, such as saving for a trip or a large purchase.';
 
 
--- 3. ROW LEVEL SECURITY (RLS) POLICIES
+-- 3. HELPER FUNCTIONS FOR RLS
+-- Helper function to check if the current user is an admin.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin';
+END;
+$$;
+
+-- 4. ROW LEVEL SECURITY (RLS) POLICIES
 -- Enable RLS for all user-data tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
@@ -106,54 +116,48 @@ ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
 
 -- Clear existing policies before creating new ones
+DROP POLICY IF EXISTS "Allow all access to admins" ON public.profiles;
 DROP POLICY IF EXISTS "Users can view their own profile." ON public.profiles;
 DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
 
+DROP POLICY IF EXISTS "Allow all access to admins" ON public.categories;
 DROP POLICY IF EXISTS "Users can view their own and default categories." ON public.categories;
 DROP POLICY IF EXISTS "Users can manage their own categories." ON public.categories;
 
+DROP POLICY IF EXISTS "Allow all access to admins" ON public.transactions;
 DROP POLICY IF EXISTS "Users can manage their own transactions." ON public.transactions;
+
+DROP POLICY IF EXISTS "Allow all access to admins" ON public.budgets;
 DROP POLICY IF EXISTS "Users can manage their own budgets." ON public.budgets;
+
+DROP POLICY IF EXISTS "Allow all access to admins" ON public.financial_goals;
 DROP POLICY IF EXISTS "Users can manage their own financial goals." ON public.financial_goals;
 
--- PROFILES Policies
-CREATE POLICY "Users can view their own profile."
-    ON public.profiles FOR SELECT
-    USING (auth.uid() = id);
 
-CREATE POLICY "Users can update their own profile."
-    ON public.profiles FOR UPDATE
-    USING (auth.uid() = id)
-    WITH CHECK (auth.uid() = id);
+-- PROFILES Policies
+CREATE POLICY "Allow all access to admins" ON public.profiles FOR ALL USING (public.is_admin());
+CREATE POLICY "Users can view their own profile." ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 -- CATEGORIES Policies
-CREATE POLICY "Users can view their own and default categories."
-    ON public.categories FOR SELECT
-    USING (auth.uid() = user_id OR is_default = TRUE);
+CREATE POLICY "Allow all access to admins" ON public.categories FOR ALL USING (public.is_admin());
+CREATE POLICY "Users can view their own and default categories." ON public.categories FOR SELECT USING (auth.uid() = user_id OR is_default = TRUE);
+CREATE POLICY "Users can manage their own categories." ON public.categories FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id AND is_default = FALSE);
 
-CREATE POLICY "Users can manage their own categories."
-    ON public.categories FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id AND is_default = FALSE);
+-- TRANSACTIONS Policies
+CREATE POLICY "Allow all access to admins" ON public.transactions FOR ALL USING (public.is_admin());
+CREATE POLICY "Users can manage their own transactions." ON public.transactions FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
--- TRANSACTIONS, BUDGETS, GOALS Policies (Full control for owner)
-CREATE POLICY "Users can manage their own transactions."
-    ON public.transactions FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+-- BUDGETS Policies
+CREATE POLICY "Allow all access to admins" ON public.budgets FOR ALL USING (public.is_admin());
+CREATE POLICY "Users can manage their own budgets." ON public.budgets FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can manage their own budgets."
-    ON public.budgets FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can manage their own financial goals."
-    ON public.financial_goals FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+-- FINANCIAL_GOALS Policies
+CREATE POLICY "Allow all access to admins" ON public.financial_goals FOR ALL USING (public.is_admin());
+CREATE POLICY "Users can manage their own financial goals." ON public.financial_goals FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 
--- 4. TRIGGERS AND FUNCTIONS
+-- 5. TRIGGERS AND FUNCTIONS
 
 -- Function to create a profile entry when a new user signs up in Supabase Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -162,7 +166,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type, plan_id, has_seen_welcome_message)
+  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type, plan_id, has_seen_welcome_message, role)
   VALUES (
     NEW.id,
     NEW.email,
@@ -171,7 +175,8 @@ BEGIN
     NEW.raw_user_meta_data->>'avatar_url',
     'pessoa', -- Always default to 'pessoa' on signup
     'tier-cultivador', -- Always default to the free plan
-    FALSE
+    FALSE,
+    'user' -- Always default to 'user' role
   );
   RETURN NEW;
 END;
@@ -225,9 +230,8 @@ CREATE TRIGGER handle_updated_at
     EXECUTE FUNCTION public.update_updated_at_column();
 
 
--- 5. SEED DATA (Default Categories)
+-- 6. SEED DATA (Default Categories)
 -- This ensures that every user has a basic set of categories to start with.
--- The user_id is NULL and is_default is TRUE.
 INSERT INTO public.categories (name, type, icon, is_default)
 VALUES
     ('Salário', 'income', 'Wallet', TRUE),
