@@ -1,7 +1,7 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,10 @@ import { signIn } from "next-auth/react";
 import { OAuthButton } from "./oauth-button";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const formError = searchParams.get("error");
-  
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
   return (
     <div className="space-y-6">
       {formError === "OAuthAccountNotLinked" && (
@@ -38,24 +38,19 @@ export function LoginForm() {
       )}
 
       <form action={async (formData) => {
-        const result = await signIn("credentials", {
-          redirect: false,
+        // Ação simplificada: Deixa o next-auth gerenciar o redirecionamento.
+        // Isso garante que a sessão seja atualizada corretamente na página seguinte.
+        await signIn("credentials", {
           email: formData.get("email"),
           password: formData.get("password"),
+          callbackUrl, // Informa ao next-auth para onde ir após o sucesso.
         });
-
-        if (result?.error) {
-          router.push('/login?error=CredentialsSignin');
-        } else {
-          router.push(searchParams.get("callbackUrl") || "/dashboard");
-          router.refresh(); // Force a refresh to fetch the new session
-        }
       }} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10"/>
+            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10" required />
           </div>
         </div>
         <div className="space-y-2">
@@ -67,7 +62,7 @@ export function LoginForm() {
           </div>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" />
+            <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" required />
           </div>
         </div>
         <Button type="submit" className="w-full">
