@@ -3,7 +3,6 @@ import type { NextAuthConfig } from 'next-auth';
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { Profile } from '@/types/database.types';
@@ -22,53 +21,43 @@ export const authConfig: NextAuthConfig = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        // Esta autorização é APENAS para usuários normais, não para admins.
         if (!credentials?.email || !credentials.password) {
-          console.error("Authorize Error: Email or password not provided.");
           return null;
         }
         
         const email = credentials.email as string;
         const password = credentials.password as string;
 
-        if (!supabaseAdmin) {
-          console.error("Authorize Error: Supabase admin client not initialized.");
+        if (!supabaseAdmin) return null;
+
+        // O login via `signIn` com `CredentialsProvider` usa a API do Supabase Auth
+        const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error || !data.user) {
+          console.error("Credentials Authorize Error:", error?.message);
           return null;
         }
 
-        const { data: profile, error } = await supabaseAdmin
+        // Se o login no Supabase Auth for bem-sucedido, buscamos o perfil
+        const { data: profile } = await supabaseAdmin
           .from('profiles')
           .select('*')
-          .eq('email', email)
+          .eq('id', data.user.id)
           .single();
-        
-        // O Supabase retorna um erro se o usuário não for encontrado (com .single()), o que é esperado.
-        if (error && error.code !== 'PGRST116') {
-             console.error("Authorize DB Error:", error.message);
-             return null;
-        }
 
-        if (!profile) {
-            console.error("Authorize Error: Profile not found for email:", email);
-            return null;
-        }
+        if (!profile) return null;
 
-        // A tabela 'profiles' não deveria ter 'hashed_password' conforme o novo schema. A senha está em auth.users
-        // Esta lógica precisa ser reavaliada se o objetivo é usar o sistema de auth do Supabase.
-        // Por agora, vamos simular a validação se a senha for 'password' para permitir o login.
-        if (password === "password" || (profile.hashed_password && await bcrypt.compare(password, profile.hashed_password))) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { hashed_password, ...userProfile } = profile;
-          return {
-            id: userProfile.id,
-            email: userProfile.email,
-            name: userProfile.display_name || userProfile.full_name,
-            image: userProfile.avatar_url,
-            profile: userProfile,
-          };
-        }
-
-        console.error("Authorize Error: Password does not match for email:", email);
-        return null;
+        return {
+          id: profile.id,
+          email: profile.email,
+          name: profile.display_name || profile.full_name,
+          image: profile.avatar_url,
+          profile: profile,
+        };
       },
     }),
   ],
@@ -79,6 +68,14 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
+
+        // Se for um admin logando via a Server Action, o perfil já virá formatado
+        if ((user as any).profile?.role === 'admin') {
+           token.profile = (user as any).profile;
+           return token;
+        }
+
+        // Lógica para usuários normais (Google ou Credentials)
         if ((user as any).profile) {
           token.profile = (user as any).profile;
         } else if (account?.provider === 'google' && user.email) {
@@ -122,7 +119,7 @@ export const authConfig: NextAuthConfig = {
       }
       
       const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
-      if (supabaseJwtSecret && token.sub && token.email) {
+      if (supabaseJwtSecret && token.sub && token.email && token.profile?.role !== 'admin') {
         const payload = {
           aud: "authenticated",
           exp: Math.floor(new Date(session.expires).getTime() / 1000),
@@ -142,4 +139,4 @@ export const authConfig: NextAuthConfig = {
   secret: process.env.AUTH_SECRET,
 };
 
-export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig);
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
