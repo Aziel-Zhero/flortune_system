@@ -59,9 +59,21 @@ export type NavLinkItem = (typeof NAV_LINKS_CONFIG)[number];
 // Correctly extracting icon names for NavLinkItem that are links
 export type NavLinkIconName = Extract<NavLinkItem, { type: "link"; icon: any }>["icon"];
 
+export type PricingTier = {
+  id: string;
+  name: string;
+  href: string;
+  priceMonthly: string;
+  priceAnnotation?: string;
+  description: string;
+  features: string[];
+  featured: boolean;
+  icon: string;
+  stripePriceId: string | null;
+  active?: boolean;
+};
 
-// Pricing Tiers
-export const PRICING_TIERS = [
+export const PRICING_TIERS: PricingTier[] = [
   {
     name: 'Cultivador Consciente',
     id: 'tier-cultivador',
@@ -77,6 +89,7 @@ export const PRICING_TIERS = [
     featured: false,
     icon: "Leaf",
     stripePriceId: null,
+    active: true,
   },
   {
     name: 'Mestre Jardineiro',
@@ -94,6 +107,7 @@ export const PRICING_TIERS = [
     featured: true,
     icon: "Origami",
     stripePriceId: "price_1PMEpLAt9gV2x1d6lXv9z4aO",
+    active: true,
   },
     {
     name: 'Flortune para DEVs',
@@ -111,6 +125,7 @@ export const PRICING_TIERS = [
     featured: false,
     icon: "Code",
     stripePriceId: "price_1PMEqNAt9gV2x1d6mpkQzPno",
+    active: true,
   },
   {
     name: 'Flortune Corporativo',
@@ -128,6 +143,7 @@ export const PRICING_TIERS = [
     featured: false,
     icon: "Briefcase",
     stripePriceId: "price_1PMEr4At9gV2x1d6d8v0yWzG",
+    active: true,
   },
 ];
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
