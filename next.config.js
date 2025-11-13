@@ -23,6 +23,11 @@ const nextConfig = {
       },
     ],
   },
+  env: {
+    NEXTAUTH_URL: process.env.NODE_ENV === 'development'
+      ? 'http://localhost:9003'
+      : `https://flortunez.netlify.app`,
+  },
 };
 
 module.exports = nextConfig;
