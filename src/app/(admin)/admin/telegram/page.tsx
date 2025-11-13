@@ -12,6 +12,7 @@ import { Bot, Send, Save, KeyRound } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import Image from 'next/image';
+import { CodeBlock } from '@/components/shared/code-block';
 
 interface MessageTemplates {
   newSubscriber: string;
