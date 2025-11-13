@@ -26,11 +26,11 @@ async function isAdmin() {
 
 export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<Integration<TelegramCredentials> | null>> {
   if (!await isAdmin()) {
-    return { data: null, error: new Error("Acesso não autorizado.") };
+    return { data: null, error: "Acesso não autorizado." };
   }
   
   if(!supabaseAdmin) {
-    return { data: null, error: new Error("Conexão com o banco de dados não disponível.") };
+    return { data: null, error: "Conexão com o banco de dados não disponível." };
   }
 
   try {
@@ -53,17 +53,17 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
 
   } catch (err: any) {
     console.error(`Error fetching integration for ${service}:`, err);
-    return { data: null, error: new Error(`Falha ao buscar credenciais para ${service}.`) };
+    return { data: null, error: `Falha ao buscar credenciais para ${service}.` };
   }
 }
 
 export async function updateIntegration(data: Integration<TelegramCredentials>): Promise<ServiceResponse<Integration<TelegramCredentials>>> {
   if (!await isAdmin()) {
-    return { data: null, error: new Error("Acesso não autorizado.") };
+    return { data: null, error: "Acesso não autorizado." };
   }
   
   if(!supabaseAdmin) {
-    return { data: null, error: new Error("Conexão com o banco de dados não disponível.") };
+    return { data: null, error: "Conexão com o banco de dados não disponível." };
   }
 
   const { service, credentials } = data;
@@ -85,6 +85,6 @@ export async function updateIntegration(data: Integration<TelegramCredentials>):
 
   } catch (err: any) {
      console.error(`Error updating integration for ${service}:`, err);
-    return { data: null, error: new Error(`Falha ao salvar credenciais para ${service}.`) };
+    return { data: null, error: `Falha ao salvar credenciais para ${service}.` };
   }
 }

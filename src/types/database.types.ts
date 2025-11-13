@@ -4,16 +4,24 @@ export interface Profile {
   full_name?: string | null;
   display_name?: string | null;
   email: string; // Unique
-  hashed_password?: string | null;
-  phone?: string | null;
   avatar_url?: string | null;
   account_type?: 'pessoa' | 'empresa' | null;
   cpf_cnpj?: string | null; // Unique
   rg?: string | null;
   plan_id?: string;
   has_seen_welcome_message?: boolean;
+  role?: 'user' | 'admin';
   created_at: string; // Timestamptz
   updated_at: string; // Timestamptz
+}
+
+export interface AdminProfile {
+    id: string; // UUID, Primary Key
+    full_name?: string | null;
+    email: string; // Unique
+    hashed_password?: string;
+    created_at: string; // Timestamptz
+    updated_at: string; // Timestamptz
 }
 
 export interface Category {
@@ -116,11 +124,11 @@ export interface AuthUser {
 // Generic Service Response Types
 export interface ServiceResponse<T> {
   data: T | null;
-  error: Error | null;
+  error: string | null; // Changed from Error to string
 }
 
 export interface ServiceListResponse<T> {
   data: T[] | null;
-  error: Error | null;
+  error: string | null; // Changed from Error to string
   count?: number | null;
 }
