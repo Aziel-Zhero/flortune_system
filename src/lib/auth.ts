@@ -6,6 +6,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { Profile } from '@/types/database.types';
+import bcrypt from 'bcryptjs';
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -21,28 +22,49 @@ export const authConfig: NextAuthConfig = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        // Esta autorização é APENAS para usuários normais, não para admins.
-        if (!credentials?.email || !credentials.password) {
+        if (!credentials?.email || !credentials.password || !supabaseAdmin) {
           return null;
         }
         
         const email = credentials.email as string;
         const password = credentials.password as string;
 
-        if (!supabaseAdmin) return null;
+        // 1. Tentar fazer login como Administrador primeiro
+        const { data: adminUser } = await supabaseAdmin
+            .from('admins')
+            .select('*')
+            .eq('email', email)
+            .single();
 
-        // O login via `signIn` com `CredentialsProvider` usa a API do Supabase Auth
+        if (adminUser) {
+            const passwordMatches = await bcrypt.compare(password, adminUser.hashed_password);
+            if (passwordMatches) {
+                // É um admin, retorna o perfil de admin
+                return {
+                    id: adminUser.id,
+                    email: adminUser.email,
+                    name: adminUser.full_name,
+                    profile: { // Criando um objeto de perfil compatível
+                        id: adminUser.id,
+                        email: adminUser.email,
+                        display_name: adminUser.full_name,
+                        role: 'admin',
+                    }
+                };
+            }
+        }
+
+        // 2. Se não for admin, tentar fazer login como usuário normal
         const { data, error } = await supabaseAdmin.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error || !data.user) {
-          console.error("Credentials Authorize Error:", error?.message);
-          return null;
+          console.error("Credentials Authorize Error (User):", error?.message);
+          return null; // As credenciais são inválidas para admin e usuário
         }
 
-        // Se o login no Supabase Auth for bem-sucedido, buscamos o perfil
         const { data: profile } = await supabaseAdmin
           .from('profiles')
           .select('*')
@@ -68,42 +90,32 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
-
-        // Se for um admin logando via a Server Action, o perfil já virá formatado
-        if ((user as any).profile?.role === 'admin') {
-           token.profile = (user as any).profile;
-           return token;
-        }
-
-        // Lógica para usuários normais (Google ou Credentials)
         if ((user as any).profile) {
           token.profile = (user as any).profile;
-        } else if (account?.provider === 'google' && user.email) {
-            if (supabaseAdmin) {
-                 const { data: dbProfile } = await supabaseAdmin
+        } else if (account?.provider === 'google' && user.email && supabaseAdmin) {
+            const { data: dbProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+            if (dbProfile) {
+                token.profile = dbProfile;
+            } else {
+                const { data: newProfile } = await supabaseAdmin
                     .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
+                    .insert({
+                        id: user.id,
+                        email: user.email,
+                        display_name: user.name,
+                        full_name: user.name,
+                        avatar_url: user.image,
+                        account_type: 'pessoa',
+                        plan_id: 'tier-cultivador',
+                        has_seen_welcome_message: false,
+                    })
+                    .select()
                     .single();
-                if (dbProfile) {
-                    token.profile = dbProfile;
-                } else {
-                    const { data: newProfile } = await supabaseAdmin
-                        .from('profiles')
-                        .insert({
-                            id: user.id,
-                            email: user.email,
-                            display_name: user.name,
-                            full_name: user.name,
-                            avatar_url: user.image,
-                            account_type: 'pessoa',
-                            plan_id: 'tier-cultivador',
-                            has_seen_welcome_message: false,
-                        })
-                        .select()
-                        .single();
-                    if(newProfile) token.profile = newProfile;
-                }
+                if(newProfile) token.profile = newProfile;
             }
         }
       }
@@ -119,7 +131,8 @@ export const authConfig: NextAuthConfig = {
       }
       
       const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
-      if (supabaseJwtSecret && token.sub && token.email && token.profile?.role !== 'admin') {
+      // Gerar token Supabase apenas para usuários normais
+      if (supabaseJwtSecret && token.sub && token.email && session.user.profile?.role !== 'admin') {
         const payload = {
           aud: "authenticated",
           exp: Math.floor(new Date(session.expires).getTime() / 1000),
