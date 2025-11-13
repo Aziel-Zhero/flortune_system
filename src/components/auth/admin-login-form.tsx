@@ -32,18 +32,35 @@ export function AdminLoginForm() {
   return (
     <form
       action={async (formData) => {
-        const result = await signIn("credentials", {
-          redirect: false, // Não redireciona automaticamente para podermos tratar o erro
-          email: formData.get("email"),
-          password: formData.get("password"),
-          callbackUrl,
-        });
-        if (result?.ok && !result.error) {
-           toast({
-            title: "Login Bem-sucedido!",
-            description: "Redirecionando para o painel de administração...",
+        try {
+          const result = await signIn("credentials", {
+            redirect: false,
+            email: formData.get("email"),
+            password: formData.get("password"),
+            callbackUrl,
           });
-          router.push(callbackUrl);
+          
+          if (result?.error) {
+            console.error("Erro de autenticação:", result.error);
+            toast({
+              title: "Falha no Login",
+              description: "Verifique suas credenciais de administrador.",
+              variant: "destructive"
+            });
+          } else if (result?.ok) {
+            toast({
+              title: "Login Bem-sucedido!",
+              description: "Redirecionando para o painel de administração...",
+            });
+            router.push(callbackUrl);
+          }
+        } catch (err) {
+          console.error("Erro inesperado no login:", err);
+          toast({
+            title: "Erro Inesperado",
+            description: "Não foi possível conectar ao servidor. Tente novamente.",
+            variant: "destructive"
+          });
         }
       }}
       className="space-y-4"

@@ -67,7 +67,7 @@ export function AdminSidebar() {
                   className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity"
                   onClick={closeMobileSidebar}
                 >
-                    <Image src="/assistent.png" alt="Flortune Logo" width={28} height={28} />
+                    <Image src="/assistent.png" alt="Flortune Logo" width={28} height={28} style={{ height: 'auto' }} />
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{`${APP_NAME} WS`}</span>
                 </Link>
             </div>

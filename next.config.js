@@ -7,6 +7,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  compress: false, // Adicionado para corrigir erro de decodificação de conteúdo no login
   images: {
     remotePatterns: [
       {

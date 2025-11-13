@@ -238,7 +238,7 @@ export default function LandingPage() {
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
-              <Image src="/Logo.png" alt="Flortune Logo" width={32} height={32} />
+              <Image src="/Logo.png" alt="Flortune Logo" width={32} height={32} style={{ height: 'auto' }} />
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>
             <nav className="flex items-center gap-2">

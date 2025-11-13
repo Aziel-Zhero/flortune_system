@@ -26,7 +26,7 @@ export function AuthLayout({
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
-            <Image src="/Logo.png" alt="Flortune Logo" width={36} height={36} />
+            <Image src="/Logo.png" alt="Flortune Logo" width={36} height={36} style={{ height: 'auto' }} />
             <h1 className="text-4xl font-headline font-bold">{APP_NAME}</h1>
           </Link>
           <h2 className="mt-4 text-2xl font-semibold font-headline tracking-tight text-foreground">

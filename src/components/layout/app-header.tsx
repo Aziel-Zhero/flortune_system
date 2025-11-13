@@ -51,7 +51,7 @@ export function AppHeader() {
             <span className="sr-only">Abrir menu</span>
           </Button>
           <Link href={logoLink} className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
-            <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
+            <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} style={{ height: 'auto' }} />
             <span className="font-bold text-xl font-headline hidden sm:inline-block">{appTitle}</span>
           </Link>
         </div>
