@@ -338,7 +338,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         const defaultQuotes = ['USD', 'EUR', 'JPY', 'GBP', 'ARS']; // Using codes compatible with exchangerate-api
         const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : defaultQuotes;
         setSelectedQuotesState(initialQuotes);
-        // loadQuotes is called by setSelectedQuotes now
+        loadQuotes(initialQuotes);
         
       } else {
         setIsLoadingQuotes(false);
