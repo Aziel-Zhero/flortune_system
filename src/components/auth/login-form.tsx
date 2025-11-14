@@ -1,90 +1,71 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useForm, type SubmitHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { LogIn, KeyRound, Mail, Loader2 } from "lucide-react";
+import { useFormState, useFormStatus } from "react-dom";
 
-import { supabase } from "@/lib/supabase/client";
+import { loginUser } from "@/app/actions/auth.actions";
+import { LogIn, KeyRound, Mail, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OAuthButton } from "./oauth-button";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { AlertCircle } from "lucide-react";
 
-const loginSchema = z.object({
-  email: z.string().email({ message: "Por favor, insira um email válido." }),
-  password: z.string().min(1, { message: "A senha é obrigatória." }),
-});
 
-type LoginFormInputs = z.infer<typeof loginSchema>;
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+            {pending ? "Entrando..." : "Entrar"}
+        </Button>
+    )
+}
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const formError = searchParams.get("error");
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>({
-    resolver: zodResolver(loginSchema),
-  });
 
   useEffect(() => {
-    if (formError) {
+    if (formError === 'invalid_credentials') {
       toast({
-        title: "Erro de Login",
-        description: "Não foi possível autenticar com o provedor OAuth.",
+        title: "Erro no Login",
+        description: "Credenciais inválidas. Verifique seu e-mail e senha.",
+        variant: "destructive",
+      });
+    } else if (formError) {
+      toast({
+        title: "Erro de Autenticação",
+        description: "Ocorreu um erro. Por favor, tente novamente.",
         variant: "destructive",
       });
     }
   }, [formError]);
 
-  const onSubmit: SubmitHandler<LoginFormInputs> = async (data) => {
-    setIsSubmitting(true);
-
-    if (!supabase) {
-      toast({ title: "Erro de Configuração", description: "O serviço de autenticação não está disponível.", variant: "destructive" });
-      setIsSubmitting(false);
-      return;
-    }
-
-    const { data: authData, error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
-
-    if (error) {
-      toast({
-        title: "Erro no Login",
-        description: error.message === "Invalid login credentials" ? "Credenciais inválidas. Verifique seu e-mail e senha." : "Ocorreu um erro durante o login.",
-        variant: "destructive",
-      });
-    } else if (authData.user) {
-      // Após o login, a sessão será pega pelo onAuthStateChange no AuthProvider.
-      // O AppLayout cuidará do redirecionamento.
-      toast({ title: "Login bem-sucedido!", description: "Redirecionando para o seu painel." });
-      router.push('/dashboard');
-      router.refresh(); // Força a atualização do estado do layout
-    }
-
-    setIsSubmitting(false);
-  };
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+       {formError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro no Login</AlertTitle>
+          <AlertDescription>
+            {formError === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : 'Ocorreu um erro inesperado.'}
+          </AlertDescription>
+        </Alert>
+      )}
+      <form action={loginUser} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="email" type="email" placeholder="nome@exemplo.com" className="pl-10" {...register("email")} />
+            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10" required />
           </div>
-          {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -95,15 +76,10 @@ export function LoginForm() {
           </div>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="password" type="password" placeholder="••••••••" className="pl-10" {...register("password")} />
+            <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" required />
           </div>
-          {errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}
         </div>
-        
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-          {isSubmitting ? "Entrando..." : "Entrar"}
-        </Button>
+        <SubmitButton />
       </form>
       
       <div className="relative">
