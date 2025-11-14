@@ -1,11 +1,11 @@
 -- /---------------------------------------------------------------------------------------\
 -- |                                                                                       |
--- |  ███████╗██╗     ██████╗ ████████╗██╗   ██╗███╗   ██╗███████╗███████╗                    |
--- |  ██╔════╝██║     ██╔══██╗╚══██╔══╝██║   ██║████╗  ██║██╔════╝██╔════╝                    |
--- |  █████╗  ██║     ██████╔╝   ██║   ██║   ██║██╔██╗ ██║█████╗  █████╗                      |
--- |  ██╔══╝  ██║     ██╔══██╗   ██║   ██║   ██║██║╚██╗██║██╔══╝  ██╔══╝                      |
--- |  ██║     ███████╗██║  ██║   ██║   ╚██████╔╝██║ ╚████║███████╗███████╗                    |
--- |  ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝                    |
+-- |   ███████╗██╗      ██████╗ ████████╗██╗   ██╗███╗   ██╗███████╗███████╗                   |
+-- |   ██╔════╝██║      ██╔══██╗╚══██╔══╝██║   ██║████╗  ██║██╔════╝██╔════╝                   |
+-- |   █████╗  ██║      ██████╔╝   ██║   ██║   ██║██╔██╗ ██║█████╗  █████╗                     |
+-- |   ██╔══╝  ██║      ██╔══██╗   ██║   ██║   ██║██║╚██╗██║██╔══╝  ██╔══╝                     |
+-- |   ██║     ███████╗██║  ██║   ██║   ╚██████╔╝██║ ╚████║███████╗███████╗                   |
+-- |   ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝                   |
 -- |                                                                                       |
 -- |  ✅ Script de Banco de Dados Oficial para o Projeto Flortune                            |
 -- |  Este script é projetado para ser IDEMPOTENTE. Isso significa que ele pode ser         |
@@ -16,6 +16,21 @@
 
 -- Habilitar a extensão pgcrypto para usar a função gen_salt.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 0. Função Auxiliar para verificar se um usuário é admin
+-- Definida no início para que possa ser usada nas políticas subsequentes.
+CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = user_id AND role = 'admin'
+  );
+$$;
 
 -- 1. Definição da tabela de Perfis
 -- Esta tabela armazena informações públicas e privadas dos usuários,
@@ -26,7 +41,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     display_name text,
     email text UNIQUE NOT NULL,
     avatar_url text,
-    hashed_password text, -- Adicionado para login com email/senha
     account_type text, -- 'pessoa' ou 'empresa'
     cpf_cnpj text UNIQUE,
     rg text,
@@ -215,18 +229,6 @@ CREATE POLICY "Permitir acesso total para administradores"
 -- Garante que a linha de configuração exista
 INSERT INTO public.telegram (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
--- 10. Função Auxiliar para verificar se um usuário é admin
-CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
-RETURNS boolean
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.profiles
-    WHERE id = user_id AND role = 'admin'
-  );
-$$;
-
 -- Mensagem de finalização
 SELECT '✅ Schema Flortune (usuário) configurado com sucesso.' as status;
+
