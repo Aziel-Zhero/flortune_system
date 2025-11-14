@@ -8,58 +8,6 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { Profile } from '@/types/database.types';
 import bcrypt from 'bcryptjs';
 
-const credentialsProvider = CredentialsProvider({
-  id: "credentials",
-  name: "Credentials",
-  credentials: {
-    email: { label: "Email", type: "email" },
-    password: { label: "Password", type: "password" },
-  },
-  async authorize(credentials) {
-    if (!credentials?.email || !credentials.password || !supabaseAdmin) {
-      console.error("Auth.ts: Invalid credentials or Supabase client missing.");
-      return null;
-    }
-    
-    const email = credentials.email as string;
-    const password = credentials.password as string;
-
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (profileError || !userProfile) {
-      console.error("Auth.ts: User not found or profile error:", profileError?.message);
-      return null;
-    }
-
-    if (!userProfile.hashed_password) {
-      console.error("Auth.ts: User exists but has no password (likely OAuth user).");
-      return null;
-    }
-
-    const passwordMatches = await bcrypt.compare(password, userProfile.hashed_password);
-
-    if (passwordMatches) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { hashed_password, ...safeProfile } = userProfile;
-        return {
-            id: safeProfile.id,
-            email: safeProfile.email,
-            name: safeProfile.display_name || safeProfile.full_name,
-            image: safeProfile.avatar_url,
-            profile: safeProfile, 
-        };
-    }
-    
-    console.error("Auth.ts: Password mismatch for user:", email);
-    return null;
-  },
-});
-
-
 export const authConfig: NextAuthConfig = {
   providers: [
     GoogleProvider({
@@ -67,7 +15,52 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
     }),
-    credentialsProvider,
+    CredentialsProvider({
+      id: "credentials",
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials.password || !supabaseAdmin) {
+          console.error("Auth.ts: Invalid credentials or Supabase client missing.");
+          return null;
+        }
+        
+        const email = credentials.email as string;
+        const password = credentials.password as string;
+
+        const { data: userProfile, error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('email', email)
+          .single();
+
+        if (profileError || !userProfile) {
+          console.error("Auth.ts: User not found or profile error:", profileError?.message);
+          return null;
+        }
+
+        // A tabela 'profiles' não tem mais 'hashed_password'. A verificação é feita no Supabase Auth.
+        // A lógica aqui é simplificada, pois o signup já trata a criação do usuário no Supabase Auth.
+        // Esta autorização é para o login com email/senha de um usuário já existente.
+        const { error: authError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+        
+        if (!authError) {
+             return {
+                id: userProfile.id,
+                email: userProfile.email,
+                name: userProfile.display_name || userProfile.full_name,
+                image: userProfile.avatar_url,
+                profile: userProfile,
+             };
+        }
+        
+        console.error("Auth.ts: Password mismatch or other auth error for user:", email, authError.message);
+        return null;
+      },
+    }),
   ],
   session: {
     strategy: 'jwt',
@@ -93,7 +86,7 @@ export const authConfig: NextAuthConfig = {
       
       const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
       
-      if (supabaseJwtSecret && token.sub && token.email && token.profile?.role !== 'admin') {
+      if (supabaseJwtSecret && token.sub && token.email) {
         const payload = {
           aud: "authenticated",
           exp: Math.floor(new Date(session.expires).getTime() / 1000),

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { redirect } from 'next/navigation';
 import { signIn } from "@/lib/auth";
 import { AuthError } from 'next-auth';
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // --- Login Schema ---
 const loginSchema = z.object({
@@ -36,12 +37,21 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
   const { email, password } = validatedFields.data;
 
   try {
+     // Primeiro, vamos descobrir a role do usuário para saber para onde redirecionar.
+    const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('email', email)
+        .single();
+        
+    const redirectTo = profile?.role === 'admin' ? '/dashboard-admin' : '/dashboard';
+
     await signIn('credentials', {
       email,
       password,
-      redirectTo: '/dashboard',
+      redirectTo,
     });
-    // O signIn com redirectTo lança um erro NEXT_REDIRECT, que não deve ser pego aqui.
+    
     // Se chegar aqui, algo deu errado, mas o NextAuth deve lidar com o erro.
     return { success: true };
   } catch (error) {
@@ -60,7 +70,8 @@ export async function loginUser(prevState: LoginFormState, formData: FormData): 
 
 
 // --- Signup Schema ---
-const passwordSchema = z.string().min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
+const passwordSchema = z.string()
+  .min(8, { message: "A senha deve ter pelo menos 8 caracteres." })
   .regex(/[a-z]/, { message: "A senha deve conter pelo menos uma letra minúscula." })
   .regex(/[A-Z]/, { message: "A senha deve conter pelo menos uma letra maiúscula." })
   .regex(/[0-9]/, { message: "A senha deve conter pelo menos um número." })
@@ -71,16 +82,12 @@ const signupSchema = z.object({
   displayName: z.string().min(2, { message: "O nome de exibição deve ter pelo menos 2 caracteres." }),
   email: z.string().email({ message: "Endereço de email inválido." }),
   password: passwordSchema,
-  confirmPassword: passwordSchema,
   phone: z.string().optional(),
   cpf: z.string().optional(),
   rg: z.string().optional(),
   terms: z.boolean().refine(val => val === true, {
     message: "Você deve aceitar os termos e condições."
   })
-}).refine(data => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
 });
 
 
@@ -91,7 +98,6 @@ export type SignupFormState = {
     displayName?: string[];
     email?: string[];
     password?: string[];
-    confirmPassword?: string[];
     phone?: string[];
     cpf?: string[];
     rg?: string[];
@@ -102,9 +108,44 @@ export type SignupFormState = {
 };
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
-  // A implementação desta função foi removida pois não era o foco da correção.
-  // Em um cenário real, a lógica de signup com Supabase seria mantida aqui.
-  // Por simplicidade, retornamos um erro genérico.
-  console.log("Signup user action called, but it is currently a placeholder.");
+  const validatedFields = signupSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: "Dados de cadastro inválidos.",
+      success: false,
+    };
+  }
+  
+  if (!supabaseAdmin) {
+    return { message: "Serviço de autenticação indisponível.", success: false };
+  }
+
+  const { email, password, fullName, displayName, avatar_url } = validatedFields.data;
+
+  const { data, error } = await supabaseAdmin.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+        display_name: displayName,
+        avatar_url: avatar_url,
+      },
+    },
+  });
+  
+  if (error) {
+    if (error.message.includes("User already registered")) {
+      return { message: "Este endereço de email já está em uso.", success: false, errors: { email: ["Email já cadastrado."] } };
+    }
+    return { message: `Erro no cadastro: ${error.message}`, success: false };
+  }
+  
+  if (data.user && !data.user.identities?.length) {
+    return { message: "Este usuário já existe, mas o email precisa ser confirmado.", success: false, errors: { email: ["Confirmação de email pendente."]}};
+  }
+  
   redirect('/login?signup=success');
 }

@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle } from "lucide-react";
-import { useActionState } from "react";
+import { useFormState } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { OAuthButton } from "./oauth-button";
 import { signupUser, type SignupFormState } from "@/app/actions/auth.actions";
 import { toast } from "@/hooks/use-toast";
+import { SubmitButton } from "./submit-button";
 
 
 const passwordSchema = z.string()
@@ -64,7 +65,8 @@ const passwordRequirements: PasswordRequirement[] = [
 
 export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formState, formAction, isPending] = useActionState(signupUser, { message: "", success: false });
+  const initialState: SignupFormState = { message: "", success: false };
+  const [state, formAction] = useFormState(signupUser, initialState);
 
   const { control, register, watch, formState: { errors } } = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
@@ -79,33 +81,28 @@ export function SignupForm() {
   }));
   
   useEffect(() => {
-    if (formState?.message && !formState.success) {
+    if (state?.message && !state.success) {
       toast({
         title: "Erro no Cadastro",
-        description: formState.message,
+        description: state.message,
         variant: "destructive",
       });
     }
-  }, [formState]);
+  }, [state]);
 
   return (
     <div className="space-y-6">
       <form action={formAction} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="fullName">Nome Completo</Label><Input id="fullName" {...register("fullName")} />{errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}</div>
-              <div className="space-y-2"><Label htmlFor="displayName">Nome de Exibição</Label><Input id="displayName" {...register("displayName")} />{errors.displayName && <p className="text-sm text-destructive mt-1">{errors.displayName.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="fullName">Nome Completo</Label><Input id="fullName" {...register("fullName")} />{(errors.fullName || state?.errors?.fullName) && <p className="text-sm text-destructive mt-1">{errors.fullName?.message || state.errors?.fullName?.[0]}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="displayName">Nome de Exibição</Label><Input id="displayName" {...register("displayName")} />{(errors.displayName || state?.errors?.displayName) && <p className="text-sm text-destructive mt-1">{errors.displayName?.message || state.errors?.displayName?.[0]}</p>}</div>
           </div>
           
-          <div className="space-y-2"><Label htmlFor="email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="email" type="email" {...register("email")} className="pl-10"/></div>{(errors.email || formState?.errors?.email) && <p className="text-sm text-destructive mt-1">{errors.email?.message || formState?.errors?.email?.[0]}</p>}</div>
+          <div className="space-y-2"><Label htmlFor="email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="email" type="email" {...register("email")} className="pl-10"/></div>{(errors.email || state?.errors?.email) && <p className="text-sm text-destructive mt-1">{errors.email?.message || state?.errors?.email?.[0]}</p>}</div>
         
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="space-y-2"><Label htmlFor="cpf">CPF (Opcional)</Label><Input id="cpf" {...register("cpf")} />{errors.cpf && <p className="text-sm text-destructive mt-1">{errors.cpf.message}</p>}</div>
-             <div className="space-y-2"><Label htmlFor="rg">RG (Opcional)</Label><Input id="rg" {...register("rg")} /></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label htmlFor="password">Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="password" type={showPassword ? "text" : "password"} {...register("password")} className="pl-10 pr-10"/><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)}><EyeOff className={cn("h-4 w-4", { "hidden": !showPassword })} /><Eye className={cn("h-4 w-4", { "hidden": showPassword })} /></Button></div>{errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}</div>
-            <div className="space-y-2"><Label htmlFor="confirmPassword">Confirme a Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="confirmPassword" type={showPassword ? "text" : "password"} {...register("confirmPassword")} className="pl-10 pr-10"/><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)} tabIndex={-1}><EyeOff className={cn("h-4 w-4", { "hidden": !showPassword })} /><Eye className={cn("h-4 w-4", { "hidden": showPassword })} /></Button></div>{errors.confirmPassword && <p className="text-sm text-destructive mt-1">{errors.confirmPassword.message}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="password">Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="password" type={showPassword ? "text" : "password"} {...register("password")} className="pl-10 pr-10"/><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)}><EyeOff className={cn("h-4 w-4", { "hidden": !showPassword })} /><Eye className={cn("h-4 w-4", { "hidden": showPassword })} /></Button></div>{(errors.password || state?.errors?.password) && <p className="text-sm text-destructive mt-1">{errors.password?.message || state.errors?.password?.[0]}</p>}</div>
+            <div className="space-y-2"><Label htmlFor="confirmPassword">Confirme a Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="confirmPassword" type={showPassword ? "text" : "password"} {...register("confirmPassword")} className="pl-10 pr-10"/><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)} tabIndex={-1}><EyeOff className={cn("h-4 w-4", { "hidden": !showPassword })} /><Eye className={cn("h-4 w-4", { "hidden": showPassword })} /></Button></div>{(errors.confirmPassword || state?.errors?.confirmPassword) && <p className="text-sm text-destructive mt-1">{errors.confirmPassword?.message || state.errors?.confirmPassword?.[0]}</p>}</div>
           </div>
 
           {passwordValue && (
@@ -121,12 +118,12 @@ export function SignupForm() {
           
           <div className="flex items-center space-x-2">
             <Controller name="terms" control={control} render={({ field }) => (<Checkbox id="terms" checked={field.value} onCheckedChange={field.onChange} />)} />
-            <div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Eu aceito os{" "}<Link href="/terms" className="underline text-primary" target="_blank">Termos de Serviço</Link> e a{" "}<Link href="/policy" className="underline text-primary" target="_blank">Política de Privacidade</Link>.</label>{errors.terms && <p className="text-sm text-destructive">{errors.terms.message}</p>}</div>
+            <div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Eu aceito os{" "}<Link href="/terms" className="underline text-primary" target="_blank">Termos de Serviço</Link> e a{" "}<Link href="/policy" className="underline text-primary" target="_blank">Política de Privacidade</Link>.</label>{(errors.terms || state?.errors?.terms) && <p className="text-sm text-destructive">{errors.terms?.message || state.errors?.terms?.[0]}</p>}</div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Criando conta...' : 'Criar Conta'} <UserPlus className="ml-2 h-4 w-4" />
-          </Button>
+          <SubmitButton pendingText="Criando conta...">
+            Criar Conta <UserPlus className="ml-2 h-4 w-4" />
+          </SubmitButton>
       </form>
       
       <Separator />
