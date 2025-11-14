@@ -2,7 +2,6 @@
 "use server";
 
 import { z } from "zod";
-import { redirect } from 'next/navigation';
 import { signIn } from "@/lib/auth";
 import { AuthError } from 'next-auth';
 
@@ -13,14 +12,19 @@ const loginSchema = z.object({
 });
 
 export type LoginFormState = {
-  errors?: { _form?: string[] };
+  errors?: {
+    email?: string[];
+    password?: string[];
+    _form?: string[];
+  };
   message?: string;
+  success?: boolean;
 };
 
 export async function loginUser(prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
   try {
     await signIn('credentials', Object.fromEntries(formData));
-    return { message: "Success" }; // Should not be reached
+    return { success: true };
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
@@ -51,9 +55,9 @@ export async function adminLogin(prevState: LoginFormState, formData: FormData):
   try {
     await signIn('admin-credentials', {
         ...validatedFields.data,
-        redirectTo: '/dashboard-admin'
+        redirectTo: '/dashboard-admin' // Redireciona para o painel admin
     });
-    return { message: "Success" }; // Should not be reached
+    return { success: true };
   } catch (error) {
      if (error instanceof AuthError) {
       switch (error.type) {
