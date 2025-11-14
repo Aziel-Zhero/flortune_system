@@ -8,18 +8,15 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { Profile } from '@/types/database.types';
 import bcrypt from 'bcryptjs';
 
-// Este é um novo provedor, exclusivo para a Server Action de admin.
-// Ele não é chamado diretamente pelo cliente.
 const adminCredentialsProvider = CredentialsProvider({
   id: "admin-credentials",
   name: "Admin Credentials",
   credentials: {
     email: { label: "Email", type: "email" },
-    // Adicionamos um campo 'role' para garantir que apenas admins possam usar este fluxo
     role: { label: "Role", type: "text" }, 
   },
   async authorize(credentials) {
-    if (credentials?.role === 'admin') {
+    if (credentials?.role === 'admin' && typeof credentials.email === 'string') {
       if (!supabaseAdmin) return null;
       
       const { data: adminUser } = await supabaseAdmin
@@ -29,33 +26,16 @@ const adminCredentialsProvider = CredentialsProvider({
         .single();
       
       if (adminUser) {
-        // Construindo um objeto 'profile' que satisfaz a estrutura esperada
-        const adminProfile: Profile = {
-            id: adminUser.id,
-            email: adminUser.email,
-            display_name: adminUser.full_name,
-            full_name: adminUser.full_name,
-            role: 'admin',
-            account_type: 'pessoa',
-            plan_id: 'tier-corporativo',
-            created_at: adminUser.created_at,
-            updated_at: adminUser.updated_at,
-            avatar_url: null,
-            cpf_cnpj: null,
-            rg: null,
-            has_seen_welcome_message: true,
-            phone: null
-        };
-        
+        // Retorna um objeto simples com a role. O callback JWT cuidará do resto.
         return {
           id: adminUser.id,
           email: adminUser.email,
           name: adminUser.full_name,
-          profile: adminProfile,
+          role: 'admin', // A informação mais importante
         };
       }
     }
-    return null; // Não autoriza se não for um admin
+    return null;
   }
 });
 
@@ -75,16 +55,14 @@ const userCredentialsProvider = CredentialsProvider({
     const email = credentials.email as string;
     const password = credentials.password as string;
 
-    // Primeiro, tentamos o login de usuário normal
     const { data: userData, error: userError } = await supabaseAdmin.from('profiles').select('*').eq('email', email).single();
 
     if (userError || !userData) {
-      console.log("User not found in profiles, trying admins...");
-      return null; // Usuário não encontrado, não tentar como admin aqui.
+      return null;
     }
 
+    // Se o usuário não tiver uma senha (ex: veio do Google), não autorize por aqui.
     if (!userData.hashed_password) {
-      console.error("User from profiles table has no hashed_password.");
       return null;
     }
 
@@ -115,59 +93,50 @@ export const authConfig: NextAuthConfig = {
       allowDangerousEmailAccountLinking: true,
     }),
     userCredentialsProvider,
-    adminCredentialsProvider, // Adicionando o provedor de admin
+    adminCredentialsProvider,
   ],
   session: {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
-        if ((user as any).profile) {
-          token.profile = (user as any).profile;
-        } else if (account?.provider === 'google' && user.email && supabaseAdmin) {
-            const { data: dbProfile } = await supabaseAdmin
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-            if (dbProfile) {
-                token.profile = dbProfile;
-            } else {
-                const { data: newProfile } = await supabaseAdmin
-                    .from('profiles')
-                    .insert({
-                        id: user.id,
-                        email: user.email,
-                        display_name: user.name,
-                        full_name: user.name,
-                        avatar_url: user.image,
-                        account_type: 'pessoa',
-                        plan_id: 'tier-cultivador',
-                        has_seen_welcome_message: false,
-                        role: 'user'
-                    })
-                    .select()
-                    .single();
-                if(newProfile) token.profile = newProfile;
-            }
+
+        // Injeta a role de admin diretamente no token
+        if ((user as any).role === 'admin') {
+            token.role = 'admin';
+            // Cria um perfil 'fake' para o admin para consistência
+            token.profile = {
+                id: user.id,
+                email: user.email,
+                display_name: user.name,
+                full_name: user.name,
+                role: 'admin'
+            } as Profile;
+        } 
+        // Para usuários normais (OAuth ou credentials)
+        else if ((user as any).profile) {
+            token.profile = (user as any).profile;
         }
       }
       return token;
     },
     async session({ session, token }) {
-      if (token.sub) session.user.id = token.sub;
+      if (token.sub) {
+        session.user.id = token.sub;
+      }
       if (token.profile) {
-        session.user.profile = token.profile as Profile & { role?: string };
+        // A role de admin agora virá do token.profile
+        session.user.profile = token.profile as Profile;
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
         session.user.image = session.user.profile.avatar_url || session.user.image;
         session.user.email = session.user.profile.email || session.user.email;
       }
       
       const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
-      // Gerar token Supabase apenas para usuários normais
-      if (supabaseJwtSecret && token.sub && token.email && session.user.profile?.role !== 'admin') {
+      // Garante que admins não recebam um token de acesso do Supabase
+      if (supabaseJwtSecret && token.sub && token.email && token.role !== 'admin') {
         const payload = {
           aud: "authenticated",
           exp: Math.floor(new Date(session.expires).getTime() / 1000),
