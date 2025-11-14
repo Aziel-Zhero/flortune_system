@@ -17,13 +17,13 @@ const credentialsProvider = CredentialsProvider({
   },
   async authorize(credentials) {
     if (!credentials?.email || !credentials.password || !supabaseAdmin) {
+      console.error("Auth.ts: Invalid credentials or Supabase client missing.");
       return null;
     }
     
     const email = credentials.email as string;
     const password = credentials.password as string;
 
-    // Verifica na tabela 'profiles'
     const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('*')
@@ -31,12 +31,12 @@ const credentialsProvider = CredentialsProvider({
       .single();
 
     if (profileError || !userProfile) {
-      console.error("User not found or profile error:", profileError?.message);
+      console.error("Auth.ts: User not found or profile error:", profileError?.message);
       return null;
     }
 
     if (!userProfile.hashed_password) {
-      // Usuário provavelmente se cadastrou via OAuth, não tem senha local.
+      console.error("Auth.ts: User exists but has no password (likely OAuth user).");
       return null;
     }
 
@@ -45,18 +45,16 @@ const credentialsProvider = CredentialsProvider({
     if (passwordMatches) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { hashed_password, ...safeProfile } = userProfile;
-        // Retorna um objeto User compatível com o NextAuth
-        // A role será injetada no token JWT no callback
         return {
             id: safeProfile.id,
             email: safeProfile.email,
             name: safeProfile.display_name || safeProfile.full_name,
             image: safeProfile.avatar_url,
-            // Passamos o perfil completo para ser usado no callback jwt
             profile: safeProfile, 
         };
     }
     
+    console.error("Auth.ts: Password mismatch for user:", email);
     return null;
   },
 });
@@ -76,10 +74,8 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      // Quando um usuário faz login (objeto `user` está presente)
       if (user && (user as any).profile) {
         token.sub = user.id;
-        // Injeta o perfil completo, incluindo a role, no token
         token.profile = (user as any).profile;
       }
       return token;
@@ -97,7 +93,6 @@ export const authConfig: NextAuthConfig = {
       
       const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
       
-      // Gera um token de acesso para o Supabase apenas para usuários normais
       if (supabaseJwtSecret && token.sub && token.email && token.profile?.role !== 'admin') {
         const payload = {
           aud: "authenticated",

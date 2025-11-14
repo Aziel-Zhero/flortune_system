@@ -4,17 +4,14 @@
 import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { LogIn, KeyRound, Mail, AlertCircle } from "lucide-react";
+import { LogIn, KeyRound, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormStatus } from "react-dom";
-import { SubmitButton } from "./submit-button";
 
 
 const adminLoginSchema = z.object({
