@@ -5,6 +5,7 @@ export interface Profile {
   display_name?: string | null;
   email: string; // Unique
   avatar_url?: string | null;
+  hashed_password?: string | null; // Adicionado para suportar login com credenciais
   account_type?: 'pessoa' | 'empresa' | null;
   cpf_cnpj?: string | null; // Unique
   rg?: string | null;
@@ -13,15 +14,6 @@ export interface Profile {
   role?: 'user' | 'admin';
   created_at: string; // Timestamptz
   updated_at: string; // Timestamptz
-}
-
-export interface AdminProfile {
-    id: string; // UUID, Primary Key
-    full_name?: string | null;
-    email: string; // Unique
-    hashed_password?: string;
-    created_at: string; // Timestamptz
-    updated_at: string; // Timestamptz
 }
 
 export interface Category {

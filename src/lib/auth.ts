@@ -31,6 +31,7 @@ export const authConfig: NextAuthConfig = {
         const email = credentials.email as string;
         const password = credentials.password as string;
 
+        // Tenta encontrar o usuário na tabela de perfis normais
         const { data: userProfile, error: profileError } = await supabaseAdmin
           .from('profiles')
           .select('*')
@@ -39,26 +40,31 @@ export const authConfig: NextAuthConfig = {
 
         if (profileError || !userProfile) {
           console.error("Auth.ts: User not found or profile error:", profileError?.message);
-          return null;
+          return null; // Usuário não encontrado
         }
 
-        // A tabela 'profiles' não tem mais 'hashed_password'. A verificação é feita no Supabase Auth.
-        // A lógica aqui é simplificada, pois o signup já trata a criação do usuário no Supabase Auth.
-        // Esta autorização é para o login com email/senha de um usuário já existente.
-        const { error: authError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
-        
-        if (!authError) {
-             return {
-                id: userProfile.id,
-                email: userProfile.email,
-                name: userProfile.display_name || userProfile.full_name,
-                image: userProfile.avatar_url,
-                profile: userProfile,
-             };
+        // Se o perfil não tiver uma senha hash (ex: usuário do OAuth), não pode logar com senha
+        if (!userProfile.hashed_password) {
+            console.error(`Auth.ts: User ${email} does not have a password set.`);
+            return null;
+        }
+
+        const passwordsMatch = await bcrypt.compare(password, userProfile.hashed_password);
+
+        if (passwordsMatch) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { hashed_password, ...safeProfile } = userProfile;
+            return {
+              id: safeProfile.id,
+              email: safeProfile.email,
+              name: safeProfile.display_name || safeProfile.full_name,
+              image: safeProfile.avatar_url,
+              profile: safeProfile, // Passa o perfil completo para o callback jwt
+            };
         }
         
-        console.error("Auth.ts: Password mismatch or other auth error for user:", email, authError.message);
-        return null;
+        console.error("Auth.ts: Password mismatch for user:", email);
+        return null; // Senha incorreta
       },
     }),
   ],
