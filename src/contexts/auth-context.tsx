@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import type { AuthSession } from '@supabase/supabase-js';
 import type { Profile } from '@/types/database.types';
 
@@ -20,11 +20,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const supabase = createClient();
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase) {
+        setIsLoading(false);
+        return;
+    };
+    
     const fetchSession = async () => {
       setIsLoading(true);
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
@@ -86,5 +90,5 @@ export const useSession = () => {
   }
   // Renomeando para evitar conflito com a session interna
   const { session: currentSession, isLoading: isSessionLoading } = context;
-  return { session: currentSession, isLoading: isSessionLoading };
+  return { data: { session: currentSession }, status: isSessionLoading ? 'loading' : (currentSession ? 'authenticated' : 'unauthenticated') };
 };
