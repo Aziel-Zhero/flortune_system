@@ -1,26 +1,9 @@
-import type { DefaultSession, User as NextAuthDefaultUser } from 'next-auth';
-import type { JWT as NextAuthDefaultJWT } from '@auth/core/jwt';
-import type { Profile as CustomAppProfile } from '@/types/database.types';
+// src/types/next-auth.d.ts
 
-// Este arquivo não é mais usado ativamente pela nova arquitetura de autenticação do Supabase,
-// mas é mantido para referência ou se o NextAuth for reintroduzido no futuro.
+// Com a remoção do NextAuth.js em favor da autenticação nativa do Supabase,
+// este arquivo de definição de tipos não é mais necessário.
+// A sessão agora é gerenciada pelo `auth-context.tsx` e seus tipos
+// são derivados diretamente do Supabase.
 
-declare module 'next-auth' {
-  interface Session extends DefaultSession {
-    supabaseAccessToken?: string;
-    user: {
-      id: string;
-      profile: Omit<CustomAppProfile, 'hashed_password'>;
-    } & Omit<DefaultSession['user'], 'id'>;
-  }
-
-  interface User extends NextAuthDefaultUser {
-    profile: Omit<CustomAppProfile, 'hashed_password'>;
-  }
-}
-
-declare module '@auth/core/jwt' {
-  interface JWT extends NextAuthDefaultJWT {
-    profile?: Omit<CustomAppProfile, 'hashed_password'>;
-  }
-}
+// Este arquivo pode ser deletado.
+export {};

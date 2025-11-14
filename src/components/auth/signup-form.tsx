@@ -1,26 +1,24 @@
 // src/components/auth/signup-form.tsx
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import React from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle, Building, FileText, Fingerprint } from "lucide-react";
+import { UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle, Building, FileText, Fingerprint, Loader2 } from "lucide-react";
 
+import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OAuthButton } from "./oauth-button";
-import { signupUser, type SignupFormState } from "@/app/actions/auth.actions";
 import { toast } from "@/hooks/use-toast";
-import { SubmitButton } from "./submit-button";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-
 
 const passwordSchema = z.string()
   .min(8, "A senha deve ter no mínimo 8 caracteres.")
@@ -54,7 +52,6 @@ const signupFormSchema = z.object({
     return true;
 }, { message: "CNPJ é obrigatório para empresa.", path: ["cnpj"]});
 
-
 type SignupFormData = z.infer<typeof signupFormSchema>;
 
 interface PasswordRequirement {
@@ -74,7 +71,7 @@ const passwordRequirements: PasswordRequirement[] = [
 export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { control, register, watch, handleSubmit, formState: { errors } } = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
@@ -92,31 +89,45 @@ export function SignupForm() {
       met: req.regex.test(passwordValue)
   }));
   
-  const processSignup: SubmitHandler<SignupFormData> = (data) => {
-    startTransition(async () => {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
-        }
-      });
-      
-      const result = await signupUser({} as SignupFormState, formData);
+  const processSignup: SubmitHandler<SignupFormData> = async (data) => {
+    setIsSubmitting(true);
 
-      if (result.success) {
-        toast({
-          title: "Cadastro quase concluído!",
-          description: "Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada.",
-        });
-        router.push('/login?signup=success');
-      } else if (result.message) {
-        toast({
-          title: "Erro no Cadastro",
-          description: result.message,
-          variant: "destructive",
-        });
-      }
+    if (!supabase) {
+      toast({ title: "Erro de Configuração", description: "O serviço de autenticação não está disponível.", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: `${location.origin}/api/auth/callback`,
+        data: {
+          full_name: data.fullName,
+          display_name: data.displayName,
+          account_type: data.accountType,
+          cpf_cnpj: data.accountType === 'pessoa' ? data.cpf : data.cnpj,
+          rg: data.rg,
+        },
+      },
     });
+
+    if (error) {
+       toast({
+        title: "Erro no Cadastro",
+        description: error.message.includes("User already registered") ? "Este e-mail já está cadastrado. Tente fazer login." : (error.message || "Ocorreu um erro ao criar a conta."),
+        variant: "destructive",
+      });
+    } else {
+       toast({
+        title: "Cadastro quase concluído!",
+        description: "Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada.",
+      });
+      router.push('/login?signup=success');
+    }
+    
+    setIsSubmitting(false);
   };
 
   return (
@@ -174,15 +185,16 @@ export function SignupForm() {
             <div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Eu aceito os{" "}<Link href="/terms" className="underline text-primary" target="_blank">Termos de Serviço</Link> e a{" "}<Link href="/policy" className="underline text-primary" target="_blank">Política de Privacidade</Link>.</label>{errors.terms && <p className="text-sm text-destructive">{errors.terms.message}</p>}</div>
           </div>
 
-          <SubmitButton pendingText="Criando conta..." disabled={isPending}>
-            Criar Conta <UserPlus className="ml-2 h-4 w-4" />
-          </SubmitButton>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+            {isSubmitting ? "Criando conta..." : "Criar Conta"}
+          </Button>
       </form>
       
       <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou continue com</span></div></div>
       
       <OAuthButton
-        providerName="Google"
+        provider="google"
         buttonText="Inscrever-se com Google"
       />
     </div>

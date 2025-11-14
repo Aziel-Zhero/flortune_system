@@ -1,57 +1,90 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogIn, KeyRound, Mail } from "lucide-react";
-import { useFormState } from "react-dom";
-import { useEffect } from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { LogIn, KeyRound, Mail, Loader2 } from "lucide-react";
 
+import { supabase } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OAuthButton } from "./oauth-button";
-import { loginUser, type LoginFormState } from "@/app/actions/auth.actions";
-import { SubmitButton } from "./submit-button";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
+const loginSchema = z.object({
+  email: z.string().email({ message: "Por favor, insira um email válido." }),
+  password: z.string().min(1, { message: "A senha é obrigatória." }),
+});
+
+type LoginFormInputs = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const formError = searchParams.get("error");
   
-  const initialState: LoginFormState = { message: "" };
-  const [state, formAction] = useFormState(loginUser, initialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>({
+    resolver: zodResolver(loginSchema),
+  });
 
   useEffect(() => {
-    // Erros de OAuth são passados via URL
     if (formError) {
-        toast({
-            title: "Erro de Login",
-            description: "Não foi possível autenticar com o provedor OAuth.",
-            variant: "destructive",
-        });
-    }
-    // Erros da nossa Server Action de login
-    if (state?.message) {
       toast({
-        title: "Erro no Login",
-        description: state.message,
+        title: "Erro de Login",
+        description: "Não foi possível autenticar com o provedor OAuth.",
         variant: "destructive",
       });
     }
-  }, [formError, state]);
+  }, [formError]);
 
+  const onSubmit: SubmitHandler<LoginFormInputs> = async (data) => {
+    setIsSubmitting(true);
+
+    if (!supabase) {
+      toast({ title: "Erro de Configuração", description: "O serviço de autenticação não está disponível.", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) {
+      toast({
+        title: "Erro no Login",
+        description: error.message === "Invalid login credentials" ? "Credenciais inválidas. Verifique seu e-mail e senha." : "Ocorreu um erro durante o login.",
+        variant: "destructive",
+      });
+    } else {
+      // O onAuthStateChange no AuthProvider vai cuidar de pegar o perfil e a sessão.
+      // O redirecionamento será tratado pelo AppLayout.
+      toast({ title: "Login bem-sucedido!", description: "Redirecionando para o seu painel." });
+      router.push('/dashboard');
+      router.refresh(); // Força a atualização do estado do layout
+    }
+
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="space-y-6">
-      <form action={formAction} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10" required />
+            <Input id="email" type="email" placeholder="nome@exemplo.com" className="pl-10" {...register("email")} />
           </div>
-           {state?.errors?.email && <p className="text-sm text-destructive mt-1">{state.errors.email[0]}</p>}
+          {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -62,14 +95,15 @@ export function LoginForm() {
           </div>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" required />
+            <Input id="password" type="password" placeholder="••••••••" className="pl-10" {...register("password")} />
           </div>
-          {state?.errors?.password && <p className="text-sm text-destructive mt-1">{state.errors.password[0]}</p>}
+          {errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}
         </div>
         
-        <SubmitButton pendingText="Entrando...">
-          Entrar <LogIn className="ml-2 h-4 w-4" />
-        </SubmitButton>
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+          {isSubmitting ? "Entrando..." : "Entrar"}
+        </Button>
       </form>
       
       <div className="relative">

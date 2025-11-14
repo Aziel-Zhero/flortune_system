@@ -6,69 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from 'next/navigation';
 
-// --- Esquema de Login Unificado ---
-const loginSchema = z.object({
-  email: z.string().email({ message: "Por favor, insira um email válido." }),
-  password: z.string().min(1, { message: "A senha é obrigatória." }),
-});
-
-export type LoginFormState = {
-  errors?: {
-    email?: string[];
-    password?: string[];
-    _form?: string[];
-  };
-  message?: string;
-};
-
-export async function loginUser(prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
-  const supabase = createClient();
-  
-  const validatedFields = loginSchema.safeParse(Object.fromEntries(formData));
-
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Dados inválidos.",
-    };
-  }
-  
-  const { email, password } = validatedFields.data;
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error("Supabase login error:", error.message);
-    if (error.message.includes("Invalid login credentials")) {
-        return { message: "Credenciais inválidas. Verifique seu e-mail e senha." };
-    }
-    return { message: "Ocorreu um erro durante o login. Tente novamente." };
-  }
-
-  // Se o login for bem-sucedido, precisamos verificar o 'role' para redirecionar.
-  // Usamos o Service Role Client aqui para buscar o perfil de forma segura no servidor.
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('email', email)
-    .single();
-
-  if (profileError) {
-    console.error("Error fetching profile role:", profileError.message);
-    // Redireciona para o dashboard padrão como fallback
-    return redirect('/dashboard');
-  }
-
-  if (profile?.role === 'admin') {
-    return redirect('/dashboard-admin');
-  }
-  
-  return redirect('/dashboard');
-}
-
 
 // --- Esquema de Cadastro de Usuário ---
 const signupFormSchema = z.object({
@@ -98,46 +35,27 @@ export type SignupFormState = {
   success?: boolean;
 };
 
-
-export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
-  const supabase = createClient();
+// Esta função agora é chamada apenas no servidor.
+// O fluxo principal de signup (com senha) será feito no cliente.
+export async function signupUserWithOAuth(provider: 'google') {
   const origin = headers().get('origin');
+  const supabase = createClient();
   
-  const validatedFields = signupFormSchema.safeParse(
-    Object.fromEntries(formData)
-  );
-
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Existem erros no formulário.",
-    };
-  }
-  
-  const { data: validatedData } = validatedFields;
-  
-  const { error } = await supabase.auth.signUp({
-    email: validatedData.email,
-    password: validatedData.password,
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
     options: {
-      emailRedirectTo: `${origin}/api/auth/callback`,
-      data: {
-        full_name: validatedData.fullName,
-        display_name: validatedData.displayName,
-        account_type: validatedData.accountType,
-        cpf_cnpj: validatedData.accountType === 'pessoa' ? validatedData.cpf : validatedData.cnpj,
-        rg: validatedData.rg,
-      }
-    }
+      redirectTo: `${origin}/api/auth/callback`,
+    },
   });
 
   if (error) {
-    if (error.message.includes("User already registered")) {
-      return { message: "Este e-mail já está cadastrado. Tente fazer login." };
-    }
-    console.error("Supabase signup error:", error);
-    return { message: error.message || "Ocorreu um erro ao criar a conta." };
+    console.error('OAuth sign in error:', error);
+    return redirect('/login?error=oauth_failed');
   }
 
-  return redirect('/login?signup=success');
+  return redirect(data.url);
 }
+
+// A função de login com senha foi movida para o lado do cliente (login-form.tsx)
+// A função de cadastro com senha foi movida para o lado do cliente (signup-form.tsx)
+// Mantendo este arquivo caso futuras server actions de auth sejam necessárias.
