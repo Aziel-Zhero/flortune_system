@@ -1,11 +1,13 @@
+// src/components/auth/submit-button.tsx
 "use client";
 
 import { useFormStatus } from "react-dom"; 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 interface SubmitButtonProps extends Omit<ButtonProps, 'children' | 'type' | 'disabled'> {
-  pendingText: string; // Changed from pendingTextKey
+  pendingText: string;
   children: React.ReactNode; 
   className?: string;
 }
@@ -22,7 +24,14 @@ export function SubmitButton({ pendingText, children, className, variant, size, 
       size={size}
       {...props}
     >
-      {pending ? pendingText : children}
+      {pending ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {pendingText}
+        </>
+      ) : (
+        children
+      )}
     </Button>
   );
 }

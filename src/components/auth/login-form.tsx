@@ -4,54 +4,62 @@
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, LogIn, KeyRound, Mail } from "lucide-react";
+import { useFormState } from "react-dom";
+import { useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { signIn } from "next-auth/react";
 import { OAuthButton } from "./oauth-button";
+import { loginUser, type LoginFormState } from "@/app/actions/auth.actions";
+import { SubmitButton } from "./submit-button";
+import { toast } from "@/hooks/use-toast";
+
 
 export function LoginForm() {
   const searchParams = useSearchParams();
   const formError = searchParams.get("error");
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  
+  const initialState: LoginFormState = { message: "", success: false };
+  const [state, formAction] = useFormState(loginUser, initialState);
+
+  useEffect(() => {
+    if (formError === "OAuthAccountNotLinked") {
+        toast({
+            title: "Email já em uso",
+            description: "Este email já foi usado com outro método de login. Tente entrar com o método original.",
+            variant: "destructive",
+        });
+    }
+    if (state?.message && !state.success) {
+      toast({
+        title: "Erro no Login",
+        description: state.message,
+        variant: "destructive",
+      });
+    }
+  }, [formError, state]);
+
 
   return (
     <div className="space-y-6">
-      {formError === "OAuthAccountNotLinked" && (
-         <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Email já em uso</AlertTitle>
-            <AlertDescription>
-                Este email já foi usado com outro método de login. Tente entrar com o método original.
-            </AlertDescription>
-         </Alert>
-      )}
-
-      {formError === "CredentialsSignin" && (
+      {state?.errors?._form && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Erro no Login</AlertTitle>
-          <AlertDescription>Email ou senha inválidos. Por favor, tente novamente.</AlertDescription>
+          <AlertTitle>Erro</AlertTitle>
+          <AlertDescription>{state.errors._form.join(', ')}</AlertDescription>
         </Alert>
       )}
 
-      <form 
-        action={async (formData) => {
-          await signIn("credentials", {
-            email: formData.get("email"),
-            password: formData.get("password"),
-            redirectTo: callbackUrl, // Usar redirectTo para forçar o reload
-          });
-        }} 
-        className="space-y-4"
-      >
+      <form action={formAction} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10" required />
           </div>
+           {state?.errors?.email && <p className="text-sm text-destructive mt-1">{state.errors.email[0]}</p>}
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -64,10 +72,12 @@ export function LoginForm() {
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" required />
           </div>
+          {state?.errors?.password && <p className="text-sm text-destructive mt-1">{state.errors.password[0]}</p>}
         </div>
-        <Button type="submit" className="w-full">
+        
+        <SubmitButton pendingText="Entrando...">
           Entrar <LogIn className="ml-2 h-4 w-4" />
-        </Button>
+        </SubmitButton>
       </form>
       
       <div className="relative">
