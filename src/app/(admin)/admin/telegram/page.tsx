@@ -39,10 +39,10 @@ export default function TelegramPage() {
         setIsLoading(true);
         const { data, error } = await getIntegration('telegram');
         if (error) {
-            toast({ title: "Erro ao carregar credenciais", description: error.message, variant: "destructive" });
-        } else if (data?.credentials) {
-            setBotToken(data.credentials.bot_token || "");
-            setChatId(data.credentials.chat_id || "");
+            toast({ title: "Erro ao carregar credenciais", description: error, variant: "destructive" });
+        } else if (data) {
+            setBotToken(data.bot_token || "");
+            setChatId(data.chat_id || "");
         }
         setIsLoading(false);
     }
@@ -52,12 +52,12 @@ export default function TelegramPage() {
   const handleSaveCredentials = async () => {
     setIsSaving(true);
     const { error } = await updateIntegration({
-        service: 'telegram',
-        credentials: { bot_token: botToken, chat_id: chatId }
+        bot_token: botToken, 
+        chat_id: chatId 
     });
 
     if (error) {
-        toast({ title: "Erro ao Salvar", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao Salvar", description: error, variant: "destructive" });
     } else {
         toast({ title: "Configuração Salva!", description: "As credenciais do bot do Telegram foram salvas com sucesso." });
     }

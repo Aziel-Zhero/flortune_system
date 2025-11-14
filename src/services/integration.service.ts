@@ -10,21 +10,14 @@ interface TelegramCredentials {
     chat_id: string;
 }
 
-interface Integration<T> {
-  service: string;
-  credentials: T;
-}
-
 // Verifica se o usuário autenticado é um administrador.
 async function isAdmin() {
   const session = await auth();
-  // Se não houver sessão ou perfil, não é admin.
   if (!session?.user?.profile) return false;
-  // A role 'admin' é definida no momento do login do admin.
   return session.user.profile.role === 'admin';
 }
 
-export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<Integration<TelegramCredentials> | null>> {
+export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<TelegramCredentials | null>> {
   if (!await isAdmin()) {
     return { data: null, error: "Acesso não autorizado." };
   }
@@ -35,21 +28,16 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
 
   try {
     const { data, error } = await supabaseAdmin
-        .from('integrations')
-        .select('credentials')
-        .eq('service_name', service)
+        .from('telegram')
+        .select('bot_token, chat_id')
+        .eq('id', 1)
         .single();
         
-    if (error && error.code !== 'PGRST116') { // PGRST116: no rows found, which is not a critical error
+    if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
         throw error;
     }
     
-    if (data) {
-        return { data: { service, credentials: data.credentials as TelegramCredentials }, error: null };
-    } else {
-        // Retorna credenciais vazias se não houver registro, para preencher o formulário
-        return { data: { service, credentials: { bot_token: '', chat_id: ''} }, error: null };
-    }
+    return { data: data as TelegramCredentials | null, error: null };
 
   } catch (err: any) {
     console.error(`Error fetching integration for ${service}:`, err);
@@ -57,7 +45,7 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
   }
 }
 
-export async function updateIntegration(data: Integration<TelegramCredentials>): Promise<ServiceResponse<Integration<TelegramCredentials>>> {
+export async function updateIntegration(credentials: TelegramCredentials): Promise<ServiceResponse<TelegramCredentials>> {
   if (!await isAdmin()) {
     return { data: null, error: "Acesso não autorizado." };
   }
@@ -66,25 +54,24 @@ export async function updateIntegration(data: Integration<TelegramCredentials>):
     return { data: null, error: "Conexão com o banco de dados não disponível." };
   }
 
-  const { service, credentials } = data;
-
   try {
     const { data: updatedData, error } = await supabaseAdmin
-        .from('integrations')
-        .upsert({
-            service_name: service,
-            credentials,
+        .from('telegram')
+        .update({
+            bot_token: credentials.bot_token,
+            chat_id: credentials.chat_id,
             updated_at: new Date().toISOString()
         })
+        .eq('id', 1)
         .select()
         .single();
 
     if (error) throw error;
     
-    return { data: { service, credentials: updatedData.credentials as TelegramCredentials }, error: null };
+    return { data: updatedData as TelegramCredentials, error: null };
 
   } catch (err: any) {
-     console.error(`Error updating integration for ${service}:`, err);
-    return { data: null, error: `Falha ao salvar credenciais para ${service}.` };
+     console.error(`Error updating integration for telegram:`, err);
+    return { data: null, error: `Falha ao salvar credenciais para o Telegram.` };
   }
 }
