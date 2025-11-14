@@ -1,11 +1,11 @@
 -- /---------------------------------------------------------------------------------------\
 -- |                                                                                       |
--- |   ███████╗██╗      ██████╗ ████████╗██╗   ██╗███╗   ██╗███████╗███████╗                   |
--- |   ██╔════╝██║      ██╔══██╗╚══██╔══╝██║   ██║████╗  ██║██╔════╝██╔════╝                   |
--- |   █████╗  ██║      ██████╔╝   ██║   ██║   ██║██╔██╗ ██║█████╗  █████╗                     |
--- |   ██╔══╝  ██║      ██╔══██╗   ██║   ██║   ██║██║╚██╗██║██╔══╝  ██╔══╝                     |
--- |   ██║     ███████╗██║  ██║   ██║   ╚██████╔╝██║ ╚████║███████╗███████╗                   |
--- |   ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝                   |
+-- |  ███████╗██╗     ██████╗ ████████╗██╗   ██╗███╗   ██╗███████╗███████╗                    |
+-- |  ██╔════╝██║     ██╔══██╗╚══██╔══╝██║   ██║████╗  ██║██╔════╝██╔════╝                    |
+-- |  █████╗  ██║     ██████╔╝   ██║   ██║   ██║██╔██╗ ██║█████╗  █████╗                      |
+-- |  ██╔══╝  ██║     ██╔══██╗   ██║   ██║   ██║██║╚██╗██║██╔══╝  ██╔══╝                      |
+-- |  ██║     ███████╗██║  ██║   ██║   ╚██████╔╝██║ ╚████║███████╗███████╗                    |
+-- |  ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝                    |
 -- |                                                                                       |
 -- |  ✅ Script de Banco de Dados Oficial para o Projeto Flortune                            |
 -- |  Este script é projetado para ser IDEMPOTENTE. Isso significa que ele pode ser         |
@@ -14,27 +14,12 @@
 -- |                                                                                       |
 -- \---------------------------------------------------------------------------------------/
 
--- Habilitar a extensão pgcrypto para usar a função gen_salt.
+-- Habilita extensões necessárias.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
--- 0. Função Auxiliar para verificar se um usuário é admin
--- Definida no início para que possa ser usada nas políticas subsequentes.
-CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
-RETURNS boolean
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.profiles
-    WHERE id = user_id AND role = 'admin'
-  );
-$$;
-
--- 1. Definição da tabela de Perfis
--- Esta tabela armazena informações públicas e privadas dos usuários,
--- estendendo a tabela auth.users do Supabase.
+-- 1. Definição e Alteração da Tabela de Perfis (EXECUTADO PRIMEIRO)
+-- Garante que a tabela 'profiles' e a coluna 'role' existam antes de qualquer dependência.
 CREATE TABLE IF NOT EXISTS public.profiles (
     id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name text,
@@ -50,23 +35,32 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
--- Adiciona a coluna 'role' se ela não existir, sem quebrar o script em re-execuções.
+-- Adiciona a coluna 'role' de forma segura.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user' NOT NULL;
 
 
--- 2. Gatilho (Trigger) para Sincronizar Novos Usuários
--- Quando um novo usuário é criado na tabela auth.users (seja por OAuth, Magic Link ou signup),
--- esta função é acionada para criar um registro correspondente na tabela public.profiles.
+-- 2. Função Auxiliar para verificar se um usuário é admin (EXECUTADO APÓS A TABELA)
+-- Esta função agora pode ser criada sem erros, pois a coluna 'role' já existe.
+CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = user_id AND role = 'admin'
+  );
+$$;
+
+-- 3. Gatilho (Trigger) para Sincronizar Novos Usuários
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY DEFINER -- Importante para permitir que a função acesse auth.users
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Insere um novo perfil para o novo usuário.
-  -- A cláusula ON CONFLICT previne erros se o perfil já existir (raro, mas seguro)
-  -- e atualiza os campos básicos para garantir a sincronização.
   INSERT INTO public.profiles (id, email, full_name, display_name, avatar_url, role)
   VALUES (
     NEW.id,
@@ -74,7 +68,7 @@ BEGIN
     NEW.raw_user_meta_data->>'full_name',
     NEW.raw_user_meta_data->>'display_name',
     NEW.raw_user_meta_data->>'avatar_url',
-    'user' -- Todo novo usuário começa com a role 'user'.
+    'user'
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
@@ -83,14 +77,13 @@ BEGIN
 END;
 $$;
 
--- Aplica o gatilho à tabela auth.users.
--- Ele será disparado após cada nova inserção de usuário.
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 3. Políticas de Segurança (Row Level Security - RLS) para a Tabela de Perfis
+
+-- 4. Políticas de Segurança (Row Level Security - RLS) para a Tabela de Perfis
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Usuários podem ver seus próprios perfis." ON public.profiles;
@@ -104,8 +97,6 @@ CREATE POLICY "Usuários podem atualizar seus próprios perfis."
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
--- Permite que a Server Action de signup (que usa a anon key) insira um perfil.
--- A lógica de negócio (ex: email duplicado) é tratada na action, não no banco.
 DROP POLICY IF EXISTS "Permitir inserção anônima para cadastro." ON public.profiles;
 CREATE POLICY "Permitir inserção anônima para cadastro."
   ON public.profiles FOR INSERT
@@ -113,7 +104,7 @@ CREATE POLICY "Permitir inserção anônima para cadastro."
   WITH CHECK (true);
 
 
--- 4. Tabela de Categorias
+-- 5. Tabela de Categorias
 CREATE TABLE IF NOT EXISTS public.categories (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -132,7 +123,7 @@ CREATE POLICY "Usuários podem gerenciar suas próprias categorias e ver as padr
   USING (auth.uid() = user_id OR is_default = true);
 
 
--- 5. Tabela de Transações
+-- 6. Tabela de Transações
 CREATE TABLE IF NOT EXISTS public.transactions (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -153,7 +144,7 @@ CREATE POLICY "Usuários podem gerenciar suas próprias transações."
   ON public.transactions FOR ALL
   USING (auth.uid() = user_id);
 
--- 6. Tabela de Orçamentos
+-- 7. Tabela de Orçamentos
 CREATE TABLE IF NOT EXISTS public.budgets (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -172,7 +163,7 @@ CREATE POLICY "Usuários podem gerenciar seus próprios orçamentos."
   ON public.budgets FOR ALL
   USING (auth.uid() = user_id);
 
--- 7. Tabela de Metas Financeiras
+-- 8. Tabela de Metas Financeiras
 CREATE TABLE IF NOT EXISTS public.financial_goals (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -193,7 +184,7 @@ CREATE POLICY "Usuários podem gerenciar suas próprias metas financeiras."
   ON public.financial_goals FOR ALL
   USING (auth.uid() = user_id);
   
--- 8. Tabela de Tarefas (To-Do)
+-- 9. Tabela de Tarefas (To-Do)
 CREATE TABLE IF NOT EXISTS public.todos (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -210,7 +201,7 @@ CREATE POLICY "Usuários podem gerenciar suas próprias tarefas."
     ON public.todos FOR ALL
     USING (auth.uid() = user_id);
     
--- 9. Tabela de Integração com Telegram
+-- 10. Tabela de Integração com Telegram
 CREATE TABLE IF NOT EXISTS public.telegram (
     id integer NOT NULL PRIMARY KEY,
     bot_token text,
@@ -220,15 +211,16 @@ CREATE TABLE IF NOT EXISTS public.telegram (
 
 ALTER TABLE public.telegram ENABLE ROW LEVEL SECURITY;
 
+-- Esta política agora funciona, pois a função is_admin() já foi definida.
 DROP POLICY IF EXISTS "Permitir acesso total para administradores" ON public.telegram;
 CREATE POLICY "Permitir acesso total para administradores"
     ON public.telegram FOR ALL
     USING (public.is_admin(auth.uid()))
     WITH CHECK (public.is_admin(auth.uid()));
 
--- Garante que a linha de configuração exista
+-- Garante que a linha de configuração exista.
 INSERT INTO public.telegram (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
 
 -- Mensagem de finalização
 SELECT '✅ Schema Flortune (usuário) configurado com sucesso.' as status;
-
