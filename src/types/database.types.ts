@@ -5,7 +5,8 @@ export interface Profile {
   display_name?: string | null;
   email: string; // Unique
   avatar_url?: string | null;
-  hashed_password?: string | null; // Adicionado para suportar login com credenciais
+  // A senha hashed não deve ser armazenada aqui, é tratada pelo Supabase Auth.
+  // Removendo hashed_password deste tipo de interface.
   account_type?: 'pessoa' | 'empresa' | null;
   cpf_cnpj?: string | null; // Unique
   rg?: string | null;

@@ -11,7 +11,7 @@ declare module 'next-auth' {
     supabaseAccessToken?: string;
     user: {
       id: string;
-      profile?: CustomAppProfile; // Tornamos não-opcional e garantimos que a role esteja lá
+      profile: Omit<CustomAppProfile, 'hashed_password'>; // Tornamos não-opcional e garantimos que a role esteja lá
     } & Omit<DefaultSession['user'], 'id'>;
   }
 
@@ -19,15 +19,13 @@ declare module 'next-auth' {
    * O objeto User retornado pela função `authorize` ou pelo callback `profile` dos provedores OAuth.
    */
   interface User extends NextAuthDefaultUser {
-    profile?: CustomAppProfile;
-    role?: 'admin' | 'user'; // Adicionamos a role aqui
+    profile: Omit<CustomAppProfile, 'hashed_password'>;
   }
 }
 
 declare module '@auth/core/jwt' {
   /** O token JWT que é armazenado no cookie da sessão. */
   interface JWT extends NextAuthDefaultJWT {
-    profile?: CustomAppProfile;
-    role?: 'admin' | 'user'; // E aqui
+    profile?: Omit<CustomAppProfile, 'hashed_password'>;
   }
 }
