@@ -20,9 +20,8 @@ const adminCredentialsProvider = CredentialsProvider({
   },
   async authorize(credentials) {
     if (credentials?.role === 'admin') {
-      // A validação da senha já foi feita na Server Action.
-      // Aqui, apenas buscamos os dados para criar a sessão.
       if (!supabaseAdmin) return null;
+      
       const { data: adminUser } = await supabaseAdmin
         .from('admins')
         .select('*')
@@ -30,16 +29,29 @@ const adminCredentialsProvider = CredentialsProvider({
         .single();
       
       if (adminUser) {
+        // Construindo um objeto 'profile' que satisfaz a estrutura esperada
+        const adminProfile: Profile = {
+            id: adminUser.id,
+            email: adminUser.email,
+            display_name: adminUser.full_name,
+            full_name: adminUser.full_name,
+            role: 'admin',
+            account_type: 'pessoa',
+            plan_id: 'tier-corporativo',
+            created_at: adminUser.created_at,
+            updated_at: adminUser.updated_at,
+            avatar_url: null,
+            cpf_cnpj: null,
+            rg: null,
+            has_seen_welcome_message: true,
+            phone: null
+        };
+        
         return {
           id: adminUser.id,
           email: adminUser.email,
           name: adminUser.full_name,
-          profile: {
-            id: adminUser.id,
-            email: adminUser.email,
-            display_name: adminUser.full_name,
-            role: 'admin',
-          }
+          profile: adminProfile,
         };
       }
     }
@@ -63,31 +75,34 @@ const userCredentialsProvider = CredentialsProvider({
     const email = credentials.email as string;
     const password = credentials.password as string;
 
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Primeiro, tentamos o login de usuário normal
+    const { data: userData, error: userError } = await supabaseAdmin.from('profiles').select('*').eq('email', email).single();
 
-    if (error || !data.user) {
-      console.error("Credentials Authorize Error (User):", error?.message);
+    if (userError || !userData) {
+      console.log("User not found in profiles, trying admins...");
+      return null; // Usuário não encontrado, não tentar como admin aqui.
+    }
+
+    if (!userData.hashed_password) {
+      console.error("User from profiles table has no hashed_password.");
       return null;
     }
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
+    const passwordMatches = await bcrypt.compare(password, userData.hashed_password);
 
-    if (!profile) return null;
-
-    return {
-      id: profile.id,
-      email: profile.email,
-      name: profile.display_name || profile.full_name,
-      image: profile.avatar_url,
-      profile: profile,
-    };
+    if (passwordMatches) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { hashed_password, ...safeProfile } = userData;
+        return {
+            id: safeProfile.id,
+            email: safeProfile.email,
+            name: safeProfile.display_name || safeProfile.full_name,
+            image: safeProfile.avatar_url,
+            profile: safeProfile,
+        };
+    }
+    
+    return null;
   },
 });
 
@@ -131,6 +146,7 @@ export const authConfig: NextAuthConfig = {
                         account_type: 'pessoa',
                         plan_id: 'tier-cultivador',
                         has_seen_welcome_message: false,
+                        role: 'user'
                     })
                     .select()
                     .single();
@@ -143,7 +159,7 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
       if (token.profile) {
-        session.user.profile = token.profile as Omit<Profile, 'hashed_password'> & { role?: string }; // Adicionando role opcional
+        session.user.profile = token.profile as Profile & { role?: string };
         session.user.name = session.user.profile.display_name || session.user.profile.full_name || session.user.name;
         session.user.image = session.user.profile.avatar_url || session.user.image;
         session.user.email = session.user.profile.email || session.user.email;
