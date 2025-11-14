@@ -2,12 +2,11 @@
 "use server";
 
 import { z } from "zod";
-import { signIn } from "@/lib/auth";
-import { AuthError } from 'next-auth';
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
+import { redirect } from 'next/navigation';
 
-// --- Login de Usuário ---
+// --- Esquema de Login Unificado ---
 const loginSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um email válido." }),
   password: z.string().min(1, { message: "A senha é obrigatória." }),
@@ -20,30 +19,58 @@ export type LoginFormState = {
     _form?: string[];
   };
   message?: string;
-  success?: boolean;
 };
 
 export async function loginUser(prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
-  try {
-    await signIn('credentials', { 
-      ...Object.fromEntries(formData),
-      redirectTo: '/dashboard'
-    });
-    return { success: true };
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return { message: 'Credenciais inválidas.' };
-        default:
-          return { message: 'Ocorreu um erro durante o login.' };
-      }
-    }
-    throw error;
+  const supabase = createClient();
+  
+  const validatedFields = loginSchema.safeParse(Object.fromEntries(formData));
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: "Dados inválidos.",
+    };
   }
+  
+  const { email, password } = validatedFields.data;
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    console.error("Supabase login error:", error.message);
+    if (error.message.includes("Invalid login credentials")) {
+        return { message: "Credenciais inválidas. Verifique seu e-mail e senha." };
+    }
+    return { message: "Ocorreu um erro durante o login. Tente novamente." };
+  }
+
+  // Se o login for bem-sucedido, precisamos verificar o 'role' para redirecionar.
+  // Usamos o Service Role Client aqui para buscar o perfil de forma segura no servidor.
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('email', email)
+    .single();
+
+  if (profileError) {
+    console.error("Error fetching profile role:", profileError.message);
+    // Redireciona para o dashboard padrão como fallback
+    return redirect('/dashboard');
+  }
+
+  if (profile?.role === 'admin') {
+    return redirect('/dashboard-admin');
+  }
+  
+  return redirect('/dashboard');
 }
 
-// --- Cadastro de Usuário ---
+
+// --- Esquema de Cadastro de Usuário ---
 const signupFormSchema = z.object({
   fullName: z.string().min(2, { message: "O nome completo é obrigatório." }),
   displayName: z.string().min(2, { message: "O nome de exibição é obrigatório." }),
@@ -73,6 +100,9 @@ export type SignupFormState = {
 
 
 export async function signupUser(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
+  const supabase = createClient();
+  const origin = headers().get('origin');
+  
   const validatedFields = signupFormSchema.safeParse(
     Object.fromEntries(formData)
   );
@@ -84,19 +114,12 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     };
   }
   
-  if (!supabaseAdmin) {
-    return { message: "Serviço de autenticação indisponível." };
-  }
-  
-  const origin = headers().get('origin');
-  
   const { data: validatedData } = validatedFields;
   
-  const { data, error } = await supabaseAdmin.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email: validatedData.email,
     password: validatedData.password,
     options: {
-      // O email de confirmação será enviado para esta URL
       emailRedirectTo: `${origin}/api/auth/callback`,
       data: {
         full_name: validatedData.fullName,
@@ -104,8 +127,6 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
         account_type: validatedData.accountType,
         cpf_cnpj: validatedData.accountType === 'pessoa' ? validatedData.cpf : validatedData.cnpj,
         rg: validatedData.rg,
-        // Garante que o gatilho no banco não precise de um `hashed_password`
-        // A senha real é tratada com segurança pelo Supabase Auth.
       }
     }
   });
@@ -118,11 +139,5 @@ export async function signupUser(prevState: SignupFormState, formData: FormData)
     return { message: error.message || "Ocorreu um erro ao criar a conta." };
   }
 
-  if (!data.session && data.user) {
-    // Caso a confirmação de e-mail esteja ativada, o usuário é criado mas não há sessão.
-    // Este é o cenário de sucesso esperado.
-    return { success: true, message: "Cadastro realizado! Verifique seu e-mail." };
-  }
-
-  return { success: true };
+  return redirect('/login?signup=success');
 }

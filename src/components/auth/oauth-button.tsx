@@ -1,11 +1,11 @@
 // src/components/auth/oauth-button.tsx
 "use client";
 import { Button } from "@/components/ui/button";
-import { signIn } from 'next-auth/react';
-import { useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Provider } from '@supabase/supabase-js';
 
 interface OAuthButtonProps {
-  providerName: "Google"; // Limit to supported providers
+  provider: Provider;
   buttonText: string;
 }
 
@@ -15,12 +15,16 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export function OAuthButton({ providerName, buttonText }: OAuthButtonProps) {
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+export function OAuthButton({ provider, buttonText }: OAuthButtonProps) {
+  const supabase = createClient();
 
-  const handleSignIn = () => {
-    signIn(providerName.toLowerCase(), { callbackUrl });
+  const handleSignIn = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${location.origin}/api/auth/callback`,
+      },
+    });
   };
 
   return (

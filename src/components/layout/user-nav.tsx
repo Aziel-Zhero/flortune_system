@@ -4,8 +4,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { signOut } from "next-auth/react";
 import { useSession } from "@/contexts/auth-context";
+import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,28 +29,32 @@ interface UserNavProps {
 
 export function UserNav({ isAdmin = false }: UserNavProps) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const supabase = createClient();
+  const { session } = useSession();
   const user = session?.user;
   const profile = user?.profile;
   
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   
-  const displayName = profile?.display_name || user?.name || "Usuário";
-  const userEmail = profile?.email || user?.email || "";
-  const avatarUrl = profile?.avatar_url || user?.image;
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
+  const userEmail = user?.email || "";
+  const avatarUrl = profile?.avatar_url;
   const fallbackInitial = displayName?.charAt(0).toUpperCase() || 'U';
-
 
   const handleLogout = async () => {
     toast({ title: "Saindo...", description: "Você está sendo desconectado."});
-    const logoutUrl = isAdmin ? '/login-admin' : '/login';
-    await signOut({ redirect: false });
-    router.push(logoutUrl);
+    await supabase.auth.signOut();
+    router.push('/login'); // Redireciona após o logout
+    router.refresh(); // Força a atualização da página para limpar o estado
   };
   
   const profileUrl = isAdmin ? '/admin/profile' : '/profile';
   const settingsUrl = isAdmin ? '/admin/settings' : '/settings';
+
+  if (!user) {
+    return null; // Não renderiza nada se não houver usuário
+  }
 
   return (
     <>

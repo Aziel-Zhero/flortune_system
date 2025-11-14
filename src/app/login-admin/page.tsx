@@ -1,45 +1,20 @@
 // src/app/login-admin/page.tsx
-import { Suspense } from 'react';
-import { AuthLayout } from "@/components/auth/auth-layout";
-import { AdminLoginForm } from "@/components/auth/admin-login-form";
-import { APP_NAME } from "@/lib/constants";
-import type { Metadata } from 'next';
-import { Skeleton } from '@/components/ui/skeleton';
+"use client";
 
-export const metadata: Metadata = {
-  title: `Acesso Administrativo - ${APP_NAME}`,
-};
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-function LoginFormSkeleton() {
+// Esta página agora é obsoleta, pois o login foi unificado.
+// Redirecionando para a página de login principal.
+export default function ObsoleteAdminLoginPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/login");
+  }, [router]);
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-1/4" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-1/4" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <Skeleton className="h-10 w-full" />
-      </div>
+    <div>
+      <p>Redirecionando para a página de login...</p>
     </div>
-  );
-}
-
-export default function AdminLoginPage() {
-  return (
-    <AuthLayout
-      title="Acesso Administrativo"
-      description={`Use suas credenciais de administrador para acessar o workspace.`}
-      footerText="Não é um administrador?"
-      footerLinkText="Voltar para o login"
-      footerLinkHref="/login"
-    >
-      <Suspense fallback={<LoginFormSkeleton />}>
-        <AdminLoginForm />
-      </Suspense>
-    </AuthLayout>
   );
 }
