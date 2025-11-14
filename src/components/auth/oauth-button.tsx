@@ -1,8 +1,8 @@
 // src/components/auth/oauth-button.tsx
 "use client";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import { Provider } from '@supabase/supabase-js';
+import { supabase } from "@/lib/supabase/client";
+import { type Provider } from '@supabase/supabase-js';
 
 interface OAuthButtonProps {
   provider: Provider;
@@ -16,9 +16,11 @@ const GoogleIcon = () => (
 );
 
 export function OAuthButton({ provider, buttonText }: OAuthButtonProps) {
-  const supabase = createClient();
-
   const handleSignIn = async () => {
+    if (!supabase) {
+        console.error("Supabase client is not available.");
+        return;
+    }
     await supabase.auth.signInWithOAuth({
       provider,
       options: {

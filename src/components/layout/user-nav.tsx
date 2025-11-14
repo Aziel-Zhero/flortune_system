@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useSession } from "@/contexts/auth-context";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +29,6 @@ interface UserNavProps {
 
 export function UserNav({ isAdmin = false }: UserNavProps) {
   const router = useRouter();
-  const supabase = createClient();
   const { session } = useSession();
   const user = session?.user;
   const profile = user?.profile;
@@ -43,6 +42,11 @@ export function UserNav({ isAdmin = false }: UserNavProps) {
   const fallbackInitial = displayName?.charAt(0).toUpperCase() || 'U';
 
   const handleLogout = async () => {
+    if (!supabase) {
+        console.error("Supabase client is not available for logout.");
+        // Fallback or show error
+        return;
+    }
     toast({ title: "Saindo...", description: "Você está sendo desconectado."});
     await supabase.auth.signOut();
     router.push('/login'); // Redireciona após o logout
