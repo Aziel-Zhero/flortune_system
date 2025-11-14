@@ -6,7 +6,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { Profile } from '@/types/database.types';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -16,7 +16,7 @@ export const authConfig: NextAuthConfig = {
       allowDangerousEmailAccountLinking: true,
     }),
     CredentialsProvider({
-      id: "credentials", // Para usuários normais
+      id: "credentials",
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -36,6 +36,7 @@ export const authConfig: NextAuthConfig = {
         const passwordsMatch = await bcrypt.compare(credentials.password as string, userProfile.hashed_password);
 
         if (passwordsMatch) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hashed_password, ...safeProfile } = userProfile;
             return {
               id: safeProfile.id,
@@ -49,7 +50,7 @@ export const authConfig: NextAuthConfig = {
       },
     }),
     CredentialsProvider({
-      id: "admin-credentials", // Provedor separado para admins
+      id: "admin-credentials",
       name: "Admin Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -85,10 +86,22 @@ export const authConfig: NextAuthConfig = {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user && (user as any).profile) {
+    async jwt({ token, user, account, profile }) {
+      if (user) {
         token.sub = user.id;
-        token.profile = (user as any).profile;
+        if ((user as any).profile) {
+            token.profile = (user as any).profile;
+        } else if (account?.provider === 'google' && profile && supabaseAdmin) {
+            // Se for login com Google, busca/cria o perfil no banco.
+            const { data: dbProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+            if (dbProfile) {
+                token.profile = dbProfile;
+            }
+        }
       }
       return token;
     },
