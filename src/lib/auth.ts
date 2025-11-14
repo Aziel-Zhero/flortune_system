@@ -36,7 +36,6 @@ export const authConfig: NextAuthConfig = {
         const passwordsMatch = await bcrypt.compare(credentials.password as string, userProfile.hashed_password);
 
         if (passwordsMatch) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hashed_password, ...safeProfile } = userProfile;
             return {
               id: safeProfile.id,
@@ -92,7 +91,6 @@ export const authConfig: NextAuthConfig = {
         if ((user as any).profile) {
             token.profile = (user as any).profile;
         } else if (account?.provider === 'google' && profile && supabaseAdmin) {
-            // Se for login com Google, busca/cria o perfil no banco.
             const { data: dbProfile } = await supabaseAdmin
                 .from('profiles')
                 .select('*')
