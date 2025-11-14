@@ -1,288 +1,257 @@
--- FLORTUNE - DATABASE SCHEMA
--- This script is designed to be idempotent and can be re-run safely.
+-- ### ESQUEMA NEXT-AUTH ###
+-- Este esquema é necessário para o @auth/supabase-adapter
 
--- 1. EXTENSIONS
--- Enable UUID generation
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+-- Criar o schema se não existir
+CREATE SCHEMA IF NOT EXISTS next_auth;
 
--- 2. TABLE CREATION
--- Drop tables in reverse order of dependency to avoid foreign key conflicts on re-run.
-DROP TABLE IF EXISTS public.financial_goals;
-DROP TABLE IF EXISTS public.budgets;
-DROP TABLE IF EXISTS public.todos;
-DROP TABLE IF EXISTS public.transactions;
-DROP TABLE IF EXISTS public.categories;
-DROP TABLE IF EXISTS public.profiles;
-
--- User Profiles Table
--- Stores public information for each user. Linked to auth.users by ID.
-CREATE TABLE public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    full_name TEXT,
-    display_name TEXT,
-    email TEXT UNIQUE NOT NULL,
-    avatar_url TEXT,
-    account_type TEXT CHECK (account_type IN ('pessoa', 'empresa')),
-    cpf_cnpj TEXT UNIQUE,
-    rg TEXT,
-    plan_id TEXT DEFAULT 'tier-cultivador',
-    has_seen_welcome_message BOOLEAN DEFAULT FALSE,
-    role TEXT DEFAULT 'user' NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Tabela de Usuários do NextAuth
+CREATE TABLE IF NOT EXISTS next_auth.users (
+  id uuid NOT NULL,
+  name text NULL,
+  email text NULL,
+  "emailVerified" timestamptz NULL,
+  image text NULL,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_email_key UNIQUE (email)
 );
-COMMENT ON TABLE public.profiles IS 'Stores public-facing profile information for each user, including user role.';
 
--- Categories Table
--- Stores transaction categories. Can be default or user-specific.
-CREATE TABLE public.categories (
-    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
-    icon TEXT,
-    is_default BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+-- Tabela de Contas do NextAuth
+CREATE TABLE IF NOT EXISTS next_auth.accounts (
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  "userId" uuid NOT NULL,
+  type text NOT NULL,
+  provider text NOT NULL,
+  "providerAccountId" text NOT NULL,
+  refresh_token text NULL,
+  access_token text NULL,
+  expires_at int8 NULL,
+  token_type text NULL,
+  scope text NULL,
+  id_token text NULL,
+  session_state text NULL,
+  CONSTRAINT accounts_pkey PRIMARY KEY (id),
+  CONSTRAINT "accounts_provider_providerAccountId_key" UNIQUE (provider, "providerAccountId"),
+  CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
+);
+
+-- Tabela de Sessões do NextAuth
+CREATE TABLE IF NOT EXISTS next_auth.sessions (
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  "sessionToken" text NOT NULL,
+  "userId" uuid NOT NULL,
+  expires timestamptz NOT NULL,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT "sessions_sessionToken_key" UNIQUE ("sessionToken"),
+  CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
+);
+
+-- Tabela de Verificação de Tokens do NextAuth
+CREATE TABLE IF NOT EXISTS next_auth.verification_tokens (
+  identifier text NOT NULL,
+  token text NOT NULL,
+  expires timestamptz NOT NULL,
+  CONSTRAINT verification_tokens_pkey PRIMARY KEY (identifier, token)
+);
+
+
+-- ### ESQUEMA DA APLICAÇÃO (PUBLIC) ###
+
+-- Tabela de Perfis de Usuários
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id uuid NOT NULL,
+    full_name text,
+    display_name text,
+    email text UNIQUE NOT NULL,
+    avatar_url text,
+    account_type text, -- 'pessoa' ou 'empresa'
+    cpf_cnpj text UNIQUE,
+    rg text,
+    phone text,
+    plan_id text DEFAULT 'tier-cultivador',
+    has_seen_welcome_message boolean DEFAULT false,
+    role text DEFAULT 'user'::text NOT NULL, -- Adicionada coluna de role
+    hashed_password text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT profiles_pkey PRIMARY KEY (id),
+    CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+COMMENT ON COLUMN public.profiles.role IS 'Define o nível de acesso do usuário (ex: user, admin)';
+
+
+-- Tabela de Categorias
+CREATE TABLE IF NOT EXISTS public.categories (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    type text NOT NULL, -- 'income' ou 'expense'
+    icon text,
+    is_default boolean DEFAULT false,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
     UNIQUE(user_id, name, type)
 );
-COMMENT ON TABLE public.categories IS 'Stores categories for transactions. Default categories have a NULL user_id.';
 
--- Transactions Table
--- Stores all financial transactions for each user.
-CREATE TABLE public.transactions (
-    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
-    description TEXT NOT NULL,
-    amount NUMERIC(12, 2) NOT NULL,
-    date DATE NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
-    notes TEXT,
-    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Tabela de Transações
+CREATE TABLE IF NOT EXISTS public.transactions (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL,
+    description text NOT NULL,
+    amount real NOT NULL,
+    date date NOT NULL,
+    type text NOT NULL, -- 'income' ou 'expense'
+    notes text,
+    is_recurring boolean DEFAULT false,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
 );
-COMMENT ON TABLE public.transactions IS 'Records all income and expense transactions for users.';
 
--- Budgets Table
--- Stores monthly or periodic budgets for specific categories.
-CREATE TABLE public.budgets (
-    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
-    limit_amount NUMERIC(12, 2) NOT NULL,
-    spent_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
-    period_start_date DATE NOT NULL,
-    period_end_date DATE NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_budget_period UNIQUE (user_id, category_id, period_start_date, period_end_date)
+-- Tabela de Orçamentos
+CREATE TABLE IF NOT EXISTS public.budgets (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    category_id uuid NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
+    limit_amount real NOT NULL,
+    spent_amount real DEFAULT 0 NOT NULL,
+    period_start_date date NOT NULL,
+    period_end_date date NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    UNIQUE(user_id, category_id, period_start_date)
 );
-COMMENT ON TABLE public.budgets IS 'Defines spending limits for categories over a specific period.';
 
--- Financial Goals Table
--- Stores user's financial goals.
-CREATE TABLE public.financial_goals (
-    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    target_amount NUMERIC(12, 2) NOT NULL,
-    current_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
-    deadline_date DATE,
-    icon TEXT,
-    status TEXT NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'achieved', 'cancelled')),
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Tabela de Metas Financeiras
+CREATE TABLE IF NOT EXISTS public.financial_goals (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    target_amount real NOT NULL,
+    current_amount real DEFAULT 0 NOT NULL,
+    deadline_date date,
+    icon text,
+    status text DEFAULT 'in_progress' NOT NULL, -- 'in_progress', 'achieved', 'cancelled'
+    notes text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
 );
-COMMENT ON TABLE public.financial_goals IS 'Tracks user financial goals, such as saving for a trip or a large purchase.';
 
--- To-Do Table
-CREATE TABLE public.todos (
-    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    description TEXT NOT NULL,
-    is_completed BOOLEAN NOT NULL DEFAULT FALSE,
-    due_date DATE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Tabela de Lista de Tarefas (Todos)
+CREATE TABLE IF NOT EXISTS public.todos (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    description text NOT NULL,
+    is_completed boolean DEFAULT false,
+    due_date date,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
 );
-COMMENT ON TABLE public.todos IS 'A simple to-do list for each user.';
 
--- Telegram Integration Table
+-- Tabela para Integrações (Telegram)
 CREATE TABLE IF NOT EXISTS public.telegram (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    bot_token TEXT,
-    chat_id TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    id smallint PRIMARY KEY DEFAULT 1,
+    bot_token text,
+    chat_id text,
+    updated_at timestamptz DEFAULT now(),
+    CONSTRAINT only_one_row CHECK (id = 1)
 );
-COMMENT ON TABLE public.telegram IS 'Stores credentials for Telegram bot integration.';
-
--- Ensure only one row exists for Telegram settings
-CREATE UNIQUE INDEX IF NOT EXISTS telegram_singleton_idx ON public.telegram ((true));
-INSERT INTO public.telegram (id) VALUES (1) ON CONFLICT ((true)) DO NOTHING;
 
 
--- 3. FUNCTIONS & TRIGGERS
--- Function to check if a user is an admin
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.admins WHERE id = auth.uid()
-  );
-$$;
+-- ### TRIGGERS E POLÍTICAS DE SEGURANÇA (RLS) ###
 
--- Enable RLS for all user-data tables
+-- Função para sincronizar `profiles` com `auth.users`
+CREATE OR REPLACE FUNCTION public.handle_new_user_from_next_auth()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Insere um novo perfil quando um novo usuário é adicionado em auth.users (via OAuth)
+  -- A cláusula ON CONFLICT garante que se um perfil já foi criado (via signup manual), ele será atualizado.
+  INSERT INTO public.profiles (id, email, full_name, display_name, avatar_url, account_type, has_seen_welcome_message, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'full_name',
+    NEW.raw_user_meta_data->>'display_name',
+    NEW.raw_user_meta_data->>'avatar_url',
+    COALESCE(NEW.raw_user_meta_data->>'account_type', 'pessoa'),
+    false, -- Define como false para novos usuários
+    'user' -- Define a role padrão
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(public.profiles.full_name, EXCLUDED.full_name),
+    display_name = COALESCE(public.profiles.display_name, EXCLUDED.display_name),
+    avatar_url = COALESCE(public.profiles.avatar_url, EXCLUDED.avatar_url);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- Trigger que chama a função acima quando um novo usuário é inserido em auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_from_next_auth();
+
+
+-- Habilitar Row Level Security (RLS) para as tabelas
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
-
--- Clear existing policies before creating new ones
-DROP POLICY IF EXISTS "Admin has full access, users can view their own profile." ON public.profiles;
-DROP POLICY IF EXISTS "Admin can do anything, users can update their own profile." ON public.profiles;
-
-DROP POLICY IF EXISTS "Admin has full access, users can view their own and default categories." ON public.categories;
-DROP POLICY IF EXISTS "Admin has full access, users can manage their own categories." ON public.categories;
-
-DROP POLICY IF EXISTS "Admin has full access, users can manage their own transactions." ON public.transactions;
-DROP POLICY IF EXISTS "Admin has full access, users can manage their own budgets." ON public.budgets;
-DROP POLICY IF EXISTS "Admin has full access, users can manage their own financial goals." ON public.financial_goals;
-DROP POLICY IF EXISTS "Admin has full access, users can manage their own todos." ON public.todos;
+ALTER TABLE public.telegram ENABLE ROW LEVEL SECURITY;
 
 
--- PROFILES Policies
-CREATE POLICY "Admin has full access, users can view their own profile."
-    ON public.profiles FOR SELECT
-    USING (public.is_admin() OR auth.uid() = id);
+-- Políticas de RLS para a tabela de Perfis
+DROP POLICY IF EXISTS "Allow individual user access to their own profile" ON public.profiles;
+CREATE POLICY "Allow individual user access to their own profile"
+  ON public.profiles FOR ALL
+  USING (auth.uid() = id);
 
-CREATE POLICY "Admin can do anything, users can update their own profile."
-    ON public.profiles FOR UPDATE
-    USING (public.is_admin() OR auth.uid() = id)
-    WITH CHECK (public.is_admin() OR auth.uid() = id);
-
--- CATEGORIES Policies
-CREATE POLICY "Admin has full access, users can view their own and default categories."
-    ON public.categories FOR SELECT
-    USING (public.is_admin() OR auth.uid() = user_id OR is_default = TRUE);
-
-CREATE POLICY "Admin has full access, users can manage their own categories."
-    ON public.categories FOR ALL
-    USING (public.is_admin() OR auth.uid() = user_id)
-    WITH CHECK (public.is_admin() OR (auth.uid() = user_id AND is_default = FALSE));
-
--- GENERIC Policies for other tables (Full control for owner OR admin)
-CREATE POLICY "Admin has full access, users can manage their own transactions."
-    ON public.transactions FOR ALL
-    USING (public.is_admin() OR auth.uid() = user_id)
-    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
-
-CREATE POLICY "Admin has full access, users can manage their own budgets."
-    ON public.budgets FOR ALL
-    USING (public.is_admin() OR auth.uid() = user_id)
-    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
-
-CREATE POLICY "Admin has full access, users can manage their own financial goals."
-    ON public.financial_goals FOR ALL
-    USING (public.is_admin() OR auth.uid() = user_id)
-    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
-
-CREATE POLICY "Admin has full access, users can manage their own todos."
-    ON public.todos FOR ALL
-    USING (public.is_admin() OR auth.uid() = user_id)
-    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
+DROP POLICY IF EXISTS "Allow anon to insert their own profile on signup" ON public.profiles;
+CREATE POLICY "Allow anon to insert their own profile on signup"
+  ON public.profiles FOR INSERT
+  TO anon
+  WITH CHECK (true);
 
 
--- 4. TRIGGERS AND FUNCTIONS
+-- Políticas de RLS para as outras tabelas
+DROP POLICY IF EXISTS "Allow individual user access to their categories" ON public.categories;
+CREATE POLICY "Allow individual user access to their categories" ON public.categories FOR ALL USING (auth.uid() = user_id);
 
--- Function to create a profile entry when a new user signs up in Supabase Auth
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type, plan_id, has_seen_welcome_message, role)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    NEW.raw_user_meta_data->>'display_name',
-    NEW.raw_user_meta_data->>'full_name',
-    NEW.raw_user_meta_data->>'avatar_url',
-    'pessoa', -- Always default to 'pessoa' on signup
-    'tier-cultivador', -- Always default to the free plan
-    FALSE,
-    'user' -- Default role for new users
-  );
-  RETURN NEW;
-END;
-$$;
+DROP POLICY IF EXISTS "Allow individual user access to their transactions" ON public.transactions;
+CREATE POLICY "Allow individual user access to their transactions" ON public.transactions FOR ALL USING (auth.uid() = user_id);
 
--- Trigger to call the function on new user creation
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_new_user();
+DROP POLICY IF EXISTS "Allow individual user access to their budgets" ON public.budgets;
+CREATE POLICY "Allow individual user access to their budgets" ON public.budgets FOR ALL USING (auth.uid() = user_id);
 
--- Function to automatically update `updated_at` columns
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+DROP POLICY IF EXISTS "Allow individual user access to their financial goals" ON public.financial_goals;
+CREATE POLICY "Allow individual user access to their financial goals" ON public.financial_goals FOR ALL USING (auth.uid() = user_id);
 
--- Triggers for `updated_at`
-DROP TRIGGER IF EXISTS handle_updated_at ON public.profiles;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+DROP POLICY IF EXISTS "Allow individual user access to their todos" ON public.todos;
+CREATE POLICY "Allow individual user access to their todos" ON public.todos FOR ALL USING (auth.uid() = user_id);
 
-DROP TRIGGER IF EXISTS handle_updated_at ON public.categories;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+-- Política para a tabela telegram: apenas admins podem acessar
+DROP POLICY IF EXISTS "Allow admins to access telegram integration" ON public.telegram;
+CREATE POLICY "Allow admins to access telegram integration"
+  ON public.telegram FOR ALL
+  USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
 
-DROP TRIGGER IF EXISTS handle_updated_at ON public.transactions;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-DROP TRIGGER IF EXISTS handle_updated_at ON public.budgets;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-DROP TRIGGER IF EXISTS handle_updated_at ON public.financial_goals;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.financial_goals FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-DROP TRIGGER IF EXISTS handle_updated_at ON public.todos;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-DROP TRIGGER IF EXISTS handle_updated_at ON public.telegram;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.telegram FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-
--- 5. SEED DATA (Default Categories)
--- This ensures that every user has a basic set of categories to start with.
--- The user_id is NULL and is_default is TRUE.
-INSERT INTO public.categories (name, type, icon, is_default)
-VALUES
-    ('Salário', 'income', 'Wallet', TRUE),
-    ('Freelance', 'income', 'Briefcase', TRUE),
-    ('Investimentos', 'income', 'TrendingUp', TRUE),
-    ('Outras Receitas', 'income', 'DollarSign', TRUE),
-    ('Moradia', 'expense', 'Home', TRUE),
-    ('Alimentação', 'expense', 'UtensilsCrossed', TRUE),
-    ('Transporte', 'expense', 'Car', TRUE),
-    ('Lazer', 'expense', 'GlassWater', TRUE),
-    ('Saúde', 'expense', 'HeartPulse', TRUE),
-    ('Educação', 'expense', 'BookOpen', TRUE),
-    ('Compras', 'expense', 'ShoppingBag', TRUE),
-    ('Contas e Serviços', 'expense', 'Receipt', TRUE),
-    ('Impostos', 'expense', 'Landmark', TRUE),
-    ('Outras Despesas', 'expense', 'MoreHorizontal', TRUE)
+-- Inserir categorias padrão se não existirem
+INSERT INTO public.categories (name, type, icon, is_default) VALUES
+  ('Salário', 'income', 'DollarSign', true),
+  ('Freelance', 'income', 'Briefcase', true),
+  ('Investimentos', 'income', 'TrendingUp', true),
+  ('Outras Receitas', 'income', 'PlusCircle', true),
+  ('Moradia', 'expense', 'Home', true),
+  ('Alimentação', 'expense', 'Utensils', true),
+  ('Transporte', 'expense', 'Car', true),
+  ('Lazer', 'expense', 'GlassWater', true),
+  ('Saúde', 'expense', 'HeartPulse', true),
+  ('Educação', 'expense', 'BookOpen', true),
+  ('Contas', 'expense', 'FileText', true),
+  ('Compras', 'expense', 'ShoppingBag', true),
+  ('Viagens', 'expense', 'Plane', true),
+  ('Outras Despesas', 'expense', 'MinusCircle', true)
 ON CONFLICT (user_id, name, type) DO NOTHING;

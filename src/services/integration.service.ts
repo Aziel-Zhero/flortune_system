@@ -14,6 +14,7 @@ interface TelegramCredentials {
 async function isAdmin() {
   const session = await auth();
   if (!session?.user?.profile) return false;
+  // A verificação agora é feita na coluna 'role' da tabela 'profiles'
   return session.user.profile.role === 'admin';
 }
 
@@ -57,12 +58,12 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
   try {
     const { data: updatedData, error } = await supabaseAdmin
         .from('telegram')
-        .update({
+        .upsert({
+            id: 1, // Garante que estamos sempre atualizando a mesma linha
             bot_token: credentials.bot_token,
             chat_id: credentials.chat_id,
             updated_at: new Date().toISOString()
         })
-        .eq('id', 1)
         .select()
         .single();
 
