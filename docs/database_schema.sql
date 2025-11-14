@@ -12,20 +12,9 @@ DROP TABLE IF EXISTS public.budgets;
 DROP TABLE IF EXISTS public.todos;
 DROP TABLE IF EXISTS public.transactions;
 DROP TABLE IF EXISTS public.categories;
-DROP TABLE IF EXISTS public.integrations; -- Drop new table
-DROP TABLE IF EXISTS public.admins;
+DROP TABLE IF EXISTS public.integrations; -- Drop integrations table
+DROP TABLE IF EXISTS public.admins; -- Drop admins table
 DROP TABLE IF EXISTS public.profiles;
-
--- Admins Table (Separate from users)
-CREATE TABLE public.admins (
-    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    email TEXT UNIQUE NOT NULL,
-    hashed_password TEXT NOT NULL,
-    full_name TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-COMMENT ON TABLE public.admins IS 'Stores credentials and information for system administrators.';
 
 -- User Profiles Table
 -- Stores public information for each user. Linked to auth.users by ID.
@@ -40,10 +29,35 @@ CREATE TABLE public.profiles (
     rg TEXT,
     plan_id TEXT DEFAULT 'tier-cultivador',
     has_seen_welcome_message BOOLEAN DEFAULT FALSE,
+    role TEXT DEFAULT 'user' NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE public.profiles IS 'Stores public-facing profile information for each user.';
+COMMENT ON TABLE public.profiles IS 'Stores public-facing profile information for each user, including user role.';
+
+-- Admins Table
+-- Stores credentials for system administrators.
+CREATE TABLE public.admins (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    email TEXT NOT NULL UNIQUE,
+    full_name TEXT,
+    hashed_password TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE public.admins IS 'Stores login credentials and information for system administrators.';
+
+-- Integrations Table
+-- Stores credentials and settings for third-party service integrations.
+CREATE TABLE public.integrations (
+    service_name TEXT PRIMARY KEY,
+    credentials JSONB,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE public.integrations IS 'Stores API keys and settings for third-party integrations like Telegram.';
+
 
 -- Categories Table
 -- Stores transaction categories. Can be default or user-specific.
@@ -122,16 +136,6 @@ CREATE TABLE public.todos (
 );
 COMMENT ON TABLE public.todos IS 'A simple to-do list for each user.';
 
--- Integrations Table
-CREATE TABLE public.integrations (
-    service_name TEXT PRIMARY KEY,
-    credentials JSONB NOT NULL,
-    is_enabled BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-COMMENT ON TABLE public.integrations IS 'Stores credentials and settings for third-party integrations.';
-
 
 -- 3. FUNCTIONS & TRIGGERS
 -- Function to check if a user is an admin
@@ -141,11 +145,11 @@ LANGUAGE sql
 SECURITY DEFINER
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM public.admins WHERE id = auth.uid()
+    SELECT 1 FROM public.admins WHERE email = (SELECT email FROM auth.users WHERE id = auth.uid())
   );
 $$;
 
--- Enable RLS for all user-data tables
+-- Enable RLS for all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
@@ -156,63 +160,69 @@ ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.integrations ENABLE ROW LEVEL SECURITY;
 
 -- Clear existing policies before creating new ones
-DROP POLICY IF EXISTS "Admin has full access" ON public.admins;
-DROP POLICY IF EXISTS "Admin has full access" ON public.integrations;
-DROP POLICY IF EXISTS "Users can view their own profile." ON public.profiles;
-DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
-DROP POLICY IF EXISTS "Users can view their own and default categories." ON public.categories;
-DROP POLICY IF EXISTS "Users can manage their own categories." ON public.categories;
-DROP POLICY IF EXISTS "Users can manage their own transactions." ON public.transactions;
-DROP POLICY IF EXISTS "Users can manage their own budgets." ON public.budgets;
-DROP POLICY IF EXISTS "Users can manage their own financial goals." ON public.financial_goals;
-DROP POLICY IF EXISTS "Users can manage their own todos." ON public.todos;
-
-
--- ADMINS & INTEGRATIONS Policies (Admin only)
-CREATE POLICY "Admin has full access" ON public.admins FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin has full access" ON public.integrations FOR ALL USING (public.is_admin());
+DROP POLICY IF EXISTS "Admin has full access, users can view their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Admin can do anything, users can update their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Admin has full access, users can view their own and default categories." ON public.categories;
+DROP POLICY IF EXISTS "Admin has full access, users can manage their own categories." ON public.categories;
+DROP POLICY IF EXISTS "Admin has full access, users can manage their own transactions." ON public.transactions;
+DROP POLICY IF EXISTS "Admin has full access, users can manage their own budgets." ON public.budgets;
+DROP POLICY IF EXISTS "Admin has full access, users can manage their own financial goals." ON public.financial_goals;
+DROP POLICY IF EXISTS "Admin has full access, users can manage their own todos." ON public.todos;
+DROP POLICY IF EXISTS "Admins can manage all admin records." ON public.admins;
+DROP POLICY IF EXISTS "Admins can manage all integrations." ON public.integrations;
 
 
 -- PROFILES Policies
-CREATE POLICY "Users can view their own profile."
+CREATE POLICY "Admin has full access, users can view their own profile."
     ON public.profiles FOR SELECT
-    USING (auth.uid() = id);
+    USING (public.is_admin() OR auth.uid() = id);
 
-CREATE POLICY "Users can update their own profile."
+CREATE POLICY "Admin can do anything, users can update their own profile."
     ON public.profiles FOR UPDATE
-    USING (auth.uid() = id)
-    WITH CHECK (auth.uid() = id);
+    USING (public.is_admin() OR auth.uid() = id)
+    WITH CHECK (public.is_admin() OR auth.uid() = id);
 
 -- CATEGORIES Policies
-CREATE POLICY "Users can view their own and default categories."
+CREATE POLICY "Admin has full access, users can view their own and default categories."
     ON public.categories FOR SELECT
-    USING (auth.uid() = user_id OR is_default = TRUE);
+    USING (public.is_admin() OR auth.uid() = user_id OR is_default = TRUE);
 
-CREATE POLICY "Users can manage their own categories."
+CREATE POLICY "Admin has full access, users can manage their own categories."
     ON public.categories FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id AND is_default = FALSE);
+    USING (public.is_admin() OR auth.uid() = user_id)
+    WITH CHECK (public.is_admin() OR (auth.uid() = user_id AND is_default = FALSE));
 
--- GENERIC Policies for other tables (Full control for owner)
-CREATE POLICY "Users can manage their own transactions."
+-- GENERIC Policies for other tables (Full control for owner OR admin)
+CREATE POLICY "Admin has full access, users can manage their own transactions."
     ON public.transactions FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+    USING (public.is_admin() OR auth.uid() = user_id)
+    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
 
-CREATE POLICY "Users can manage their own budgets."
+CREATE POLICY "Admin has full access, users can manage their own budgets."
     ON public.budgets FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+    USING (public.is_admin() OR auth.uid() = user_id)
+    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
 
-CREATE POLICY "Users can manage their own financial goals."
+CREATE POLICY "Admin has full access, users can manage their own financial goals."
     ON public.financial_goals FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+    USING (public.is_admin() OR auth.uid() = user_id)
+    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
 
-CREATE POLICY "Users can manage their own todos."
+CREATE POLICY "Admin has full access, users can manage their own todos."
     ON public.todos FOR ALL
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+    USING (public.is_admin() OR auth.uid() = user_id)
+    WITH CHECK (public.is_admin() OR auth.uid() = user_id);
+
+-- ADMINS & INTEGRATIONS Policies (Admin only)
+CREATE POLICY "Admins can manage all admin records."
+    ON public.admins FOR ALL
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins can manage all integrations."
+    ON public.integrations FOR ALL
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
 
 -- 4. TRIGGERS AND FUNCTIONS
@@ -225,7 +235,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type, plan_id, has_seen_welcome_message)
+  INSERT INTO public.profiles (id, email, display_name, full_name, avatar_url, account_type, plan_id, has_seen_welcome_message, role)
   VALUES (
     NEW.id,
     NEW.email,
@@ -234,7 +244,8 @@ BEGIN
     NEW.raw_user_meta_data->>'avatar_url',
     'pessoa', -- Always default to 'pessoa' on signup
     'tier-cultivador', -- Always default to the free plan
-    FALSE
+    FALSE,
+    'user' -- Default role for new users
   );
   RETURN NEW;
 END;
@@ -260,12 +271,6 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS handle_updated_at ON public.profiles;
 CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-DROP TRIGGER IF EXISTS handle_updated_at ON public.admins;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.admins FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-DROP TRIGGER IF EXISTS handle_updated_at ON public.integrations;
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.integrations FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
 DROP TRIGGER IF EXISTS handle_updated_at ON public.categories;
 CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -280,6 +285,12 @@ CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.financial_goals FOR EAC
 
 DROP TRIGGER IF EXISTS handle_updated_at ON public.todos;
 CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.todos FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS handle_updated_at ON public.admins;
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.admins FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS handle_updated_at ON public.integrations;
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.integrations FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 -- 5. SEED DATA (Default Categories)
