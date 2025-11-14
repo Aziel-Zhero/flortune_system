@@ -1,7 +1,7 @@
 // src/components/auth/signup-form.tsx
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import React from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -109,6 +109,8 @@ export function SignupForm() {
           account_type: data.accountType,
           cpf_cnpj: data.accountType === 'pessoa' ? data.cpf : data.cnpj,
           rg: data.rg,
+          role: 'user', // Define a role padrão para novos usuários
+          has_seen_welcome_message: false, // Garante que o novo usuário veja a mensagem
         },
       },
     });
@@ -120,10 +122,6 @@ export function SignupForm() {
         variant: "destructive",
       });
     } else {
-       toast({
-        title: "Cadastro quase concluído!",
-        description: "Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada.",
-      });
       router.push('/login?signup=success');
     }
     

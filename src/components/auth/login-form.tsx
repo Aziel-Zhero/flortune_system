@@ -53,7 +53,7 @@ export function LoginForm() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
@@ -64,9 +64,9 @@ export function LoginForm() {
         description: error.message === "Invalid login credentials" ? "Credenciais inválidas. Verifique seu e-mail e senha." : "Ocorreu um erro durante o login.",
         variant: "destructive",
       });
-    } else {
-      // O onAuthStateChange no AuthProvider vai cuidar de pegar o perfil e a sessão.
-      // O redirecionamento será tratado pelo AppLayout.
+    } else if (authData.user) {
+      // Após o login, a sessão será pega pelo onAuthStateChange no AuthProvider.
+      // O AppLayout cuidará do redirecionamento.
       toast({ title: "Login bem-sucedido!", description: "Redirecionando para o seu painel." });
       router.push('/dashboard');
       router.refresh(); // Força a atualização do estado do layout

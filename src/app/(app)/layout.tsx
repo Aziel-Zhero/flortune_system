@@ -20,9 +20,20 @@ export default function AppLayout({
 
   useEffect(() => {
     if (isLoading) return;
+    
+    // Se não há sessão e não estamos nas páginas públicas, redireciona para login.
     if (!session && pathname !== '/login' && pathname !== '/signup') {
       router.replace('/login');
     }
+    
+    // Se há sessão e o usuário está nas páginas de login/signup, redireciona para o dashboard correto.
+    if (session) {
+        if(pathname === '/login' || pathname === '/signup') {
+          const targetDashboard = session.user?.profile?.role === 'admin' ? '/dashboard-admin' : '/dashboard';
+          router.replace(targetDashboard);
+        }
+    }
+
   }, [isLoading, session, router, pathname]);
 
   if (isLoading || (!session && pathname !== '/login' && pathname !== '/signup')) {

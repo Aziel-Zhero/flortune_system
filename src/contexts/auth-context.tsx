@@ -3,13 +3,15 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import type { AuthSession } from '@supabase/supabase-js';
+import type { AuthSession, User } from '@supabase/supabase-js';
 import type { Profile } from '@/types/database.types';
 
-type Session = AuthSession & {
-  user: {
-    profile: Profile | null;
-  }
+// Estendemos o tipo User do Supabase para incluir nosso perfil
+type UserWithProfile = User & { profile: Profile | null };
+
+// A sessão agora pode conter o usuário com perfil
+export type Session = Omit<AuthSession, 'user'> & {
+  user: UserWithProfile | null;
 };
 
 interface AuthContextType {
@@ -25,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supabase) {
+        console.warn("Supabase client not initialized. AuthProvider cannot function.");
         setIsLoading(false);
         return;
     };
@@ -49,10 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (profileError) {
             console.error("Error fetching profile on session load:", profileError.message);
-            // We still set the session, but profile will be null
-             setSession({ ...currentSession, user: { ...currentSession.user, profile: null } });
+            const userWithNullProfile = { ...currentSession.user, profile: null } as UserWithProfile;
+            setSession({ ...currentSession, user: userWithNullProfile });
         } else {
-             setSession({ ...currentSession, user: { ...currentSession.user, profile } });
+             const userWithProfile = { ...currentSession.user, profile } as UserWithProfile;
+             setSession({ ...currentSession, user: userWithProfile });
         }
       } else {
         setSession(null);
@@ -65,16 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
           const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-          setSession({ ...session, user: { ...session.user, profile } });
+          const userWithProfile = { ...session.user, profile } as UserWithProfile;
+          setSession({ ...session, user: userWithProfile });
       } else {
           setSession(null);
       }
+      setIsLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, []); // A dependência do supabase foi removida pois ele é um singleton agora
 
   return (
     <AuthContext.Provider value={{ session, isLoading }}>
@@ -83,12 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export const useSession = () => {
+export const useSession = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useSession must be used within an AuthProvider.');
   }
-  // Renomeando para evitar conflito com a session interna
-  const { session: currentSession, isLoading: isSessionLoading } = context;
-  return { data: { session: currentSession }, status: isSessionLoading ? 'loading' : (currentSession ? 'authenticated' : 'unauthenticated') };
+  return context;
 };
