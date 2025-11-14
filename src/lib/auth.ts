@@ -16,57 +16,70 @@ export const authConfig: NextAuthConfig = {
       allowDangerousEmailAccountLinking: true,
     }),
     CredentialsProvider({
-      id: "credentials",
+      id: "credentials", // Para usuários normais
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials.password || !supabaseAdmin) {
-          console.error("Auth.ts: Invalid credentials or Supabase client missing.");
-          return null;
-        }
+        if (!credentials?.email || !credentials.password || !supabaseAdmin) return null;
         
-        const email = credentials.email as string;
-        const password = credentials.password as string;
-
-        // Tenta encontrar o usuário na tabela de perfis normais
-        const { data: userProfile, error: profileError } = await supabaseAdmin
+        const { data: userProfile, error } = await supabaseAdmin
           .from('profiles')
           .select('*')
-          .eq('email', email)
+          .eq('email', credentials.email as string)
           .single();
 
-        if (profileError || !userProfile) {
-          console.error("Auth.ts: User not found or profile error:", profileError?.message);
-          return null; // Usuário não encontrado
-        }
+        if (error || !userProfile || !userProfile.hashed_password) return null;
 
-        // Se o perfil não tiver uma senha hash (ex: usuário do OAuth), não pode logar com senha
-        if (!userProfile.hashed_password) {
-            console.error(`Auth.ts: User ${email} does not have a password set.`);
-            return null;
-        }
-
-        const passwordsMatch = await bcrypt.compare(password, userProfile.hashed_password);
+        const passwordsMatch = await bcrypt.compare(credentials.password as string, userProfile.hashed_password);
 
         if (passwordsMatch) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hashed_password, ...safeProfile } = userProfile;
             return {
               id: safeProfile.id,
               email: safeProfile.email,
               name: safeProfile.display_name || safeProfile.full_name,
               image: safeProfile.avatar_url,
-              profile: safeProfile, // Passa o perfil completo para o callback jwt
+              profile: safeProfile,
             };
         }
-        
-        console.error("Auth.ts: Password mismatch for user:", email);
-        return null; // Senha incorreta
+        return null;
       },
     }),
+    CredentialsProvider({
+      id: "admin-credentials", // Provedor separado para admins
+      name: "Admin Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials.password || !supabaseAdmin) return null;
+
+        const { data: adminProfile, error } = await supabaseAdmin
+          .from('admins')
+          .select('*')
+          .eq('email', credentials.email as string)
+          .single();
+        
+        if (error || !adminProfile || !adminProfile.hashed_password) return null;
+
+        const passwordsMatch = await bcrypt.compare(credentials.password as string, adminProfile.hashed_password);
+
+        if (passwordsMatch) {
+          const { hashed_password, ...safeProfile } = adminProfile;
+           return {
+              id: safeProfile.id,
+              email: safeProfile.email,
+              name: safeProfile.full_name,
+              profile: { ...safeProfile, role: 'admin' } as Profile,
+            };
+        }
+        return null;
+      },
+    })
   ],
   session: {
     strategy: 'jwt',

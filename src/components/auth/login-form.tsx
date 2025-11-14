@@ -32,10 +32,11 @@ export function LoginForm() {
             variant: "destructive",
         });
     }
-    if (state?.message && !state.success) {
+    // Mostra o erro do useFormState como um toast
+    if (state?.errors?._form) {
       toast({
         title: "Erro no Login",
-        description: state.message,
+        description: state.errors._form.join(', '),
         variant: "destructive",
       });
     }
@@ -44,14 +45,8 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
-      {state?.errors?._form && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Erro</AlertTitle>
-          <AlertDescription>{state.errors._form.join(', ')}</AlertDescription>
-        </Alert>
-      )}
-
+      {/* O alerta de erro agora é tratado pelo toast */}
+      
       <form action={formAction} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
