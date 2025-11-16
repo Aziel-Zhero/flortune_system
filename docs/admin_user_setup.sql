@@ -1,6 +1,6 @@
 -- docs/admin_user_setup.sql
--- Este script cria um novo usuário administrador no Supabase, inserindo os dados diretamente nas tabelas de autenticação.
--- IMPORTANTE: Substitua 'admin_seguro@exemplo.com' e 'senha-muito-forte-aqui' pelos seus dados desejados.
+-- Este script cria um novo usuário administrador no Supabase.
+-- IMPORTANTE: Substitua 'admin@flortune.com' e 'senha-muito-forte-aqui' pelos seus dados desejados.
 
 DO $$
 DECLARE
@@ -11,41 +11,36 @@ DECLARE
   -- Variável para armazenar o ID do novo usuário
   new_user_id UUID;
 BEGIN
-  -- Este bloco garante que a extensão pgcrypto, necessária para criptografar a senha, esteja disponível.
-  CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
-
-  -- 1. Inserir o novo usuário na tabela principal de autenticação (auth.users)
-  --    e retornar o ID gerado para a variável new_user_id.
-  INSERT INTO auth.users (instance_id, aud, role, email, encrypted_password, email_confirmed_at, recovery_token, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at)
+  -- 1. Inserir o novo usuário na tabela de autenticação do Supabase (auth.users)
+  -- e obter o ID gerado para a variável new_user_id.
+  INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_token, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
   VALUES (
     '00000000-0000-0000-0000-000000000000', -- instance_id padrão
-    'authenticated', -- role padrão para usuários autenticados
-    'authenticated', -- role padrão
-    admin_email,
-    extensions.crypt(admin_password, extensions.gen_salt('bf')), -- Criptografa a senha
-    NOW(), -- Confirma o email imediatamente
-    NULL, NULL, NULL, -- Campos de recuperação de senha
-    '{"provider":"email","providers":["email"]}', -- Metadados do app
-    '{}', -- Metadados do usuário (vazio por padrão)
-    FALSE, -- Não é um super admin do Supabase
-    NOW(), NOW() -- Timestamps
+    extensions.uuid_generate_v4(), -- gera um novo UUID para o usuário
+    'authenticated', -- audiência padrão
+    'authenticated', -- role de autenticação padrão
+    admin_email, -- e-mail fornecido
+    crypt(admin_password, gen_salt('bf')), -- criptografa a senha
+    NOW(), -- define o e-mail como confirmado
+    NULL, NULL, NULL, -- campos de recuperação e último login
+    '{"provider":"email","providers":["email"]}', -- metadados do app
+    '{}', -- metadados do usuário
+    NOW(), NOW() -- timestamps
   ) RETURNING id INTO new_user_id;
 
-  -- 2. Inserir a identidade do usuário, vinculando o ID do usuário ao seu e-mail.
-  --    Isso é crucial para o login com e-mail e senha.
+  -- 2. Inserir a identidade do usuário (necessário para login com e-mail/senha)
   INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
   VALUES (
-    extensions.uuid_generate_v4(), -- Gera um novo UUID para a identidade
-    new_user_id,
-    jsonb_build_object('sub', new_user_id, 'email', admin_email), -- Dados da identidade
-    'email', -- Provedor de identidade
-    NOW(), -- Último login
-    NOW(), NOW() -- Timestamps
+    extensions.uuid_generate_v4(), -- novo UUID para a identidade
+    new_user_id, -- ID do usuário criado no passo anterior
+    json_build_object('sub', new_user_id, 'email', admin_email), -- dados da identidade
+    'email', -- provedor de identidade
+    NOW(), NOW(), NOW()
   );
 
   -- 3. Inserir o registro correspondente na tabela de perfis públicos (public.profiles)
-  --    Este passo associa dados da aplicação, como a role de administrador.
-  INSERT INTO public.profiles (id, email, full_name, display_name, role, account_type, has_seen_welcome_message)
+  -- Este passo é crucial para associar dados da aplicação, como a role de administrador.
+  INSERT INTO public.profiles (id, email, full_name, display_name, role, account_type, has_seen_welcome_message, updated_at, created_at)
   VALUES (
     new_user_id,
     admin_email,
@@ -53,9 +48,11 @@ BEGIN
     'Admin', -- Nome de exibição padrão
     'admin', -- << IMPORTANTE: Define o usuário como administrador
     'pessoa', -- Tipo de conta padrão
-    TRUE -- Marca a mensagem de boas-vindas como vista
+    TRUE, -- Marca a mensagem de boas-vindas como vista
+    NOW(), NOW()
   )
-  -- A cláusula ON CONFLICT garante que, se um perfil com esse ID já existir (improvável, mas seguro), ele seja ATUALIZADO.
+  -- A cláusula ON CONFLICT garante que, se um perfil com esse ID já existir 
+  -- (por exemplo, criado por um trigger), ele será ATUALIZADO para ter a role de admin.
   ON CONFLICT (id) DO UPDATE SET
     role = 'admin',
     full_name = COALESCE(public.profiles.full_name, 'Administrador do Sistema'),
