@@ -1,58 +1,45 @@
 -- docs/admin_user_setup.sql
--- Este script cria um novo usuário administrador no Supabase ou atualiza um usuário existente para ser admin.
+-- Este script cria um novo usuário administrador no Supabase usando a função oficial auth.signup().
 -- IMPORTANTE: Substitua 'admin@flortune.com' e 'senha-muito-forte-aqui' pelos seus dados desejados.
 
 DO $$
 DECLARE
-  -- Defina aqui as credenciais do seu administrador
+  -- Defina aqui as credenciais do seu novo administrador
   admin_email TEXT := 'admin@flortune.com';
   admin_password TEXT := 'senha-muito-forte-aqui';
   
-  -- Variável para armazenar o ID do usuário
-  user_id_var UUID;
+  -- Variável para armazenar o ID do novo usuário
+  new_user_id UUID;
 BEGIN
-  -- 1. Verifica se o usuário já existe na autenticação (auth.users)
-  SELECT id INTO user_id_var FROM auth.users WHERE email = admin_email;
+  -- 1. Cria o usuário usando a função auth.signup()
+  -- Esta função lida com a criação do usuário em auth.users e auth.identities
+  -- e retorna o ID do novo usuário.
+  SELECT auth.signup(admin_email, admin_password) INTO new_user_id;
 
-  -- 2. Se o usuário não existir, cria um novo na autenticação
-  IF user_id_var IS NULL THEN
-    RAISE NOTICE 'Usuário com e-mail % não encontrado em auth.users. Criando um novo usuário...', admin_email;
-    
-    -- Insere na tabela auth.users e retorna o novo ID
-    -- Removida a coluna 'confirmed_at' que estava causando o erro.
-    INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_token, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_sent_at)
-    VALUES (
-      '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', admin_email, crypt(admin_password, gen_salt('bf')), NOW(), NULL, NULL, NULL, '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), NULL, '', NULL
-    ) RETURNING id INTO user_id_var;
-    
-    -- Insere a identidade correspondente
-    INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-    VALUES (
-      gen_random_uuid(), user_id_var, jsonb_build_object('sub', user_id_var, 'email', admin_email), 'email', NOW(), NOW(), NOW()
-    );
-  ELSE
-    RAISE NOTICE 'Usuário com e-mail % já existe em auth.users. ID: %', admin_email, user_id_var;
-    -- Se o usuário já existe, podemos garantir que a senha está atualizada (opcional)
-    UPDATE auth.users SET encrypted_password = crypt(admin_password, gen_salt('bf')) WHERE id = user_id_var;
-  END IF;
-
-  -- 3. Insere ou Atualiza o registro na tabela de perfis públicos (public.profiles)
-  -- Esta cláusula ON CONFLICT lida com o erro de chave duplicada no e-mail ou id.
+  -- 2. Insere ou Atualiza o registro na tabela de perfis públicos (public.profiles)
+  -- A cláusula ON CONFLICT (id) DO UPDATE garante que, se um perfil com esse ID já existir
+  -- (criado pelo trigger padrão do Supabase), ele será ATUALIZADO para ter a role de admin.
   INSERT INTO public.profiles (id, email, full_name, display_name, role, account_type, has_seen_welcome_message)
   VALUES (
-    user_id_var,
+    new_user_id,
     admin_email,
-    'Administrador do Sistema',
-    'Admin',
-    'admin', -- Define (ou garante) que o usuário é administrador
-    'pessoa',
-    TRUE
+    'Administrador do Sistema', -- Nome completo padrão
+    'Admin', -- Nome de exibição padrão
+    'admin', -- << IMPORTANTE: Define o usuário como administrador
+    'pessoa', -- Tipo de conta padrão
+    TRUE -- Marca a mensagem de boas-vindas como vista
   )
   ON CONFLICT (id) DO UPDATE SET
     role = 'admin',
     full_name = EXCLUDED.full_name,
     display_name = EXCLUDED.display_name,
     updated_at = NOW();
+
+  -- 3. Confirma o e-mail do usuário administrativamente, já que estamos criando via servidor.
+  -- Isto é necessário porque auth.signup() normalmente envia um e-mail de confirmação.
+  UPDATE auth.users
+  SET email_confirmed_at = NOW()
+  WHERE id = new_user_id;
 
   RAISE NOTICE 'Usuário administrador (%) foi criado ou atualizado com sucesso.', admin_email;
 
