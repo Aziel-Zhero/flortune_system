@@ -10,27 +10,8 @@ interface TelegramCredentials {
     chat_id: string;
 }
 
-// Verifica se o usuário autenticado é um administrador.
-async function isAdmin() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return false;
-  
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  return profile?.role === 'admin';
-}
 
 export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<TelegramCredentials | null>> {
-  if (!await isAdmin()) {
-    return { data: null, error: "Acesso não autorizado." };
-  }
-  
   const supabase = createClient();
 
   try {
@@ -53,12 +34,9 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
 }
 
 export async function updateIntegration(credentials: TelegramCredentials): Promise<ServiceResponse<TelegramCredentials>> {
-  if (!await isAdmin()) {
-    return { data: null, error: "Acesso não autorizado." };
-  }
   
   if(!supabaseAdmin) {
-    return { data: null, error: "Conexão com o banco de dados não disponível." };
+    return { data: null, error: "Conexão administrativa com o banco de dados não disponível." };
   }
 
   try {
