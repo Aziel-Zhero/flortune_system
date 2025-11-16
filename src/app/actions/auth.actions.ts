@@ -25,9 +25,7 @@ export async function loginUser(formData: FormData) {
     return redirect(`/login?error=${error.message}`);
   }
 
-  // On successful login, onAuthStateChange in the context will handle the session
-  // and the middleware will redirect to the correct dashboard.
-  // We just need to refresh the page to trigger it.
+  // On successful login, the middleware will redirect to the correct dashboard.
   return redirect("/dashboard");
 }
 
@@ -57,31 +55,48 @@ export async function signupUser(formData: FormData) {
   const { email, password, fullName, displayName, accountType, cpf, cnpj, rg } = validatedFields.data;
   const supabase = createClient();
 
-  const { error } = await supabase.auth.signUp({
+  // 1. Criar o usuário no Supabase Auth
+  const { data: { user }, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      // Passa os dados do perfil para o Supabase, que podem ser usados no trigger
-      data: {
-        full_name: fullName,
-        display_name: displayName,
-        account_type: accountType,
-        cpf_cnpj: accountType === 'pessoa' ? cpf : cnpj,
-        rg: rg,
-        has_seen_welcome_message: false,
-        role: 'user', // Todos os novos usuários são 'user' por padrão
-        plan_id: 'tier-cultivador' // Plano gratuito por padrão
-      },
       emailRedirectTo: `${origin}/api/auth/callback`,
     },
   });
 
-  if (error) {
-    if (error.message.includes("User already registered")) {
+  if (authError) {
+    if (authError.message.includes("User already registered")) {
       return redirect('/signup?error=user_already_exists');
     }
-    console.error("Supabase signup error:", error.message);
-    return redirect(`/signup?error=${error.message}`);
+    console.error("Supabase signup error:", authError.message);
+    return redirect(`/signup?error=${authError.message}`);
+  }
+
+  if (!user) {
+    return redirect('/signup?error=user_creation_failed');
+  }
+
+  // 2. Inserir o perfil na tabela public.profiles
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert({
+      id: user.id,
+      email: user.email,
+      full_name: fullName,
+      display_name: displayName,
+      account_type: accountType,
+      cpf_cnpj: accountType === 'pessoa' ? cpf : cnpj,
+      rg: rg,
+      role: 'user', // Definindo a role padrão aqui
+      plan_id: 'tier-cultivador', // Definindo o plano padrão
+      has_seen_welcome_message: false,
+    });
+  
+  if (profileError) {
+      console.error("Error creating profile:", profileError.message);
+      // Se a criação do perfil falhar, tentamos deletar o usuário de autenticação para evitar inconsistência
+      await supabase.auth.admin.deleteUser(user.id);
+      return redirect(`/signup?error=profile_creation_failed`);
   }
 
   // Redireciona para a página de login com uma mensagem de sucesso
@@ -113,63 +128,51 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
     return { success: false, error: "Código secreto inválido." };
   }
   
-  // Para criar um admin, usamos um cliente Supabase de servidor TEMPORÁRIO
-  // com a service_role key. Isso é necessário porque não há um admin logado ainda.
-  const supabaseAdmin = createClient();
-  // NOTE: In a real scenario with proper RLS, you'd use a dedicated admin client
-  // with the service_role key like in 'src/lib/supabase/admin.ts'.
-  // For this context, the standard server client will suffice if RLS is permissive for setup.
+  const supabase = createClient();
   
-  // 1. Criar o usuário no Supabase Auth
-  const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
+  // Verifica se o usuário já existe
+  const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({ email });
+  if (listError) {
+      return { success: false, error: "Não foi possível verificar usuários existentes." };
+  }
+
+  if (users.length > 0) {
+      // Usuário já existe, vamos apenas garantir que o perfil está correto
+      const userId = users[0].id;
+      const { error: profileUpdateError } = await supabase.from('profiles').update({ role: 'admin' }).eq('id', userId);
+      if (profileUpdateError) {
+          return { success: false, error: "Usuário já existe, mas falhou ao definir a permissão de admin." };
+      }
+      return { success: true, message: `O usuário ${email} já existia e foi promovido a administrador.` };
+  }
+
+  // Usuário não existe, vamos criar
+  const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
-    password,
-    options: {
-      data: { 
-        full_name: "Administrador", 
-        display_name: "Admin",
-        role: 'admin',
-        has_seen_welcome_message: true,
-      },
-    },
+    password
   });
 
-  if (authError) {
-    if (authError.message.includes("User already registered")) {
-        // Se o usuário já existe, vamos tentar apenas torná-lo admin
-        const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers({ email });
-        if(userError || users.length === 0) {
-            return { success: false, error: "Usuário já existe, mas não foi possível atualizá-lo para admin." };
-        }
-        const userId = users[0].id;
-        const { error: profileError } = await supabaseAdmin.from('profiles').update({ role: 'admin' }).eq('id', userId);
-        if (profileError) {
-            return { success: false, error: "Usuário já existe, mas falhou ao definir a permissão de admin." };
-        }
-         return { success: true, message: `O usuário ${email} já existia e foi promovido a administrador.` };
-    }
-    return { success: false, error: `Erro na autenticação: ${authError.message}` };
+  if (authError || !authData.user) {
+    return { success: false, error: `Erro na autenticação: ${authError?.message || 'usuário não criado'}` };
   }
-
+  
   const newUser = authData.user;
-  if (!newUser) {
-    return { success: false, error: "Não foi possível criar o usuário." };
-  }
 
-  // 2. O trigger `handle_new_user` já deve ter criado o perfil. Vamos atualizá-lo para ser admin.
-  // Esta etapa é uma garantia extra, caso o trigger falhe ou os metadados do signUp não funcionem como esperado.
-  const { error: profileError } = await supabaseAdmin
+  // Inserir o perfil com a role de admin
+  const { error: profileError } = await supabase
     .from('profiles')
-    .update({ 
+    .insert({ 
+        id: newUser.id,
+        email: newUser.email,
+        full_name: "Administrador",
+        display_name: "Admin",
         role: 'admin', 
-        has_seen_welcome_message: true,
-        updated_at: new Date().toISOString(),
-    })
-    .eq('id', newUser.id);
+        has_seen_welcome_message: true 
+    });
     
   if (profileError) {
-    // Se a criação do perfil falhar, deletamos o usuário de autenticação para manter a consistência
-    await supabaseAdmin.auth.admin.deleteUser(newUser.id);
+    // Se a criação do perfil falhar, deletamos o usuário de autenticação
+    await supabase.auth.admin.deleteUser(newUser.id);
     return { success: false, error: `Erro ao criar perfil: ${profileError.message}` };
   }
 
