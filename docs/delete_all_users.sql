@@ -1,28 +1,28 @@
--- ATENÇÃO: ESTE SCRIPT APAGA USUÁRIOS DE FORMA IRREVERSÍVEL.
--- FAÇA UM BACKUP DO SEU BANCO DE DADOS ANTES DE EXECUTAR.
+-- Este script apaga TODOS os usuários da autenticação, EXCETO o especificado na variável email_to_keep.
+-- IMPORTANTE:
+-- 1. Substitua 'admin_seguro@exemplo.com' pelo e-mail do usuário que você deseja MANTER.
+-- 2. Se você quiser apagar TODOS os usuários sem exceção, deixe a variável email_to_keep como uma string vazia ('').
+-- 3. Esta ação é IRREVERSÍVEL. Faça um backup se tiver dados importantes.
 
 DO $$
 DECLARE
-  -- *******************************************************************
-  -- **  OPCIONAL: PREENCHA ESTE E-MAIL SE VOCÊ QUISER MANTER UM ADMIN  **
-  -- **  Deixe em branco ('') para apagar TODOS os usuários.           **
-  -- *******************************************************************
-  email_to_keep TEXT := 'admin_seguro@exemplo.com'; 
-  
-  -- Variável para iterar sobre os usuários a serem deletados
-  user_record RECORD;
+  -- Defina aqui o e-mail do único usuário que você NÃO quer apagar.
+  email_to_keep TEXT := 'aziel_1994@hotmail.com';
+  user_count INT;
 BEGIN
-  -- Este laço percorre todos os usuários na tabela auth.users,
-  -- exceto aquele cujo e-mail foi especificado na variável email_to_keep.
-  FOR user_record IN 
-    SELECT id FROM auth.users WHERE email <> email_to_keep OR email_to_keep = ''
-  LOOP
-    -- A função delete_user da API do Supabase (disponível em SQL)
-    -- lida com a exclusão do usuário em todas as tabelas relacionadas
-    -- (auth.users, auth.identities, auth.sessions, etc.), garantindo uma limpeza completa.
-    PERFORM auth.delete_user(user_record.id);
-    RAISE NOTICE 'Usuário com ID % foi deletado.', user_record.id;
-  END LOOP;
+  -- Conta quantos usuários serão deletados
+  SELECT count(*)
+  INTO user_count
+  FROM auth.users
+  WHERE email <> email_to_keep OR email_to_keep = '';
 
-  RAISE NOTICE 'Processo de exclusão de usuários concluído.';
+  -- Executa a exclusão
+  DELETE FROM auth.users
+  WHERE email <> email_to_keep OR email_to_keep = '';
+
+  RAISE NOTICE '% usuários foram deletados. O usuário ''%'' foi mantido.', user_count, email_to_keep;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE EXCEPTION 'Ocorreu um erro ao tentar deletar os usuários: %', SQLERRM;
 END $$;
