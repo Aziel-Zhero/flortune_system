@@ -2,8 +2,8 @@
 // src/app/setup-admin/page.tsx
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
-import { useEffect } from "react";
+import { useFormStatus } from "react-dom";
+import { useEffect, useActionState } from "react";
 import { setupAdminUser } from "@/app/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,7 @@ const initialState = {
 };
 
 export default function SetupAdminPage() {
-  const [state, formAction] = useFormState(setupAdminUser, initialState);
+  const [state, formAction] = useActionState(setupAdminUser, initialState);
 
   useEffect(() => {
     if (state.success && state.message) {
