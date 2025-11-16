@@ -4,11 +4,13 @@
 import { useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Briefcase, Code, Star, Home, PieChart as PieChartIcon, TrendingUp, TrendingDown, Megaphone, Leaf } from "lucide-react";
+import { Users, Briefcase, Code, Star, Home, PieChart as PieChartIcon, TrendingUp, TrendingDown, Megaphone, Leaf, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Pie, PieChart as PieChartRecharts, ResponsiveContainer, Cell } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const cardData = [
   { title: "Usuários Totais", value: "1.250", icon: Users, trend: "+5.2%", trend_color: "text-emerald-500" },
@@ -62,6 +64,14 @@ export default function AdminDashboardPage() {
         title="Home"
         icon={<Home />}
         description="Visão geral e métricas chave do Flortune Workspace."
+        actions={
+            <Button asChild>
+                <Link href="/admin/users/new">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Criar Usuário
+                </Link>
+            </Button>
+        }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
         {cardData.map((card, index) => (
