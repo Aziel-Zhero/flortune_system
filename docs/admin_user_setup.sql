@@ -19,9 +19,10 @@ BEGIN
     RAISE NOTICE 'Usuário com e-mail % não encontrado em auth.users. Criando um novo usuário...', admin_email;
     
     -- Insere na tabela auth.users e retorna o novo ID
-    INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_token, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_sent_at, confirmed_at)
+    -- Removida a coluna 'confirmed_at' que estava causando o erro.
+    INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_token, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_sent_at)
     VALUES (
-      '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', admin_email, crypt(admin_password, gen_salt('bf')), NOW(), NULL, NULL, NULL, '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), NULL, '', NULL, NOW()
+      '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', admin_email, crypt(admin_password, gen_salt('bf')), NOW(), NULL, NULL, NULL, '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), NULL, '', NULL
     ) RETURNING id INTO user_id_var;
     
     -- Insere a identidade correspondente
@@ -31,10 +32,12 @@ BEGIN
     );
   ELSE
     RAISE NOTICE 'Usuário com e-mail % já existe em auth.users. ID: %', admin_email, user_id_var;
+    -- Se o usuário já existe, podemos garantir que a senha está atualizada (opcional)
+    UPDATE auth.users SET encrypted_password = crypt(admin_password, gen_salt('bf')) WHERE id = user_id_var;
   END IF;
 
   -- 3. Insere ou Atualiza o registro na tabela de perfis públicos (public.profiles)
-  -- Esta cláusula ON CONFLICT lida com o erro de chave duplicada no e-mail.
+  -- Esta cláusula ON CONFLICT lida com o erro de chave duplicada no e-mail ou id.
   INSERT INTO public.profiles (id, email, full_name, display_name, role, account_type, has_seen_welcome_message)
   VALUES (
     user_id_var,
@@ -45,7 +48,7 @@ BEGIN
     'pessoa',
     TRUE
   )
-  ON CONFLICT (email) DO UPDATE SET
+  ON CONFLICT (id) DO UPDATE SET
     role = 'admin',
     full_name = EXCLUDED.full_name,
     display_name = EXCLUDED.display_name,
