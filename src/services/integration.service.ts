@@ -1,8 +1,8 @@
 // src/services/integration.service.ts
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { auth } from "@/lib/auth";
 import type { ServiceResponse } from "@/types/database.types";
 
 interface TelegramCredentials {
@@ -12,10 +12,18 @@ interface TelegramCredentials {
 
 // Verifica se o usuário autenticado é um administrador.
 async function isAdmin() {
-  const session = await auth();
-  if (!session?.user?.profile) return false;
-  // A verificação agora é feita na coluna 'role' da tabela 'profiles'
-  return session.user.profile.role === 'admin';
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return false;
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  return profile?.role === 'admin';
 }
 
 export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<TelegramCredentials | null>> {
@@ -29,7 +37,7 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
 
   try {
     const { data, error } = await supabaseAdmin
-        .from('telegram')
+        .from('telegram_integration')
         .select('bot_token, chat_id')
         .eq('id', 1)
         .single();
@@ -57,7 +65,7 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
 
   try {
     const { data: updatedData, error } = await supabaseAdmin
-        .from('telegram')
+        .from('telegram_integration')
         .upsert({
             id: 1, // Garante que estamos sempre atualizando a mesma linha
             bot_token: credentials.bot_token,
