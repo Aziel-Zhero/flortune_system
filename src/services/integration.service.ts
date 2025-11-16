@@ -31,12 +31,10 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
     return { data: null, error: "Acesso não autorizado." };
   }
   
-  if(!supabaseAdmin) {
-    return { data: null, error: "Conexão com o banco de dados não disponível." };
-  }
+  const supabase = createClient();
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
         .from('telegram_integration')
         .select('bot_token, chat_id')
         .eq('id', 1)
