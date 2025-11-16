@@ -14,7 +14,7 @@
 -- |                                                                                       |
 -- \---------------------------------------------------------------------------------------/
 
--- Habilitar a extensão pgcrypto para usar a função gen_salt.
+-- Habilitar extensões necessárias.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     display_name text,
     email text UNIQUE NOT NULL,
     avatar_url text,
-    hashed_password text, -- Esta coluna é para o login manual e é preenchida pela action.
     account_type text, -- 'pessoa' ou 'empresa'
     cpf_cnpj text UNIQUE,
     rg text,
@@ -41,12 +40,45 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user' NOT NULL;
 
 
--- 2. REMOÇÃO DO GATILHO (Trigger) para Sincronizar Novos Usuários
--- A lógica de criação de perfil agora é tratada diretamente na Server Action de cadastro.
--- Isso nos dá mais controle e evita problemas de sincronização.
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP FUNCTION IF EXISTS public.handle_new_user();
+-- 2. Gatilho (Trigger) para Sincronizar Novos Usuários
+-- Quando um novo usuário é criado na tabela auth.users (seja por OAuth, Magic Link ou signup),
+-- esta função é acionada para criar um registro correspondente na tabela public.profiles.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER -- Importante para permitir que a função acesse auth.users
+SET search_path = public
+AS $$
+BEGIN
+  -- Insere um novo perfil para o novo usuário.
+  -- A cláusula ON CONFLICT previne erros se o perfil já existir (raro, mas seguro)
+  -- e atualiza os campos básicos para garantir a sincronização.
+  INSERT INTO public.profiles (id, email, full_name, display_name, avatar_url, role, account_type, cpf_cnpj, rg, has_seen_welcome_message)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'full_name',
+    NEW.raw_user_meta_data->>'display_name',
+    NEW.raw_user_meta_data->>'avatar_url',
+    'user', -- Todo novo usuário começa com a role 'user'.
+    NEW.raw_user_meta_data->>'account_type',
+    NEW.raw_user_meta_data->>'cpf_cnpj',
+    NEW.raw_user_meta_data->>'rg',
+    false -- Garante que todo novo usuário veja a mensagem de boas-vindas.
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    updated_at = now();
+  RETURN NEW;
+END;
+$$;
 
+-- Aplica o gatilho à tabela auth.users.
+-- Ele será disparado após cada nova inserção de usuário.
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- 3. Políticas de Segurança (Row Level Security - RLS) para a Tabela de Perfis
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -62,13 +94,12 @@ CREATE POLICY "Usuários podem atualizar seus próprios perfis."
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
--- Permite que a Server Action de signup (que agora cria o perfil) insira o registro.
--- Esta política é necessária porque a action usa a chave de serviço (service_role), que ignora RLS.
--- No entanto, é uma boa prática mantê-la caso a lógica mude.
-DROP POLICY IF EXISTS "Permitir inserção para a service_role" ON public.profiles;
-CREATE POLICY "Permitir inserção para a service_role"
+-- Permite que a Server Action de signup (que usa a anon key) insira um perfil.
+-- A lógica de negócio (ex: email duplicado) é tratada na action, não no banco.
+DROP POLICY IF EXISTS "Permitir inserção anônima para cadastro." ON public.profiles;
+CREATE POLICY "Permitir inserção anônima para cadastro."
   ON public.profiles FOR INSERT
-  TO service_role
+  TO anon
   WITH CHECK (true);
 
 
@@ -170,14 +201,14 @@ CREATE POLICY "Usuários podem gerenciar suas próprias tarefas."
     USING (auth.uid() = user_id);
     
 -- 9. Tabela de Integração com Telegram
-CREATE TABLE IF NOT EXISTS public.telegram_integration (
+CREATE TABLE IF NOT EXISTS public.telegram (
     id integer NOT NULL PRIMARY KEY,
     bot_token text,
     chat_id text,
     updated_at timestamp with time zone
 );
 
-ALTER TABLE public.telegram_integration ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.telegram ENABLE ROW LEVEL SECURITY;
 
 
 -- 10. Função Auxiliar para verificar se um usuário é admin
@@ -193,14 +224,14 @@ AS $$
   );
 $$;
 
-DROP POLICY IF EXISTS "Permitir acesso total para administradores" ON public.telegram_integration;
+DROP POLICY IF EXISTS "Permitir acesso total para administradores" ON public.telegram;
 CREATE POLICY "Permitir acesso total para administradores"
-    ON public.telegram_integration FOR ALL
+    ON public.telegram FOR ALL
     USING (public.is_admin(auth.uid()))
     WITH CHECK (public.is_admin(auth.uid()));
 
 -- Garante que a linha de configuração exista
-INSERT INTO public.telegram_integration (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.telegram (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
 
 -- Mensagem de finalização
