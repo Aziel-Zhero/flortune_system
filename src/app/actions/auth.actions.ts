@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import type { ServiceResponse } from "@/types/database.types";
-
+import bcrypt from 'bcryptjs';
 
 // --- Login Action ---
 export async function loginUser(formData: FormData) {
@@ -57,11 +57,12 @@ export async function signupUser(formData: FormData) {
     return redirect('/signup?error=server_configuration_error');
   }
   
-  // 1. Criar o usuário no Supabase Auth
+  // 1. Criar o usuário no Supabase Auth, passando a senha em texto plano.
+  // O Supabase irá lidar com o hashing seguro da senha.
   const { data: { user }, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
-    password,
-    email_confirm: true, // Auto-confirma o email
+    password, // SENHA EM TEXTO PLANO
+    email_confirm: true,
     user_metadata: {
         full_name: fullName,
         display_name: displayName,
@@ -83,26 +84,25 @@ export async function signupUser(formData: FormData) {
   }
 
   // 2. Inserir o perfil na tabela public.profiles
+  // O trigger handle_new_user já deve ter criado a linha, então usamos upsert
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
-    .insert({
+    .upsert({
       id: user.id,
       email: email,
       full_name: fullName,
       display_name: displayName,
-      role: 'user', // Role padrão para novos usuários
-      plan_id: 'tier-cultivador', // Plano padrão
+      role: 'user',
+      plan_id: 'tier-cultivador',
       has_seen_welcome_message: false,
-    });
+    }, { onConflict: 'id' });
 
   if (profileError) {
-      console.error("Error creating profile:", profileError.message);
-      // Se a criação do perfil falhar, deletamos o usuário de autenticação para manter a consistência
+      console.error("Error creating/updating profile:", profileError.message);
       await supabaseAdmin.auth.admin.deleteUser(user.id);
       return redirect(`/signup?error=profile_creation_failed`);
   }
 
-  // Redireciona para a página de login com uma mensagem de sucesso
   return redirect('/login?signup=success_direct');
 }
 
@@ -133,7 +133,6 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
     return { success: false, error: "Código secreto inválido." };
   }
   
-  // Verifica se o usuário já existe
   const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({ email });
   if (listError) {
       console.error("Admin listUsers error:", listError);
@@ -141,7 +140,6 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
   }
 
   if (users.length > 0) {
-      // Usuário já existe, vamos apenas garantir que o perfil está correto
       const userId = users[0].id;
       const { error: profileUpdateError } = await supabaseAdmin.from('profiles').update({ role: 'admin' }).eq('id', userId);
       if (profileUpdateError) {
@@ -150,11 +148,10 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
       return { success: true, message: `O usuário ${email} já existia e foi promovido a administrador.` };
   }
 
-  // Usuário não existe, vamos criar
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
-    password,
-    email_confirm: true, // Já cria o usuário como confirmado
+    password, // SENHA EM TEXTO PLANO
+    email_confirm: true,
     user_metadata: {
         full_name: "Administrador",
         display_name: "Admin",
@@ -167,20 +164,18 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
   
   const newUser = authData.user;
 
-  // Inserir o perfil com a role de admin
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
-    .insert({ 
+    .upsert({ 
         id: newUser.id,
         email: email,
         full_name: "Administrador",
         display_name: "Admin",
         role: 'admin', 
         has_seen_welcome_message: true 
-    });
+    }, { onConflict: 'id' });
     
   if (profileError) {
-    // Se a criação do perfil falhar, deletamos o usuário de autenticação
     await supabaseAdmin.auth.admin.deleteUser(newUser.id);
     return { success: false, error: `Erro ao criar o perfil de admin: ${profileError.message}` };
   }
