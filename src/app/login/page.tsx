@@ -1,3 +1,4 @@
+
 // src/app/login/page.tsx
 import { Suspense } from 'react';
 import { AuthLayout } from "@/components/auth/auth-layout";
@@ -41,11 +42,17 @@ function LoginFormSkeleton() {
   );
 }
 
-// O componente da página agora recebe `searchParams` como prop
-export default async function LoginPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
-  // Acessa os parâmetros diretamente, pois já estão resolvidos pelo Next.js
-  const signupParam = searchParams?.signup;
-  const errorParam = searchParams?.error;
+// Componente async para aguardar searchParams
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // Await para resolver searchParams
+  const params = await searchParams;
+
+  const signupParam = params?.signup;
+  const errorParam = params?.error;
 
   return (
     <AuthLayout
@@ -56,18 +63,29 @@ export default async function LoginPage({ searchParams }: { searchParams: { [key
       footerLinkHref="/signup"
     >
       {signupParam === 'success' && (
-        <Alert variant="default" className="mb-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700">
+        <Alert
+          variant="default"
+          className="mb-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700"
+        >
           <MailCheck className="h-4 w-4 text-emerald-600" />
-          <AlertTitle className="text-emerald-700 dark:text-emerald-300">Confirme seu E-mail</AlertTitle>
+          <AlertTitle className="text-emerald-700 dark:text-emerald-300">
+            Confirme seu E-mail
+          </AlertTitle>
           <AlertDescription className="text-emerald-600 dark:text-emerald-400">
-            Cadastro realizado com sucesso! Enviamos um link de confirmação para seu e-mail. Por favor, verifique sua caixa de entrada.
+            Cadastro realizado com sucesso! Enviamos um link de confirmação para seu
+            e-mail. Por favor, verifique sua caixa de entrada.
           </AlertDescription>
         </Alert>
       )}
-       {signupParam === 'success_direct' && (
-        <Alert variant="default" className="mb-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700">
+      {signupParam === 'success_direct' && (
+        <Alert
+          variant="default"
+          className="mb-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700"
+        >
           <CheckCircle className="h-4 w-4 text-emerald-600" />
-          <AlertTitle className="text-emerald-700 dark:text-emerald-300">Cadastro Realizado com Sucesso!</AlertTitle>
+          <AlertTitle className="text-emerald-700 dark:text-emerald-300">
+            Cadastro Realizado com Sucesso!
+          </AlertTitle>
           <AlertDescription className="text-emerald-600 dark:text-emerald-400">
             Sua conta foi criada. Você já pode fazer o login.
           </AlertDescription>
