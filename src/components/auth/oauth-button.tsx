@@ -25,6 +25,11 @@ export function OAuthButton({ provider, buttonText }: OAuthButtonProps) {
       provider,
       options: {
         redirectTo: `${location.origin}/api/auth/callback`,
+        // Adicionando esta opção para corrigir o fluxo em localhost
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
   };
