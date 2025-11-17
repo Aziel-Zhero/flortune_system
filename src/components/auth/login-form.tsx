@@ -1,9 +1,8 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useActionState } from "react";
 import Link from "next/link";
-import { useFormStatus } from "react-dom";
 
 import { loginUser } from "@/app/actions/auth.actions";
 import { LogIn, KeyRound, Mail, Loader2 } from "lucide-react";
@@ -14,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useFormStatus } from "react-dom";
 
 
 function SubmitButton() {
@@ -26,36 +26,50 @@ function SubmitButton() {
     )
 }
 
+const initialState = {
+  error: null as string | null,
+};
+
 export function LoginForm({ error }: { error?: string }) {
+
+  const [state, formAction] = useActionState(loginUser, initialState);
+
   useEffect(() => {
-    if (error === 'invalid_credentials') {
-      toast({
-        title: "Erro no Login",
-        description: "Credenciais inválidas. Verifique seu e-mail e senha.",
-        variant: "destructive",
-      });
-    } else if (error && error !== 'validation_failed') { // Ignora erros de validação já tratados
-      toast({
-        title: "Erro de Autenticação",
-        description: "Ocorreu um erro. Por favor, tente novamente.",
-        variant: "destructive",
-      });
+    const errorToDisplay = error || state?.error;
+    if (errorToDisplay) {
+        let title = "Erro no Login";
+        let description = "Ocorreu um erro inesperado. Tente novamente.";
+        
+        if (errorToDisplay === 'invalid_credentials') {
+            description = "Credenciais inválidas. Verifique seu e-mail e senha.";
+        } else if (errorToDisplay === 'email_not_confirmed') {
+            title = "E-mail Não Confirmado";
+            description = "Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada.";
+        } else if (errorToDisplay) {
+            description = decodeURIComponent(errorToDisplay);
+        }
+
+        toast({
+            title: title,
+            description: description,
+            variant: "destructive",
+        });
     }
-  }, [error]);
+  }, [error, state]);
 
 
   return (
     <div className="space-y-6">
-       {error && (
+       {state?.error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro no Login</AlertTitle>
           <AlertDescription>
-            {error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : 'Ocorreu um erro inesperado.'}
+            {state.error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : (state.error === 'email_not_confirmed' ? 'Confirme seu e-mail para continuar.' : 'Ocorreu um erro inesperado.')}
           </AlertDescription>
         </Alert>
       )}
-      <form action={loginUser} className="space-y-4">
+      <form action={formAction} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">

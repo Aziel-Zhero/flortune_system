@@ -1,4 +1,3 @@
-
 // src/app/login/page.tsx
 import { Suspense } from 'react';
 import { AuthLayout } from "@/components/auth/auth-layout";
@@ -42,17 +41,13 @@ function LoginFormSkeleton() {
   );
 }
 
-// Componente async para aguardar searchParams
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Await para resolver searchParams
-  const params = await searchParams;
-
-  const signupParam = params?.signup;
-  const errorParam = params?.error;
+  const signupParam = searchParams?.signup;
+  const errorParam = searchParams?.error;
 
   return (
     <AuthLayout

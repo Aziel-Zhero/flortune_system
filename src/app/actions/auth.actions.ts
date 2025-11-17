@@ -7,12 +7,17 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import type { ServiceResponse } from "@/types/database.types";
-import bcrypt from 'bcryptjs';
+
 
 // --- Login Action ---
-export async function loginUser(formData: FormData) {
+export async function loginUser(prevState: any, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  
+  if (!email || !password) {
+    return { error: "Email e senha são obrigatórios." };
+  }
+
   const supabase = createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -25,10 +30,19 @@ export async function loginUser(formData: FormData) {
     if (error.message.includes("Invalid login credentials")) {
       return redirect("/login?error=invalid_credentials");
     }
-    return redirect(`/login?error=${error.message}`);
+    if (error.message.includes("Email not confirmed")) {
+      return redirect("/login?error=email_not_confirmed");
+    }
+    return redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single();
+
+  if (profile?.role === 'admin') {
+      return redirect("/dashboard-admin");
   }
 
-  // A verificação de admin será feita no middleware ou na página de destino
   return redirect("/dashboard");
 }
 
@@ -57,12 +71,10 @@ export async function signupUser(formData: FormData) {
     return redirect('/signup?error=server_configuration_error');
   }
   
-  // 1. Criar o usuário no Supabase Auth, passando a senha em texto plano.
-  // O Supabase irá lidar com o hashing seguro da senha.
   const { data: { user }, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
-    password, // SENHA EM TEXTO PLANO
-    email_confirm: true,
+    password,
+    email_confirm: false, // O usuário precisará confirmar o e-mail
     user_metadata: {
         full_name: fullName,
         display_name: displayName,
@@ -83,8 +95,6 @@ export async function signupUser(formData: FormData) {
     return redirect('/signup?error=unknown_creation_error');
   }
 
-  // 2. Inserir o perfil na tabela public.profiles
-  // O trigger handle_new_user já deve ter criado a linha, então usamos upsert
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
     .upsert({
@@ -92,8 +102,8 @@ export async function signupUser(formData: FormData) {
       email: email,
       full_name: fullName,
       display_name: displayName,
-      role: 'user',
       plan_id: 'tier-cultivador',
+      account_type: 'pessoa',
       has_seen_welcome_message: false,
     }, { onConflict: 'id' });
 
@@ -103,8 +113,9 @@ export async function signupUser(formData: FormData) {
       return redirect(`/signup?error=profile_creation_failed`);
   }
 
-  return redirect('/login?signup=success_direct');
+  return redirect('/login?signup=success');
 }
+
 
 // --- Admin Setup Action ---
 const setupAdminSchema = z.object({
@@ -150,8 +161,8 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
 
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
-    password, // SENHA EM TEXTO PLANO
-    email_confirm: true,
+    password,
+    email_confirm: true, // Cria o admin como já confirmado
     user_metadata: {
         full_name: "Administrador",
         display_name: "Admin",
