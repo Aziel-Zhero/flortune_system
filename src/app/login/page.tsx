@@ -43,8 +43,8 @@ function LoginFormSkeleton() {
 
 // O componente da página agora recebe `searchParams` como prop
 export default function LoginPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
-  const showSignupSuccess = searchParams?.signup === 'success';
-  const showDirectSuccess = searchParams?.signup === 'success_direct';
+  const signupParam = searchParams?.signup;
+  const errorParam = searchParams?.error;
 
   return (
     <AuthLayout
@@ -54,7 +54,7 @@ export default function LoginPage({ searchParams }: { searchParams: { [key: stri
       footerLinkText="Inscreva-se"
       footerLinkHref="/signup"
     >
-      {showSignupSuccess && (
+      {signupParam === 'success' && (
         <Alert variant="default" className="mb-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700">
           <MailCheck className="h-4 w-4 text-emerald-600" />
           <AlertTitle className="text-emerald-700 dark:text-emerald-300">Confirme seu E-mail</AlertTitle>
@@ -63,7 +63,7 @@ export default function LoginPage({ searchParams }: { searchParams: { [key: stri
           </AlertDescription>
         </Alert>
       )}
-       {showDirectSuccess && (
+       {signupParam === 'success_direct' && (
         <Alert variant="default" className="mb-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-700">
           <CheckCircle className="h-4 w-4 text-emerald-600" />
           <AlertTitle className="text-emerald-700 dark:text-emerald-300">Cadastro Realizado com Sucesso!</AlertTitle>
@@ -73,7 +73,7 @@ export default function LoginPage({ searchParams }: { searchParams: { [key: stri
         </Alert>
       )}
       <Suspense fallback={<LoginFormSkeleton />}>
-        <LoginForm />
+        <LoginForm error={errorParam as string | undefined} />
       </Suspense>
     </AuthLayout>
   );

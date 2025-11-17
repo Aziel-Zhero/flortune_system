@@ -2,9 +2,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 
 import { loginUser } from "@/app/actions/auth.actions";
 import { LogIn, KeyRound, Mail, Loader2 } from "lucide-react";
@@ -27,35 +26,32 @@ function SubmitButton() {
     )
 }
 
-export function LoginForm() {
-  const searchParams = useSearchParams();
-  const formError = searchParams.get("error");
-
+export function LoginForm({ error }: { error?: string }) {
   useEffect(() => {
-    if (formError === 'invalid_credentials') {
+    if (error === 'invalid_credentials') {
       toast({
         title: "Erro no Login",
         description: "Credenciais inválidas. Verifique seu e-mail e senha.",
         variant: "destructive",
       });
-    } else if (formError) {
+    } else if (error && error !== 'validation_failed') { // Ignora erros de validação já tratados
       toast({
         title: "Erro de Autenticação",
         description: "Ocorreu um erro. Por favor, tente novamente.",
         variant: "destructive",
       });
     }
-  }, [formError]);
+  }, [error]);
 
 
   return (
     <div className="space-y-6">
-       {formError && (
+       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro no Login</AlertTitle>
           <AlertDescription>
-            {formError === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : 'Ocorreu um erro inesperado.'}
+            {error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : 'Ocorreu um erro inesperado.'}
           </AlertDescription>
         </Alert>
       )}
