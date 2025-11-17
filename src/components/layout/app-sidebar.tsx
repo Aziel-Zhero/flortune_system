@@ -1,3 +1,4 @@
+
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -88,7 +89,7 @@ export function AppSidebar() {
   const profile = user?.profile;
   const { isMobile, setOpenMobile } = useSidebar();
 
-  const displayName = profile?.display_name || user?.name || "Usuário";
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
   const avatarUrl = profile?.avatar_url || user?.image;
   const avatarFallback = displayName?.charAt(0).toUpperCase() || "U";
   
@@ -105,10 +106,10 @@ export function AppSidebar() {
     const isDevRoute = item.href.startsWith('/dev');
     const isCorpRoute = item.href.startsWith('/corporate');
     
-    if (isDevRoute && userPlan !== 'tier-dev' && userPlan !== 'tier-corporativo') {
+    if (isDevRoute && userPlan !== 'tier-dev' && userPlan !== 'tier-corporativo' && profile?.role !== 'admin') {
       return false;
     }
-    if (isCorpRoute && userPlan !== 'tier-corporativo') {
+    if (isCorpRoute && userPlan !== 'tier-corporativo' && profile?.role !== 'admin') {
       return false;
     }
     return true;
@@ -129,7 +130,7 @@ export function AppSidebar() {
                   )} 
                   onClick={closeMobileSidebar}
                 >
-                    <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} />
+                    <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} className="h-7 w-auto" />
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
                 </Link>
             </div>
