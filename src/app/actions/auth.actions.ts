@@ -2,10 +2,12 @@
 "use server";
 
 import { z } from "zod";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin"; // Importa o cliente admin
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import type { ServiceResponse } from "@/types/database.types";
+
 
 // --- Login Action ---
 export async function loginUser(formData: FormData) {
@@ -26,7 +28,7 @@ export async function loginUser(formData: FormData) {
     return redirect(`/login?error=${error.message}`);
   }
 
-  // On successful login, the middleware will redirect to the correct dashboard.
+  // A verificação de admin será feita no middleware ou na página de destino
   return redirect("/dashboard");
 }
 
@@ -37,12 +39,7 @@ const signupSchema = z.object({
   password: z.string().min(8),
   fullName: z.string().min(2),
   displayName: z.string().min(2),
-  accountType: z.enum(['pessoa', 'empresa']),
-  cpf: z.string().optional(),
-  cnpj: z.string().optional(),
-  rg: z.string().optional(),
 });
-
 
 export async function signupUser(formData: FormData) {
   const origin = headers().get('origin');
@@ -53,40 +50,61 @@ export async function signupUser(formData: FormData) {
       return redirect('/signup?error=validation_failed');
   }
 
-  const { email, password, fullName, displayName, accountType, cpf, cnpj, rg } = validatedFields.data;
-  const supabase = createClient();
-
+  const { email, password, fullName, displayName } = validatedFields.data;
+  
+  if (!supabaseAdmin) {
+    console.error("Supabase admin client not initialized.");
+    return redirect('/signup?error=server_configuration_error');
+  }
+  
   // 1. Criar o usuário no Supabase Auth
-  const { data: { user }, error: authError } = await supabase.auth.signUp({
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    options: {
-      emailRedirectTo: `${origin}/api/auth/callback`,
-      data: {
+    email_confirm: true, // Auto-confirma o email
+    user_metadata: {
         full_name: fullName,
         display_name: displayName,
         avatar_url: `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`,
-        // Adicionando os outros campos no metadata para o trigger usar
-        account_type: accountType,
-        cpf_cnpj: accountType === 'pessoa' ? cpf : cnpj,
-        rg: rg,
-      }
-    },
+    }
   });
 
   if (authError) {
-    if (authError.message.includes("User already registered")) {
+    if (authError.message.includes("User already exists")) {
       return redirect('/signup?error=user_already_exists');
     }
     console.error("Supabase signup error:", authError.message);
     return redirect(`/signup?error=${authError.message}`);
   }
+  
+  if (!user) {
+    console.error("User not created, but no auth error.");
+    return redirect('/signup?error=unknown_creation_error');
+  }
+
+  // 2. Inserir o perfil na tabela public.profiles
+  const { error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .insert({
+      id: user.id,
+      email: email,
+      full_name: fullName,
+      display_name: displayName,
+      role: 'user', // Role padrão para novos usuários
+      plan_id: 'tier-cultivador', // Plano padrão
+      has_seen_welcome_message: false,
+    });
+
+  if (profileError) {
+      console.error("Error creating profile:", profileError.message);
+      // Se a criação do perfil falhar, deletamos o usuário de autenticação para manter a consistência
+      await supabaseAdmin.auth.admin.deleteUser(user.id);
+      return redirect(`/signup?error=profile_creation_failed`);
+  }
 
   // Redireciona para a página de login com uma mensagem de sucesso
-  // O trigger no banco de dados cuidará da criação do perfil.
-  return redirect('/login?signup=success');
+  return redirect('/login?signup=success_direct');
 }
-
 
 // --- Admin Setup Action ---
 const setupAdminSchema = z.object({
@@ -95,7 +113,6 @@ const setupAdminSchema = z.object({
   secretCode: z.string().min(1, "O código secreto é obrigatório."),
 });
 
-// Ação de servidor para useActionState recebe o estado anterior e o FormData
 export async function setupAdminUser(prevState: any, formData: FormData) {
   const validatedFields = setupAdminSchema.safeParse(
     Object.fromEntries(formData.entries())
@@ -150,19 +167,22 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
   
   const newUser = authData.user;
 
-  // Atualizar o perfil que o trigger deve ter criado para a role de admin
+  // Inserir o perfil com a role de admin
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
-    .update({ 
+    .insert({ 
+        id: newUser.id,
+        email: email,
+        full_name: "Administrador",
+        display_name: "Admin",
         role: 'admin', 
         has_seen_welcome_message: true 
-    })
-    .eq('id', newUser.id);
+    });
     
   if (profileError) {
-    // Se a atualização do perfil falhar, deletamos o usuário de autenticação
+    // Se a criação do perfil falhar, deletamos o usuário de autenticação
     await supabaseAdmin.auth.admin.deleteUser(newUser.id);
-    return { success: false, error: `Erro ao definir permissões de admin: ${profileError.message}` };
+    return { success: false, error: `Erro ao criar o perfil de admin: ${profileError.message}` };
   }
 
   return { success: true, message: `Administrador ${email} criado com sucesso!` };

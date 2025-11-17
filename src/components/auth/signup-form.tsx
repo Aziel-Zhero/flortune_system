@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
-import { UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle, Building, FileText, Fingerprint, Loader2, AlertCircle } from "lucide-react";
+import { UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle, Loader2, AlertCircle } from "lucide-react";
 
 import { signupUser } from "@/app/actions/auth.actions";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OAuthButton } from "./oauth-button";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { toast } from "@/hooks/use-toast";
-
 
 const passwordSchema = z.string()
   .min(8, "A senha deve ter no mínimo 8 caracteres.")
@@ -31,29 +29,18 @@ const passwordSchema = z.string()
   .regex(/[^a-zA-Z0-9]/, "A senha deve conter pelo menos um caractere especial.");
 
 const signupFormSchema = z.object({
-  fullName: z.string().min(2, "Nome Completo ou Razão Social é obrigatório."),
-  displayName: z.string().min(2, "Nome de Exibição ou Fantasia é obrigatório."),
+  fullName: z.string().min(2, "Nome Completo é obrigatório."),
+  displayName: z.string().min(2, "Nome de Exibição é obrigatório."),
   email: z.string().email("Email inválido."),
   password: passwordSchema,
   confirmPassword: z.string(),
-  accountType: z.enum(['pessoa', 'empresa'], { required_error: "Selecione o tipo de conta."}),
-  cpf: z.string().optional(),
-  cnpj: z.string().optional(),
-  rg: z.string().optional(),
   terms: z.boolean().refine(val => val === true, {
     message: "Você deve aceitar os termos e condições."
   })
 }).refine(data => data.password === data.confirmPassword, {
   message: "As senhas não coincidem.",
   path: ["confirmPassword"],
-}).refine(data => {
-    if (data.accountType === 'pessoa' && !data.cpf) return false;
-    return true;
-}, { message: "CPF é obrigatório para pessoa física.", path: ["cpf"]})
-.refine(data => {
-    if (data.accountType === 'empresa' && !data.cnpj) return false;
-    return true;
-}, { message: "CNPJ é obrigatório para empresa.", path: ["cnpj"]});
+});
 
 type SignupFormData = z.infer<typeof signupFormSchema>;
 
@@ -89,9 +76,6 @@ export function SignupForm() {
   const { control, register, watch, handleSubmit, formState: { errors } } = useForm<SignupFormData>({
     resolver: zodResolver(signupFormSchema),
     mode: "onBlur",
-    defaultValues: {
-        accountType: 'pessoa'
-    }
   });
   
   useEffect(() => {
@@ -111,7 +95,6 @@ export function SignupForm() {
   }, [formError]);
   
   const passwordValue = watch("password", "");
-  const accountType = watch("accountType");
 
   const passwordCheck = passwordRequirements.map(req => ({
       ...req,
@@ -131,37 +114,13 @@ export function SignupForm() {
         </Alert>
       )}
       <form action={signupUser} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Tipo de Conta</Label>
-            <Controller
-                name="accountType"
-                control={control}
-                render={({ field }) => (
-                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex space-x-4">
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="pessoa" id="pessoa" /><Label htmlFor="pessoa" className="font-normal flex items-center gap-1.5"><User className="h-4 w-4"/>Pessoa Física</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="empresa" id="empresa" /><Label htmlFor="empresa" className="font-normal flex items-center gap-1.5"><Building className="h-4 w-4"/>Empresa</Label></div>
-                </RadioGroup>
-                )}
-            />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="fullName">{accountType === 'pessoa' ? 'Nome Completo' : 'Razão Social'}</Label><Input id="fullName" name="fullName" {...register("fullName")} />{errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}</div>
-              <div className="space-y-2"><Label htmlFor="displayName">{accountType === 'pessoa' ? 'Nome de Exibição' : 'Nome Fantasia'}</Label><Input id="displayName" name="displayName" {...register("displayName")} />{errors.displayName && <p className="text-sm text-destructive mt-1">{errors.displayName.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="fullName">Nome Completo</Label><Input id="fullName" name="fullName" {...register("fullName")} />{errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="displayName">Nome de Exibição</Label><Input id="displayName" name="displayName" {...register("displayName")} />{errors.displayName && <p className="text-sm text-destructive mt-1">{errors.displayName.message}</p>}</div>
           </div>
           
           <div className="space-y-2"><Label htmlFor="email">Email</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="email" name="email" type="email" {...register("email")} className="pl-10"/></div>{errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}</div>
         
-          {accountType === 'pessoa' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label htmlFor="cpf">CPF</Label><div className="relative"><FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="cpf" name="cpf" {...register("cpf")} className="pl-10"/></div>{errors.cpf && <p className="text-sm text-destructive mt-1">{errors.cpf.message}</p>}</div>
-                <div className="space-y-2"><Label htmlFor="rg">RG (Opcional)</Label><div className="relative"><Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="rg" name="rg" {...register("rg")} className="pl-10"/></div></div>
-              </div>
-          ) : (
-              <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><div className="relative"><FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="cnpj" name="cnpj" {...register("cnpj")} className="pl-10"/></div>{errors.cnpj && <p className="text-sm text-destructive mt-1">{errors.cnpj.message}</p>}</div>
-          )}
-
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2"><Label htmlFor="password">Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="password" name="password" type={showPassword ? "text" : "password"} {...register("password")} className="pl-10 pr-10"/><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)}><EyeOff className={cn("h-4 w-4", { "hidden": !showPassword })} /><Eye className={cn("h-4 w-4", { "hidden": showPassword })} /></Button></div>{errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}</div>
             <div className="space-y-2"><Label htmlFor="confirmPassword">Confirme a Senha</Label><div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/><Input id="confirmPassword" name="confirmPassword" type={showPassword ? "text" : "password"} {...register("confirmPassword")} className="pl-10 pr-10"/><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(p => !p)} tabIndex={-1}><EyeOff className={cn("h-4 w-4", { "hidden": !showPassword })} /><Eye className={cn("h-4 w-4", { "hidden": showPassword })} /></Button></div>{errors.confirmPassword && <p className="text-sm text-destructive mt-1">{errors.confirmPassword.message}</p>}</div>
