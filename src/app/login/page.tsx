@@ -42,7 +42,8 @@ function LoginFormSkeleton() {
 }
 
 // O componente da página agora recebe `searchParams` como prop
-export default function LoginPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+export default async function LoginPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+  // Acessa os parâmetros diretamente, pois já estão resolvidos pelo Next.js
   const signupParam = searchParams?.signup;
   const errorParam = searchParams?.error;
 
