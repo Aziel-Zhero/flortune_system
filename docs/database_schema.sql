@@ -1,187 +1,211 @@
--- /---------------------------------------------------------------------------------------\
--- |                                                                                       |
--- |  ███████╗██╗     ██████╗ ████████╗██╗   ██╗███╗   ██╗███████╗███████╗                    |
--- |  ██╔════╝██║     ██╔══██╗╚══██╔══╝██║   ██║████╗  ██║██╔════╝██╔════╝                    |
--- |  █████╗  ██║     ██████╔╝   ██║   ██║   ██║██╔██╗ ██║█████╗  █████╗                      |
--- |  ██╔══╝  ██║     ██╔══██╗   ██║   ██║   ██║██║╚██╗██║██╔══╝  ██╔══╝                      |
--- |  ██║     ███████╗██║  ██║   ██║   ╚██████╔╝██║ ╚████║███████╗███████╗                    |
--- |  ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝                    |
--- |                                                                                       |
--- |  ✅ Script de Banco de Dados Oficial para o Projeto Flortune                            |
--- |  Este script é projetado para ser IDEMPOTENTE. Isso significa que ele pode ser         |
--- |  executado várias vezes sem causar erros ou perda de dados. Ele verifica a existência  |
--- |  de objetos (tabelas, políticas, etc.) antes de criá-los ou alterá-los.               |
--- |                                                                                       |
--- \---------------------------------------------------------------------------------------/
+-- FLORTUNE DATABASE SCHEMA
+-- This script is idempotent and can be re-run safely.
 
--- Habilitar a extensão pgcrypto para usar a função gen_salt.
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- 1. Create a schema for NextAuth.js
+DROP SCHEMA IF EXISTS next_auth CASCADE;
+CREATE SCHEMA next_auth;
 
--- 1. Definição da tabela de Perfis
--- Esta tabela armazena informações públicas e privadas dos usuários,
--- estendendo a tabela auth.users do Supabase.
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+-- 2. Grant usage to necessary roles
+GRANT USAGE ON SCHEMA next_auth TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA next_auth GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA next_auth GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA next_auth GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+
+-- 3. Create NextAuth.js tables
+CREATE TABLE next_auth.users (
+  id uuid NOT NULL,
+  name text NULL,
+  email text NULL,
+  "emailVerified" timestamptz NULL,
+  image text NULL,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_email_key UNIQUE (email)
+);
+CREATE TABLE next_auth.accounts (
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  "userId" uuid NOT NULL,
+  type text NOT NULL,
+  provider text NOT NULL,
+  "providerAccountId" text NOT NULL,
+  refresh_token text NULL,
+  access_token text NULL,
+  expires_at int8 NULL,
+  token_type text NULL,
+  scope text NULL,
+  id_token text NULL,
+  session_state text NULL,
+  CONSTRAINT accounts_pkey PRIMARY KEY (id),
+  CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
+);
+CREATE TABLE next_auth.sessions (
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  "sessionToken" text NOT NULL,
+  "userId" uuid NOT NULL,
+  expires timestamptz NOT NULL,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES next_auth.users(id) ON DELETE CASCADE
+);
+CREATE TABLE next_auth.verification_tokens (
+  identifier text NOT NULL,
+  token text NOT NULL,
+  expires timestamptz NOT NULL,
+  CONSTRAINT verification_tokens_pkey PRIMARY KEY (identifier, token)
+);
+
+
+-- 4. Create public.profiles table
+-- This table is used to store user profile data.
+-- The `hashed_password` column is REMOVED as Supabase Auth handles it.
+DROP TABLE IF EXISTS public.profiles CASCADE;
+CREATE TABLE public.profiles (
+    id uuid NOT NULL,
     full_name text,
     display_name text,
     email text UNIQUE NOT NULL,
     avatar_url text,
-    account_type text, -- 'pessoa' ou 'empresa'
+    account_type text,
     cpf_cnpj text UNIQUE,
     rg text,
     plan_id text DEFAULT 'tier-cultivador',
     has_seen_welcome_message boolean DEFAULT false,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    role text DEFAULT 'user' NOT NULL
+    role text DEFAULT 'user'::text,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    PRIMARY KEY (id),
+    CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
+COMMENT ON TABLE public.profiles IS 'Stores public profile information for each user.';
 
--- 2. Políticas de Segurança (Row Level Security - RLS) para a Tabela de Perfis
+-- 5. Set up Row Level Security (RLS) for profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Usuários podem ver e gerenciar seus próprios perfis." ON public.profiles;
-CREATE POLICY "Usuários podem ver e gerenciar seus próprios perfis."
-  ON public.profiles FOR ALL
-  USING (auth.uid() = id);
-
--- Permite que a Server Action de signup (que usa a chave de admin) insira perfis.
--- A segurança é garantida pela chave de serviço, não por RLS a nível de 'anon'.
-DROP POLICY IF EXISTS "Permitir inserção via service_role" ON public.profiles;
-CREATE POLICY "Permitir inserção via service_role"
-    ON public.profiles FOR INSERT
-    WITH CHECK (auth.role() = 'service_role');
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
+CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert their own profile." ON public.profiles;
+CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
+CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 
--- 3. Tabela de Categorias
-CREATE TABLE IF NOT EXISTS public.categories (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
+-- 6. Trigger to automatically create a profile when a new user signs up in auth.users
+DROP FUNCTION IF EXISTS public.handle_new_user CASCADE;
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, display_name, avatar_url, role)
+  VALUES (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'display_name',
+    new.raw_user_meta_data->>'avatar_url',
+    'user'
+  );
+  return new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop existing trigger if it exists and recreate it
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+
+-- 7. Create other application tables (transactions, categories, etc.)
+-- These tables now use RLS to ensure users can only access their own data.
+
+-- Categories Table
+DROP TABLE IF EXISTS public.categories CASCADE;
+CREATE TABLE public.categories (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
     user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
     name text NOT NULL,
-    type text NOT NULL, -- 'income' ou 'expense'
+    type text NOT NULL, -- 'income' or 'expense'
     icon text,
-    is_default boolean DEFAULT false NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    is_default boolean DEFAULT false,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
 );
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Usuários podem gerenciar suas próprias categorias e ver as padrão." ON public.categories;
-CREATE POLICY "Usuários podem gerenciar suas próprias categorias e ver as padrão."
+CREATE POLICY "Users can manage their own categories, and view defaults."
   ON public.categories FOR ALL
   USING (auth.uid() = user_id OR is_default = true);
 
-
--- 4. Tabela de Transações
-CREATE TABLE IF NOT EXISTS public.transactions (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
+-- Transactions Table
+DROP TABLE IF EXISTS public.transactions CASCADE;
+CREATE TABLE public.transactions (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL,
     description text NOT NULL,
-    amount numeric(10, 2) NOT NULL,
+    amount numeric(12, 2) NOT NULL,
     date date NOT NULL,
-    type text NOT NULL, -- 'income' ou 'expense'
+    type text NOT NULL, -- 'income' or 'expense'
     notes text,
     is_recurring boolean DEFAULT false,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
 );
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Usuários podem gerenciar suas próprias transações." ON public.transactions;
-CREATE POLICY "Usuários podem gerenciar suas próprias transações."
+CREATE POLICY "Users can manage their own transactions."
   ON public.transactions FOR ALL
   USING (auth.uid() = user_id);
 
--- 5. Tabela de Orçamentos
-CREATE TABLE IF NOT EXISTS public.budgets (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
+-- Budgets Table
+DROP TABLE IF EXISTS public.budgets CASCADE;
+CREATE TABLE public.budgets (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     category_id uuid NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
-    limit_amount numeric(10, 2) NOT NULL,
-    spent_amount numeric(10, 2) DEFAULT 0 NOT NULL,
+    limit_amount numeric(12, 2) NOT NULL,
+    spent_amount numeric(12, 2) DEFAULT 0.00,
     period_start_date date NOT NULL,
     period_end_date date NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
 );
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Usuários podem gerenciar seus próprios orçamentos." ON public.budgets;
-CREATE POLICY "Usuários podem gerenciar seus próprios orçamentos."
+CREATE POLICY "Users can manage their own budgets."
   ON public.budgets FOR ALL
   USING (auth.uid() = user_id);
 
--- 6. Tabela de Metas Financeiras
-CREATE TABLE IF NOT EXISTS public.financial_goals (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
+-- Financial Goals Table
+DROP TABLE IF EXISTS public.financial_goals CASCADE;
+CREATE TABLE public.financial_goals (
+    id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name text NOT NULL,
-    target_amount numeric(10, 2) NOT NULL,
-    current_amount numeric(10, 2) DEFAULT 0 NOT NULL,
+    target_amount numeric(12, 2) NOT NULL,
+    current_amount numeric(12, 2) DEFAULT 0.00,
     deadline_date date,
     icon text,
-    status text DEFAULT 'in_progress'::text,
+    status text DEFAULT 'in_progress', -- 'in_progress', 'achieved', 'cancelled'
     notes text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
 );
 ALTER TABLE public.financial_goals ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Usuários podem gerenciar suas próprias metas financeiras." ON public.financial_goals;
-CREATE POLICY "Usuários podem gerenciar suas próprias metas financeiras."
+CREATE POLICY "Users can manage their own financial goals."
   ON public.financial_goals FOR ALL
   USING (auth.uid() = user_id);
-  
--- 7. Tabela de Tarefas (To-Do)
-CREATE TABLE IF NOT EXISTS public.todos (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    description text NOT NULL,
-    is_completed boolean DEFAULT false,
-    due_date date,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Usuários podem gerenciar suas próprias tarefas." ON public.todos;
-CREATE POLICY "Usuários podem gerenciar suas próprias tarefas."
-    ON public.todos FOR ALL
-    USING (auth.uid() = user_id);
-    
--- 8. Tabela de Integração com Telegram
-CREATE TABLE IF NOT EXISTS public.telegram_integration (
-    id integer NOT NULL PRIMARY KEY,
+
+-- Telegram Integration Table (Admin-only, no RLS needed if accessed with service_role)
+DROP TABLE IF EXISTS public.telegram_integration;
+CREATE TABLE public.telegram_integration (
+    id bigint PRIMARY KEY,
     bot_token text,
     chat_id text,
-    updated_at timestamp with time zone
+    updated_at timestamptz DEFAULT now()
 );
+-- Ensure only one row can exist for singleton pattern
+CREATE UNIQUE INDEX ON public.telegram_integration ((id = 1));
+-- Insert the default empty row if it doesn't exist
+INSERT INTO public.telegram_integration (id) VALUES (1) ON CONFLICT DO NOTHING;
 
-ALTER TABLE public.telegram_integration ENABLE ROW LEVEL SECURITY;
-
--- 9. Função Auxiliar para verificar se um usuário é admin
-CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
-RETURNS boolean
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.profiles
-    WHERE id = user_id AND role = 'admin'
-  );
-$$;
-
-DROP POLICY IF EXISTS "Permitir acesso total para administradores" ON public.telegram_integration;
-CREATE POLICY "Permitir acesso total para administradores"
-    ON public.telegram_integration FOR ALL
-    USING (public.is_admin(auth.uid()))
-    WITH CHECK (public.is_admin(auth.uid()));
-
--- Garante que a linha de configuração exista
-INSERT INTO public.telegram_integration (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
-
-
--- Mensagem de finalização
-SELECT '✅ Schema Flortune (usuário) configurado com sucesso.' as status;
+-- Grant permissions on new public tables
+GRANT ALL ON TABLE public.categories TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.transactions TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.budgets TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.financial_goals TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE public.telegram_integration TO postgres, service_role; -- Only service_role can access

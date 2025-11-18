@@ -19,6 +19,8 @@ export async function loginUser(prevState: any, formData: FormData) {
 
   const supabase = createClient();
 
+  // A verificação da senha agora é feita inteiramente pelo Supabase.
+  // Não precisamos mais interagir com a tabela 'profiles' para isso.
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -35,11 +37,13 @@ export async function loginUser(prevState: any, formData: FormData) {
     return { error: error.message };
   }
   
+  // Após o login bem-sucedido, verificamos o perfil para redirecionamento.
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single();
-
-  if (profile?.role === 'admin') {
-      return redirect("/dashboard-admin");
+  if (user) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (profile?.role === 'admin') {
+          return redirect("/dashboard-admin");
+      }
   }
 
   return redirect("/dashboard");
@@ -67,6 +71,8 @@ export async function signupUser(formData: FormData) {
   
   const supabase = createClient();
   
+  // O Supabase Auth cuidará de hashear e armazenar a senha de forma segura.
+  // A tabela 'profiles' não armazenará mais a senha.
   const { data, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -85,7 +91,7 @@ export async function signupUser(formData: FormData) {
       return redirect('/signup?error=user_already_exists');
     }
     console.error("Supabase signup error:", authError.message);
-    return redirect(`/signup?error=${authError.message}`);
+    return redirect(`/signup?error=${encodeURIComponent(authError.message)}`);
   }
   
   if (!data.user) {
@@ -93,7 +99,14 @@ export async function signupUser(formData: FormData) {
     return redirect('/signup?error=unknown_creation_error');
   }
   
-  return redirect('/login?signup=success');
+  // A trigger 'handle_new_user' no banco de dados criará o perfil em 'public.profiles'.
+  // Se a confirmação de e-mail estiver ATIVADA, redirecionamos para uma página de sucesso.
+  if (data.user && data.session === null) {
+    return redirect('/login?signup=success');
+  }
+  
+  // Se a confirmação de e-mail estiver DESATIVADA (dev), o usuário já terá uma sessão.
+  return redirect("/dashboard");
 }
 
 
@@ -154,21 +167,17 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
   }
   
   const newUser = authData.user;
-
+  
+  // O trigger `handle_new_user` já insere na tabela `profiles`.
+  // Aqui, apenas atualizamos a `role` para 'admin'.
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
-    .upsert({ 
-        id: newUser.id,
-        email: email,
-        full_name: "Administrador",
-        display_name: "Admin",
-        role: 'admin', 
-        has_seen_welcome_message: true 
-    }, { onConflict: 'id' });
+    .update({ role: 'admin', has_seen_welcome_message: true })
+    .eq('id', newUser.id);
     
   if (profileError) {
     await supabaseAdmin.auth.admin.deleteUser(newUser.id);
-    return { success: false, error: `Erro ao criar o perfil de admin: ${profileError.message}` };
+    return { success: false, error: `Erro ao definir permissão de admin: ${profileError.message}` };
   }
 
   return { success: true, message: `Administrador ${email} criado com sucesso!` };
