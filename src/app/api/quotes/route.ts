@@ -1,9 +1,8 @@
 // src/app/api/quotes/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
 import type { QuoteData } from '@/types/database.types';
 
-// Interface para a resposta da AwesomeAPI, que pode ser um objeto ou um array
+// Interface para a resposta da AwesomeAPI
 interface AwesomeApiResponse {
   [key: string]: any;
 }
@@ -25,17 +24,28 @@ export async function GET(request: NextRequest) {
   const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
 
   try {
-    const response = await axios.get<AwesomeApiResponse>(apiUrl, {
-      timeout: 5000, // Timeout de 5 segundos
+    // Use Next.js's extended fetch to cache the result for 10 minutes (600 seconds)
+    const response = await fetch(apiUrl, {
+      next: { revalidate: 600 },
+      headers: {
+        'User-Agent': 'FlortuneApp/1.0',
+      }
     });
+
+    if (!response.ok) {
+       // A API pode retornar 404 se nenhuma cotação for encontrada, tratamos isso como um erro.
+       const errorData = await response.json();
+       const errorMessage = errorData.message || `API externa retornou status: ${response.status}`;
+       console.error("External API error:", errorMessage);
+       return NextResponse.json({ error: errorMessage }, { status: response.status });
+    }
     
-    const responseData = response.data;
+    const responseData: AwesomeApiResponse = await response.json();
     const dataArray: QuoteData[] = [];
 
     uniqueQuotes.forEach(quoteCode => {
       const responseKey = quoteCode.replace('-', '');
       if (responseData && responseData[responseKey]) {
-        // A API pode retornar um objeto ou um array de objetos
         const quoteData = Array.isArray(responseData[responseKey]) ? responseData[responseKey][0] : responseData[responseKey];
         dataArray.push(quoteData);
       }
@@ -53,7 +63,7 @@ export async function GET(request: NextRequest) {
     console.error('❌ Erro na rota da API de cotações:', error.message);
     
     return NextResponse.json({ 
-      error: `Falha ao buscar dados das cotações na API externa. Detalhes: ${error.message}`
+      error: `Falha ao processar a solicitação para a API externa. Detalhes: ${error.message}`
     }, { status: 500 });
   }
 }
