@@ -2,11 +2,10 @@
 "use server";
 
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import type { ServiceResponse } from "@/types/database.types";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 
 // --- Login Action ---
@@ -66,65 +65,46 @@ export async function signupUser(formData: FormData) {
 
   const { email, password, fullName, displayName } = validatedFields.data;
   
-  if (!supabaseAdmin) {
-    console.error("Supabase admin client not initialized.");
-    return redirect('/signup?error=server_configuration_error');
-  }
+  const supabase = createClient();
   
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  const { data, error: authError } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: false, // O usuário precisará confirmar o e-mail
-    user_metadata: {
-        full_name: fullName,
-        display_name: displayName,
-        avatar_url: `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`,
+    options: {
+      emailRedirectTo: `${origin}/api/auth/callback`,
+      data: {
+          full_name: fullName,
+          display_name: displayName,
+          avatar_url: `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`,
+      }
     }
   });
 
   if (authError) {
-    if (authError.message.includes("User already exists")) {
+    if (authError.message.includes("User already registered")) {
       return redirect('/signup?error=user_already_exists');
     }
     console.error("Supabase signup error:", authError.message);
     return redirect(`/signup?error=${authError.message}`);
   }
   
-  if (!user) {
+  if (!data.user) {
     console.error("User not created, but no auth error.");
     return redirect('/signup?error=unknown_creation_error');
   }
-
-  const { error: profileError } = await supabaseAdmin
-    .from('profiles')
-    .upsert({
-      id: user.id,
-      email: email,
-      full_name: fullName,
-      display_name: displayName,
-      plan_id: 'tier-cultivador',
-      account_type: 'pessoa',
-      has_seen_welcome_message: false,
-    }, { onConflict: 'id' });
-
-  if (profileError) {
-      console.error("Error creating/updating profile:", profileError.message);
-      await supabaseAdmin.auth.admin.deleteUser(user.id);
-      return redirect(`/signup?error=profile_creation_failed`);
-  }
-
+  
   return redirect('/login?signup=success');
 }
 
 
 // --- Admin Setup Action ---
-const setupAdminSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres."),
-  secretCode: z.string().min(1, "O código secreto é obrigatório."),
-});
-
 export async function setupAdminUser(prevState: any, formData: FormData) {
+  const setupAdminSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres."),
+    secretCode: z.string().min(1, "O código secreto é obrigatório."),
+  });
+
   const validatedFields = setupAdminSchema.safeParse(
     Object.fromEntries(formData.entries())
   );

@@ -1,19 +1,18 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useEffect, useActionState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
+import { useFormState, useFormStatus } from "react-dom";
 
 import { loginUser } from "@/app/actions/auth.actions";
-import { LogIn, KeyRound, Mail, Loader2 } from "lucide-react";
+import { LogIn, KeyRound, Mail, Loader2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OAuthButton } from "./oauth-button";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { AlertCircle } from "lucide-react";
-import { useFormStatus } from "react-dom";
 
 
 function SubmitButton() {
@@ -31,22 +30,22 @@ const initialState = {
 };
 
 export function LoginForm({ error }: { error?: string }) {
-
-  const [state, formAction] = useActionState(loginUser, initialState);
-
+  // O hook useFormState não é mais necessário aqui da mesma forma,
+  // pois o redirecionamento é tratado pelo Server Action.
+  // Mantemos um estado simples para feedback, se necessário.
+  
   useEffect(() => {
-    const errorToDisplay = error || state?.error;
-    if (errorToDisplay) {
+    if (error) {
         let title = "Erro no Login";
         let description = "Ocorreu um erro inesperado. Tente novamente.";
         
-        if (errorToDisplay === 'invalid_credentials') {
+        if (error === 'invalid_credentials') {
             description = "Credenciais inválidas. Verifique seu e-mail e senha.";
-        } else if (errorToDisplay === 'email_not_confirmed') {
+        } else if (error === 'email_not_confirmed') {
             title = "E-mail Não Confirmado";
             description = "Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada.";
-        } else if (errorToDisplay) {
-            description = decodeURIComponent(errorToDisplay);
+        } else if (error) {
+            description = decodeURIComponent(error);
         }
 
         toast({
@@ -55,21 +54,21 @@ export function LoginForm({ error }: { error?: string }) {
             variant: "destructive",
         });
     }
-  }, [error, state]);
+  }, [error]);
 
 
   return (
     <div className="space-y-6">
-       {state?.error && (
+       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro no Login</AlertTitle>
           <AlertDescription>
-            {state.error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : (state.error === 'email_not_confirmed' ? 'Confirme seu e-mail para continuar.' : 'Ocorreu um erro inesperado.')}
+            {error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : (error === 'email_not_confirmed' ? 'Confirme seu e-mail para continuar.' : 'Ocorreu um erro inesperado.')}
           </AlertDescription>
         </Alert>
       )}
-      <form action={formAction} className="space-y-4">
+      <form action={loginUser} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">

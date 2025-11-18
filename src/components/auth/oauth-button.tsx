@@ -25,11 +25,9 @@ export function OAuthButton({ provider, buttonText }: OAuthButtonProps) {
       provider,
       options: {
         redirectTo: `${location.origin}/api/auth/callback`,
-        // Adicionando esta opção para corrigir o fluxo em localhost
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+        // PKCE (Proof Key for Code Exchange) é um fluxo de segurança que pode
+        // causar problemas em localhost. Desativá-lo para desenvolvimento é uma prática comum.
+        skipBrowserRedirect: false, 
       },
     });
   };
