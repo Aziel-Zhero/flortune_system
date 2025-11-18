@@ -1,48 +1,39 @@
 // src/services/quote.service.ts
-"use server";
-import axios from 'axios';
-import type { QuoteData } from '@/types/database.types';
+import type { QuoteData, ServiceListResponse } from "@/types/database.types";
 
-interface AwesomeApiResponse {
-  [key: string]: QuoteData;
-}
-
+/**
+ * Fetches quote data from the internal API route.
+ * This function is meant to be called from the client-side.
+ * @param quotes - An array of quote codes to fetch (e.g., ['USD-BRL', 'EUR-BRL']).
+ */
 export async function getQuotes(
   quotes: string[]
-): Promise<{ data: QuoteData[] | null; error: string | null }> {
+): Promise<ServiceListResponse<QuoteData>> {
   if (!quotes || quotes.length === 0) {
     return { data: [], error: null };
   }
 
-  const uniqueQuotes = [...new Set(quotes)];
-  const query = uniqueQuotes.join(',');
-  const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
+  const queryString = quotes.join(',');
+  const internalApiUrl = `/api/quotes?codes=${encodeURIComponent(queryString)}`;
 
   try {
-    const response = await axios.get<AwesomeApiResponse>(apiUrl);
-    
-    const responseData = response.data;
-    const dataArray: QuoteData[] = [];
+    const response = await fetch(internalApiUrl);
 
-    uniqueQuotes.forEach(quoteCode => {
-      // The API returns "USDBRL" for the query "USD-BRL", so we need to normalize the key.
-      // It also sometimes returns arrays for certain codes, so we handle that.
-      const responseKey = quoteCode.replace('-', ''); 
-      if (responseData && responseData[responseKey]) {
-        dataArray.push(responseData[responseKey]);
-      }
-    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
 
-    if (dataArray.length === 0 && uniqueQuotes.length > 0) {
-        return { data: null, error: `Nenhuma das cotações solicitadas (${query}) foi encontrada.` };
+    const result = await response.json();
+
+    if (result.isMock) {
+       console.warn('⚠️ Usando dados simulados de cotações - API externa pode estar indisponível.');
     }
     
-    return { data: dataArray, error: null };
+    return { data: result.data, error: result.error || null };
+
   } catch (error: any) {
-    console.error('Erro ao buscar cotações na API externa:', error.message);
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return { data: null, error: `Uma ou mais cotações (${query}) não foram encontradas.` };
-    }
-    return { data: null, error: 'Falha ao conectar ao serviço de cotações externo.' };
+    console.error('Falha ao buscar cotações do serviço interno:', error.message);
+    return { data: null, error: "Não foi possível conectar ao nosso serviço de cotações." };
   }
 }

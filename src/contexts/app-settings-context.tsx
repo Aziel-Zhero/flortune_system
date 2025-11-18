@@ -5,7 +5,8 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { getQuotes, type QuoteData } from '@/services/quote.service';
+import { getQuotes } from '@/services/quote.service';
+import type { QuoteData } from '@/types/database.types';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from "lucide-react";
 
@@ -186,7 +187,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         setQuotes([]); // Limpa as cotações em caso de erro
       } else {
         const orderedQuotes = validQuotes
-          .map(code => result.data?.find(d => d.codein === 'BRL' ? d.code === code.split('-')[0] : d.code === code))
+          .map(code => result.data?.find(d => d.code === code.split('-')[0]))
           .filter((q): q is QuoteData => !!q);
         setQuotes(orderedQuotes);
       }

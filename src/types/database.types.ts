@@ -117,6 +117,7 @@ export interface QuoteData {
   ask: string;
   timestamp: string;
   create_date: string;
+  isMock?: boolean;
 }
 
 
@@ -136,4 +137,5 @@ export interface ServiceListResponse<T> {
   data: T[] | null;
   error: string | null;
   count?: number | null;
+  isMock?: boolean;
 }
