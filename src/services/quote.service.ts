@@ -26,11 +26,11 @@ export async function getQuotes(
 
     const result = await response.json();
 
-    if (result.isMock) {
-       console.warn('⚠️ Usando dados simulados de cotações - API externa pode estar indisponível.');
+    if (result.error) {
+       return { data: null, error: result.error };
     }
     
-    return { data: result.data, error: result.error || null };
+    return { data: result.data, error: null };
 
   } catch (error: any) {
     console.error('Falha ao buscar cotações do serviço interno:', error.message);

@@ -168,7 +168,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setNotifications([]);
   }, []);
 
-
   const loadQuotes = useCallback(async (quoteList: string[]) => {
     const validQuotes = quoteList.filter(q => q && q.trim() !== '');
     if (validQuotes.length === 0) {
@@ -180,6 +179,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setQuotesError(null);
     try {
       const result = await getQuotes(validQuotes);
+
       if (result.error) {
         // Apenas loga o erro e atualiza o estado, não quebra a aplicação.
         console.error('Error fetching quotes from service:', result.error);
@@ -192,9 +192,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         setQuotes(orderedQuotes);
       }
     } catch (err: any) {
-      setQuotesError(err.message);
-      setQuotes([]);
       console.error('Network or other error in loadQuotes:', err);
+      setQuotesError("Falha de rede ao buscar cotações.");
+      setQuotes([]);
     } finally {
       setIsLoadingQuotes(false);
     }

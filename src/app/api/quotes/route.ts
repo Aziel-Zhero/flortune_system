@@ -8,38 +8,6 @@ interface AwesomeApiResponse {
   [key: string]: any;
 }
 
-// Gera dados mock para fallback em caso de erro da API externa
-function generateMockQuotes(quotes: string[]): QuoteData[] {
-  const mockRates: { [key: string]: { bid: number; ask: number; name: string } } = {
-    'USD-BRL': { bid: 5.25, ask: 5.26, name: 'Dólar Americano/Real Brasileiro' },
-    'EUR-BRL': { bid: 5.65, ask: 5.66, name: 'Euro/Real Brasileiro' },
-    'GBP-BRL': { bid: 6.70, ask: 6.71, name: 'Libra Esterlina/Real Brasileiro' },
-    'BTC-BRL': { bid: 320000, ask: 321000, name: 'Bitcoin/Real Brasileiro' },
-    'JPY-BRL': { bid: 0.033, ask: 0.034, name: 'Iene Japonês/Real Brasileiro' },
-    'IBOV': { bid: 120000, ask: 120000, name: 'Ibovespa' },
-  };
-
-  return quotes.map(quoteCode => {
-    const defaultRate = { bid: 1.0, ask: 1.0, name: quoteCode };
-    const rate = mockRates[quoteCode] || defaultRate;
-    
-    return {
-      code: quoteCode.split('-')[0],
-      codein: quoteCode.split('-')[1] || 'BRL',
-      name: rate.name,
-      bid: String(rate.bid),
-      ask: String(rate.ask),
-      timestamp: new Date().getTime().toString(),
-      high: String(rate.bid * 1.02),
-      low: String(rate.bid * 0.98),
-      pctChange: String(Math.random() * 2 - 1), // Variação aleatória entre -1 e 1
-      varBid: String(rate.bid * (Math.random() * 0.01 - 0.005)),
-      create_date: new Date().toISOString(),
-      isMock: true
-    };
-  });
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const codes = searchParams.get('codes');
@@ -58,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await axios.get<AwesomeApiResponse>(apiUrl, {
-      timeout: 10000, // Timeout de 10 segundos
+      timeout: 5000, // Timeout de 5 segundos
     });
     
     const responseData = response.data;
@@ -74,12 +42,9 @@ export async function GET(request: NextRequest) {
     });
 
     if (dataArray.length === 0) {
-      // Se a API respondeu mas não encontrou nenhuma cotação
        return NextResponse.json({ 
-        data: generateMockQuotes(uniqueQuotes), 
-        error: `API externa não retornou dados para ${query}, usando dados simulados.`,
-        isMock: true 
-      });
+        error: `Nenhuma das cotações solicitadas (${query}) foi encontrada na API externa.` 
+      }, { status: 404 });
     }
 
     return NextResponse.json({ data: dataArray, error: null });
@@ -87,12 +52,8 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Erro na rota da API de cotações:', error.message);
     
-    // Retorna dados mock em caso de erro de rede ou timeout
-    const mockData = generateMockQuotes(uniqueQuotes);
     return NextResponse.json({ 
-      data: mockData, 
-      error: 'API externa indisponível, usando dados simulados.',
-      isMock: true 
-    });
+      error: `Falha ao buscar dados das cotações na API externa. Detalhes: ${error.message}`
+    }, { status: 500 });
   }
 }
