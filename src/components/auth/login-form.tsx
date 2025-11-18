@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
+const initialState = {
+  error: null as string | null,
+};
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -25,19 +28,21 @@ function SubmitButton() {
     )
 }
 
-export function LoginForm({ error }: { error?: string }) {  
+export function LoginForm() {  
+  const [state, formAction] = useFormState(loginUser, initialState);
+
   useEffect(() => {
-    if (error) {
+    if (state?.error) {
         let title = "Erro no Login";
         let description = "Ocorreu um erro inesperado. Tente novamente.";
         
-        if (error === 'invalid_credentials') {
+        if (state.error === 'invalid_credentials') {
             description = "Credenciais inválidas. Verifique seu e-mail e senha.";
-        } else if (error === 'email_not_confirmed') {
+        } else if (state.error === 'email_not_confirmed') {
             title = "E-mail Não Confirmado";
             description = "Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada.";
-        } else if (error) {
-            description = decodeURIComponent(error);
+        } else {
+            description = decodeURIComponent(state.error);
         }
 
         toast({
@@ -46,21 +51,21 @@ export function LoginForm({ error }: { error?: string }) {
             variant: "destructive",
         });
     }
-  }, [error]);
+  }, [state]);
 
 
   return (
     <div className="space-y-6">
-       {error && (
+       {state?.error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro no Login</AlertTitle>
           <AlertDescription>
-            {error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : (error === 'email_not_confirmed' ? 'Confirme seu e-mail para continuar.' : 'Ocorreu um erro inesperado.')}
+            {state.error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : (state.error === 'email_not_confirmed' ? 'Confirme seu e-mail para continuar.' : 'Ocorreu um erro inesperado.')}
           </AlertDescription>
         </Alert>
       )}
-      <form action={loginUser} className="space-y-4">
+      <form action={formAction} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">

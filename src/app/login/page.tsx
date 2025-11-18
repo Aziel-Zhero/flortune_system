@@ -41,14 +41,14 @@ function LoginFormSkeleton() {
   );
 }
 
+// Componente async para aguardar searchParams
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const signupParam = searchParams?.signup;
-  const errorParam = searchParams?.error;
-
+  
   return (
     <AuthLayout
       title="Bem-vindo de Volta!"
@@ -87,7 +87,7 @@ export default async function LoginPage({
         </Alert>
       )}
       <Suspense fallback={<LoginFormSkeleton />}>
-        <LoginForm error={errorParam as string | undefined} />
+        <LoginForm />
       </Suspense>
     </AuthLayout>
   );

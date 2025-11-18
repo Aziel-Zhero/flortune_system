@@ -27,12 +27,12 @@ export async function loginUser(prevState: any, formData: FormData) {
   if (error) {
     console.error("Login Error:", error.message);
     if (error.message.includes("Invalid login credentials")) {
-      return redirect("/login?error=invalid_credentials");
+      return { error: "invalid_credentials" };
     }
     if (error.message.includes("Email not confirmed")) {
-      return redirect("/login?error=email_not_confirmed");
+      return { error: "email_not_confirmed" };
     }
-    return redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    return { error: error.message };
   }
   
   const { data: { user } } = await supabase.auth.getUser();
