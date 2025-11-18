@@ -105,6 +105,20 @@ export interface DevClient {
   updated_at: string; // Timestamptz
 }
 
+export interface QuoteData {
+  code: string;
+  codein: string;
+  name: string;
+  high: string;
+  low: string;
+  varBid: string;
+  pctChange: string;
+  bid: string;
+  ask: string;
+  timestamp: string;
+  create_date: string;
+}
+
 
 // Schema: auth (for reference, managed by Supabase)
 export interface AuthUser {

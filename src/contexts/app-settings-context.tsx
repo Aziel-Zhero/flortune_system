@@ -180,9 +180,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const result = await getQuotes(validQuotes);
       if (result.error) {
+        // Apenas loga o erro e atualiza o estado, não quebra a aplicação.
         console.error('Error fetching quotes from service:', result.error);
         setQuotesError(result.error);
-        setQuotes([]);
+        setQuotes([]); // Limpa as cotações em caso de erro
       } else {
         const orderedQuotes = validQuotes
           .map(code => result.data?.find(d => d.codein === 'BRL' ? d.code === code.split('-')[0] : d.code === code))
@@ -192,7 +193,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       setQuotesError(err.message);
       setQuotes([]);
-      console.error('Error loading quotes in context:', err);
+      console.error('Network or other error in loadQuotes:', err);
     } finally {
       setIsLoadingQuotes(false);
     }
