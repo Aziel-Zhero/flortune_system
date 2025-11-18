@@ -25,15 +25,7 @@ function SubmitButton() {
     )
 }
 
-const initialState = {
-  error: null as string | null,
-};
-
-export function LoginForm({ error }: { error?: string }) {
-  // O hook useFormState não é mais necessário aqui da mesma forma,
-  // pois o redirecionamento é tratado pelo Server Action.
-  // Mantemos um estado simples para feedback, se necessário.
-  
+export function LoginForm({ error }: { error?: string }) {  
   useEffect(() => {
     if (error) {
         let title = "Erro no Login";
