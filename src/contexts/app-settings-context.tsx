@@ -179,21 +179,28 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setQuotesError(null);
     try {
       const result = await getQuotes(validQuotes);
-      if (result.error) throw new Error(result.error);
+      if (result.error) {
+        // Lançar um erro aqui pode parar a execução, vamos apenas logar e setar o estado de erro.
+        console.error('Error fetching quotes from service:', result.error);
+        throw new Error(result.error);
+      }
       
       const orderedQuotes = validQuotes
-        .map(code => result.data?.find(d => d.code === code))
+        .map(code => result.data?.find(d => d.codein === 'BRL' ? d.code === code.split('-')[0] : d.code === code))
         .filter((q): q is QuoteData => !!q);
         
       setQuotes(orderedQuotes);
     } catch (err: any) {
       setQuotesError(err.message);
       setQuotes([]);
-       console.error('Error loading quotes:', err);
+      console.error('Error loading quotes in context:', err);
+      // Opcional: mostrar um toast para o usuário
+      // toast({ title: "Erro de Cotações", description: "Não foi possível carregar os dados de cotações.", variant: "destructive" });
     } finally {
       setIsLoadingQuotes(false);
     }
   }, []);
+
 
   const setSelectedQuotes = useCallback((newQuotes: string[]) => {
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
@@ -335,7 +342,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         }
         
         const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-        const defaultQuotes = ['USD', 'EUR', 'JPY', 'GBP', 'ARS']; // Using codes compatible with exchangerate-api
+        const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
         const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : defaultQuotes;
         setSelectedQuotesState(initialQuotes);
         loadQuotes(initialQuotes);
@@ -370,7 +377,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to access localStorage or parse settings:", error);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdminArea]); // Run only when isAdminArea changes (once on mount)
+  }, [isAdminArea]);
 
 
   return (

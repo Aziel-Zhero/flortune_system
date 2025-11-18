@@ -149,31 +149,18 @@ export const PRICING_TIERS: PricingTier[] = [
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
 
 
-// Lista de cotações disponíveis na API ExchangeRate-API
+// Lista de cotações disponíveis na API AwesomeAPI
 export const AVAILABLE_QUOTES = [
-  // Principais Moedas
-  { name: "Real Brasileiro", code: "BRL" },
-  { name: "Dólar Americano", code: "USD" },
-  { name: "Euro", code: "EUR" },
-  { name: "Libra Esterlina", code: "GBP" },
-  { name: "Iene Japonês", code: "JPY" },
-  { name: "Yuan Chinês", code: "CNY" },
-  { name: "Franco Suíço", code: "CHF" },
-  
-  // Moedas da América
-  { name: "Dólar Canadense", code: "CAD" },
-  { name: "Dólar Australiano", code: "AUD" },
-  { name: "Peso Argentino", code: "ARS" },
-  { name: "Peso Chileno", code: "CLP" },
-  { name: "Peso Colombiano", code: "COP" },
-  { name: "Peso Mexicano", code: "MXN" },
-
-  // Outras moedas globais
-  { name: "Lira Turca", code: "TRY" },
-  { name: "Rublo Russo", code: "RUB" },
-  { name: "Rúpia Indiana", code: "INR" },
-  { name: "Dólar de Singapura", code: "SGD" },
-  { name: "Dólar de Hong Kong", code: "HKD" },
-  { name: "Dólar Neozelandês", code: "NZD" },
-  { name: "Rand Sul-Africano", code: "ZAR" },
+  { name: "Dólar Comercial", code: "USD-BRL" },
+  { name: "Dólar Turismo", code: "USDT-BRL" },
+  { name: "Euro", code: "EUR-BRL" },
+  { name: "Libra Esterlina", code: "GBP-BRL" },
+  { name: "Iene Japonês", code: "JPY-BRL" },
+  { name: "Peso Argentino", code: "ARS-BRL" },
+  { name: "Bitcoin", code: "BTC-BRL" },
+  { name: "Ethereum", code: "ETH-BRL" },
+  { name: "Litecoin", code: "LTC-BRL" },
+  { name: "Ibovespa", code: "IBOV" },
+  { name: "Nasdaq", code: "NASDAQ" },
+  { name: "Cacau", code: "CAC" },
 ];
