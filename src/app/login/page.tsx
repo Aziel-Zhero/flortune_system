@@ -1,3 +1,4 @@
+
 // src/app/login/page.tsx
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { LoginForm } from "@/components/auth/login-form";
@@ -51,9 +52,10 @@ function LoginAlerts({ signupSuccess, isConfirmed }: { signupSuccess?: boolean, 
 export default async function LoginPage({
   searchParams,
 }: {
+  // A tipagem correta para Server Components que usam searchParams
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Acessando os searchParams diretamente e de forma segura.
+  // Acessando os searchParams diretamente e de forma segura, como deve ser em um Server Component.
   const signupParam = searchParams?.signup;
   const message = searchParams?.message as string | undefined;
   
