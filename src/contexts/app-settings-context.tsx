@@ -180,22 +180,19 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const result = await getQuotes(validQuotes);
       if (result.error) {
-        // Lançar um erro aqui pode parar a execução, vamos apenas logar e setar o estado de erro.
         console.error('Error fetching quotes from service:', result.error);
-        throw new Error(result.error);
+        setQuotesError(result.error);
+        setQuotes([]);
+      } else {
+        const orderedQuotes = validQuotes
+          .map(code => result.data?.find(d => d.codein === 'BRL' ? d.code === code.split('-')[0] : d.code === code))
+          .filter((q): q is QuoteData => !!q);
+        setQuotes(orderedQuotes);
       }
-      
-      const orderedQuotes = validQuotes
-        .map(code => result.data?.find(d => d.codein === 'BRL' ? d.code === code.split('-')[0] : d.code === code))
-        .filter((q): q is QuoteData => !!q);
-        
-      setQuotes(orderedQuotes);
     } catch (err: any) {
       setQuotesError(err.message);
       setQuotes([]);
       console.error('Error loading quotes in context:', err);
-      // Opcional: mostrar um toast para o usuário
-      // toast({ title: "Erro de Cotações", description: "Não foi possível carregar os dados de cotações.", variant: "destructive" });
     } finally {
       setIsLoadingQuotes(false);
     }
