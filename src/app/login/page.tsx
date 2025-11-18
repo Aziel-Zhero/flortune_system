@@ -41,8 +41,7 @@ function LoginFormSkeleton() {
   );
 }
 
-// Componente async para aguardar searchParams
-export default async function LoginPage({
+export default function LoginPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };

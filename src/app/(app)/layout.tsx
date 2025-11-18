@@ -21,17 +21,13 @@ export default function AppLayout({
   useEffect(() => {
     if (isLoading) return;
     
-    // Se não há sessão e não estamos nas páginas públicas, redireciona para login.
     if (!session && pathname !== '/login' && pathname !== '/signup') {
       router.replace('/login');
     }
     
-    // Se há sessão e o usuário está nas páginas de login/signup, redireciona para o dashboard correto.
-    if (session) {
-        if(pathname === '/login' || pathname === '/signup') {
-          const targetDashboard = session.user?.profile?.role === 'admin' ? '/dashboard-admin' : '/dashboard';
-          router.replace(targetDashboard);
-        }
+    if (session && (pathname === '/login' || pathname === '/signup')) {
+        const targetDashboard = session.user?.profile?.role === 'admin' ? '/dashboard-admin' : '/dashboard';
+        router.replace(targetDashboard);
     }
 
   }, [isLoading, session, router, pathname]);
@@ -47,8 +43,6 @@ export default function AppLayout({
                     <Skeleton className="h-7 w-24 hidden sm:block" />
                     </div>
                     <div className="flex items-center space-x-2 md:space-x-4">
-                    <Skeleton className="h-9 w-9 rounded-full md:hidden" />
-                    <Skeleton className="h-9 w-48 hidden md:block" />
                     <Skeleton className="h-9 w-9 rounded-full" />
                     <Skeleton className="h-9 w-9 rounded-full" />
                     <Skeleton className="h-9 w-9 rounded-full" />

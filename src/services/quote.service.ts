@@ -47,12 +47,10 @@ export async function getQuotes(
       throw new Error(apiData['error-type'] || 'Resposta inválida da API de cotações.');
     }
     
-    // Filtramos apenas os símbolos que pedimos
     const requestedRates = symbols
       .map(symbol => {
           if (apiData.conversion_rates[symbol]) {
               // A API nos dá quanto 1 BRL vale em USD. O usuário quer o contrário (1 USD = ? BRL)
-              // Portanto, a taxa correta é 1 / rate
               const rate = 1 / apiData.conversion_rates[symbol];
               return {
                   code: symbol,
