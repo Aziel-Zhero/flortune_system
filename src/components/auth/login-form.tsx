@@ -1,9 +1,8 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useFormStatus, useActionState } from "react-dom";
 import { loginUser } from "@/app/actions/auth.actions";
 import { LogIn, KeyRound, Mail, Loader2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -13,63 +12,59 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
-const initialState = {
-  error: null as string | null,
-};
+export function LoginForm() {
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-            {pending ? "Entrando..." : "Entrar"}
-        </Button>
-    )
-}
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
-export function LoginForm() {  
-  const [state, formAction] = useActionState(loginUser, initialState);
+    const formData = new FormData(event.currentTarget);
+    const result = await loginUser(null, formData);
 
-  useEffect(() => {
-    if (state?.error) {
-        let title = "Erro no Login";
-        let description = "Ocorreu um erro inesperado. Tente novamente.";
-        
-        if (state.error === 'invalid_credentials') {
-            description = "Credenciais inválidas. Verifique seu e-mail e senha.";
-        } else if (state.error === 'email_not_confirmed') {
-            title = "E-mail Não Confirmado";
-            description = "Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada.";
-        } else {
-            description = decodeURIComponent(state.error);
-        }
-
-        toast({
-            title: title,
-            description: description,
-            variant: "destructive",
-        });
+    if (result?.error) {
+      let title = "Erro no Login";
+      let description = "Ocorreu um erro inesperado. Tente novamente.";
+      
+      if (result.error === 'invalid_credentials') {
+          description = "Credenciais inválidas. Verifique seu e-mail e senha.";
+      } else if (result.error === 'email_not_confirmed') {
+          title = "E-mail Não Confirmado";
+          description = "Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada.";
+      } else {
+          description = decodeURIComponent(result.error);
+      }
+      
+      setError(description); // Set local error state
+      toast({
+          title: title,
+          description: description,
+          variant: "destructive",
+      });
     }
-  }, [state]);
-
+    // No 'else' needed as successful login will trigger a redirect via the server action
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="space-y-6">
-       {state?.error && (
+      {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro no Login</AlertTitle>
           <AlertDescription>
-            {state.error === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : (state.error === 'email_not_confirmed' ? 'Confirme seu e-mail para continuar.' : 'Ocorreu um erro inesperado.')}
+            {error}
           </AlertDescription>
         </Alert>
       )}
-      <form action={formAction} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10" required />
+            <Input id="email" name="email" type="email" placeholder="nome@exemplo.com" className="pl-10" required disabled={isSubmitting} />
           </div>
         </div>
         <div className="space-y-2">
@@ -81,10 +76,13 @@ export function LoginForm() {
           </div>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" required />
+            <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-10" required disabled={isSubmitting} />
           </div>
         </div>
-        <SubmitButton />
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+          {isSubmitting ? "Entrando..." : "Entrar"}
+        </Button>
       </form>
       
       <div className="relative">
