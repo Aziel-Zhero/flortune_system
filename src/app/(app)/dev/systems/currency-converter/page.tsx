@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Repeat, DollarSign, Loader2, AlertCircle } from "lucide-react";
+import { Coins, Repeat, DollarSign, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -17,6 +17,7 @@ import { PrivateValue } from "@/components/shared/private-value";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { convertCurrency } from "@/app/actions/conversion.actions";
+import Link from "next/link";
 
 const currencySchema = z.object({
   fromCurrency: z.string().min(3, "Selecione a moeda de origem.").max(3),
@@ -99,6 +100,7 @@ export default function CurrencyConverterPage() {
         title="Conversor de Moeda"
         description="Converta valores entre diferentes moedas com cotações atualizadas."
         icon={<Coins className="h-6 w-6 text-primary" />}
+        actions={<Button asChild variant="outline"><Link href="/dev/systems"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button>}
       />
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="shadow-lg">

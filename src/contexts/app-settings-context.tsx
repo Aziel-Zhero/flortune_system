@@ -179,7 +179,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setQuotesError(null);
     try {
       const result = await getQuotes(validQuotes);
-
+      
       if (result.error) {
         // Apenas loga o erro e atualiza o estado, não quebra a aplicação.
         console.error('Error fetching quotes from service:', result.error);
@@ -187,7 +187,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         setQuotes([]); // Limpa as cotações em caso de erro
       } else {
         const orderedQuotes = validQuotes
-          .map(code => result.data?.find(d => d.code === code.split('-')[0]))
+          .map(code => (result.data || []).find(d => `${d.code}-${d.codein}` === code || d.code === code))
           .filter((q): q is QuoteData => !!q);
         setQuotes(orderedQuotes);
       }
