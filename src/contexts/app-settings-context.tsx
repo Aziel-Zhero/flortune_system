@@ -5,7 +5,6 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { getQuotes } from '@/services/quote.service';
 import type { QuoteData } from '@/types/database.types';
 import { usePathname } from 'next/navigation';
 import * as LucideIcons from "lucide-react";
@@ -135,6 +134,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
+  const [quotesCache, setQuotesCache] = useState<{data: QuoteData[], timestamp: number, codes: string[]} | null>(null);
+  const CACHE_DURATION = 600000; // 10 minutos
   
   const [landingPageContent, setLandingPageContent] = useState<LandingPageContent>(defaultLpContent);
   const [popupConfigs, setPopupConfigs] = useState<Record<PopupType, PopupConfig>>(defaultPopupConfigs);
@@ -175,37 +176,56 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       setIsLoadingQuotes(false);
       return;
     }
+
+    const now = Date.now();
+    if (quotesCache && (now - quotesCache.timestamp < CACHE_DURATION) && JSON.stringify(quotesCache.codes.sort()) === JSON.stringify(validQuotes.sort())) {
+        setQuotes(quotesCache.data);
+        setIsLoadingQuotes(false);
+        return;
+    }
+
     setIsLoadingQuotes(true);
     setQuotesError(null);
     try {
-      const result = await getQuotes(validQuotes);
-      
-      if (result.error) {
-        // Apenas loga o erro e atualiza o estado, não quebra a aplicação.
-        console.error('Error fetching quotes from service:', result.error);
-        setQuotesError(result.error);
-        setQuotes([]); // Limpa as cotações em caso de erro
-      } else {
+        const response = await fetch(`/api/quotes?codes=${encodeURIComponent(validQuotes.join(','))}`);
+        if (!response.ok) {
+            throw new Error(`Erro de rede: ${response.statusText}`);
+        }
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
         const orderedQuotes = validQuotes
-          .map(code => (result.data || []).find(d => `${d.code}-${d.codein}` === code || d.code === code))
-          .filter((q): q is QuoteData => !!q);
+            .map(code => result.data?.find((d: QuoteData) => `${d.code}-${d.codein}` === code || d.code === code))
+            .filter((q): q is QuoteData => !!q);
+            
         setQuotes(orderedQuotes);
-      }
+        setQuotesCache({ data: orderedQuotes, timestamp: now, codes: validQuotes });
+
     } catch (err: any) {
-      console.error('Network or other error in loadQuotes:', err);
-      setQuotesError("Falha de rede ao buscar cotações.");
+      console.error('Falha ao buscar cotações:', err.message);
+      setQuotesError("Não foi possível carregar as cotações no momento.");
       setQuotes([]);
     } finally {
       setIsLoadingQuotes(false);
     }
-  }, []);
+  }, [quotesCache]);
 
 
   const setSelectedQuotes = useCallback((newQuotes: string[]) => {
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     setSelectedQuotesState(newQuotes);
-    loadQuotes(newQuotes);
-  }, [loadQuotes]);
+  }, []);
+  
+  // Este useEffect agora carrega as cotações salvas na inicialização
+  useEffect(() => {
+    const storedQuotes = localStorage.getItem('flortune-selected-quotes');
+    const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
+    setSelectedQuotesState(initialQuotes);
+    loadQuotes(initialQuotes);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Executa apenas uma vez
   
   const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) return;
@@ -332,22 +352,14 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
       
-      // Load Quotes and Weather only if not in admin area
+      // Load Weather only if not in admin area
       if (!isAdminArea) {
         const storedCity = localStorage.getItem('flortune-weather-city');
         if (storedCity) {
           setWeatherCityState(storedCity);
           loadWeatherForCity(storedCity);
         }
-        
-        const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-        const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
-        const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : defaultQuotes;
-        setSelectedQuotesState(initialQuotes);
-        loadQuotes(initialQuotes);
-        
       } else {
-        setIsLoadingQuotes(false);
         setIsLoadingWeather(false);
       }
 

@@ -1,4 +1,3 @@
-
 // src/components/auth/auth-layout.tsx
 import type { ReactNode } from 'react';
 import Link from 'next/link'; // Usando next/link
@@ -27,7 +26,7 @@ export function AuthLayout({
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
-            <Image src="/Logo.png" alt="Flortune Logo" width={36} height={36} className="h-9 w-auto" />
+            <Image src="/Logo.png" alt="Flortune Logo" width={36} height={36} style={{ height: 'auto', width: 'auto' }} />
             <h1 className="text-4xl font-headline font-bold">{APP_NAME}</h1>
           </Link>
           <h2 className="mt-4 text-2xl font-semibold font-headline tracking-tight text-foreground">
