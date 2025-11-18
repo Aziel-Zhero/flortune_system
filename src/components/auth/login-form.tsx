@@ -12,9 +12,19 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
-export function LoginForm() {
-  const [error, setError] = useState<string | null>(null);
+interface LoginFormProps {
+  message?: string;
+}
+
+export function LoginForm({ message }: LoginFormProps) {
+  const [error, setError] = useState<string | null>(message || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (message) {
+      setError(message);
+    }
+  }, [message]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

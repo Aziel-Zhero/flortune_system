@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: `Bem-vindo de Volta! - ${APP_NAME}`,
 };
 
-function LoginFormSkeleton() {
+function LoginSkeleton() {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -41,7 +41,6 @@ function LoginFormSkeleton() {
   );
 }
 
-// This component now handles the rendering based on searchParams
 function LoginAlerts({ signupParam }: { signupParam?: string | string[] }) {
     if (signupParam === 'success') {
         return (
@@ -79,13 +78,10 @@ function LoginAlerts({ signupParam }: { signupParam?: string | string[] }) {
     return null;
 }
 
+async function LoginContent({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined }}) {
+  const signupParam = searchParams?.signup;
+  const message = searchParams?.message as string | undefined;
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  
   return (
     <AuthLayout
       title="Bem-vindo de Volta!"
@@ -94,10 +90,20 @@ export default function LoginPage({
       footerLinkText="Inscreva-se"
       footerLinkHref="/signup"
     >
-      <LoginAlerts signupParam={searchParams?.signup} />
-      <Suspense fallback={<LoginFormSkeleton />}>
-        <LoginForm />
-      </Suspense>
+      <LoginAlerts signupParam={signupParam} />
+      <LoginForm message={message} />
     </AuthLayout>
+  );
+}
+
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  return (
+    <Suspense fallback={<LoginSkeleton />}>
+      <LoginContent searchParams={searchParams} />
+    </Suspense>
   );
 }
