@@ -1,9 +1,9 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useActionState } from "react";
 import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 
 import { loginUser } from "@/app/actions/auth.actions";
 import { LogIn, KeyRound, Mail, Loader2, AlertCircle } from "lucide-react";
@@ -29,7 +29,7 @@ function SubmitButton() {
 }
 
 export function LoginForm() {  
-  const [state, formAction] = useFormState(loginUser, initialState);
+  const [state, formAction] = useActionState(loginUser, initialState);
 
   useEffect(() => {
     if (state?.error) {
