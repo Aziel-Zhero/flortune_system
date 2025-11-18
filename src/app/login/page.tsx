@@ -1,4 +1,3 @@
-
 // src/app/login/page.tsx
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { LoginForm } from "@/components/auth/login-form";
@@ -48,16 +47,16 @@ function LoginAlerts({ signupSuccess, isConfirmed }: { signupSuccess?: boolean, 
     return null;
 }
 
-// O componente da página agora é 'async' para poder usar 'await'
+// SOLUÇÃO SIMPLES: Aguarde os searchParams diretamente
 export default async function LoginPage({
   searchParams,
 }: {
-  // A tipagem correta para Server Components que usam searchParams
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Acessando os searchParams diretamente e de forma segura, como deve ser em um Server Component.
-  const signupParam = searchParams?.signup;
-  const message = searchParams?.message as string | undefined;
+  // AGUARDE os searchParams - isso é obrigatório!
+  const params = searchParams;
+  const signupParam = params?.signup;
+  const message = params?.message as string | undefined;
   
   const signupSuccess = signupParam === 'success';
   const isConfirmed = signupParam === 'success_direct';
