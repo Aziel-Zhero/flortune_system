@@ -1,10 +1,9 @@
 // src/components/auth/login-form.tsx
 "use client";
 
-import { useEffect, useActionState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { useFormStatus } from "react-dom";
-
+import { useFormStatus, useActionState } from "react-dom";
 import { loginUser } from "@/app/actions/auth.actions";
 import { LogIn, KeyRound, Mail, Loader2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";

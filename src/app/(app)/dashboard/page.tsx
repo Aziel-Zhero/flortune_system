@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"; 
 import { useAppSettings } from "@/contexts/app-settings-context";
-import type { QuoteData } from "@/services/quote.service";
+import type { QuoteData } from "@/types/database.types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 
