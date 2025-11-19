@@ -19,26 +19,26 @@ export async function loginUser(prevState: any, formData: FormData) {
 
   const supabase = createClient();
 
-  // A verificação da senha agora é feita inteiramente pelo Supabase.
-  // Não precisamos mais interagir com a tabela 'profiles' para isso.
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error: signInError } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
-  if (error) {
-    console.error("Login Error:", error.message);
-    if (error.message.includes("Invalid login credentials")) {
+  if (signInError) {
+    console.error("Login Error:", signInError.message);
+    if (signInError.message.includes("Invalid login credentials")) {
       return { error: "invalid_credentials" };
     }
-    if (error.message.includes("Email not confirmed")) {
+    if (signInError.message.includes("Email not confirmed")) {
       return { error: "email_not_confirmed" };
     }
-    return { error: error.message };
+    return { error: signInError.message };
   }
   
   // Após o login bem-sucedido, verificamos o perfil para redirecionamento.
+  // É crucial fazer uma nova chamada ao getUser para garantir que a sessão esteja atualizada.
   const { data: { user } } = await supabase.auth.getUser();
+
   if (user) {
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
       if (profile?.role === 'admin') {
@@ -71,8 +71,6 @@ export async function signupUser(formData: FormData) {
   
   const supabase = createClient();
   
-  // O Supabase Auth cuidará de hashear e armazenar a senha de forma segura.
-  // A tabela 'profiles' não armazenará mais a senha.
   const { data, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -82,6 +80,8 @@ export async function signupUser(formData: FormData) {
           full_name: fullName,
           display_name: displayName,
           avatar_url: `https://placehold.co/100x100.png?text=${displayName.charAt(0).toUpperCase()}`,
+          // Garante que o has_seen_welcome_message seja false para novos usuários
+          has_seen_welcome_message: false,
       }
     }
   });
@@ -100,12 +100,12 @@ export async function signupUser(formData: FormData) {
   }
   
   // A trigger 'handle_new_user' no banco de dados criará o perfil em 'public.profiles'.
-  // Se a confirmação de e-mail estiver ATIVADA, redirecionamos para uma página de sucesso.
-  if (data.user && data.session === null) {
+  // Se a confirmação de e-mail estiver ATIVADA no Supabase, redirecionamos para a tela de login com uma mensagem de sucesso.
+  if (data.user && !data.session) {
     return redirect('/login?signup=success');
   }
   
-  // Se a confirmação de e-mail estiver DESATIVADA (dev), o usuário já terá uma sessão.
+  // Se a confirmação de e-mail estiver DESATIVADA (ambiente de dev), o usuário já terá uma sessão e será redirecionado para o dashboard.
   return redirect("/dashboard");
 }
 
@@ -168,8 +168,6 @@ export async function setupAdminUser(prevState: any, formData: FormData) {
   
   const newUser = authData.user;
   
-  // O trigger `handle_new_user` já insere na tabela `profiles`.
-  // Aqui, apenas atualizamos a `role` para 'admin'.
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
     .update({ role: 'admin', has_seen_welcome_message: true })

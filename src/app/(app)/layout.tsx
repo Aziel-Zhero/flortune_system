@@ -21,13 +21,10 @@ export default function AppLayout({
   useEffect(() => {
     if (isLoading) return;
     
+    // Apenas garante que o usuário esteja logado para acessar as rotas do app.
+    // O redirecionamento específico pós-login agora é tratado na server action.
     if (!session && pathname !== '/login' && pathname !== '/signup') {
       router.replace('/login');
-    }
-    
-    if (session && (pathname === '/login' || pathname === '/signup')) {
-        const targetDashboard = session.user?.profile?.role === 'admin' ? '/dashboard-admin' : '/dashboard';
-        router.replace(targetDashboard);
     }
 
   }, [isLoading, session, router, pathname]);
