@@ -38,26 +38,25 @@ export function UserNav({ isAdmin = false }: UserNavProps) {
   
   const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
   const userEmail = user?.email || "";
-  const avatarUrl = profile?.avatar_url;
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
   const fallbackInitial = displayName?.charAt(0).toUpperCase() || 'U';
 
   const handleLogout = async () => {
     if (!supabase) {
         console.error("Supabase client is not available for logout.");
-        // Fallback or show error
         return;
     }
     toast({ title: "Saindo...", description: "Você está sendo desconectado."});
     await supabase.auth.signOut();
-    router.push('/login'); // Redireciona após o logout
-    router.refresh(); // Força a atualização da página para limpar o estado
+    router.push('/login');
+    router.refresh();
   };
   
   const profileUrl = isAdmin ? '/admin/profile' : '/profile';
   const settingsUrl = isAdmin ? '/admin/settings' : '/settings';
 
   if (!user) {
-    return null; // Não renderiza nada se não houver usuário
+    return null;
   }
 
   return (
