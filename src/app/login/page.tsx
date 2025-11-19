@@ -47,14 +47,17 @@ function LoginAlerts({ signupSuccess, isConfirmed }: { signupSuccess?: boolean, 
     return null;
 }
 
-// Para Next.js 15+, searchParams é um objeto direto e não precisa de `await` ou `Suspense` para esta finalidade.
-export default function LoginPage({
+// ✅ CORREÇÃO: A página agora é `async` e usa `await` nos searchParams.
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  // ✅ A tipagem correta é uma Promise.
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const signupParam = searchParams?.signup;
-  const message = searchParams?.message as string | undefined;
+  // ✅ A Promise é resolvida com `await` antes de usar os parâmetros.
+  const params = await searchParams;
+  const signupParam = params?.signup;
+  const message = params?.message as string | undefined;
   
   const signupSuccess = signupParam === 'success';
   const isConfirmed = signupParam === 'success_direct';
