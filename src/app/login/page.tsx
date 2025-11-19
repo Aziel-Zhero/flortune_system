@@ -47,13 +47,13 @@ function LoginAlerts({ signupSuccess, isConfirmed }: { signupSuccess?: boolean, 
     return null;
 }
 
-// SOLUÇÃO SIMPLES: Aguarde os searchParams diretamente
+// O componente da página agora é 'async' para poder usar 'await'
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Acessando os searchParams diretamente, pois a página agora é `async`
+  // Acessando os searchParams diretamente e de forma segura.
   const signupParam = searchParams?.signup;
   const message = searchParams?.message as string | undefined;
   
