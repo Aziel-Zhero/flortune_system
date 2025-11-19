@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { loginUser } from "@/app/actions/auth.actions";
 import { LogIn, KeyRound, Mail, Loader2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ message }: LoginFormProps) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(message || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,15 +49,20 @@ export function LoginForm({ message }: LoginFormProps) {
           description = decodeURIComponent(result.error);
       }
       
-      setError(description); // Set local error state
+      setError(description);
       toast({
           title: title,
           description: description,
           variant: "destructive",
       });
+      setIsSubmitting(false);
+    } else if (result?.redirectTo) {
+      // Redirecionamento do lado do cliente
+      router.push(result.redirectTo);
+    } else {
+      // Fallback caso algo dê errado e não haja erro nem redirecionamento
+      setIsSubmitting(false);
     }
-    // No 'else' needed as successful login will trigger a redirect via the server action
-    setIsSubmitting(false);
   };
 
   return (

@@ -23,13 +23,13 @@ export default function AppLayout({
     
     // Apenas garante que o usuário esteja logado para acessar as rotas do app.
     // O redirecionamento específico pós-login agora é tratado na server action.
-    if (!session && pathname !== '/login' && pathname !== '/signup') {
+    if (!session && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
       router.replace('/login');
     }
 
   }, [isLoading, session, router, pathname]);
 
-  if (isLoading || (!session && pathname !== '/login' && pathname !== '/signup')) {
+  if (isLoading || (!session && !pathname.startsWith('/login') && !pathname.startsWith('/signup'))) {
     if (isLoading) {
         return (
             <div className="flex min-h-screen flex-col bg-background overflow-hidden"> 

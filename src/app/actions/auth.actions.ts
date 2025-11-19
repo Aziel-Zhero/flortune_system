@@ -3,13 +3,16 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
+interface ActionResult {
+  error?: string;
+  redirectTo?: string;
+  success?: boolean;
+}
 
 // --- Login Action ---
-export async function loginUser(prevState: any, formData: FormData) {
+export async function loginUser(prevState: any, formData: FormData): Promise<ActionResult> {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   
@@ -36,17 +39,16 @@ export async function loginUser(prevState: any, formData: FormData) {
   }
   
   // Após o login bem-sucedido, verificamos o perfil para redirecionamento.
-  // É crucial fazer uma nova chamada ao getUser para garantir que a sessão esteja atualizada.
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
       if (profile?.role === 'admin') {
-          return redirect("/dashboard-admin");
+          return { success: true, redirectTo: "/dashboard-admin" };
       }
   }
 
-  return redirect("/dashboard");
+  return { success: true, redirectTo: "/dashboard" };
 }
 
 
