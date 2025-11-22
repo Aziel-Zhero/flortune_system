@@ -43,14 +43,14 @@ export default function ProfilePage() {
       setPhone(profileFromSession.phone || "");
       setCpfCnpj(profileFromSession.cpf_cnpj || "");
       setRg(profileFromSession.rg || "");
-      const currentAvatar = profileFromSession.avatar_url || session?.user?.image || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || 'U'}`;
+      const currentAvatar = profileFromSession.avatar_url || session?.user?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.email)?.charAt(0)?.toUpperCase() || 'U'}`;
       setAvatarUrl(currentAvatar);
-      setAvatarFallback((profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || "U");
+      setAvatarFallback((profileFromSession.display_name || session?.user?.email)?.charAt(0)?.toUpperCase() || "U");
     }
     if (session?.user?.email) {
       setEmail(session.user.email);
     }
-  }, [profileFromSession, session?.user?.image, session?.user?.name, session?.user?.email]);
+  }, [profileFromSession, session?.user]);
 
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -76,8 +76,7 @@ export default function ProfilePage() {
         ...session, 
         user: { 
           ...session?.user,
-          name: displayName || fullName, 
-          profile: { ...profileFromSession, ...updatedProfile }, 
+          profile: { ...profileFromSession, ...updatedProfile } as Profile, 
         }
       });
       toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso (simulação).", action: <CheckSquare className="text-green-500"/> });

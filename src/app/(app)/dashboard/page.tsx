@@ -227,7 +227,7 @@ export default function DashboardPage() {
   }, [allTransactions, transactionsLoading]);
 
 
-  const welcomeName = profile?.display_name || profile?.full_name?.split(" ")[0] || session?.user?.name?.split(" ")[0] || "Usuário";
+  const welcomeName = profile?.display_name || profile?.full_name?.split(" ")[0] || session?.user?.email?.split('@')[0] || "Usuário";
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
