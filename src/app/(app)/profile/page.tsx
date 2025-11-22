@@ -60,7 +60,7 @@ export default function ProfilePage() {
     }
     setIsSavingProfile(true);
     try {
-      const updatedProfileData: Partial<Profile> = {
+      const updatedProfileData: Partial<Omit<Profile, 'id' | 'email'>> = {
         full_name: fullName,
         display_name: displayName,
         phone,
@@ -78,7 +78,7 @@ export default function ProfilePage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw error; // Lança o erro para ser pego pelo catch
 
       if (updatedProfile) {
         // Atualiza o contexto da sessão manualmente para refletir as mudanças imediatamente
