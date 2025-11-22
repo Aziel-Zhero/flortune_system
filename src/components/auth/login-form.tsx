@@ -4,14 +4,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { loginUser } from "@/app/actions/auth.actions";
 import { LogIn, KeyRound, Mail, Loader2, AlertCircle } from "lucide-react";
+
+import { supabase } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OAuthButton } from "./oauth-button";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { useSession } from "@/contexts/auth-context";
 
 interface LoginFormProps {
   message?: string;
@@ -19,43 +21,56 @@ interface LoginFormProps {
 
 export function LoginForm({ message }: LoginFormProps) {
   const router = useRouter();
+  const { session } = useSession();
   const [error, setError] = useState<string | null>(message || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (message) {
-      setError(message);
+    if (session) {
+      const isAdmin = session.user?.profile?.role === 'admin';
+      router.replace(isAdmin ? '/dashboard-admin' : '/dashboard');
     }
-  }, [message]);
-
+  }, [session, router]);
+  
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
     const formData = new FormData(event.currentTarget);
-    const result = await loginUser(null, formData);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    
+    if (!supabase) {
+        setError("O serviço de autenticação não está disponível.");
+        setIsSubmitting(false);
+        return;
+    }
 
-    if (result?.error) {
-      setError(result.error);
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      let friendlyError = "Credenciais inválidas. Verifique seu e-mail e senha.";
+      if (signInError.message.includes("Email not confirmed")) {
+          friendlyError = "Você precisa confirmar seu e-mail antes de fazer login.";
+      }
+      setError(friendlyError);
       toast({
           title: "Erro no Login",
-          description: result.error,
+          description: friendlyError,
           variant: "destructive",
       });
       setIsSubmitting(false);
-    } else if (result?.redirectTo) {
-      // Client-side redirection
-      router.push(result.redirectTo);
-      router.refresh(); // Força a atualização do layout e da sessão
-    } else {
-      // Fallback
-      toast({
-          title: "Erro inesperado",
-          description: "Não foi possível completar o login. Tente novamente.",
-          variant: "destructive",
-      });
-      setIsSubmitting(false);
+      return;
+    }
+
+    if (data.user) {
+        // A lógica de redirecionamento agora é tratada pelo useEffect que observa a mudança de sessão.
+        // Apenas recarregamos a página para garantir que o layout principal reavalie a sessão.
+        router.refresh();
     }
   };
 
