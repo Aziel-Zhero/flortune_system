@@ -16,6 +16,10 @@ import { cn } from "@/lib/utils";
 import { WeatherSettingsDialog } from '@/components/settings/weather-dialog';
 import { QuoteSettingsDialog } from '@/components/settings/quote-dialog';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import { useSession } from '@/contexts/auth-context';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 interface ThemeOption {
   name: string;
@@ -36,6 +40,7 @@ const availableThemes: ThemeOption[] = [
 
 
 export default function SettingsPage() {
+  const { session, isLoading } = useSession();
   const router = useRouter();
   const { isDarkMode, toggleDarkMode, currentTheme, applyTheme } = useAppSettings();
 
@@ -59,10 +64,29 @@ export default function SettingsPage() {
     toast({ title: "Tema Alterado", description: `Tema "${availableThemes.find(t => t.id === themeId)?.name}" aplicado.`, action: <CheckSquare className="text-green-500"/> });
   };
   
-  const handleLogout = () => {
-    toast({ title: "Saindo...", description: "Você está sendo desconectado (simulação)." });
+  const handleLogout = async () => {
+    if (!supabase) return;
+    toast({ title: "Saindo...", description: "Você está sendo desconectado." });
+    await supabase.auth.signOut();
     router.push('/login');
+    router.refresh();
   };
+
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <PageHeader title="Configurações" description="Gerencie sua conta, preferências e configurações do aplicativo." icon={<Settings2 className="h-6 w-6 text-primary"/>}/>
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
+        <Skeleton className="h-32 w-full rounded-lg" />
+      </div>
+    );
+  }
+  
+  if (!session) { 
+    return <p>Redirecionando para o login...</p>; 
+  }
 
   return (
     <>

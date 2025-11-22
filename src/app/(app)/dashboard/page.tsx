@@ -114,7 +114,7 @@ export default function DashboardPage() {
     } else {
          toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
         // Update session context with the new profile data
-        await updateSession({ user: { ...user, profile: updatedProfile as Profile } });
+        await updateSession({ ...session, user: { ...session?.user, profile: updatedProfile as Profile } as any });
     }
   }
 
