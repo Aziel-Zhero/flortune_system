@@ -227,6 +227,14 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
 *   **Solução:**
     *   Nas páginas de login (`src/app/login/page.tsx`) e cadastro (`src/app/signup/page.tsx`), os formulários foram envolvidos com `<Suspense>` e um componente de esqueleto como fallback.
 
+### 8. Erro 502 (Bad Gateway) ou Falha Inesperada no Login/Cadastro
+
+*   **Causa:** Este erro ocorria porque a lógica de autenticação (login e cadastro) estava sendo executada em uma *Server Action*. Em certos ambientes, isso pode causar conflitos na forma como a sessão do Supabase é criada ou manipulada no servidor, resultando em uma falha da `action` antes que ela possa retornar uma resposta.
+*   **Solução Definitiva:** A arquitetura de autenticação foi refatorada para seguir o padrão mais robusto para Next.js e Supabase:
+    1.  **Lógica no Cliente:** As `Server Actions` para login/cadastro foram removidas. Agora, os formulários em `src/components/auth/login-form.tsx` e `signup-form.tsx` usam o cliente Supabase do lado do cliente (`@supabase/supabase-js`) para chamar diretamente as funções `supabase.auth.signInWithPassword()` e `supabase.auth.signUp()`.
+    2.  **Sessão Reativa:** O `AuthContext` (`src/contexts/auth-context.tsx`) usa o `onAuthStateChange` do Supabase. Assim que o login/cadastro é bem-sucedido no cliente, o Supabase notifica o `AuthContext`, que atualiza o estado da sessão em toda a aplicação.
+    3.  **Redirecionamento:** O `AppLayout` (`src/app/(app)/layout.tsx`) observa a mudança no `AuthContext`. Quando a sessão se torna válida, ele renderiza o dashboard. Isso garante que a navegação ocorra de forma reativa e no lado do cliente, evitando erros de servidor.
+
 ## 🗺️ Roadmap
 *   [ ] Implementação completa de gestão de Assinaturas (Stripe).
 *   [ ] Testes unitários e de integração.
