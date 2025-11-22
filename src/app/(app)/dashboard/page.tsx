@@ -68,8 +68,7 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const authIsLoading = status === "loading";
+  const { session, isLoading: authIsLoading } = useSession();
   const user = session?.user;
   const profile = user?.profile;
 
@@ -88,7 +87,6 @@ export default function DashboardPage() {
   ]);
 
   useEffect(() => {
-    // A lógica para verificar se a mensagem de boas-vindas já foi vista agora deve vir do banco
     if (profile && profile.has_seen_welcome_message === false) {
       setIsWelcomeOpen(true);
     }
@@ -294,7 +292,7 @@ export default function DashboardPage() {
   }
   
   if (!session) { 
-    return null; // O layout já está tratando o redirecionamento
+    return null;
   }
 
   return (
@@ -366,7 +364,6 @@ export default function DashboardPage() {
                 let bid = '0';
 
                 if (isAvailable) {
-                    // A API agora pode não retornar pctChange, então tratamos isso
                     pctChange = quote.pctChange ? parseFloat(quote.pctChange) : 0;
                     isPositive = pctChange >= 0;
                     quoteName = quote.name ? quote.name.split('/')[0] : 'Cotação';
