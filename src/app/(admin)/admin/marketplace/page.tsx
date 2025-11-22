@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Store, Check, PlusCircle, Gem, Edit, Trash2, AlertTriangle } from "lucide-react";
-import { APP_NAME, PRICING_TIERS, type PricingTier, type PricingTierIconName } from "@/lib/constants";
+import { APP_NAME, PRICING_TIERS } from "@/lib/constants";
+import type { PricingTier, PricingTierIconName } from "@/lib/constants";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductEditorDialog } from "@/components/admin/marketplace/product-editor-dialog";
@@ -89,7 +90,7 @@ export default function MarketplacePage() {
           actions={<Button onClick={() => handleOpenEditor(null)}><PlusCircle className="mr-2 h-4 w-4"/>Criar Novo Produto</Button>}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map(tier => {
+            {(products || []).map(tier => {
               const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
               const isPaidPlan = tier.priceMonthly !== 'Grátis';
               return (
