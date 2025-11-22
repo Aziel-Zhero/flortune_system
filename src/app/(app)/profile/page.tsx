@@ -14,11 +14,11 @@ import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from '@/lib/supabase/client';
 
 export default function ProfilePage() {
-  const { data: session, status, update: updateSession } = useSession();
+  const { session, isLoading, update } = useSession();
 
-  const isLoading = status === "loading";
   const userFromSession = session?.user;
   const profileFromSession = session?.user?.profile;
 
@@ -43,14 +43,14 @@ export default function ProfilePage() {
       setPhone(profileFromSession.phone || "");
       setCpfCnpj(profileFromSession.cpf_cnpj || "");
       setRg(profileFromSession.rg || "");
-      const currentAvatar = profileFromSession.avatar_url || session?.user?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.email)?.charAt(0)?.toUpperCase() || 'U'}`;
+      const currentAvatar = profileFromSession.avatar_url || userFromSession?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || userFromSession?.email)?.charAt(0)?.toUpperCase() || 'U'}`;
       setAvatarUrl(currentAvatar);
-      setAvatarFallback((profileFromSession.display_name || session?.user?.email)?.charAt(0)?.toUpperCase() || "U");
+      setAvatarFallback((profileFromSession.display_name || userFromSession?.email)?.charAt(0)?.toUpperCase() || "U");
     }
-    if (session?.user?.email) {
-      setEmail(session.user.email);
+    if (userFromSession?.email) {
+      setEmail(userFromSession.email);
     }
-  }, [profileFromSession, session?.user]);
+  }, [profileFromSession, userFromSession]);
 
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -60,27 +60,37 @@ export default function ProfilePage() {
     }
     setIsSavingProfile(true);
     try {
-      // In a real app, this would be a server action call to Supabase
-      console.log("Simulating profile save...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedProfile: Partial<Profile> = {
+      const updatedProfileData: Partial<Profile> = {
         full_name: fullName,
         display_name: displayName,
         phone,
         cpf_cnpj: cpfCnpj,
         rg,
+        updated_at: new Date().toISOString(),
       };
+      
+      if (!supabase) throw new Error("Cliente Supabase não inicializado.");
 
-      await updateSession({
-        ...session, 
-        user: { 
-          ...session?.user,
-          profile: { ...profileFromSession, ...updatedProfile } as Profile, 
-        }
-      });
-      toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso (simulação).", action: <CheckSquare className="text-green-500"/> });
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update(updatedProfileData)
+        .eq('id', userFromSession.id)
+        .select()
+        .single();
 
+      if (error) throw error;
+
+      if (updatedProfile) {
+        // Atualiza o contexto da sessão manualmente para refletir as mudanças imediatamente
+        await update({
+          ...session, 
+          user: { 
+            ...session?.user,
+            profile: updatedProfile as Profile, 
+          },
+        });
+        toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
+      }
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar as alterações do perfil.", variant: "destructive" });
@@ -126,11 +136,11 @@ export default function ProfilePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="fullName">Nome Completo</Label>
+                <Label htmlFor="fullName">Nome Completo / Razão Social</Label>
                 <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="displayName">Nome de Exibição</Label>
+                <Label htmlFor="displayName">Nome de Exibição / Fantasia</Label>
                 <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               </div>
             </div>
