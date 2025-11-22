@@ -1,4 +1,3 @@
-
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -8,7 +7,7 @@ import * as LucideIcons from "lucide-react";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
-import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkItem, type NavLinkIconName } from "@/lib/constants";
+import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkItem, type NavLinkIconName, PRICING_TIERS } from "@/lib/constants";
 import {
   Sidebar,
   SidebarHeader,
@@ -17,7 +16,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   useSidebar,
-  SidebarTrigger,
+  SidebarTrigger
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,12 +55,7 @@ function WeatherDisplay() {
     }
 
     if (!weatherCity || !weatherData) {
-        return (
-            <div className="text-center p-2 group-data-[collapsible=icon]:hidden">
-                <p className="text-xs text-muted-foreground">Cidade não definida.</p>
-                <Button variant="link" size="sm" className="h-auto p-0 text-xs">Configurar</Button>
-            </div>
-        )
+        return null; // Don't show anything if city is not set
     }
     
     return (
@@ -84,13 +78,13 @@ function WeatherDisplay() {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { session } = useSession();
   const user = session?.user;
   const profile = user?.profile;
   const { isMobile, setOpenMobile } = useSidebar();
 
   const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
-  const avatarUrl = profile?.avatar_url || user?.image;
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
   const avatarFallback = displayName?.charAt(0).toUpperCase() || "U";
   
   const closeMobileSidebar = () => {
@@ -99,17 +93,18 @@ export function AppSidebar() {
     }
   };
 
-  const userPlan = profile?.plan_id || 'tier-cultivador';
+  const userPlanId = profile?.plan_id || 'tier-cultivador';
+  const userPlan = PRICING_TIERS.find(p => p.id === userPlanId);
 
   const filteredNavLinks = NAV_LINKS_CONFIG.filter(item => {
     if (item.type !== 'link') return true; // Always show separators and titles
     const isDevRoute = item.href.startsWith('/dev');
     const isCorpRoute = item.href.startsWith('/corporate');
     
-    if (isDevRoute && userPlan !== 'tier-dev' && userPlan !== 'tier-corporativo' && profile?.role !== 'admin') {
+    if (isDevRoute && userPlanId !== 'tier-dev' && userPlanId !== 'tier-corporativo' && profile?.role !== 'admin') {
       return false;
     }
-    if (isCorpRoute && userPlan !== 'tier-corporativo' && profile?.role !== 'admin') {
+    if (isCorpRoute && userPlanId !== 'tier-corporativo' && profile?.role !== 'admin') {
       return false;
     }
     return true;
@@ -144,7 +139,7 @@ export function AppSidebar() {
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                 <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{displayName}</span>
-                <span className="text-xs text-muted-foreground">{profile?.email || user?.email}</span>
+                <span className="text-xs text-muted-foreground">{userPlan?.name || 'Plano Básico'}</span>
             </div>
           </Link>
         </div>

@@ -54,7 +54,7 @@ export const ADMIN_NAV_LINKS_CONFIG = [
 
 
 // Union type for NavLinkConfig items
-export type NavLinkItem = (typeof NAV_LINKS_CONFIG)[number];
+export type NavLinkItem = (typeof NAV_LINKS_CONFIG)[number] | (typeof ADMIN_NAV_LINKS_CONFIG)[number];
 
 // Correctly extracting icon names for NavLinkItem that are links
 export type NavLinkIconName = Extract<NavLinkItem, { type: "link"; icon: any }>["icon"];
