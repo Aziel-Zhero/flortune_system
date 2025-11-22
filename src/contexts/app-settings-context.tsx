@@ -117,6 +117,78 @@ const defaultPopupConfigs: Record<PopupType, PopupConfig> = {
   newsletter: { title: "Assine nossa Newsletter", description: "Receba dicas semanais de finanças e produtividade diretamente no seu email.", icon: "Newspaper", color: "blue", frequencyValue: 3, frequencyUnit: 'dias' },
 }
 
+// --- Componente de Inicialização do Cliente ---
+
+function AppSettingsInitializer() {
+  const context = useAppSettings();
+  const pathname = usePathname();
+  const isAdminArea = pathname.startsWith('/admin') || pathname.startsWith('/dashboard-admin');
+
+  useEffect(() => {
+    try {
+      const storedDarkMode = localStorage.getItem('flortune-dark-mode');
+      const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      context.setIsDarkMode(darkModeEnabled);
+      
+      const storedTheme = localStorage.getItem('flortune-theme') || 'default';
+      context.applyTheme(storedTheme);
+
+      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
+      if (storedPrivateMode) context.setIsPrivateMode(JSON.parse(storedPrivateMode));
+      
+      if (!isAdminArea) {
+        const storedCity = localStorage.getItem('flortune-weather-city');
+        if (storedCity) {
+          context.setWeatherCity(storedCity);
+          context.loadWeatherForCity(storedCity);
+        }
+      }
+
+      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
+      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
+      context.setSelectedQuotes(initialQuotes);
+
+      const storedCampaign = localStorage.getItem('flortune-active-campaign');
+      if (storedCampaign) context.setActiveCampaignTheme(storedCampaign as CampaignTheme);
+      
+      const storedLpContent = localStorage.getItem('flortune-lp-content');
+      if (storedLpContent) context.setLandingPageContent(JSON.parse(storedLpContent));
+      
+      const storedPopup = localStorage.getItem('flortune-active-popup');
+      if (storedPopup) context.setActivePopup(storedPopup as PopupType);
+      
+      const storedPopupConfigs = localStorage.getItem('flortune-popup-configs');
+      if (storedPopupConfigs) {
+        const parsedConfigs = JSON.parse(storedPopupConfigs);
+        Object.keys(parsedConfigs).forEach(key => {
+            const k = key as PopupType;
+            if(parsedConfigs[k].startDate) parsedConfigs[k].startDate = new Date(parsedConfigs[k].startDate);
+            if(parsedConfigs[k].endDate) parsedConfigs[k].endDate = new Date(parsedConfigs[k].endDate);
+        });
+        context.setPopupConfigs(parsedConfigs);
+      }
+      
+    } catch (error) {
+        console.error("Failed to access localStorage or parse settings:", error);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminArea]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', context.isDarkMode);
+  }, [context.isDarkMode]);
+
+  useEffect(() => {
+    document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'aniversario');
+    if (context.activeCampaignTheme) {
+      document.body.classList.add(`theme-${context.activeCampaignTheme}`);
+    }
+  }, [context.activeCampaignTheme]);
+  
+  return null; // Este componente não renderiza nada visualmente.
+}
+
+
 // --- Provedor ---
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -134,8 +206,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [quotes, setQuotes] = useState<QuoteData[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
   const [quotesError, setQuotesError] = useState<string | null>(null);
-  const [quotesCache, setQuotesCache] = useState<{data: QuoteData[], timestamp: number, codes: string[]} | null>(null);
-  const CACHE_DURATION = 600000; // 10 minutos
   
   const [landingPageContent, setLandingPageContent] = useState<LandingPageContent>(defaultLpContent);
   const [popupConfigs, setPopupConfigs] = useState<Record<PopupType, PopupConfig>>(defaultPopupConfigs);
@@ -144,9 +214,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const hasUnreadNotifications = notifications.some(n => !n.read);
 
-  const pathname = usePathname();
-  const isAdminArea = pathname.startsWith('/admin') || pathname.startsWith('/dashboard-admin');
-  
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     const newNotification: Notification = {
       ...notification,
@@ -154,7 +221,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       createdAt: new Date(),
       read: false,
     };
-    setNotifications(prev => [newNotification, ...prev].slice(0, 20)); // Keep last 20
+    setNotifications(prev => [newNotification, ...prev].slice(0, 20));
   }, []);
 
   const markNotificationAsRead = useCallback((id: string) => {
@@ -177,55 +244,38 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const now = Date.now();
-    if (quotesCache && (now - quotesCache.timestamp < CACHE_DURATION) && JSON.stringify(quotesCache.codes.sort()) === JSON.stringify(validQuotes.sort())) {
-        setQuotes(quotesCache.data);
-        setIsLoadingQuotes(false);
-        return;
-    }
-
     setIsLoadingQuotes(true);
     setQuotesError(null);
     try {
         const response = await fetch(`/api/quotes?codes=${encodeURIComponent(validQuotes.join(','))}`);
-        if (!response.ok) {
-            throw new Error(`Erro de rede: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
         const result = await response.json();
-        if (result.error) {
-            throw new Error(result.error);
-        }
+        if (result.error) throw new Error(result.error);
         
         const orderedQuotes = validQuotes
             .map(code => result.data?.find((d: QuoteData) => `${d.code}-${d.codein}` === code || d.code === code))
             .filter((q): q is QuoteData => !!q);
             
         setQuotes(orderedQuotes);
-        setQuotesCache({ data: orderedQuotes, timestamp: now, codes: validQuotes });
-
     } catch (err: any) {
       console.error('Falha ao buscar cotações:', err.message);
-      setQuotesError("Não foi possível carregar as cotações no momento.");
+      setQuotesError("Não foi possível carregar as cotações.");
       setQuotes([]);
     } finally {
       setIsLoadingQuotes(false);
     }
-  }, [quotesCache]);
+  }, []);
 
+  useEffect(() => {
+    if (selectedQuotes.length > 0) {
+      loadQuotes(selectedQuotes);
+    }
+  }, [selectedQuotes, loadQuotes]);
 
-  const setSelectedQuotes = useCallback((newQuotes: string[]) => {
+  const setSelectedQuotes = (newQuotes: string[]) => {
     localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
     setSelectedQuotesState(newQuotes);
-  }, []);
-  
-  // Este useEffect agora carrega as cotações salvas na inicialização
-  useEffect(() => {
-    const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-    const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
-    setSelectedQuotesState(initialQuotes);
-    loadQuotes(initialQuotes);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Executa apenas uma vez
+  };
   
   const loadWeatherForCity = useCallback(async (city: string) => {
     if (!city) return;
@@ -251,21 +301,20 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const setWeatherCity = (city: string | null) => {
-      if(city && city.trim() !== '') {
-          localStorage.setItem('flortune-weather-city', city);
-          setWeatherCityState(city);
-      } else {
-          localStorage.removeItem('flortune-weather-city');
-          setWeatherCityState(null);
-          setWeatherData(null);
-          setWeatherError(null);
-      }
+    if(city && city.trim() !== '') {
+        localStorage.setItem('flortune-weather-city', city);
+        setWeatherCityState(city);
+    } else {
+        localStorage.removeItem('flortune-weather-city');
+        setWeatherCityState(null);
+        setWeatherData(null);
+        setWeatherError(null);
+    }
   };
 
   const applyTheme = useCallback((themeId: string) => {
     const root = document.documentElement;
     root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
-    
     if (themeId !== 'default') {
       root.classList.add(themeId);
     }
@@ -304,31 +353,8 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [landingPageContent]);
   
   useEffect(() => {
-    try {
-      const storedPopupConfigs = JSON.parse(localStorage.getItem('flortune-popup-configs') || '{}');
-      const mergedConfigs = { ...defaultPopupConfigs, ...storedPopupConfigs };
-      // Dates are stored as strings, need to convert back to Date objects
-      Object.keys(mergedConfigs).forEach(key => {
-        const k = key as PopupType;
-        if(mergedConfigs[k].startDate) mergedConfigs[k].startDate = new Date(mergedConfigs[k].startDate as any);
-        if(mergedConfigs[k].endDate) mergedConfigs[k].endDate = new Date(mergedConfigs[k].endDate as any);
-      })
-      localStorage.setItem('flortune-popup-configs', JSON.stringify(mergedConfigs));
-    } catch(e) { console.error("Error merging popup configs", e) }
+    localStorage.setItem('flortune-popup-configs', JSON.stringify(popupConfigs));
   }, [popupConfigs]);
-
-
-  useEffect(() => {
-    document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'aniversario');
-    if (activeCampaignTheme) {
-      document.body.classList.add(`theme-${activeCampaignTheme}`);
-    }
-  }, [activeCampaignTheme]);
-
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
-  }, [isDarkMode]);
 
   const togglePrivateMode = useCallback(() => {
     setIsPrivateMode(prev => {
@@ -337,59 +363,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         return newMode;
     });
   }, []);
-
-  // Effect to load all settings from localStorage on initial mount
-  useEffect(() => {
-    try {
-      // Load Theme and Mode
-      const storedDarkMode = localStorage.getItem('flortune-dark-mode');
-      const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(darkModeEnabled);
-      const storedTheme = localStorage.getItem('flortune-theme') || 'default';
-      applyTheme(storedTheme);
-
-      // Load Private Mode
-      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
-      if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
-      
-      // Load Weather only if not in admin area
-      if (!isAdminArea) {
-        const storedCity = localStorage.getItem('flortune-weather-city');
-        if (storedCity) {
-          setWeatherCityState(storedCity);
-          loadWeatherForCity(storedCity);
-        }
-      } else {
-        setIsLoadingWeather(false);
-      }
-
-      // Load Marketing/LP settings
-      const storedCampaign = localStorage.getItem('flortune-active-campaign');
-      if (storedCampaign) setActiveCampaignThemeState(storedCampaign as CampaignTheme);
-      
-      const storedLpContent = localStorage.getItem('flortune-lp-content');
-      if (storedLpContent) setLandingPageContent(JSON.parse(storedLpContent));
-      
-      const storedPopup = localStorage.getItem('flortune-active-popup');
-      if (storedPopup) setActivePopupState(storedPopup as PopupType);
-      
-      const storedPopupConfigs = localStorage.getItem('flortune-popup-configs');
-      if (storedPopupConfigs) {
-        const parsedConfigs = JSON.parse(storedPopupConfigs);
-        Object.keys(parsedConfigs).forEach(key => {
-            const k = key as PopupType;
-            if(parsedConfigs[k].startDate) parsedConfigs[k].startDate = new Date(parsedConfigs[k].startDate);
-            if(parsedConfigs[k].endDate) parsedConfigs[k].endDate = new Date(parsedConfigs[k].endDate);
-        });
-        setPopupConfigs(parsedConfigs);
-      }
-      
-    } catch (error) {
-        console.error("Failed to access localStorage or parse settings:", error);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdminArea]);
-
 
   return (
     <AppSettingsContext.Provider value={{ 
@@ -409,6 +382,15 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     </AppSettingsContext.Provider>
   );
 };
+
+export function AppSettingsWrapper({ children }: { children: ReactNode }) {
+  return (
+    <AppSettingsProvider>
+      <AppSettingsInitializer />
+      {children}
+    </AppSettingsProvider>
+  )
+}
 
 export const useAppSettings = (): AppSettingsProviderValue => {
   const context = useContext(AppSettingsContext);

@@ -1,7 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next';
 import { AuthProvider } from "@/contexts/auth-context";
-import { AppSettingsProvider } from '@/contexts/app-settings-context';
+import { AppSettingsWrapper } from '@/contexts/app-settings-context';
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css'; 
 
@@ -28,10 +28,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <AuthProvider>
-          <AppSettingsProvider>
+          <AppSettingsWrapper>
             {children}
             <Toaster />
-          </AppSettingsProvider>
+          </AppSettingsWrapper>
         </AuthProvider>
       </body>
     </html>
