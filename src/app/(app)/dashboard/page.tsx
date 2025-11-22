@@ -16,7 +16,7 @@ import { useSession } from "@/contexts/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTransactions } from "@/services/transaction.service";
 import { getFinancialGoals } from "@/services/goal.service";
-import type { Transaction, FinancialGoal } from "@/types/database.types";
+import type { Transaction, FinancialGoal, Profile } from "@/types/database.types";
 import { motion } from "framer-motion";
 import {
   ChartContainer,
@@ -27,6 +27,7 @@ import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import type { QuoteData } from "@/types/database.types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase/client";
 
 
 interface SummaryData {
@@ -68,7 +69,7 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DashboardPage() {
-  const { session, isLoading: authIsLoading } = useSession();
+  const { session, isLoading: authIsLoading, update: updateSession } = useSession();
   const user = session?.user;
   const profile = user?.profile;
 
@@ -93,11 +94,28 @@ export default function DashboardPage() {
   }, [profile]);
 
   const handleDismissWelcome = async () => {
-    if (!user?.id) return;
-    // Em uma app real, isso faria uma chamada para atualizar o banco de dados
-    // supabase.from('profiles').update({ has_seen_welcome_message: true }).eq('id', user.id);
-    toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
+    if (!user?.id || !supabase) return;
+    
+    // Optimistic UI update
     setIsWelcomeOpen(false);
+
+    // Update database
+    const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update({ has_seen_welcome_message: true })
+        .eq('id', user.id)
+        .select()
+        .single();
+    
+    if (error) {
+        toast({ title: "Erro", description: "Não foi possível salvar sua preferência.", variant: "destructive"});
+        // Revert UI if update fails
+        setIsWelcomeOpen(true);
+    } else {
+         toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
+        // Update session context with the new profile data
+        await updateSession({ user: { ...user, profile: updatedProfile as Profile } });
+    }
   }
 
   const fetchDashboardData = useCallback(async () => {
