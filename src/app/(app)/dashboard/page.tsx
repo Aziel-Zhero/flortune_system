@@ -80,7 +80,7 @@ export default function DashboardPage() {
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
-    { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: true },
+    { title: "Saldo Total", value: null, icon: DollarSign, trend: null, trendColor: "text-muted-foreground", isLoading: true },
     { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
     { title: "Despesas Este Mês", value: null, icon: CreditCard, trend: null, trendColor: "text-red-500", isLoading: true },
     { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
@@ -135,21 +135,24 @@ export default function DashboardPage() {
         getFinancialGoals(user.id)
       ]);
       
-      if (transactionsRes.error) {
-        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
-        setAllTransactions([]);
-      } else {
-        setAllTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
-      }
+      const currentTransactions = Array.isArray(transactionsRes.data) ? transactionsRes.data : [];
+      setAllTransactions(currentTransactions);
       
       let totalIncome = 0;
       let totalExpenses = 0;
       let recurringIncome = 0;
       let recurringExpenses = 0;
+      let totalBalance = 0;
       const currentMonth = new Date().getUTCMonth();
       const currentYear = new Date().getUTCFullYear();
 
-      (Array.isArray(transactionsRes.data) ? transactionsRes.data : []).forEach(tx => {
+      currentTransactions.forEach(tx => {
+        if (tx.type === 'income') {
+            totalBalance += tx.amount;
+        } else if (tx.type === 'expense') {
+            totalBalance -= tx.amount;
+        }
+
         if (!tx.date || typeof tx.date !== 'string') return;
         try {
             const txDate = new Date(tx.date + 'T00:00:00Z');
@@ -185,7 +188,7 @@ export default function DashboardPage() {
       }
       
       setSummaryValues([
-        { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
+        { title: "Saldo Total", value: totalBalance, icon: DollarSign, trend: totalBalance >= 0 ? "Positivo" : "Negativo", trendColor: totalBalance >= 0 ? "text-emerald-500" : "text-destructive", isLoading: false },
         { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
         { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
         { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringBalance > 0 ? "Saldo Positivo" : (recurringBalance < 0 ? "Saldo Negativo" : "Saldo Neutro"), trendColor: recurringBalance > 0 ? "text-emerald-500" : (recurringBalance < 0 ? "text-destructive" : "text-muted-foreground"), isLoading: false },
