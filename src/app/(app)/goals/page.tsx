@@ -91,11 +91,11 @@ export default function GoalsPage() {
       const originalGoals = [...currentGoals];
       setCurrentGoals(prevGoals => prevGoals.filter(g => g.id !== deleteDialog.item!.id));
       
-      const { error } = await deleteFinancialGoal(deleteDialog.item.id, user.id);
+      const { error } = await deleteFinancialGoal(deleteDialog.item.id);
       if (error) {
         toast({
           title: "Erro ao Deletar",
-          description: error.message || `Não foi possível deletar a meta "${deleteDialog.item.name}".`,
+          description: error || `Não foi possível deletar a meta "${deleteDialog.item.name}".`,
           variant: "destructive",
         });
         setCurrentGoals(originalGoals);
