@@ -7,7 +7,7 @@ import * as LucideIcons from "lucide-react";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
-import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkItem, type NavLinkIconName, PRICING_TIERS } from "@/lib/constants";
+import { NAV_LINKS_CONFIG, APP_NAME, type NavLinkItem, type NavLinkIconName, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import {
   Sidebar,
   SidebarHeader,
@@ -30,6 +30,12 @@ const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;
   const IconComponent = (LucideIcons as any)[iconName as keyof typeof LucideIcons];
   return IconComponent || LucideIcons.HelpCircle;
+};
+
+const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
+  if (!iconName) return LucideIcons.Gem;
+  const IconComponent = (LucideIcons as any)[iconName];
+  return IconComponent || LucideIcons.Gem;
 };
 
 
@@ -96,6 +102,15 @@ export function AppSidebar() {
   const userPlanId = profile?.plan_id || 'tier-cultivador';
   const userPlan = PRICING_TIERS.find(p => p.id === userPlanId);
 
+  const PlanIcon = getPricingIcon(userPlan?.icon as PricingTierIconName);
+  
+  const planIconColorClasses: Record<string, string> = {
+    'tier-cultivador': 'text-green-400 drop-shadow-[0_0_3px_#34d399]',
+    'tier-mestre': 'text-yellow-400 drop-shadow-[0_0_3px_#facc15]',
+    'tier-dev': 'text-sky-400 drop-shadow-[0_0_3px_#38bdf8]',
+    'tier-corporativo': 'text-amber-600 drop-shadow-[0_0_3px_#d97706]',
+  };
+
   const filteredNavLinks = NAV_LINKS_CONFIG.filter(item => {
     if (item.type !== 'link') return true; // Always show separators and titles
     const isDevRoute = item.href.startsWith('/dev');
@@ -139,7 +154,10 @@ export function AppSidebar() {
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                 <span className="text-sm font-medium font-headline text-foreground group-hover:text-primary">{displayName}</span>
-                <span className="text-xs text-muted-foreground">{userPlan?.name || 'Plano Básico'}</span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  {PlanIcon && <PlanIcon className={cn("h-3 w-3", planIconColorClasses[userPlanId] || 'text-muted-foreground')} />}
+                  {userPlan?.name || 'Plano Básico'}
+                </span>
             </div>
           </Link>
         </div>
