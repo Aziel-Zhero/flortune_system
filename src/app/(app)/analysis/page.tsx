@@ -124,7 +124,7 @@ const PieLabel = (props: PieSectorDataItem) => {
 };
 
 export default function AnalysisPage() {
-  const { data: session, status } = useSession();
+  const { session, isLoading: isAuthLoading } = useSession();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState("monthly");
@@ -146,13 +146,10 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     document.title = `Análise Financeira - ${APP_NAME}`;
-    if (status === "authenticated") {
+    if (!isAuthLoading) {
       fetchTransactions();
-    } else if (status === "unauthenticated") {
-      setIsLoading(false);
-      setTransactions([]);
     }
-  }, [status, fetchTransactions]);
+  }, [isAuthLoading, fetchTransactions]);
 
   const { spendingByCategory, incomeBySource, topExpenses, monthlyEvolution } = useMemo(() => {
     const now = new Date();
@@ -232,6 +229,8 @@ export default function AnalysisPage() {
           </CardContent>
       </Card>
   );
+  
+  const finalIsLoading = isAuthLoading || isLoading;
 
   return (
     <div className="space-y-8">
@@ -240,7 +239,7 @@ export default function AnalysisPage() {
         description="Explore seus padrões de gastos, receitas e tendências ao longo do tempo."
         icon={<Wallet className="h-6 w-6 text-primary"/>}
         actions={
-          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={isLoading}>
+          <Select value={timePeriod} onValueChange={setTimePeriod} disabled={finalIsLoading}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Selecionar período" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="monthly">Este Mês</SelectItem>
@@ -252,13 +251,13 @@ export default function AnalysisPage() {
       />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {isLoading ? <Skeleton className="h-96" /> : spendingByCategory.length === 0 ? renderEmptyState("Gastos por Categoria", "Nenhum gasto no período.") : (
+            {finalIsLoading ? <Skeleton className="h-96" /> : spendingByCategory.length === 0 ? renderEmptyState("Gastos por Categoria", "Nenhum gasto no período.") : (
               <Card className="shadow-sm">
                   <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-primary" />Gastos por Categoria</CardTitle><CardDescription>Distribuição das suas despesas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
                   <CardContent className="h-80 sm:h-96"><ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square"><ResponsiveContainer width="100%" height="100%"><PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}><RechartsTooltip content={<RealDataPieCustomTooltip />} /><Pie data={spendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>{spendingByCategory.map((entry, index) => (<Cell key={`cell-spending-${index}`} fill={entry.fill} />))}</Pie></PieChart></ResponsiveContainer></ChartContainer></CardContent>
               </Card>
             )}
-             {isLoading ? <Skeleton className="h-96" /> : incomeBySource.length === 0 ? renderEmptyState("Fontes de Renda", "Nenhuma receita no período.") : (
+             {finalIsLoading ? <Skeleton className="h-96" /> : incomeBySource.length === 0 ? renderEmptyState("Fontes de Renda", "Nenhuma receita no período.") : (
                 <Card className="shadow-sm">
                     <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><PieIconLucide className="mr-2 h-5 w-5 text-emerald-500" />Fontes de Renda</CardTitle><CardDescription>De onde vêm suas receitas ({timePeriod === 'monthly' ? 'este mês' : 'total'}).</CardDescription></CardHeader>
                     <CardContent className="h-80 sm:h-96"><ChartContainer config={{}} className="min-h-[200px] w-full h-full aspect-square"><ResponsiveContainer width="100%" height="100%"><PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}><RechartsTooltip content={<RealDataPieCustomTooltip />} /><Pie data={incomeBySource} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={true} label={<PieLabel />}>{incomeBySource.map((entry, index) => (<Cell key={`cell-income-${index}`} fill={entry.fill} />))}</Pie></PieChart></ResponsiveContainer></ChartContainer></CardContent>
@@ -268,7 +267,7 @@ export default function AnalysisPage() {
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><TrendingDown className="mr-2 h-5 w-5 text-destructive" />Top 5 Despesas</CardTitle><CardDescription>Maiores gastos no período.</CardDescription></CardHeader>
                 <CardContent className="h-80 sm:h-96">
                   <ScrollArea className="h-full pr-2">
-                    {isLoading ? Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-10 mb-2" />) : topExpenses.length === 0 ? (<div className="flex items-center justify-center h-full text-muted-foreground text-sm">Nenhuma despesa.</div>) : (
+                    {finalIsLoading ? Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-10 mb-2" />) : topExpenses.length === 0 ? (<div className="flex items-center justify-center h-full text-muted-foreground text-sm">Nenhuma despesa.</div>) : (
                       <Table size="sm">
                           <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
                           <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs break-words max-w-[150px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
@@ -280,7 +279,7 @@ export default function AnalysisPage() {
             <Card className="md:col-span-2 lg:col-span-3 shadow-sm">
                 <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl"><AreaIconLucide className="mr-2 h-5 w-5 text-primary" />Evolução Mensal (Últimos 12 Meses)</CardTitle><CardDescription>Suas receitas vs. despesas ao longo do tempo.</CardDescription></CardHeader>
                 <CardContent className="h-80 sm:h-96 overflow-hidden">
-                    {isLoading ? <Skeleton className="w-full h-full" /> : (
+                    {finalIsLoading ? <Skeleton className="w-full h-full" /> : (
                       <ChartContainer config={realDataChartConfig} className="min-h-[300px] w-full h-full">
                           <ResponsiveContainer width="99%" height="100%">
                               <AreaChart accessibilityLayer data={monthlyEvolution} margin={{ top: 20, right: 30, left: 10, bottom: 70 }}>

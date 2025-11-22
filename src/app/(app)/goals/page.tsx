@@ -44,8 +44,7 @@ const getLucideIcon = (iconName?: string | null): React.ElementType => {
 };
 
 export default function GoalsPage() {
-  const { data: session, status: authStatus } = useSession();
-  const authLoading = authStatus === "loading";
+  const { session, isLoading: isAuthLoading } = useSession();
   const user = session?.user;
 
   const [currentGoals, setCurrentGoals] = useState<FinancialGoal[]>([]);
@@ -78,13 +77,10 @@ export default function GoalsPage() {
 
   useEffect(() => {
     document.title = `Metas Financeiras - ${APP_NAME}`;
-    if (user?.id && authStatus === "authenticated") {
+    if (!isAuthLoading) {
       fetchGoalsData();
-    } else if (authStatus === "unauthenticated") {
-      setIsLoadingData(false);
-      setCurrentGoals([]);
     }
-  }, [user?.id, authStatus, fetchGoalsData]);
+  }, [isAuthLoading, fetchGoalsData]);
 
   const handleDeleteClick = (goalId: string, goalName: string) => {
     setDeleteDialog({ isOpen: true, item: { id: goalId, name: goalName } });
@@ -138,7 +134,9 @@ export default function GoalsPage() {
     }),
   };
   
-  if (authLoading || (isLoadingData && !!user)) {
+  const finalIsLoading = isAuthLoading || isLoadingData;
+
+  if (finalIsLoading) {
     return (
       <div>
         <PageHeader
@@ -192,14 +190,14 @@ export default function GoalsPage() {
           icon={<Trophy className="h-6 w-6 text-primary"/>}
           actions={
             <DialogTrigger asChild>
-              <Button disabled={authLoading || !user}> 
+              <Button disabled={isAuthLoading || !user}> 
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Definir Nova Meta
               </Button>
             </DialogTrigger>
           }
         />
-        {currentGoals.length === 0 && !isLoadingData && !authLoading && (
+        {currentGoals.length === 0 && !finalIsLoading && (
           <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
               <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-xl font-semibold font-headline mb-2">Nenhuma Meta Definida Ainda</h3>
@@ -207,7 +205,7 @@ export default function GoalsPage() {
                 Metas financeiras são o mapa para seus sonhos. Comece definindo sua primeira meta e veja seu progresso florescer!
               </p>
               <DialogTrigger asChild>
-                  <Button size="lg" disabled={authLoading || !user}>
+                  <Button size="lg" disabled={isAuthLoading || !user}>
                     <PlusCircle className="mr-2 h-5 w-5" />
                     Definir Minha Primeira Meta
                   </Button>
@@ -292,11 +290,11 @@ export default function GoalsPage() {
               </motion.div>
             );
           })}
-           {currentGoals.length > 0 && !isLoadingData && !authLoading && (
+           {currentGoals.length > 0 && !finalIsLoading && (
               <motion.div custom={currentGoals.length} variants={cardVariants} initial="hidden" animate="visible" layout>
                   <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[200px] h-full text-muted-foreground hover:text-primary cursor-pointer">
                      <DialogTrigger asChild>
-                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none" disabled={authLoading || !user}> 
+                       <button className="text-center p-6 block w-full h-full flex flex-col items-center justify-center focus:outline-none" disabled={isAuthLoading || !user}> 
                           <PlusCircle className="h-10 w-10 mx-auto mb-2"/>
                           <p className="font-semibold">Definir Nova Meta Financeira</p>
                        </button>
@@ -311,7 +309,7 @@ export default function GoalsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Deleção</AlertDialogTitle>
               <AlertDialogDescription>
-                Você tem certeza que deseja deletar a meta "{deleteDialog.item?.name}"? Esta ação não pode ser desfeita.
+                Tem certeza que deseja deletar a meta "{deleteDialog.item?.name}"? Esta ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -331,14 +329,8 @@ export default function GoalsPage() {
             Defina um novo objetivo para suas finanças e acompanhe seu progresso.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && authStatus === "authenticated" && (
+        {isCreateModalOpen && (
           <FinancialGoalForm onGoalCreated={handleGoalCreated} isModal={true} />
-        )}
-        {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
-            <div className="py-8 text-center">
-                <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
-                <p className="text-muted-foreground">Carregando formulário...</p>
-            </div>
         )}
       </DialogContent>
     </Dialog>

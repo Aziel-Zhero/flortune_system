@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BudgetForm } from "./budget-form";
 import { useSession } from "@/contexts/auth-context";
 
-// MOCK FUNCTIONS - Substitua pelas suas chamadas de API reais
+// MOCK FUNCTIONS to be replaced with real API calls
 async function getBudgets(userId: string): Promise<{ data: Budget[], error: null | Error }> {
   console.log("Fetching budgets for user:", userId);
   // Em um app real, aqui viria a chamada ao Supabase
@@ -30,44 +30,42 @@ async function getBudgets(userId: string): Promise<{ data: Budget[], error: null
 }
 
 async function deleteBudget(budgetId: string): Promise<{ error: null | Error }> {
-  console.log("Deleting budget:", budgetId);
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return { error: null };
+    console.log(`Deleting budget: ${budgetId}`);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return { error: null };
 }
 // --- FIM DOS MOCKS ---
 
 
 export default function BudgetsPage() {
-  const { data: session, status } = useSession();
+  const { session, isLoading: isAuthLoading } = useSession();
   const [currentBudgets, setCurrentBudgets] = useState<Budget[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; item: { id: string; name: string } | null }>({ isOpen: false, item: null });
   const [editDialog, setEditDialog] = useState<{ isOpen: boolean; budget: Budget | null }>({ isOpen: false, budget: null });
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchBudgetsData = useCallback(async () => {
     if (!session?.user?.id) {
-        setIsLoadingData(false);
+        setIsLoading(false);
         return;
     }
-    setIsLoadingData(true);
+    setIsLoading(true);
     const { data, error } = await getBudgets(session.user.id);
     if (error) {
       toast({ title: "Erro ao carregar orçamentos", description: error.message, variant: "destructive" });
     } else {
       setCurrentBudgets(data || []);
     }
-    setIsLoadingData(false);
+    setIsLoading(false);
   }, [session?.user?.id]);
 
   useEffect(() => {
     document.title = `Orçamentos - ${APP_NAME}`;
-    if (status === 'authenticated') {
+    if (!isAuthLoading) {
       fetchBudgetsData();
-    } else if (status === 'unauthenticated') {
-        setIsLoadingData(false);
-        setCurrentBudgets([]);
     }
-  }, [status, fetchBudgetsData]);
+  }, [isAuthLoading, fetchBudgetsData]);
 
   const handleDeleteClick = (budget: Budget) => {
     setDeleteDialog({ isOpen: true, item: { id: budget.id, name: budget.category?.name || 'desconhecido' }});
@@ -95,6 +93,7 @@ export default function BudgetsPage() {
 
   const handleFormSuccess = () => {
     setEditDialog({ isOpen: false, budget: null });
+    setIsCreateModalOpen(false);
     toast({ title: "Sucesso!", description: "Sua lista de orçamentos será atualizada."});
     fetchBudgetsData();
   };
@@ -105,8 +104,10 @@ export default function BudgetsPage() {
       opacity: 1, y: 0, transition: { delay: i * 0.07, type: "spring", stiffness: 100 },
     }),
   };
+  
+  const finalIsLoading = isAuthLoading || isLoading;
 
-  if (isLoadingData) {
+  if (finalIsLoading) {
     return (
       <div>
         <PageHeader title="Orçamentos" description="Defina e acompanhe seus limites de gastos para diferentes categorias." actions={<Skeleton className="h-10 w-40 rounded-md" />} />
@@ -124,17 +125,26 @@ export default function BudgetsPage() {
   }
 
   return (
-    <Dialog open={editDialog.isOpen} onOpenChange={(isOpen) => setEditDialog({ isOpen, budget: isOpen ? editDialog.budget : null })}>
+    <Dialog open={editDialog.isOpen || isCreateModalOpen} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+            setEditDialog({isOpen: false, budget: null});
+            setIsCreateModalOpen(false);
+        }
+    }}>
       <div>
         <PageHeader title="Orçamentos" icon={<Target className="mr-2 h-6 w-6 text-primary"/>} description="Defina e acompanhe seus limites de gastos para diferentes categorias." actions={
-          <Button asChild><Link href="/budgets/new"><PlusCircle className="mr-2 h-4 w-4" />Criar Orçamento</Link></Button>
+          <DialogTrigger asChild>
+            <Button onClick={() => setIsCreateModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4" />Criar Orçamento</Button>
+          </DialogTrigger>
         } />
-        {currentBudgets.length === 0 && !isLoadingData && (
+        {currentBudgets.length === 0 && !finalIsLoading && (
           <Card className="shadow-sm border-dashed border-2 hover:border-primary transition-colors flex flex-col items-center justify-center min-h-[240px] text-center p-6">
             <Target className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold font-headline mb-2">Nenhum Orçamento Criado Ainda</h3>
             <p className="text-muted-foreground mb-4 max-w-md">Orçamentos ajudam você a controlar seus gastos e alcançar suas metas. Que tal criar seu primeiro?</p>
-            <Button asChild size="lg"><Link href="/budgets/new"><PlusCircle className="mr-2 h-5 w-5" />Criar Meu Primeiro Orçamento</Link></Button>
+            <DialogTrigger asChild>
+                <Button size="lg" onClick={() => setIsCreateModalOpen(true)}><PlusCircle className="mr-2 h-5 w-5" />Criar Meu Primeiro Orçamento</Button>
+            </DialogTrigger>
           </Card>
         )}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -183,10 +193,15 @@ export default function BudgetsPage() {
       </div>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle className="font-headline flex items-center text-lg md:text-xl"><Edit3 className="mr-2 h-5 w-5 text-primary"/>Editar Orçamento</DialogTitle>
-          <DialogDescription>Ajuste os detalhes do seu orçamento.</DialogDescription>
+          <DialogTitle className="font-headline flex items-center text-lg md:text-xl">
+             {editDialog.budget ? <Edit3 className="mr-2 h-5 w-5 text-primary"/> : <PlusCircle className="mr-2 h-5 w-5 text-primary"/>}
+             {editDialog.budget ? "Editar Orçamento" : "Criar Novo Orçamento"}
+          </DialogTitle>
+          <DialogDescription>
+            {editDialog.budget ? "Ajuste os detalhes do seu orçamento." : "Defina um novo limite de gastos para uma categoria."}
+          </DialogDescription>
         </DialogHeader>
-        {editDialog.budget && <BudgetForm onFormSuccess={handleFormSuccess} isModal={true} initialData={editDialog.budget} />}
+        <BudgetForm onFormSuccess={handleFormSuccess} isModal={true} initialData={editDialog.budget || undefined} />
       </DialogContent>
     </Dialog>
   );
