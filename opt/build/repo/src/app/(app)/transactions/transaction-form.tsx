@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
 import { getCategories } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
@@ -240,7 +240,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                         </SelectItem>
                       ))}
                       {filteredCategories.length === 0 && !isLoadingCategories && (
-                        <div className="p-4 text-sm text-muted-foreground">Nenhuma categoria encontrada para este tipo.</div>
+                        <div className="p-4 text-sm text-center text-muted-foreground">Nenhuma categoria encontrada para este tipo.</div>
                       )}
                     </SelectContent>
                   </Select>

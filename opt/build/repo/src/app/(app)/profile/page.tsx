@@ -1,4 +1,3 @@
-
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -10,17 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
-import { supabase } from '@/lib/supabase/client';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from '@/lib/supabase/client';
 
 export default function ProfilePage() {
-  const { data: session, status, update: updateSession } = useSession();
+  const { session, isLoading, update } = useSession();
 
-  const isLoading = status === "loading";
   const userFromSession = session?.user;
   const profileFromSession = session?.user?.profile;
 
@@ -45,14 +43,14 @@ export default function ProfilePage() {
       setPhone(profileFromSession.phone || "");
       setCpfCnpj(profileFromSession.cpf_cnpj || "");
       setRg(profileFromSession.rg || "");
-      const currentAvatar = profileFromSession.avatar_url || session?.user?.image || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || 'U'}`;
+      const currentAvatar = profileFromSession.avatar_url || userFromSession?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || userFromSession?.email)?.charAt(0)?.toUpperCase() || 'U'}`;
       setAvatarUrl(currentAvatar);
-      setAvatarFallback((profileFromSession.display_name || session?.user?.name)?.charAt(0)?.toUpperCase() || "U");
+      setAvatarFallback((profileFromSession.display_name || userFromSession?.email)?.charAt(0)?.toUpperCase() || "U");
     }
-    if (session?.user?.email) {
-      setEmail(session.user.email);
+    if (userFromSession?.email) {
+      setEmail(userFromSession.email);
     }
-  }, [profileFromSession, session?.user?.image, session?.user?.name, session?.user?.email]);
+  }, [profileFromSession, userFromSession]);
 
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -62,15 +60,16 @@ export default function ProfilePage() {
     }
     setIsSavingProfile(true);
     try {
-      const updatedProfileData: Partial<Omit<Profile, 'id' | 'created_at' | 'email' | 'hashed_password'>> & {updated_at: string} = {
+      const updatedProfileData: Partial<Omit<Profile, 'id' | 'email'>> = {
         full_name: fullName,
         display_name: displayName,
         phone,
         cpf_cnpj: cpfCnpj,
         rg,
         updated_at: new Date().toISOString(),
-        account_type: profileFromSession?.account_type, 
       };
+      
+      if (!supabase) throw new Error("Cliente Supabase não inicializado.");
 
       const { data: updatedProfile, error } = await supabase
         .from('profiles')
@@ -79,16 +78,16 @@ export default function ProfilePage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw error; // Lança o erro para ser pego pelo catch
 
       if (updatedProfile) {
-        await updateSession({
+        // Atualiza o contexto da sessão manualmente para refletir as mudanças imediatamente
+        await update({
           ...session, 
           user: { 
             ...session?.user,
-            name: updatedProfile.display_name || updatedProfile.full_name, 
             profile: updatedProfile as Profile, 
-          }
+          },
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
       }
@@ -177,15 +176,13 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-            {profileFromSession?.account_type === 'empresa' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+             {profileFromSession?.account_type === 'empresa' && (
+              <div>
                   <Label htmlFor="cpfCnpj">CNPJ</Label>
                   <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
-                </div>
               </div>
             )}
           </CardContent>

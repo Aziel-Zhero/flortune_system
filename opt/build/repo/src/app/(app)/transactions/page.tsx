@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PrivateValue } from "@/components/shared/private-value";
-import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat } from "lucide-react";
+import { PlusCircle, ArrowUpDown, MoreHorizontal, FileDown, Edit3, Trash2, ListFilter, AlertTriangle, List, Loader2, Repeat, Share2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { getTransactions, deleteTransaction } from "@/services/transaction.service";
 import type { Transaction } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";

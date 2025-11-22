@@ -1,4 +1,3 @@
-
 // src/app/(app)/goals/page.tsx
 "use client";
 
@@ -31,7 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/contexts/auth-context";
 import { getFinancialGoals, deleteFinancialGoal } from "@/services/goal.service";
 import type { FinancialGoal } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -312,7 +311,7 @@ export default function GoalsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Deleção</AlertDialogTitle>
               <AlertDialogDescription>
-                Você tem certeza que deseja deletar a meta "{deleteDialog.item?.name}"? Esta ação não pode ser desfeita.
+                Tem certeza que deseja deletar a meta "{deleteDialog.item?.name}"? Esta ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
