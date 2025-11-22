@@ -57,7 +57,8 @@ export const ADMIN_NAV_LINKS_CONFIG = [
 export type NavLinkItem = (typeof NAV_LINKS_CONFIG)[number] | (typeof ADMIN_NAV_LINKS_CONFIG)[number];
 
 // Correctly extracting icon names for NavLinkItem that are links
-export type NavLinkIconName = Extract<NavLinkItem, { type: "link"; icon: any }>["icon"];
+export type NavLinkIconName = Extract<NavLinkItem, { type: "link" }>["icon"];
+
 
 export type PricingTier = {
   id: string;
