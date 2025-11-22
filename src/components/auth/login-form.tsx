@@ -37,30 +37,24 @@ export function LoginForm({ message }: LoginFormProps) {
     const result = await loginUser(null, formData);
 
     if (result?.error) {
-      let title = "Erro no Login";
-      let description = "Ocorreu um erro inesperado. Tente novamente.";
-      
-      if (result.error === 'invalid_credentials') {
-          description = "Credenciais inválidas. Verifique seu e-mail e senha.";
-      } else if (result.error === 'email_not_confirmed') {
-          title = "E-mail Não Confirmado";
-          description = "Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada.";
-      } else {
-          description = decodeURIComponent(result.error);
-      }
-      
-      setError(description);
+      setError(result.error);
       toast({
-          title: title,
-          description: description,
+          title: "Erro no Login",
+          description: result.error,
           variant: "destructive",
       });
       setIsSubmitting(false);
     } else if (result?.redirectTo) {
-      // Redirecionamento do lado do cliente
+      // Client-side redirection
       router.push(result.redirectTo);
+      router.refresh(); // Força a atualização do layout e da sessão
     } else {
-      // Fallback caso algo dê errado e não haja erro nem redirecionamento
+      // Fallback
+      toast({
+          title: "Erro inesperado",
+          description: "Não foi possível completar o login. Tente novamente.",
+          variant: "destructive",
+      });
       setIsSubmitting(false);
     }
   };
