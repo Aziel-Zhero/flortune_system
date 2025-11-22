@@ -304,13 +304,15 @@ export default function LandingPage() {
                           {tier.features.map((feature) => (<li key={feature} className="flex gap-x-3 items-start"><Check className={cn("h-5 w-5 flex-none mt-0.5", tier.featured ? "text-primary" : "text-green-500")} aria-hidden="true" /><span>{feature}</span></li>))}
                         </ul>
                       </CardContent>
-                      <CardFooter>
-                        <Button asChild size="lg" className={cn("w-full", !tier.featured && "bg-accent hover:bg-accent/90 text-accent-foreground", tier.featured && buttonVariants({variant: "default"}))}>
-                          <Link href={tier.href}>
-                            {tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}
-                          </Link>
-                        </Button>
-                      </CardFooter>
+                      {isPaidPlan && (
+                        <CardFooter>
+                          <Button asChild size="lg" className={cn("w-full", !tier.featured && "bg-accent hover:bg-accent/90 text-accent-foreground", tier.featured && buttonVariants({variant: "default"}))}>
+                            <Link href={tier.href} target="_blank">
+                              {tier.id.includes('corporativo') ? 'Contatar Vendas' : 'Assinar Plano'}
+                            </Link>
+                          </Button>
+                        </CardFooter>
+                      )}
                     </Card>
                   );
                 })}
