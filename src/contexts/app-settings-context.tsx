@@ -117,78 +117,6 @@ const defaultPopupConfigs: Record<PopupType, PopupConfig> = {
   newsletter: { title: "Assine nossa Newsletter", description: "Receba dicas semanais de finanças e produtividade diretamente no seu email.", icon: "Newspaper", color: "blue", frequencyValue: 3, frequencyUnit: 'dias' },
 }
 
-// --- Componente de Inicialização do Cliente ---
-
-function AppSettingsInitializer() {
-  const context = useAppSettings();
-  const pathname = usePathname();
-  const isAdminArea = pathname.startsWith('/admin') || pathname.startsWith('/dashboard-admin');
-
-  useEffect(() => {
-    try {
-      const storedDarkMode = localStorage.getItem('flortune-dark-mode');
-      const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      context.setIsDarkMode(darkModeEnabled);
-      
-      const storedTheme = localStorage.getItem('flortune-theme') || 'default';
-      context.applyTheme(storedTheme);
-
-      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
-      if (storedPrivateMode) context.setIsPrivateMode(JSON.parse(storedPrivateMode));
-      
-      if (!isAdminArea) {
-        const storedCity = localStorage.getItem('flortune-weather-city');
-        if (storedCity) {
-          context.setWeatherCity(storedCity);
-          context.loadWeatherForCity(storedCity);
-        }
-      }
-
-      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
-      context.setSelectedQuotes(initialQuotes);
-
-      const storedCampaign = localStorage.getItem('flortune-active-campaign');
-      if (storedCampaign) context.setActiveCampaignTheme(storedCampaign as CampaignTheme);
-      
-      const storedLpContent = localStorage.getItem('flortune-lp-content');
-      if (storedLpContent) context.setLandingPageContent(JSON.parse(storedLpContent));
-      
-      const storedPopup = localStorage.getItem('flortune-active-popup');
-      if (storedPopup) context.setActivePopup(storedPopup as PopupType);
-      
-      const storedPopupConfigs = localStorage.getItem('flortune-popup-configs');
-      if (storedPopupConfigs) {
-        const parsedConfigs = JSON.parse(storedPopupConfigs);
-        Object.keys(parsedConfigs).forEach(key => {
-            const k = key as PopupType;
-            if(parsedConfigs[k].startDate) parsedConfigs[k].startDate = new Date(parsedConfigs[k].startDate);
-            if(parsedConfigs[k].endDate) parsedConfigs[k].endDate = new Date(parsedConfigs[k].endDate);
-        });
-        context.setPopupConfigs(parsedConfigs);
-      }
-      
-    } catch (error) {
-        console.error("Failed to access localStorage or parse settings:", error);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdminArea]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', context.isDarkMode);
-  }, [context.isDarkMode]);
-
-  useEffect(() => {
-    document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'aniversario');
-    if (context.activeCampaignTheme) {
-      document.body.classList.add(`theme-${context.activeCampaignTheme}`);
-    }
-  }, [context.activeCampaignTheme]);
-  
-  return null; // Este componente não renderiza nada visualmente.
-}
-
-
 // --- Provedor ---
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -213,6 +141,56 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const hasUnreadNotifications = notifications.some(n => !n.read);
+
+  // Initialization effect
+  useEffect(() => {
+    try {
+      const storedDarkMode = localStorage.getItem('flortune-dark-mode');
+      const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(darkModeEnabled);
+      document.documentElement.classList.toggle('dark', darkModeEnabled);
+      
+      const storedTheme = localStorage.getItem('flortune-theme') || 'default';
+      applyTheme(storedTheme);
+
+      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
+      if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
+
+      const storedCity = localStorage.getItem('flortune-weather-city');
+      if (storedCity) {
+        setWeatherCityState(storedCity);
+        loadWeatherForCity(storedCity);
+      }
+
+      const storedQuotes = localStorage.getItem('flortune-selected-quotes');
+      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
+      setSelectedQuotesState(initialQuotes);
+
+      const storedCampaign = localStorage.getItem('flortune-active-campaign');
+      if (storedCampaign) setActiveCampaignThemeState(storedCampaign as CampaignTheme);
+      
+      const storedLpContent = localStorage.getItem('flortune-lp-content');
+      if (storedLpContent) setLandingPageContent(JSON.parse(storedLpContent));
+      
+      const storedPopup = localStorage.getItem('flortune-active-popup');
+      if (storedPopup) setActivePopupState(storedPopup as PopupType);
+      
+      const storedPopupConfigs = localStorage.getItem('flortune-popup-configs');
+      if (storedPopupConfigs) {
+        const parsedConfigs = JSON.parse(storedPopupConfigs);
+        Object.keys(parsedConfigs).forEach(key => {
+            const k = key as PopupType;
+            if(parsedConfigs[k].startDate) parsedConfigs[k].startDate = new Date(parsedConfigs[k].startDate);
+            if(parsedConfigs[k].endDate) parsedConfigs[k].endDate = new Date(parsedConfigs[k].endDate);
+        });
+        setPopupConfigs(parsedConfigs);
+      }
+      
+    } catch (error) {
+        console.error("Failed to access localStorage or parse settings:", error);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     const newNotification: Notification = {
@@ -269,6 +247,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (selectedQuotes.length > 0) {
       loadQuotes(selectedQuotes);
+    } else {
+        setIsLoadingQuotes(false);
+        setQuotes([]);
     }
   }, [selectedQuotes, loadQuotes]);
 
@@ -326,6 +307,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsDarkMode(prev => {
       const newIsDark = !prev;
       localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
+      document.documentElement.classList.toggle('dark', newIsDark);
       return newIsDark;
     });
   }, []);
@@ -335,6 +317,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('flortune-active-campaign', theme);
     } else {
       localStorage.removeItem('flortune-active-campaign');
+    }
+    document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'aniversario');
+    if(theme) {
+       document.body.classList.add(`theme-${theme}`);
     }
     setActiveCampaignThemeState(theme);
   }, []);
@@ -364,8 +350,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  return (
-    <AppSettingsContext.Provider value={{ 
+  const value = { 
       isPrivateMode, setIsPrivateMode, togglePrivateMode,
       isDarkMode, setIsDarkMode, toggleDarkMode,
       currentTheme, setCurrentTheme, applyTheme,
@@ -377,20 +362,15 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
       popupConfigs, setPopupConfigs,
       activePopup, setActivePopup,
       notifications, addNotification, markNotificationAsRead, markAllNotificationsAsRead, clearNotifications, hasUnreadNotifications,
-    }}>
+    };
+
+  return (
+    <AppSettingsContext.Provider value={value}>
       {children}
     </AppSettingsContext.Provider>
   );
 };
 
-export function AppSettingsWrapper({ children }: { children: ReactNode }) {
-  return (
-    <AppSettingsProvider>
-      <AppSettingsInitializer />
-      {children}
-    </AppSettingsProvider>
-  )
-}
 
 export const useAppSettings = (): AppSettingsProviderValue => {
   const context = useContext(AppSettingsContext);
