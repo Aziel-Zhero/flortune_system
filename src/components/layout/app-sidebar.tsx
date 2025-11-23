@@ -44,12 +44,8 @@ function WeatherDisplay() {
 
     if (isLoadingWeather) {
         return (
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center justify-center group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 mt-2">
                 <Skeleton className="h-6 w-6 rounded-md" />
-                <div className="flex flex-col gap-1.5">
-                    <Skeleton className="h-3 w-16" />
-                    <Skeleton className="h-2 w-12" />
-                </div>
             </div>
         );
     }
@@ -61,9 +57,9 @@ function WeatherDisplay() {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 mt-2 group-data-[collapsible=icon]:hidden">
-                    <Image src={`https://openweathermap.org/img/wn/${weatherData.icon}@2x.png`} alt={weatherData.description} width={24} height={24}/>
-                    <div className="flex flex-col">
+                 <div className="flex items-center justify-center group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 mt-2 gap-2">
+                    <Image src={`https://openweathermap.org/img/wn/${weatherData.icon}@2x.png`} alt={weatherData.description} width={28} height={28}/>
+                    <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                         <span className="text-xs font-semibold">{weatherData.temperature}°C</span>
                         <span className="text-[10px] text-muted-foreground capitalize -mt-0.5">{weatherData.city}</span>
                     </div>
@@ -152,9 +148,9 @@ export function AppSidebar() {
                   {PlanIcon && <PlanIcon className={cn("h-3 w-3", planIconColorClasses[userPlanId] || 'text-muted-foreground')} />}
                   {userPlan?.name || 'Plano Básico'}
                 </span>
-                <WeatherDisplay />
             </div>
           </Link>
+           <WeatherDisplay />
         </div>
         
         <div className="px-3 mt-2 flex justify-end group-data-[collapsible=icon]:justify-center">
