@@ -40,38 +40,32 @@ const getPricingIcon = (iconName?: PricingTierIconName): React.ElementType => {
 
 
 function WeatherDisplay() {
-    const { weatherData, isLoadingWeather, weatherCity, setWeatherCity } = useAppSettings();
+    const { weatherData, isLoadingWeather, weatherCity } = useAppSettings();
 
-    const handleClearCity = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setWeatherCity(null);
-    }
-    
     if (isLoadingWeather) {
         return (
-            <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                <Skeleton className="h-9 w-9 rounded-md" />
-                <div className="flex flex-col gap-1.5 group-data-[collapsible=icon]:hidden">
-                    <Skeleton className="h-4 w-24" />
+            <div className="flex items-center gap-2 mt-2">
+                <Skeleton className="h-6 w-6 rounded-md" />
+                <div className="flex flex-col gap-1.5">
                     <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-2 w-12" />
                 </div>
             </div>
         );
     }
 
     if (!weatherCity || !weatherData) {
-        return null; // Don't show anything if city is not set
+        return null;
     }
     
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <div className="flex items-center gap-3 p-2 w-full hover:bg-muted/50 rounded-md -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                    <Image src={`https://openweathermap.org/img/wn/${weatherData.icon}@2x.png`} alt={weatherData.description} width={36} height={36} className="group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8"/>
-                    <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                        <span className="text-sm font-semibold">{weatherData.temperature}°C</span>
-                        <span className="text-xs text-muted-foreground capitalize">{weatherData.city}</span>
+                <div className="flex items-center gap-2 mt-2 group-data-[collapsible=icon]:hidden">
+                    <Image src={`https://openweathermap.org/img/wn/${weatherData.icon}@2x.png`} alt={weatherData.description} width={24} height={24}/>
+                    <div className="flex flex-col">
+                        <span className="text-xs font-semibold">{weatherData.temperature}°C</span>
+                        <span className="text-[10px] text-muted-foreground capitalize -mt-0.5">{weatherData.city}</span>
                     </div>
                 </div>
             </TooltipTrigger>
@@ -112,7 +106,7 @@ export function AppSidebar() {
   };
 
   const filteredNavLinks = NAV_LINKS_CONFIG.filter(item => {
-    if (item.type !== 'link') return true; // Always show separators and titles
+    if (item.type !== 'link') return true;
     const isDevRoute = item.href.startsWith('/dev');
     const isCorpRoute = item.href.startsWith('/corporate');
     
@@ -158,6 +152,7 @@ export function AppSidebar() {
                   {PlanIcon && <PlanIcon className={cn("h-3 w-3", planIconColorClasses[userPlanId] || 'text-muted-foreground')} />}
                   {userPlan?.name || 'Plano Básico'}
                 </span>
+                <WeatherDisplay />
             </div>
           </Link>
         </div>
@@ -166,12 +161,6 @@ export function AppSidebar() {
            <SidebarTrigger />
         </div>
         
-        <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
-        
-        <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
-            <WeatherDisplay />
-        </div>
-
         <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
 
         <SidebarContent className="p-2">
