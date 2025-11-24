@@ -2,10 +2,10 @@
 const nextConfig = {
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   compress: false, // Adicionado para corrigir erro de decodificação de conteúdo no login
   images: {
@@ -22,12 +22,13 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+       {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
-  },
-  env: {
-    NEXTAUTH_URL: process.env.NODE_ENV === 'development'
-      ? 'http://localhost:9003'
-      : `https://flortunez.netlify.app`,
   },
 };
 
