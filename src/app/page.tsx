@@ -143,7 +143,15 @@ export default function LandingPage() {
   const { data: session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
-  const safeLandingPageContent = landingPageContent;
+  // Fallback seguro para garantir que o objeto não seja nulo no servidor
+  const safeLandingPageContent = landingPageContent || {
+    heroTitle: "Cultive Suas Finanças e Projetos com Inteligência.",
+    heroDescription: "Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.",
+    heroImageUrl: "https://placehold.co/800x450.png",
+    ctaTitle: "Pronto para Cultivar seu Futuro?",
+    ctaDescription: "Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o Flortune. É rápido, fácil e gratuito para começar.",
+    ctaButtonText: "Criar Minha Conta Grátis",
+  };
 
   const getCampaignProps = () => {
     switch (activeCampaignTheme) {
