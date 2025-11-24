@@ -55,22 +55,8 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const { control, handleSubmit, register, formState: { errors }, reset, setValue } = useForm<BudgetFormData>({
     resolver: zodResolver(budgetFormSchema),
-    defaultValues: initialData ? {
-        ...initialData,
-        limit_amount: initialData.limit_amount,
-        period_start_date: parseISO(initialData.period_start_date),
-        period_end_date: parseISO(initialData.period_end_date),
-    } : {
-      limit_amount: 0,
-      period_start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      period_end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-    },
   });
   
   const isEditing = !!initialData;
@@ -78,6 +64,25 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   const { handleSubmit: handleCategorySubmit, register: categoryFormRegister, formState: { errors: categoryFormErrors }, reset: resetCategoryForm } = useForm<NewCategoryFormData>({
     resolver: zodResolver(newCategorySchema),
   });
+  
+  useEffect(() => {
+    setIsClient(true);
+    if (initialData) {
+        reset({
+            ...initialData,
+            limit_amount: initialData.limit_amount,
+            period_start_date: parseISO(initialData.period_start_date),
+            period_end_date: parseISO(initialData.period_end_date),
+        });
+    } else {
+        const today = new Date();
+        reset({
+            limit_amount: 0,
+            period_start_date: new Date(today.getFullYear(), today.getMonth(), 1),
+            period_end_date: new Date(today.getFullYear(), today.getMonth() + 1, 0),
+        });
+    }
+  }, [initialData, reset]);
   
   const fetchCategories = useCallback(async () => {
     const mockUserId = "mock-user-id"; // Placeholder
@@ -153,8 +158,8 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
       </div>
       <div className="space-y-2"><Label htmlFor="limit_amount">Valor Limite (R$)</Label><div className="relative"><DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="limit_amount" type="number" step="0.01" {...register("limit_amount")} className="pl-10" /></div>{errors.limit_amount && <p className="text-sm text-destructive mt-1">{errors.limit_amount.message}</p>}</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2"><Label>Data de Início</Label><Controller name="period_start_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value as Date} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_start_date && <p className="text-sm text-destructive mt-1">{errors.period_start_date.message}</p>}</div>
-        <div className="space-y-2"><Label>Data de Término</Label><Controller name="period_end_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value as Date} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_end_date && <p className="text-sm text-destructive mt-1">{errors.period_end_date.message}</p>}</div>
+        <div className="space-y-2"><Label>Data de Início</Label><Controller name="period_start_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_start_date && <p className="text-sm text-destructive mt-1">{errors.period_start_date.message}</p>}</div>
+        <div className="space-y-2"><Label>Data de Término</Label><Controller name="period_end_date" control={control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} /></PopoverContent></Popover>)} />{errors.period_end_date && <p className="text-sm text-destructive mt-1">{errors.period_end_date.message}</p>}</div>
       </div>
       {errors.root && <p className="text-sm text-destructive mt-1">{errors.root.message}</p>}
       <div className="flex justify-end gap-2 pt-4">
