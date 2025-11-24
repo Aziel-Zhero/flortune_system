@@ -23,10 +23,10 @@ import {
   SidebarHeader,
   SidebarFooter
 } from "@/components/ui/sidebar";
-import { Separator } from "../ui/separator";
+import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PrivateValue } from "../shared/private-value";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { PrivateValue } from "@/components/shared/private-value";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppSettings } from "@/contexts/app-settings-context";
 
 const iconMap: Record<NavLinkIconName, React.ElementType> = {
@@ -44,7 +44,6 @@ const iconMap: Record<NavLinkIconName, React.ElementType> = {
   MessageSquare,
   HelpCircle,
   // Adicione outros ícones do admin aqui conforme necessário
-  LayoutDashboard: LayoutDashboard,
   CalendarDays: HelpCircle, // Placeholder
   ArrowRightLeft: HelpCircle, // Placeholder
   BarChart3: HelpCircle, // Placeholder
