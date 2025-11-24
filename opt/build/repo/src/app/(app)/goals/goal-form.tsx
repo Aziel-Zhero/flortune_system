@@ -13,8 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, ShoppingBag, Gift, BookOpen, Laptop, Heart, Save, AlertTriangle, Loader2 } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { 
+  CalendarIcon, DollarSign, CheckCircle, Trophy, Tag, Briefcase, Car, Plane, Home, 
+  ShoppingBag, Gift, BookOpen, Laptop, Heart, Save, AlertTriangle, Loader2 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,10 +54,13 @@ const availableIcons = [
   { name: "Troféu", value: "Trophy", icon: Trophy },
 ];
 
+const iconMap: { [key: string]: React.ElementType } = {
+  Tag, Plane, Home, Car, BookOpen, Laptop, ShoppingBag, Gift, Heart, Briefcase, Trophy
+};
+
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
   if (!iconName || iconName === NO_ICON_VALUE) return Tag;
-  const IconComponent = (LucideIcons as any)[iconName];
-  return IconComponent || Tag;
+  return iconMap[iconName] || Tag;
 };
 
 interface FinancialGoalFormProps {
@@ -66,9 +71,8 @@ interface FinancialGoalFormProps {
 
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
-  const { data: session, status: authStatus } = useSession();
+  const { session, isLoading: isAuthLoading } = useSession();
   const user = session?.user;
-  const isAuthLoading = authStatus === "loading";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
