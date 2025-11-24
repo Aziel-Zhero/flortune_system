@@ -42,6 +42,7 @@ const colorOptions = [
 ];
 
 const getLucideIcon = (name: string): React.ElementType => {
+    if (!name) return Info; // Fallback para ícone padrão
     return (LucideIcons as any)[name] || Info;
 }
 
@@ -58,6 +59,15 @@ export default function LPEditorPage() {
 
   const [previewPopup, setPreviewPopup] = useState<PopupType | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const safeLandingPageContent = landingPageContent || {
+    heroTitle: "",
+    heroDescription: "",
+    heroImageUrl: "",
+    ctaTitle: "",
+    ctaDescription: "",
+    ctaButtonText: ""
+  };
 
   useEffect(() => {
     document.title = "Editor da Landing Page - Flortune";
@@ -161,17 +171,17 @@ export default function LPEditorPage() {
                       <div className="space-y-4">
                           <div className="space-y-2">
                               <Label htmlFor="heroTitle">Título Principal</Label>
-                              <Input id="heroTitle" name="heroTitle" value={landingPageContent?.heroTitle || ''} onChange={handleLpContentChange} />
+                              <Input id="heroTitle" name="heroTitle" value={safeLandingPageContent.heroTitle} onChange={handleLpContentChange} />
                           </div>
                           <div className="space-y-2">
                               <Label htmlFor="heroDescription">Descrição (Parágrafo)</Label>
-                              <Textarea id="heroDescription" name="heroDescription" value={landingPageContent?.heroDescription || ''} onChange={handleLpContentChange} rows={3} />
+                              <Textarea id="heroDescription" name="heroDescription" value={safeLandingPageContent.heroDescription} onChange={handleLpContentChange} rows={3} />
                           </div>
                           <div className="space-y-2">
                             <Label>Imagem Principal</Label>
                             <div className="flex items-center gap-4 flex-wrap">
                               <div className="relative w-48 h-auto aspect-video rounded-md overflow-hidden border">
-                                <Image src={landingPageContent?.heroImageUrl || ''} alt="Preview da imagem principal" layout="fill" objectFit="cover" />
+                                <Image src={safeLandingPageContent.heroImageUrl || "/default-hero.jpg"} alt="Preview da imagem principal" layout="fill" objectFit="cover" />
                               </div>
                               <Input
                                 type="file"
@@ -193,15 +203,15 @@ export default function LPEditorPage() {
                        <div className="space-y-4">
                           <div className="space-y-2">
                               <Label htmlFor="ctaTitle">Título da Chamada Final</Label>
-                              <Input id="ctaTitle" name="ctaTitle" value={landingPageContent?.ctaTitle || ''} onChange={handleLpContentChange} />
+                              <Input id="ctaTitle" name="ctaTitle" value={safeLandingPageContent.ctaTitle} onChange={handleLpContentChange} />
                           </div>
                           <div className="space-y-2">
                               <Label htmlFor="ctaDescription">Descrição da Chamada Final</Label>
-                              <Textarea id="ctaDescription" name="ctaDescription" value={landingPageContent?.ctaDescription || ''} onChange={handleLpContentChange} rows={3} />
+                              <Textarea id="ctaDescription" name="ctaDescription" value={safeLandingPageContent.ctaDescription} onChange={handleLpContentChange} rows={3} />
                           </div>
                            <div className="space-y-2">
                               <Label htmlFor="ctaButtonText">Texto do Botão Final</Label>
-                              <Input id="ctaButtonText" name="ctaButtonText" value={landingPageContent?.ctaButtonText || ''} onChange={handleLpContentChange} />
+                              <Input id="ctaButtonText" name="ctaButtonText" value={safeLandingPageContent.ctaButtonText} onChange={handleLpContentChange} />
                           </div>
                       </div>
                   </TabsContent>
@@ -227,7 +237,7 @@ export default function LPEditorPage() {
                     <p className="text-muted-foreground">Nenhum pop-up está ativo no momento.</p>
                   </TabsContent>
                   
-                  {Object.keys(popupConfigs).map(key => {
+                  {popupConfigs && Object.keys(popupConfigs).map(key => {
                       const popupKey = key as PopupType;
                       const config = popupConfigs[popupKey];
                       if(!config) return null;
@@ -313,9 +323,13 @@ export default function LPEditorPage() {
               <DialogTitle>Pré-visualização do Pop-up</DialogTitle>
               <DialogDescription>Este é um preview de como o pop-up aparecerá para o usuário.</DialogDescription>
             </DialogHeader>
-            {previewPopup === 'maintenance' && <MaintenancePopup config={popupConfigs.maintenance} onDismiss={() => setPreviewPopup(null)} />}
-            {previewPopup === 'promotion' && <PromotionPopup config={popupConfigs.promotion} onDismiss={() => setPreviewPopup(null)} />}
-            {previewPopup === 'newsletter' && <NewsletterPopup config={popupConfigs.newsletter} onDismiss={() => setPreviewPopup(null)} />}
+            {previewPopup && popupConfigs && (
+                <>
+                    {previewPopup === 'maintenance' && popupConfigs.maintenance && <MaintenancePopup config={popupConfigs.maintenance} onDismiss={() => setPreviewPopup(null)} />}
+                    {previewPopup === 'promotion' && popupConfigs.promotion && <PromotionPopup config={popupConfigs.promotion} onDismiss={() => setPreviewPopup(null)} />}
+                    {previewPopup === 'newsletter' && popupConfigs.newsletter && <NewsletterPopup config={popupConfigs.newsletter} onDismiss={() => setPreviewPopup(null)} />}
+                </>
+            )}
         </DialogContent>
       </Dialog>
     </>
