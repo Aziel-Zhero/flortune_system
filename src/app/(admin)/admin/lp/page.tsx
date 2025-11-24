@@ -14,14 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload, Send, CalendarIcon } from "lucide-react";
 import * as LucideIcons from "lucide-react";
-import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
+import { useAppSettings, type PopupType, type CampaignTheme } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MaintenancePopup } from "@/components/popups/maintenance-popup";
 import { PromotionPopup } from "@/components/popups/promotion-popup";
 import { NewsletterPopup } from "@/components/popups/newsletter-popup";
-import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -41,7 +40,7 @@ const colorOptions = [
   { value: "blue", label: "Informativo (Azul)" },
 ];
 
-const getLucideIcon = (name: string): React.ElementType => {
+const getLucideIcon = (name?: string): React.ElementType => {
     if (!name) return Info; // Fallback para ícone padrão
     return (LucideIcons as any)[name] || Info;
 }
@@ -57,9 +56,7 @@ export default function LPEditorPage() {
     addNotification
   } = useAppSettings();
 
-  const [previewPopup, setPreviewPopup] = useState<PopupType | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  // Fallback seguro para evitar erros no lado do servidor
   const safeLandingPageContent = landingPageContent || {
     heroTitle: "",
     heroDescription: "",
@@ -69,6 +66,9 @@ export default function LPEditorPage() {
     ctaButtonText: ""
   };
 
+  const [previewPopup, setPreviewPopup] = useState<PopupType | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     document.title = "Editor da Landing Page - Flortune";
   }, []);
@@ -76,7 +76,7 @@ export default function LPEditorPage() {
   const handleLpContentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setLandingPageContent(prev => ({
-      ...(prev || {}),
+      ...(prev || {}), // Garante que prev não é nulo/indefinido
       [name]: value,
     }));
   };
@@ -103,7 +103,6 @@ export default function LPEditorPage() {
   };
 
   const handlePopupConfigChange = (popup: PopupType, field: string, value: any) => {
-    if (!popup) return;
     setPopupConfigs(prev => ({
         ...prev,
         [popup]: {
