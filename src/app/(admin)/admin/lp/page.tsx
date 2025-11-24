@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload, Send, CalendarIcon, Clock } from "lucide-react";
+import { FileText, Save, Eye, BellRing, Ticket, Newspaper, Construction, Palette, Info, Ban, Upload, Send, CalendarIcon } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { toast } from "@/hooks/use-toast";
@@ -25,8 +25,6 @@ import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-
-export const dynamic = 'force-dynamic';
 
 const iconOptions = [
   { value: "Construction", label: "Construção", icon: Construction },
@@ -68,7 +66,7 @@ export default function LPEditorPage() {
   const handleLpContentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setLandingPageContent(prev => ({
-      ...prev,
+      ...(prev || {}),
       [name]: value,
     }));
   };
@@ -163,17 +161,17 @@ export default function LPEditorPage() {
                       <div className="space-y-4">
                           <div className="space-y-2">
                               <Label htmlFor="heroTitle">Título Principal</Label>
-                              <Input id="heroTitle" name="heroTitle" value={landingPageContent.heroTitle} onChange={handleLpContentChange} />
+                              <Input id="heroTitle" name="heroTitle" value={landingPageContent?.heroTitle || ''} onChange={handleLpContentChange} />
                           </div>
                           <div className="space-y-2">
                               <Label htmlFor="heroDescription">Descrição (Parágrafo)</Label>
-                              <Textarea id="heroDescription" name="heroDescription" value={landingPageContent.heroDescription} onChange={handleLpContentChange} rows={3} />
+                              <Textarea id="heroDescription" name="heroDescription" value={landingPageContent?.heroDescription || ''} onChange={handleLpContentChange} rows={3} />
                           </div>
                           <div className="space-y-2">
                             <Label>Imagem Principal</Label>
                             <div className="flex items-center gap-4 flex-wrap">
                               <div className="relative w-48 h-auto aspect-video rounded-md overflow-hidden border">
-                                <Image src={landingPageContent.heroImageUrl} alt="Preview da imagem principal" layout="fill" objectFit="cover" />
+                                <Image src={landingPageContent?.heroImageUrl || ''} alt="Preview da imagem principal" layout="fill" objectFit="cover" />
                               </div>
                               <Input
                                 type="file"
@@ -195,15 +193,15 @@ export default function LPEditorPage() {
                        <div className="space-y-4">
                           <div className="space-y-2">
                               <Label htmlFor="ctaTitle">Título da Chamada Final</Label>
-                              <Input id="ctaTitle" name="ctaTitle" value={landingPageContent.ctaTitle} onChange={handleLpContentChange} />
+                              <Input id="ctaTitle" name="ctaTitle" value={landingPageContent?.ctaTitle || ''} onChange={handleLpContentChange} />
                           </div>
                           <div className="space-y-2">
                               <Label htmlFor="ctaDescription">Descrição da Chamada Final</Label>
-                              <Textarea id="ctaDescription" name="ctaDescription" value={landingPageContent.ctaDescription} onChange={handleLpContentChange} rows={3} />
+                              <Textarea id="ctaDescription" name="ctaDescription" value={landingPageContent?.ctaDescription || ''} onChange={handleLpContentChange} rows={3} />
                           </div>
                            <div className="space-y-2">
                               <Label htmlFor="ctaButtonText">Texto do Botão Final</Label>
-                              <Input id="ctaButtonText" name="ctaButtonText" value={landingPageContent.ctaButtonText} onChange={handleLpContentChange} />
+                              <Input id="ctaButtonText" name="ctaButtonText" value={landingPageContent?.ctaButtonText || ''} onChange={handleLpContentChange} />
                           </div>
                       </div>
                   </TabsContent>
