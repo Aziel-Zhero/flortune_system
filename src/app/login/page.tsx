@@ -1,12 +1,12 @@
 // src/app/login/page.tsx
+import { Suspense } from 'react';
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { LoginForm } from "@/components/auth/login-form";
 import { APP_NAME } from "@/lib/constants";
 import type { Metadata } from 'next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MailCheck, CheckCircle } from 'lucide-react';
-import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
   title: `Bem-vindo de Volta! - ${APP_NAME}`,
@@ -52,8 +52,14 @@ function LoginAlerts({ signupSuccess, isConfirmed }: { signupSuccess?: boolean, 
 function LoginFormSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-full" />
+      <div className="space-y-4">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+       <div className="space-y-4">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-10 w-full" />
+      </div>
       <Skeleton className="h-10 w-full" />
       <div className="relative py-2">
         <div className="absolute inset-0 flex items-center">
