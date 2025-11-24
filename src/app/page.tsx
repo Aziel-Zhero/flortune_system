@@ -143,15 +143,7 @@ export default function LandingPage() {
   const { data: session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
-  // Fallback seguro para garantir que o objeto não seja nulo no servidor
-  const safeLandingPageContent = landingPageContent || {
-    heroTitle: "",
-    heroDescription: "",
-    heroImageUrl: "",
-    ctaTitle: "",
-    ctaDescription: "",
-    ctaButtonText: ""
-  };
+  const safeLandingPageContent = landingPageContent;
 
   const getCampaignProps = () => {
     switch (activeCampaignTheme) {
