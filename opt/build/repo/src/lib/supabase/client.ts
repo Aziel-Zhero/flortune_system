@@ -1,5 +1,6 @@
 // src/lib/supabase/client.ts
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // --- Helper function to check for valid URL ---
 function isValidSupabaseUrl(url: string | undefined): url is string {
@@ -13,7 +14,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 let supabaseInstance: SupabaseClient | null = null;
 
 if (isValidSupabaseUrl(supabaseUrl) && supabaseAnonKey) {
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
 } else {
   console.warn(
     "⚠️ WARNING: Supabase client not initialized. NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY are invalid or missing. Database features will fail."
