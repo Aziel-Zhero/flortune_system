@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
@@ -87,7 +87,6 @@ export default function NotepadPage() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const sensors = useSensors(useSensor(PointerSensor, {
-    // Para botões funcionarem, só inicia o arraste se mover o mouse um pouco
     activationConstraint: {
       distance: 8,
     },
@@ -327,6 +326,7 @@ function SortableNoteCard({ note, children }: { note: Note; children: React.Reac
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.95 }}
       transition={{ duration: 0.3 }}
+      className="cursor-grab active:cursor-grabbing"
     >
       {children}
     </motion.div>

@@ -43,7 +43,6 @@ const iconMap: Record<NavLinkIconName, React.ElementType> = {
   Bot,
   MessageSquare,
   HelpCircle,
-  // Adicione outros ícones do admin aqui conforme necessário
   CalendarDays: HelpCircle, // Placeholder
   ArrowRightLeft: HelpCircle, // Placeholder
   BarChart3: HelpCircle, // Placeholder

@@ -8,10 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PrivateValue } from "@/components/shared/private-value";
-import { 
-  PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle, Loader2, 
-  Tag, Plane, Home, Car, BookOpen, Laptop, ShoppingBag, Gift, Heart, Briefcase 
-} from "lucide-react";
+import { PlusCircle, Trophy, Edit3, Trash2, CalendarClock, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import {
@@ -37,15 +34,13 @@ import { useSession } from "@/contexts/auth-context";
 import { getFinancialGoals, deleteFinancialGoal } from "@/services/goal.service";
 import type { FinancialGoal } from "@/types/database.types";
 import { Skeleton } from "@/components/ui/skeleton";
+import * as LucideIcons from "lucide-react";
 import { FinancialGoalForm } from "./goal-form"; 
-
-const iconMap: { [key: string]: React.ElementType } = {
-  Tag, Plane, Home, Car, BookOpen, Laptop, ShoppingBag, Gift, Heart, Briefcase, Trophy
-};
 
 const getLucideIcon = (iconName?: string | null): React.ElementType => {
   if (!iconName) return Trophy; 
-  return iconMap[iconName] || Trophy;
+  const IconComponent = (LucideIcons as any)[iconName];
+  return IconComponent || Trophy;
 };
 
 export default function GoalsPage() {
@@ -67,7 +62,7 @@ export default function GoalsPage() {
     try {
       const { data, error } = await getFinancialGoals(user.id);
       if (error) {
-        toast({ title: "Erro ao buscar metas", description: error, variant: "destructive" });
+        toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
         setCurrentGoals([]);
       } else {
         setCurrentGoals(Array.isArray(data) ? data : []);

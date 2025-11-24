@@ -6,15 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Megaphone, Mail, LineChart, Users, Target, PlusCircle } from "lucide-react";
 
-// Mock Data to prevent build error
-const cardData = [
-  { title: "Visitantes Únicos (Mês)", value: "N/A", icon: Users, trend: "Dados indisponíveis", trend_color: "text-muted-foreground" },
-  { title: "Leads Gerados (Mês)", value: "N/A", icon: Mail, trend: "Dados indisponíveis", trend_color: "text-muted-foreground" },
-  { title: "Taxa de Conversão (Lead)", value: "N/A", icon: Target, trend: "Dados indisponíveis", trend_color: "text-muted-foreground" },
-  { title: "Custo por Aquisição (CAC)", value: "N/A", icon: LineChart, trend: "Dados indisponíveis", trend_color: "text-muted-foreground" },
-];
-
-
 export default function MarketingPage() {
   return (
     <div className="space-y-8">
@@ -26,12 +17,22 @@ export default function MarketingPage() {
       />
 
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {cardData.map(card => (
-            <Card key={card.title}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">{card.title}</CardTitle><card.icon className="h-4 w-4 text-muted-foreground"/></CardHeader>
-                <CardContent><div className="text-2xl font-bold">{card.value}</div><p className={`text-xs ${card.trend_color}`}>{card.trend}</p></CardContent>
-            </Card>
-        ))}
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Visitantes Únicos (Mês)</CardTitle><Users className="h-4 w-4 text-muted-foreground"/></CardHeader>
+            <CardContent><div className="text-2xl font-bold">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Leads Gerados (Mês)</CardTitle><Mail className="h-4 w-4 text-muted-foreground"/></CardHeader>
+            <CardContent><div className="text-2xl font-bold">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
+        </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Taxa de Conversão (Lead)</CardTitle><Target className="h-4 w-4 text-muted-foreground"/></CardHeader>
+            <CardContent><div className="text-2xl font-bold">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
+        </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Custo por Aquisição (CAC)</CardTitle><LineChart className="h-4 w-4 text-muted-foreground"/></CardHeader>
+            <CardContent><div className="text-2xl font-bold">N/A</div><p className="text-xs text-muted-foreground">Dados indisponíveis</p></CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

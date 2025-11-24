@@ -1,3 +1,4 @@
+
 // src/app/(app)/dev/systems/interest-calculator/page.tsx
 "use client";
 
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Repeat, DollarSign, ClockIcon, AlertCircle, BarChartHorizontalBig } from "lucide-react";
+import { Repeat, DollarSign, ClockIcon, AlertCircle, BarChartHorizontalBig, HelpCircle, ArrowLeft } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -17,6 +18,8 @@ import { z } from "zod";
 import { PrivateValue } from "@/components/shared/private-value";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import Link from "next/link";
 
 const interestType = ["simples", "composto"] as const;
 const timePeriodUnit = ["meses", "anos"] as const;
@@ -36,6 +39,7 @@ type InterestFormData = z.infer<typeof interestSchema>;
 export default function InterestCalculatorPage() {
   const [totalAmount, setTotalAmount] = useState<number | null>(null);
   const [totalInterest, setTotalInterest] = useState<number | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const { control, handleSubmit, register, formState: { errors }, reset } = useForm<InterestFormData>({
     resolver: zodResolver(interestSchema),
@@ -86,130 +90,166 @@ export default function InterestCalculatorPage() {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Calculadora de Juros (Simples e Compostos)"
-        description="Simule o crescimento de capital com juros simples ou compostos."
-        icon={<Repeat className="h-6 w-6 text-primary" />}
-      />
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="font-headline">Parâmetros do Cálculo de Juros</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Tipo de Juros</Label>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <RadioGroup onValueChange={field.onChange} value={field.value} className="flex space-x-4">
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="simples" id="simples" /><Label htmlFor="simples" className="font-normal">Simples</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="composto" id="composto" /><Label htmlFor="composto" className="font-normal">Composto</Label></div>
-                  </RadioGroup>
-                )}
-              />
-              {errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="initialCapital">Capital Inicial (R$)</Label>
-              <div className="relative">
-                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                 <Input id="initialCapital" type="number" step="0.01" placeholder="Ex: 1000" {...register("initialCapital")} className="pl-10" />
-              </div>
-              {errors.initialCapital && <p className="text-sm text-destructive mt-1">{errors.initialCapital.message}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+      <div>
+        <PageHeader
+          title="Calculadora de Juros (Simples e Compostos)"
+          description="Simule o crescimento de capital com juros simples ou compostos."
+          icon={<Repeat className="h-6 w-6 text-primary" />}
+          actions={<Button asChild variant="outline"><Link href="/dev/systems"><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link></Button>}
+        />
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Card className="shadow-lg">
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="font-headline">Parâmetros do Cálculo</CardTitle>
+                    <DialogTrigger asChild><Button variant="ghost" size="icon"><HelpCircle className="h-5 w-5 text-muted-foreground"/></Button></DialogTrigger>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="rate">Taxa de Juros (%)</Label>
+                <Label>Tipo de Juros</Label>
+                <Controller
+                  name="type"
+                  control={control}
+                  render={({ field }) => (
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex space-x-4">
+                      <div className="flex items-center space-x-2"><RadioGroupItem value="simples" id="simples" /><Label htmlFor="simples" className="font-normal">Simples</Label></div>
+                      <div className="flex items-center space-x-2"><RadioGroupItem value="composto" id="composto" /><Label htmlFor="composto" className="font-normal">Composto</Label></div>
+                    </RadioGroup>
+                  )}
+                />
+                {errors.type && <p className="text-sm text-destructive mt-1">{errors.type.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="initialCapital">Capital Inicial (R$)</Label>
                 <div className="relative">
-                   <span className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground">%</span>
-                   <Input id="rate" type="number" step="0.01" placeholder="Ex: 1.5" {...register("rate")} className="pl-10" />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input id="initialCapital" type="number" step="0.01" placeholder="Ex: 1000" {...register("initialCapital")} className="pl-10" />
                 </div>
-                 {errors.rate && <p className="text-sm text-destructive mt-1">{errors.rate.message}</p>}
+                {errors.initialCapital && <p className="text-sm text-destructive mt-1">{errors.initialCapital.message}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="ratePeriod">Período da Taxa</Label>
-                <Controller name="ratePeriod" control={control} render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger id="ratePeriod"><SelectValue placeholder="Período da Taxa" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mensal">Mensal</SelectItem>
-                        <SelectItem value="anual">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                )}/>
-                {errors.ratePeriod && <p className="text-sm text-destructive mt-1">{errors.ratePeriod.message}</p>}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="time">Tempo</Label>
-                 <div className="relative">
-                   <ClockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                   <Input id="time" type="number" step="1" placeholder="Ex: 12" {...register("time")} className="pl-10" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rate">Taxa de Juros (%)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground">%</span>
+                    <Input id="rate" type="number" step="0.01" placeholder="Ex: 1.5" {...register("rate")} className="pl-10" />
+                  </div>
+                  {errors.rate && <p className="text-sm text-destructive mt-1">{errors.rate.message}</p>}
                 </div>
-                {errors.time && <p className="text-sm text-destructive mt-1">{errors.time.message}</p>}
+                <div className="space-y-2">
+                  <Label htmlFor="ratePeriod">Período da Taxa</Label>
+                  <Controller name="ratePeriod" control={control} render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="ratePeriod"><SelectValue placeholder="Período da Taxa" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mensal">Mensal</SelectItem>
+                          <SelectItem value="anual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                  )}/>
+                  {errors.ratePeriod && <p className="text-sm text-destructive mt-1">{errors.ratePeriod.message}</p>}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="timePeriod">Período do Tempo</Label>
-                 <Controller name="timePeriod" control={control} render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger id="timePeriod"><SelectValue placeholder="Período do Tempo" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="meses">Meses</SelectItem>
-                        <SelectItem value="anos">Anos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                )}/>
-                {errors.timePeriod && <p className="text-sm text-destructive mt-1">{errors.timePeriod.message}</p>}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="time">Tempo</Label>
+                  <div className="relative">
+                    <ClockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="time" type="number" step="1" placeholder="Ex: 12" {...register("time")} className="pl-10" />
+                  </div>
+                  {errors.time && <p className="text-sm text-destructive mt-1">{errors.time.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timePeriod">Período do Tempo</Label>
+                  <Controller name="timePeriod" control={control} render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="timePeriod"><SelectValue placeholder="Período do Tempo" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="meses">Meses</SelectItem>
+                          <SelectItem value="anos">Anos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                  )}/>
+                  {errors.timePeriod && <p className="text-sm text-destructive mt-1">{errors.timePeriod.message}</p>}
+                </div>
               </div>
+            </CardContent>
+            <CardFooter className="flex flex-col items-start gap-4">
+              <div className="flex gap-2">
+                  <Button type="submit">Calcular Juros</Button>
+                  <Button type="button" variant="outline" onClick={handleReset}>Limpar</Button>
+              </div>
+              
+              {(totalAmount !== null || totalInterest !== null) && (
+                <Card className="w-full bg-primary/5 border-primary/20 mt-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-primary font-headline text-md flex items-center"><BarChartHorizontalBig className="mr-2 h-5 w-5"/>Resultados do Cálculo:</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {totalAmount !== null && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Montante Final:</p>
+                        <p className="text-xl font-bold text-primary">
+                          R$ <PrivateValue value={totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
+                        </p>
+                      </div>
+                    )}
+                    {totalInterest !== null && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total de Juros Gerados:</p>
+                        <p className="text-lg font-semibold">
+                          R$ <PrivateValue value={totalInterest.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              {Object.keys(errors).length > 0 && totalAmount === null && (
+                  <Alert variant="destructive" className="w-full mt-2">
+                      <AlertCircle size={18} className="h-4 w-4" />
+                      <AlertTitle>Erro de Validação</AlertTitle>
+                      <AlertDescription>Por favor, corrija os erros no formulário para calcular.</AlertDescription>
+                  </Alert>
+              )}
+            </CardFooter>
+          </Card>
+        </form>
+      </div>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-headline">Fórmulas e Explicação</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 text-sm">
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <h3 className="font-semibold text-foreground">Juros Simples</h3>
+            <p className="text-muted-foreground mt-1">Os juros são calculados apenas sobre o valor inicial (capital) em cada período.</p>
+            <div className="mt-2 p-3 bg-background rounded-md font-mono text-xs">
+              M = C × (1 + i × t)
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col items-start gap-4">
-             <div className="flex gap-2">
-                <Button type="submit">Calcular Juros</Button>
-                <Button type="button" variant="outline" onClick={handleReset}>Limpar</Button>
+          </div>
+           <div className="p-4 bg-muted/50 rounded-lg">
+            <h3 className="font-semibold text-foreground">Juros Compostos</h3>
+            <p className="text-muted-foreground mt-1">Os juros de cada período são somados ao capital para o cálculo do próximo, gerando "juros sobre juros".</p>
+            <div className="mt-2 p-3 bg-background rounded-md font-mono text-xs">
+               M = C × (1 + i) ^ t
             </div>
-            
-            {(totalAmount !== null || totalInterest !== null) && (
-              <Card className="w-full bg-primary/5 border-primary/20 mt-4">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-primary font-headline text-md flex items-center"><BarChartHorizontalBig className="mr-2 h-5 w-5"/>Resultados do Cálculo:</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {totalAmount !== null && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Montante Final:</p>
-                      <p className="text-xl font-bold text-primary">
-                        R$ <PrivateValue value={totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
-                      </p>
-                    </div>
-                  )}
-                  {totalInterest !== null && (
-                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total de Juros Gerados:</p>
-                      <p className="text-lg font-semibold">
-                        R$ <PrivateValue value={totalInterest.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-             {Object.keys(errors).length > 0 && totalAmount === null && (
-                 <Alert variant="destructive" className="w-full mt-2">
-                    <AlertCircle size={18} className="h-4 w-4" />
-                    <AlertTitle>Erro de Validação</AlertTitle>
-                    <AlertDescription>Por favor, corrija os erros no formulário para calcular.</AlertDescription>
-                </Alert>
-            )}
-          </CardFooter>
-        </Card>
-      </form>
-    </div>
+          </div>
+           <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+            <li>**M**: Montante Final</li>
+            <li>**C**: Capital Inicial</li>
+            <li>**i**: Taxa de juros (já dividida por 100)</li>
+            <li>**t**: Tempo (número de períodos)</li>
+          </ul>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button>Entendi</Button></DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

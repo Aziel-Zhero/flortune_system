@@ -15,13 +15,13 @@ interface ToolCardProps {
   description: string;
   icon: React.ElementType;
   href: string;
-  status?: "Pronto" | "Em Breve";
+  status: "Pronto" | "Em Breve";
 }
 
 const tools: ToolCardProps[] = [
   {
-    title: "Orçamento de Projeto Tech",
-    description: "Calcule o custo de um sistema baseado em escopo, tempo e complexidade.",
+    title: "Esforço e Custo de Projeto",
+    description: "Estime o custo de um sistema baseado em horas, complexidade e contingência.",
     icon: Calculator,
     href: "/dev/systems/project-pricing",
     status: "Pronto",
@@ -31,28 +31,28 @@ const tools: ToolCardProps[] = [
     description: "Estime o esforço de um projeto ágil baseado em story points e velocidade.",
     icon: GanttChartSquare,
     href: "/dev/systems/agile-estimator",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Custos Cloud / Infra",
     description: "Simule o custo mensal de manter uma aplicação na nuvem.",
     icon: Cloud,
     href: "/dev/systems/cloud-cost-calculator",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Faturamento Dev Freelancer",
     description: "Planeje seu faturamento com base em carga horária, folgas e valor/hora.",
     icon: DollarSign,
     href: "/dev/systems/freelancer-billing",
-    status: "Em Breve",
+    status: "Pronto",
   },
    {
     title: "Estimador de Complexidade",
     description: "Avalie a complexidade de um sistema para orçar ou planejar sprints.",
     icon: Sigma,
     href: "/dev/systems/complexity-estimator",
-    status: "Em Breve",
+    status: "Pronto",
   },
   {
     title: "Precificação de Automação (ROI)",
@@ -100,14 +100,14 @@ const tools: ToolCardProps[] = [
 
 export default function DevSystemsPage() {
   useEffect(() => {
-    document.title = `Sistemas e Ferramentas (DEV) - ${APP_NAME}`;
+    document.title = `Ferramentas para DEVs - ${APP_NAME}`;
   }, []);
 
   return (
     <div>
       <PageHeader
-        title="Sistemas e Ferramentas (DEV)"
-        description="Calculadoras e utilitários para desenvolvedores, freelancers e gestão de projetos."
+        title="Ferramentas para Desenvolvedores"
+        description="Calculadoras e utilitários para freelancers e gestão de projetos."
         icon={<HardDrive className="h-6 w-6 text-primary" />}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

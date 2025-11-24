@@ -1,12 +1,26 @@
+// src/contexts/app-settings-context.tsx
 
 "use client";
 
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { getQuotes, type QuoteData } from '@/services/quote.service';
+import type { QuoteData } from '@/types/database.types';
+import * as LucideIcons from "lucide-react";
 
-// Tipos para os dados do clima
+
+// --- Tipos ---
+
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  read: boolean;
+  createdAt: Date;
+  icon?: React.ElementType;
+  color?: 'primary' | 'destructive' | 'amber' | 'blue';
+}
+
 interface WeatherData {
   city: string;
   temperature: number;
@@ -14,7 +28,29 @@ interface WeatherData {
   icon: string;
 }
 
-// Definindo o tipo para o valor do contexto de AppSettings
+export type CampaignTheme = 'black-friday' | 'flash-sale' | 'super-promocao' | 'aniversario' | null;
+export type PopupType = 'maintenance' | 'promotion' | 'newsletter';
+
+export interface PopupConfig {
+  title: string;
+  description: string;
+  icon: string;
+  color: 'primary' | 'destructive' | 'amber' | 'blue';
+  startDate?: Date;
+  endDate?: Date;
+  frequencyValue?: number;
+  frequencyUnit?: 'horas' | 'dias';
+}
+
+export interface LandingPageContent {
+  heroTitle: string;
+  heroDescription: string;
+  heroImageUrl: string;
+  ctaTitle: string;
+  ctaDescription: string;
+  ctaButtonText: string;
+}
+
 export interface AppSettingsProviderValue {
   isPrivateMode: boolean;
   setIsPrivateMode: Dispatch<SetStateAction<boolean>>;
@@ -32,190 +68,308 @@ export interface AppSettingsProviderValue {
   loadWeatherForCity: (city: string) => Promise<void>;
   isLoadingWeather: boolean;
   
-  showQuotes: boolean;
-  setShowQuotes: Dispatch<SetStateAction<boolean>>;
   selectedQuotes: string[];
-  setSelectedQuotes: (quotes: string[]) => void; // Apenas strings válidas
+  setSelectedQuotes: (quotes: string[]) => void;
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
-  loadQuotes: (quoteList: string[]) => Promise<void>; // Exposto para uso externo
+  loadQuotes: (quoteList: string[]) => Promise<void>;
+  
+  activeCampaignTheme: CampaignTheme;
+  setActiveCampaignTheme: (theme: CampaignTheme) => void;
+
+  landingPageContent: LandingPageContent;
+  setLandingPageContent: Dispatch<SetStateAction<LandingPageContent>>;
+  
+  popupConfigs: Record<PopupType, PopupConfig>;
+  setPopupConfigs: Dispatch<SetStateAction<Record<PopupType, PopupConfig>>>;
+  activePopup: PopupType | null;
+  setActivePopup: (popup: PopupType | null) => void;
+
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
+  clearNotifications: () => void;
+  hasUnreadNotifications: boolean;
 }
+
+// --- Contexto ---
 
 const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(undefined);
 
-export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [isPrivateMode, setIsPrivateMode] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('default');
-  
-  const [weatherCity, setWeatherCityState] = useState<string | null>(null);
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+// --- Dados Padrão ---
 
-  const [showQuotes, setShowQuotes] = useState(true);
-  const [selectedQuotes, setSelectedQuotesState] = useState<string[]>([]);
-  const [quotes, setQuotes] = useState<QuoteData[]>([]);
-  const [isLoadingQuotes, setIsLoadingQuotes] = useState(true);
-  const [quotesError, setQuotesError] = useState<string | null>(null);
+const defaultLpContent: LandingPageContent = {
+  heroTitle: 'Cultive Suas Finanças e Projetos com Inteligência.',
+  heroDescription: 'Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.',
+  heroImageUrl: 'https://placehold.co/800x450.png',
+  ctaTitle: "Pronto para Cultivar seu Futuro?",
+  ctaDescription: "Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o Flortune. É rápido, fácil e gratuito para começar.",
+  ctaButtonText: "Criar Minha Conta Grátis",
+};
 
-  const loadQuotes = useCallback(async (quoteList: string[]) => {
-    const validQuotes = quoteList.filter(q => q && q !== '');
-    if (!showQuotes || validQuotes.length === 0) {
-      setQuotes([]);
-      setIsLoadingQuotes(false);
-      return;
-    }
-    setIsLoadingQuotes(true);
-    setQuotesError(null);
-    try {
-      const result = await getQuotes(validQuotes);
-      if (result.error) throw new Error(result.error);
-      setQuotes(result.data || []);
-    } catch (err: any) {
-      setQuotesError(err.message);
-      setQuotes([]);
-    } finally {
-      setIsLoadingQuotes(false);
-    }
-  }, [showQuotes]);
+const defaultPopupConfigs: Record<PopupType, PopupConfig> = {
+  maintenance: { title: "Manutenção Agendada", description: "Estaremos realizando uma manutenção no sistema no próximo domingo das 02:00 às 04:00. O sistema poderá ficar indisponível.", icon: "Construction", color: "amber", frequencyValue: 2, frequencyUnit: 'horas' },
+  promotion: { title: "Oferta Especial!", description: "Assine o plano Mestre Jardineiro hoje e ganhe 30% de desconto nos primeiros 3 meses!", icon: "Ticket", color: "primary", frequencyValue: 1, frequencyUnit: 'dias' },
+  newsletter: { title: "Assine nossa Newsletter", description: "Receba dicas semanais de finanças e produtividade diretamente no seu email.", icon: "Newspaper", color: "blue", frequencyValue: 3, frequencyUnit: 'dias' },
+};
 
-  const setSelectedQuotes = (newQuotes: string[]) => {
-    localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
-    setSelectedQuotesState(newQuotes);
-  };
-  
-  useEffect(() => {
-    if (showQuotes && selectedQuotes.length > 0) {
-      loadQuotes(selectedQuotes);
-    } else {
-      setQuotes([]);
-      setIsLoadingQuotes(false);
-    }
-  }, [showQuotes, selectedQuotes, loadQuotes]);
+// --- Componente de Inicialização do Cliente ---
 
-  const loadWeatherForCity = useCallback(async (city: string) => {
-    if (!city) return;
-    setIsLoadingWeather(true);
-    setWeatherError(null);
-    try {
-        const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Falha ao buscar dados do clima.');
-        setWeatherData({
-            city: data.city,
-            temperature: Math.round(data.temperature),
-            description: data.description,
-            icon: data.icon,
-        });
-    } catch (err: any) {
-        setWeatherError(err.message);
-        setWeatherData(null);
-        toast({ title: "Erro ao buscar clima", description: err.message, variant: "destructive" });
-    } finally {
-        setIsLoadingWeather(false);
-    }
-  }, []);
-
-  const setWeatherCity = (city: string | null) => {
-      if(city && city.trim() !== '') {
-          localStorage.setItem('flortune-weather-city', city);
-          setWeatherCityState(city);
-      } else {
-          localStorage.removeItem('flortune-weather-city');
-          setWeatherCityState(null);
-          setWeatherData(null);
-          setWeatherError(null);
-      }
-  };
-
+function AppSettingsInitializer({
+  setSettings,
+}: {
+  setSettings: (updater: (prev: AppSettingsProviderValue) => AppSettingsProviderValue) => void;
+}) {
   useEffect(() => {
     try {
-      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
-      if (storedPrivateMode) setIsPrivateMode(JSON.parse(storedPrivateMode));
-
       const storedDarkMode = localStorage.getItem('flortune-dark-mode');
       const darkModeEnabled = storedDarkMode ? JSON.parse(storedDarkMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(darkModeEnabled);
-      
+      document.documentElement.classList.toggle('dark', darkModeEnabled);
+
       const storedTheme = localStorage.getItem('flortune-theme') || 'default';
-      setCurrentTheme(storedTheme);
+      const root = document.documentElement;
+      root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
+      if (storedTheme !== 'default') {
+        root.classList.add(storedTheme);
+      }
 
+      const storedPrivateMode = localStorage.getItem('flortune-private-mode');
       const storedCity = localStorage.getItem('flortune-weather-city');
-      if (storedCity) {
-        setWeatherCityState(storedCity);
-        loadWeatherForCity(storedCity);
-      }
-
-      const storedShowQuotes = localStorage.getItem('flortune-show-quotes');
-      setShowQuotes(storedShowQuotes ? JSON.parse(storedShowQuotes) : true);
-      
       const storedQuotes = localStorage.getItem('flortune-selected-quotes');
-      if (storedQuotes) {
-        setSelectedQuotesState(JSON.parse(storedQuotes));
-      } else {
-        const defaultQuotes = ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'IBOV', 'NASDAQ'];
-        localStorage.setItem('flortune-selected-quotes', JSON.stringify(defaultQuotes));
-        setSelectedQuotesState(defaultQuotes);
-      }
-    } catch (error) {
-        console.error("Failed to access localStorage or parse settings:", error);
-    }
-  }, [loadWeatherForCity]);
+      const initialQuotes = storedQuotes ? JSON.parse(storedQuotes) : ['USD-BRL', 'EUR-BRL', 'BTC-BRL', 'GBP-BRL', 'JPY-BRL'];
+      const storedCampaign = localStorage.getItem('flortune-active-campaign') as CampaignTheme;
+      const storedLpContent = localStorage.getItem('flortune-lp-content');
+      const storedPopup = localStorage.getItem('flortune-active-popup') as PopupType;
+      const storedPopupConfigs = localStorage.getItem('flortune-popup-configs');
 
-  useEffect(() => {
-    localStorage.setItem('flortune-show-quotes', JSON.stringify(showQuotes));
-  }, [showQuotes]);
+      setSettings(prev => {
+        const newState = { ...prev };
+        newState.isDarkMode = darkModeEnabled;
+        newState.currentTheme = storedTheme;
+        if (storedPrivateMode) newState.isPrivateMode = JSON.parse(storedPrivateMode);
+        if (storedCity) {
+          newState.weatherCity = storedCity;
+          newState.loadWeatherForCity(storedCity);
+        }
+        newState.selectedQuotes = initialQuotes;
+        if (storedCampaign) newState.activeCampaignTheme = storedCampaign;
+        if (storedLpContent) newState.landingPageContent = JSON.parse(storedLpContent);
+        if (storedPopup) newState.activePopup = storedPopup;
+        if (storedPopupConfigs) {
+           const parsedConfigs = JSON.parse(storedPopupConfigs);
+            Object.keys(parsedConfigs).forEach(key => {
+                const k = key as PopupType;
+                if(parsedConfigs[k].startDate) parsedConfigs[k].startDate = new Date(parsedConfigs[k].startDate);
+                if(parsedConfigs[k].endDate) parsedConfigs[k].endDate = new Date(parsedConfigs[k].endDate);
+            });
+           newState.popupConfigs = parsedConfigs;
+        }
+        return newState;
+      });
+
+    } catch (error) {
+      console.error("Failed to access localStorage or parse settings:", error);
+    }
+  }, [setSettings]);
+
+  return null;
+}
+
+// --- Provedor ---
+
+export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
+  const [state, setState] = useState<AppSettingsProviderValue>({
+    isPrivateMode: false,
+    isDarkMode: false,
+    currentTheme: 'default',
+    activeCampaignTheme: null,
+    weatherCity: null,
+    weatherData: null,
+    weatherError: null,
+    isLoadingWeather: false,
+    selectedQuotes: [],
+    quotes: [],
+    isLoadingQuotes: true,
+    quotesError: null,
+    landingPageContent: defaultLpContent,
+    popupConfigs: defaultPopupConfigs,
+    activePopup: null,
+    notifications: [],
+    hasUnreadNotifications: false,
+    // As funções são definidas abaixo para evitar problemas de referência
+    setIsPrivateMode: () => {},
+    togglePrivateMode: () => {},
+    setIsDarkMode: () => {},
+    toggleDarkMode: () => {},
+    setCurrentTheme: () => {},
+    applyTheme: () => {},
+    setWeatherCity: () => {},
+    loadWeatherForCity: async () => {},
+    setSelectedQuotes: () => {},
+    loadQuotes: async () => {},
+    setActiveCampaignTheme: () => {},
+    setLandingPageContent: () => {},
+    setPopupConfigs: () => {},
+    setActivePopup: () => {},
+    addNotification: () => {},
+    markNotificationAsRead: () => {},
+    markAllNotificationsAsRead: () => {},
+    clearNotifications: () => {},
+  });
+
+  const toggleDarkMode = useCallback(() => {
+    setState(prev => {
+      const newIsDark = !prev.isDarkMode;
+      localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
+      document.documentElement.classList.toggle('dark', newIsDark);
+      return { ...prev, isDarkMode: newIsDark };
+    });
+  }, []);
 
   const applyTheme = useCallback((themeId: string) => {
     const root = document.documentElement;
     root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
-    
     if (themeId !== 'default') {
       root.classList.add(themeId);
     }
     localStorage.setItem('flortune-theme', themeId);
-    setCurrentTheme(themeId);
+    setState(prev => ({ ...prev, currentTheme: themeId }));
+  }, []);
+  
+  const loadWeatherForCity = useCallback(async (city: string) => {
+    if (!city) return;
+    setState(prev => ({...prev, isLoadingWeather: true, weatherError: null}));
+    try {
+        const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Falha ao buscar dados do clima.');
+        setState(prev => ({ ...prev, weatherData: {
+            city: data.city,
+            temperature: Math.round(data.temperature),
+            description: data.description,
+            icon: data.icon,
+        }}));
+    } catch (err: any) {
+        setState(prev => ({ ...prev, weatherError: err.message, weatherData: null }));
+        toast({ title: "Erro ao buscar clima", description: err.message, variant: "destructive" });
+    } finally {
+        setState(prev => ({ ...prev, isLoadingWeather: false }));
+    }
   }, []);
 
-  const toggleDarkMode = useCallback(() => {
-    setIsDarkMode(prev => {
-      const newIsDark = !prev;
-      localStorage.setItem('flortune-dark-mode', JSON.stringify(newIsDark));
-      return newIsDark;
-    });
+  const loadQuotes = useCallback(async (quoteList: string[]) => {
+    const validQuotes = quoteList.filter(q => q && q.trim() !== '');
+    if (validQuotes.length === 0) {
+      setState(prev => ({...prev, quotes: [], isLoadingQuotes: false}));
+      return;
+    }
+    setState(prev => ({...prev, isLoadingQuotes: true, quotesError: null}));
+    try {
+        const response = await fetch(`/api/quotes?codes=${encodeURIComponent(validQuotes.join(','))}`);
+        if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        
+        const orderedQuotes = validQuotes
+            .map(code => result.data?.find((d: QuoteData) => `${d.code}-${d.codein}` === code || d.code === code))
+            .filter((q): q is QuoteData => !!q);
+            
+        setState(prev => ({...prev, quotes: orderedQuotes}));
+    } catch (err: any) {
+      console.error('Falha ao buscar cotações:', err.message);
+      setState(prev => ({...prev, quotesError: "Não foi possível carregar as cotações.", quotes: []}));
+    } finally {
+      setState(prev => ({...prev, isLoadingQuotes: false}));
+    }
   }, []);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
-  }, [isDarkMode]);
-
-  useEffect(() => {
-    applyTheme(currentTheme);
-  }, [currentTheme, applyTheme]);
-
-  const togglePrivateMode = useCallback(() => {
-    setIsPrivateMode(prev => {
-        const newMode = !prev;
+  // --- Funções de atualização que modificam o estado ---
+  const value: AppSettingsProviderValue = React.useMemo(() => ({
+    ...state,
+    toggleDarkMode,
+    applyTheme,
+    loadWeatherForCity,
+    loadQuotes,
+    setIsPrivateMode: (value: SetStateAction<boolean>) => setState(prev => ({...prev, isPrivateMode: typeof value === 'function' ? value(prev.isPrivateMode) : value})),
+    togglePrivateMode: () => setState(prev => {
+        const newMode = !prev.isPrivateMode;
         localStorage.setItem('flortune-private-mode', JSON.stringify(newMode));
-        return newMode;
-    });
-  }, []);
+        return {...prev, isPrivateMode: newMode};
+    }),
+    setIsDarkMode: (value: SetStateAction<boolean>) => setState(prev => ({...prev, isDarkMode: typeof value === 'function' ? value(prev.isDarkMode) : value})),
+    setCurrentTheme: (value: SetStateAction<string>) => setState(prev => ({...prev, currentTheme: typeof value === 'function' ? value(prev.currentTheme) : value})),
+    setWeatherCity: (city: string | null) => setState(prev => {
+        if(city && city.trim() !== '') {
+            localStorage.setItem('flortune-weather-city', city);
+            return {...prev, weatherCity: city};
+        } else {
+            localStorage.removeItem('flortune-weather-city');
+            return {...prev, weatherCity: null, weatherData: null, weatherError: null};
+        }
+    }),
+    setSelectedQuotes: (newQuotes: string[]) => setState(prev => {
+        localStorage.setItem('flortune-selected-quotes', JSON.stringify(newQuotes));
+        return {...prev, selectedQuotes: newQuotes};
+    }),
+    setActiveCampaignTheme: (theme: CampaignTheme) => setState(prev => {
+        if (theme) {
+          localStorage.setItem('flortune-active-campaign', theme);
+        } else {
+          localStorage.removeItem('flortune-active-campaign');
+        }
+        document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'aniversario');
+        if(theme) {
+           document.body.classList.add(`theme-${theme}`);
+        }
+        return {...prev, activeCampaignTheme: theme};
+    }),
+    setLandingPageContent: (value: SetStateAction<LandingPageContent>) => setState(prev => {
+        const newContent = typeof value === 'function' ? value(prev.landingPageContent) : value;
+        localStorage.setItem('flortune-lp-content', JSON.stringify(newContent));
+        return {...prev, landingPageContent: newContent};
+    }),
+    setPopupConfigs: (value: SetStateAction<Record<PopupType, PopupConfig>>) => setState(prev => {
+      const newConfigs = typeof value === 'function' ? value(prev.popupConfigs) : value;
+      localStorage.setItem('flortune-popup-configs', JSON.stringify(newConfigs));
+      return {...prev, popupConfigs: newConfigs };
+    }),
+    setActivePopup: (popup: PopupType | null) => setState(prev => {
+        if (popup) {
+          localStorage.setItem('flortune-active-popup', popup);
+        } else {
+          localStorage.removeItem('flortune-active-popup');
+        }
+        return {...prev, activePopup: popup};
+    }),
+     addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => setState(prev => {
+        const newNotification: Notification = {
+            ...notification,
+            id: `notif_${Date.now()}_${Math.random()}`,
+            createdAt: new Date(),
+            read: false,
+        };
+        const newNotifications = [newNotification, ...prev.notifications].slice(0, 20);
+        return {...prev, notifications: newNotifications, hasUnreadNotifications: true};
+    }),
+    markNotificationAsRead: (id: string) => setState(prev => {
+        const newNotifications = prev.notifications.map(n => n.id === id ? { ...n, read: true } : n);
+        const hasUnread = newNotifications.some(n => !n.read);
+        return {...prev, notifications: newNotifications, hasUnreadNotifications: hasUnread };
+    }),
+    markAllNotificationsAsRead: () => setState(prev => ({...prev, notifications: prev.notifications.map(n => ({...n, read: true})), hasUnreadNotifications: false})),
+    clearNotifications: () => setState(prev => ({...prev, notifications: [], hasUnreadNotifications: false})),
+  }), [state, toggleDarkMode, applyTheme, loadWeatherForCity, loadQuotes]);
 
   return (
-    <AppSettingsContext.Provider value={{ 
-      isPrivateMode, setIsPrivateMode, togglePrivateMode,
-      isDarkMode, setIsDarkMode, toggleDarkMode,
-      currentTheme, setCurrentTheme, applyTheme,
-      weatherCity, setWeatherCity, weatherData, weatherError, loadWeatherForCity, isLoadingWeather,
-      showQuotes, setShowQuotes, selectedQuotes, setSelectedQuotes, quotes, isLoadingQuotes, quotesError,
-      loadQuotes, // Expondo a função
-    }}>
+    <AppSettingsContext.Provider value={value}>
+      <AppSettingsInitializer setSettings={setState} />
       {children}
     </AppSettingsContext.Provider>
   );
 };
+
 
 export const useAppSettings = (): AppSettingsProviderValue => {
   const context = useContext(AppSettingsContext);

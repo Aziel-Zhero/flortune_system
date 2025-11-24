@@ -1,8 +1,11 @@
+// src/components/layout/user-nav.tsx
 
 "use client";
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "@/contexts/auth-context";
+import { supabase } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,28 +17,47 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, LifeBuoy, Thermometer, BarChart3 } from "lucide-react";
+import { LogOut, User, Settings, LifeBuoy, MapPin, BarChart3 } from "lucide-react";
 import { WeatherSettingsDialog } from "@/components/settings/weather-dialog";
 import { QuoteSettingsDialog } from "@/components/settings/quote-dialog";
 import { toast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation';
 
-// Mock user data as authentication is disabled
-const mockUser = {
-  displayName: "Usuário",
-  userEmail: "usuario@exemplo.com",
-  fallbackInitial: "U",
-  avatarUrl: `https://placehold.co/100x100.png?text=U`,
-};
+interface UserNavProps {
+  isAdmin?: boolean;
+}
 
-export function UserNav() {
+export function UserNav({ isAdmin = false }: UserNavProps) {
+  const router = useRouter();
+  const { session } = useSession();
+  const user = session?.user;
+  const profile = user?.profile;
+  
   const [isWeatherDialogOpen, setIsWeatherDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
+  const userEmail = user?.email || "";
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
+  const fallbackInitial = displayName?.charAt(0).toUpperCase() || 'U';
 
   const handleLogout = async () => {
-    toast({ title: "Logout simulado", description: "Em um app real, você seria desconectado."});
-    // Em um app real com auth, a linha abaixo seria usada:
-    // await signOut({ callbackUrl: '/login?logout=success' });
+    if (!supabase) {
+        console.error("Supabase client is not available for logout.");
+        return;
+    }
+    toast({ title: "Saindo...", description: "Você está sendo desconectado."});
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
   };
+  
+  const profileUrl = isAdmin ? '/admin/profile' : '/profile';
+  const settingsUrl = isAdmin ? '/admin/settings' : '/settings';
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <>
@@ -43,42 +65,46 @@ export function UserNav() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={mockUser.avatarUrl} alt={mockUser.displayName} data-ai-hint="user avatar" />
-              <AvatarFallback>{mockUser.fallbackInitial}</AvatarFallback>
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="user avatar" />}
+              <AvatarFallback>{fallbackInitial}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none font-headline">{mockUser.displayName}</p>
+              <p className="text-sm font-medium leading-none font-headline">{displayName}</p>
               <p className="text-xs leading-none text-muted-foreground">
-                {mockUser.userEmail}
+                {userEmail}
               </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link href="/profile">
+              <Link href={profileUrl}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Perfil</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/settings">
+              <Link href={settingsUrl}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Configurações</span>
               </Link>
             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)} className="cursor-pointer">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                <span>Configurar Cotações</span>
-             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
-                <Thermometer className="mr-2 h-4 w-4" />
-                <span>Configurar Clima</span>
-             </DropdownMenuItem>
+            {!isAdmin && (
+              <>
+                <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)} className="cursor-pointer">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <span>Configurar Cotações</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsWeatherDialogOpen(true)} className="cursor-pointer">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <span>Configurar Clima</span>
+                </DropdownMenuItem>
+              </>
+            )}
              <DropdownMenuItem asChild>
                 <Link href="/help">
                     <LifeBuoy className="mr-2 h-4 w-4" />
@@ -93,8 +119,12 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
-      <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
+      {!isAdmin && (
+        <>
+          <WeatherSettingsDialog isOpen={isWeatherDialogOpen} onOpenChange={setIsWeatherDialogOpen} />
+          <QuoteSettingsDialog isOpen={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen} />
+        </>
+      )}
     </>
   );
 }

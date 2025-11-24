@@ -6,7 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, BrainCircuit } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -16,7 +16,7 @@ import { useSession } from "@/contexts/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTransactions } from "@/services/transaction.service";
 import { getFinancialGoals } from "@/services/goal.service";
-import type { Transaction, FinancialGoal } from "@/types/database.types";
+import type { Transaction, FinancialGoal, Profile } from "@/types/database.types";
 import { motion } from "framer-motion";
 import {
   ChartContainer,
@@ -27,6 +27,7 @@ import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import type { QuoteData } from "@/types/database.types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase/client";
 
 
 interface SummaryData {
@@ -67,8 +68,55 @@ const PieCustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
+function SmartSuggestionCard() {
+  const [suggestion, setSuggestion] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fullText = 'Você gastou R$ 120,00 com café este mês. Que tal tentar reduzir para R$ 80,00 preparando mais em casa?';
+
+  const handleGenerate = () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setSuggestion("");
+
+    let i = 0;
+    const interval = setInterval(() => {
+      setSuggestion(prev => prev + fullText[i]);
+      i++;
+      if (i >= fullText.length) {
+        clearInterval(interval);
+        setIsGenerating(false);
+      }
+    }, 25);
+  };
+  
+  return (
+      <Card className="shadow-lg bg-card/50 backdrop-blur-sm border-border/30 overflow-hidden">
+        <CardHeader>
+          <CardTitle className="font-headline text-primary flex items-center gap-2">
+            <BrainCircuit className="h-6 w-6" />
+            Sugestões da IA
+          </CardTitle>
+          <CardDescription>Receba insights para otimizar suas finanças.</CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-[100px] flex items-center justify-center">
+            {suggestion ? (
+                <p className="text-sm text-foreground/90 font-medium">“{suggestion}”</p>
+            ) : (
+                <p className="text-sm text-muted-foreground italic">Clique em "Gerar Sugestão" para ver um exemplo.</p>
+            )}
+        </CardContent>
+        <CardFooter>
+            <Button className="w-full" onClick={handleGenerate} disabled={isGenerating}>
+                {isGenerating ? "Analisando..." : "Gerar Sugestão (Exemplo)"}
+            </Button>
+        </CardFooter>
+      </Card>
+  );
+}
+
+
 export default function DashboardPage() {
-  const { session, isLoading: authIsLoading } = useSession();
+  const { session, isLoading: authIsLoading, update: updateSession } = useSession();
   const user = session?.user;
   const profile = user?.profile;
 
@@ -79,7 +127,7 @@ export default function DashboardPage() {
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
-    { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: true },
+    { title: "Saldo Total", value: null, icon: DollarSign, trend: null, trendColor: "text-muted-foreground", isLoading: true },
     { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
     { title: "Despesas Este Mês", value: null, icon: CreditCard, trend: null, trendColor: "text-red-500", isLoading: true },
     { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
@@ -93,11 +141,28 @@ export default function DashboardPage() {
   }, [profile]);
 
   const handleDismissWelcome = async () => {
-    if (!user?.id) return;
-    // Em uma app real, isso faria uma chamada para atualizar o banco de dados
-    // supabase.from('profiles').update({ has_seen_welcome_message: true }).eq('id', user.id);
-    toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
+    if (!user?.id || !supabase) return;
+    
+    // Optimistic UI update
     setIsWelcomeOpen(false);
+
+    // Update database
+    const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update({ has_seen_welcome_message: true })
+        .eq('id', user.id)
+        .select()
+        .single();
+    
+    if (error) {
+        toast({ title: "Erro", description: "Não foi possível salvar sua preferência.", variant: "destructive"});
+        // Revert UI if update fails
+        setIsWelcomeOpen(true);
+    } else {
+         toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
+        // Update session context with the new profile data
+        await updateSession({ ...session, user: { ...session?.user, profile: updatedProfile as Profile } as any });
+    }
   }
 
   const fetchDashboardData = useCallback(async () => {
@@ -117,21 +182,24 @@ export default function DashboardPage() {
         getFinancialGoals(user.id)
       ]);
       
-      if (transactionsRes.error) {
-        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
-        setAllTransactions([]);
-      } else {
-        setAllTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
-      }
+      const currentTransactions = Array.isArray(transactionsRes.data) ? transactionsRes.data : [];
+      setAllTransactions(currentTransactions);
       
       let totalIncome = 0;
       let totalExpenses = 0;
       let recurringIncome = 0;
       let recurringExpenses = 0;
+      let totalBalance = 0;
       const currentMonth = new Date().getUTCMonth();
       const currentYear = new Date().getUTCFullYear();
 
-      (Array.isArray(transactionsRes.data) ? transactionsRes.data : []).forEach(tx => {
+      currentTransactions.forEach(tx => {
+        if (tx.type === 'income') {
+            totalBalance += tx.amount;
+        } else if (tx.type === 'expense') {
+            totalBalance -= tx.amount;
+        }
+
         if (!tx.date || typeof tx.date !== 'string') return;
         try {
             const txDate = new Date(tx.date + 'T00:00:00Z');
@@ -167,7 +235,7 @@ export default function DashboardPage() {
       }
       
       setSummaryValues([
-        { title: "Saldo (Não Calculado)", value: 0, icon: DollarSign, trend: "Feature em desenvolvimento", trendColor: "text-muted-foreground", isLoading: false },
+        { title: "Saldo Total", value: totalBalance, icon: DollarSign, trend: totalBalance >= 0 ? "Positivo" : "Negativo", trendColor: totalBalance >= 0 ? "text-emerald-500" : "text-destructive", isLoading: false },
         { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
         { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
         { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringBalance > 0 ? "Saldo Positivo" : (recurringBalance < 0 ? "Saldo Negativo" : "Saldo Neutro"), trendColor: recurringBalance > 0 ? "text-emerald-500" : (recurringBalance < 0 ? "text-destructive" : "text-muted-foreground"), isLoading: false },
@@ -469,21 +537,7 @@ export default function DashboardPage() {
         </div>
         
         <motion.div custom={12} variants={cardVariants} initial="hidden" animate="visible">
-        <Card className="shadow-sm bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30">
-          <CardHeader>
-              <CardTitle className="font-headline text-primary flex items-center">
-                  <Sprout className="mr-2 h-6 w-6"/>
-                  Sugestões Inteligentes (Em Breve)
-              </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-              <p className="text-sm text-foreground/80">Em breve, o Flortune usará IA para analisar seus padrões e oferecer dicas personalizadas para otimizar suas finanças!</p>
-              <p className="text-sm text-foreground/80">Ex: "Você gastou <PrivateValue value="R$120" className="font-semibold"/> em café este mês. Considere preparar em casa para economizar!"</p>
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={() => toast({ title: "Funcionalidade Futura", description: "Insights com IA estarão disponíveis em breve." })} disabled>
-                  Ver Todos os Insights
-                </Button>
-          </CardContent>
-        </Card>
+            <SmartSuggestionCard />
         </motion.div>
       </div>
 

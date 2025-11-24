@@ -12,11 +12,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
 import { PageHeader } from "@/components/shared/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { KanbanSquare, PlusCircle, Calendar, DollarSign, AlertTriangle, Settings, Trash2, Edit, Palette, HelpCircle } from "lucide-react";
+import { KanbanSquare, PlusCircle, Calendar, DollarSign, AlertTriangle, Settings, Trash2, Edit, Palette, HelpCircle, Share2 } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -204,6 +205,10 @@ export default function DevKanbanPage() {
   const [activeElement, setActiveElement] = useState<Task | Column | null>(null);
   const [isClient, setIsClient] = useState(false);
   
+  // States for sync alert
+  const [isSyncAlertOpen, setIsSyncAlertOpen] = useState(false);
+  const [sharedModuleName, setSharedModuleName] = useState<string | null>(null);
+
   // --- LocalStorage Logic ---
   useEffect(() => {
     setIsClient(true);
@@ -214,6 +219,16 @@ export default function DevKanbanPage() {
       if (storedColumns) setColumns(JSON.parse(storedColumns));
       if (storedTasks) setTasks(JSON.parse(storedTasks));
       if (storedTags) setTags(JSON.parse(storedTags));
+      
+      // Simulate receiving a shared module invite after a delay
+      setTimeout(() => {
+        const hasSeenAlert = sessionStorage.getItem('kanban-sync-alert-seen');
+        if (!hasSeenAlert) {
+            setSharedModuleName("Projeto Cliente X");
+            setIsSyncAlertOpen(true);
+        }
+      }, 2000);
+
     } catch (e) {
       console.error("Failed to load from localStorage", e);
     }
@@ -259,7 +274,6 @@ export default function DevKanbanPage() {
         const tasksInOverColumn = tasks.filter(t => t.columnId === overColumn.id);
 
         if (overColumn.wipLimit !== undefined && tasksInOverColumn.length >= overColumn.wipLimit) {
-            // Do not allow drop if WIP limit is reached
             return;
         }
 
@@ -299,7 +313,6 @@ export default function DevKanbanPage() {
         const tasksInOverColumn = tasks.filter(t => t.columnId === overColumnId);
 
         if (overColumn && overColumn.wipLimit !== undefined && tasksInOverColumn.length >= overColumn.wipLimit) {
-            // Check if the task is already in that column. If so, reordering is allowed.
             const activeTask = active.data.current?.task as Task;
             if (activeTask.columnId !== overColumnId) {
                 toast({ title: "Limite WIP Atingido", description: `A coluna "${overColumn.name}" está cheia.`, variant: "destructive" });
@@ -311,17 +324,13 @@ export default function DevKanbanPage() {
             const activeIndex = currentTasks.findIndex(t => t.id === active.id);
             let overIndex = currentTasks.findIndex(t => t.id === overId);
             
-            // If dropping on a column, not another task
             if (overIsColumn) {
-                const tasksInColumn = currentTasks.filter(t => t.columnId === overId);
-                overIndex = activeIndex; // Keep original position logic for now, or find last index in new column
+                overIndex = activeIndex;
             }
             
             if (currentTasks[activeIndex].columnId !== overColumnId) {
                 currentTasks[activeIndex].columnId = overColumnId as string;
-                // Correctly place it in the new column
-                const newIndex = tasksInOverColumn.length;
-                return arrayMove(currentTasks, activeIndex, activeIndex); // This seems wrong, let's fix it.
+                return arrayMove(currentTasks, activeIndex, activeIndex);
             }
             
             return arrayMove(currentTasks, activeIndex, overIndex);
@@ -370,149 +379,176 @@ export default function DevKanbanPage() {
       resetTagForm();
       setIsTagModalOpen(false);
   }
+  
+  const handleAcceptSync = () => {
+    toast({ title: "Sincronização Aceita (Simulação)", description: "Seus dados seriam substituídos pelos dados do módulo compartilhado." });
+    sessionStorage.setItem('kanban-sync-alert-seen', 'true');
+    setIsSyncAlertOpen(false);
+  };
 
   return (
-    <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
-      <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
-        <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
-            <div className="flex flex-col h-full">
-              <PageHeader 
-                title="Quadro Kanban" 
-                description="Visualize e gerencie o fluxo de trabalho. Arraste e solte tarefas e colunas." 
-                icon={<KanbanSquare />}
-                actions={<>
-                  <Button variant="outline" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Tarefa</Button>
-                  <Button variant="outline" onClick={() => handleOpenColumnModal(null)}><PlusCircle className="mr-2 h-4 w-4"/>Nova Coluna</Button>
-                  <Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>
-                </>}
-              />
-              {isClient && (
-                <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} collisionDetection={closestCorners}>
-                  <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
-                      <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
-                        {columns.map(col => (
-                          <KanbanColumn key={col.id} column={col} tags={tags} tasks={tasks.filter(t => t.columnId === col.id)} onEdit={() => handleOpenColumnModal(col)} onDelete={() => handleRemoveColumn(col.id)} />
-                        ))}
-                      </SortableContext>
-                  </div>
-                  <DragOverlay>{activeElement ? (activeElement.hasOwnProperty('columnId') ? <KanbanCard task={activeElement as Task} tags={tags} /> : <KanbanColumn column={activeElement as Column} tasks={tasks.filter(t => t.columnId === activeElement.id)} tags={tags} onEdit={() => {}} onDelete={() => {}} />) : null}</DragOverlay>
-                </DndContext>
-              )}
+    <>
+      <div className="flex flex-col h-full">
+        <PageHeader 
+          title="Quadro Kanban" 
+          description="Visualize e gerencie o fluxo de trabalho. Arraste e solte tarefas e colunas." 
+          icon={<KanbanSquare />}
+          actions={<>
+            <Button variant="outline" onClick={() => setIsTaskModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Adicionar Tarefa</Button>
+            <Button variant="outline" onClick={() => setIsColumnModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Nova Coluna</Button>
+            <Button variant="ghost" size="icon" onClick={() => setIsHelpModalOpen(true)}><HelpCircle className="h-5 w-5"/></Button>
+          </>}
+        />
+        {isClient && (
+          <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} collisionDetection={closestCorners}>
+            <div className="flex-1 flex gap-4 overflow-x-auto pb-4">
+                <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+                  {columns.map(col => (
+                    <KanbanColumn key={col.id} column={col} tags={tags} tasks={tasks.filter(t => t.columnId === col.id)} onEdit={() => handleOpenColumnModal(col)} onDelete={() => handleRemoveColumn(col.id)} />
+                  ))}
+                </SortableContext>
             </div>
-            
-            {/* Task Modal */}
-            <DialogContent>
-              <DialogHeader><DialogTitle>Nova Tarefa</DialogTitle><DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription></DialogHeader>
-              <form onSubmit={handleTaskSubmit(handleAddTask)} className="space-y-4">
-                  <div><Label htmlFor="title">Título da Tarefa</Label><Input id="title" {...taskRegister("title")} />{taskErrors.title && <p className="text-sm text-destructive mt-1">{taskErrors.title.message}</p>}</div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><Label htmlFor="points">Story Points</Label><Input id="points" type="number" {...taskRegister("points")} /></div>
-                      <div><Label htmlFor="tagId">Tag/Tipo</Label>
-                        <div className="flex gap-2">
-                          <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
-                          <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}><DialogTrigger asChild><Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button></DialogTrigger></Dialog>
-                        </div>
-                      </div>
+            <DragOverlay>{activeElement ? (activeElement.hasOwnProperty('columnId') ? <KanbanCard task={activeElement as Task} tags={tags} /> : <KanbanColumn column={activeElement as Column} tasks={tasks.filter(t => t.columnId === activeElement.id)} tags={tags} onEdit={() => {}} onDelete={() => {}} />) : null}</DragOverlay>
+          </DndContext>
+        )}
+      </div>
+      
+      {/* Task Modal */}
+      <Dialog open={isTaskModalOpen} onOpenChange={setIsTaskModalOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nova Tarefa</DialogTitle><DialogDescription>Adicione uma nova tarefa ao backlog do projeto.</DialogDescription></DialogHeader>
+          <form onSubmit={handleTaskSubmit(handleAddTask)} className="space-y-4">
+              <div><Label htmlFor="title">Título da Tarefa</Label><Input id="title" {...taskRegister("title")} />{taskErrors.title && <p className="text-sm text-destructive mt-1">{taskErrors.title.message}</p>}</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label htmlFor="points">Story Points</Label><Input id="points" type="number" {...taskRegister("points")} /></div>
+                  <div><Label htmlFor="tagId">Tag/Tipo</Label>
+                    <div className="flex gap-2">
+                      <Controller name="tagId" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>)}/>
+                      <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}><DialogTrigger asChild><Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}><Palette className="h-4 w-4"/></Button></DialogTrigger></Dialog>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 items-end">
-                        <div><Label htmlFor="value">Valor do Projeto (R$)</Label><Input id="value" type="number" step="0.01" {...taskRegister("value")} /></div>
-                        <div><Label htmlFor="delayCost">Custo do Atraso (R$)</Label><Input id="delayCost" type="number" step="0.01" {...taskRegister("delayCost")} /></div>
-                    </div>
-                    <div className="grid grid-cols-1">
-                        <div><Label htmlFor="delayCostPeriod">Período do Custo de Atraso</Label><Controller name="delayCostPeriod" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="hora">por Hora</SelectItem><SelectItem value="dia">por Dia</SelectItem><SelectItem value="semana">por Semana</SelectItem><SelectItem value="quinzenal">por Quinzena</SelectItem><SelectItem value="mensal">por Mês</SelectItem></SelectContent></Select>)}/></div>
-                    </div>
-                    <div><Label htmlFor="assignedTo">Atribuído a (nomes separados por vírgula)</Label><Input id="assignedTo" {...taskRegister("assignedTo")} placeholder="Ex: João, Maria" /></div>
-                  <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Adicionar Tarefa</Button></DialogFooter>
-              </form>
-            </DialogContent>
-            
-            {/* Column Modal */}
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader><DialogTitle>{editingColumn ? 'Editar' : 'Adicionar'} Coluna</DialogTitle></DialogHeader>
-                <form onSubmit={handleColumnSubmit(handleColumnAction)} className="space-y-4 py-2">
-                    <div><Label htmlFor="col-name">Nome da Coluna</Label><Input id="col-name" {...columnRegister("name")} autoFocus />{columnErrors.name && <p className="text-sm text-destructive mt-1">{columnErrors.name.message}</p>}</div>
-                    <div><Label htmlFor="col-wip">Limite WIP (Opcional)</Label><Input id="col-wip" type="number" placeholder="Deixe em branco para sem limite" {...columnRegister("wipLimit")} />{columnErrors.wipLimit && <p className="text-sm text-destructive mt-1">{columnErrors.wipLimit.message}</p>}</div>
-                    <div>
-                      <Label>Cor da Coluna</Label>
-                      <Controller name="colorClass" control={columnControl} render={({field}) => (
-                        <div className="grid grid-cols-4 gap-2 pt-2">
-                          {columnColors.map(color => (
-                            <button key={color.value} type="button" onClick={() => field.onChange(color.value)} className={cn("h-8 rounded-md border-2", field.value === color.value ? "border-primary ring-2 ring-primary" : "border-transparent", color.value)}></button>
-                          ))}
-                        </div>
-                      )} />
-                    </div>
-                    <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
-                </form>
-            </DialogContent>
-            
-             <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
-              <DialogContent className="sm:max-w-md">
-                    <DialogHeader><DialogTitle>Criar Nova Tag</DialogTitle></DialogHeader>
-                    <form onSubmit={handleTagSubmit(handleAddTag)} className="space-y-4">
-                        <div><Label htmlFor="tag-name">Nome da Tag</Label><Input id="tag-name" {...tagRegister("name")} />{tagErrors.name && <p className="text-sm text-destructive mt-1">{tagErrors.name.message}</p>}</div>
-                        <div>
-                            <Label>Cor da Tag</Label>
-                            <Controller name="colorClass" control={tagControl} render={({field}) => (
-                                <div className="grid grid-cols-5 gap-2 pt-2">
-                                    {Object.values(initialTags).map(tag => (
-                                        <button key={tag.id} type="button" onClick={() => field.onChange(tag.colorClass)} className={cn("h-8 rounded-md border-2", field.value === tag.colorClass ? "border-primary ring-2 ring-primary" : "border-transparent", tag.colorClass)}></button>
-                                    ))}
-                                </div>
-                            )} />
-                            {tagErrors.colorClass && <p className="text-sm text-destructive mt-1">{tagErrors.colorClass.message}</p>}
-                        </div>
-                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar</Button></DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            {/* Help Modal */}
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="font-headline flex items-center"><HelpCircle className="h-5 w-5 mr-2 text-primary"/>Guia de Uso do Quadro Kanban</DialogTitle>
-                <DialogDescription>Entenda os conceitos e como usar esta ferramenta para maximizar sua produtividade.</DialogDescription>
-              </DialogHeader>
-              <div className="py-4 space-y-6 text-sm text-muted-foreground max-h-[70vh] overflow-y-auto pr-4">
-                <div className="space-y-2">
-                    <h4 className="font-semibold text-foreground">O que é Kanban?</h4>
-                    <p>Kanban é um método para gerenciar o fluxo de trabalho. Seu principal objetivo é visualizar o trabalho, limitar o trabalho em andamento (WIP) e maximizar a eficiência. Em vez de planejar iterações fixas como no Scrum, o Kanban foca no fluxo contínuo de entrega de valor.</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                    <h4 className="font-semibold text-foreground">Funcionalidades Implementadas</h4>
-                    <ul className="list-disc list-inside space-y-3">
-                        <li>
-                            <strong>Colunas Personalizadas:</strong> Você pode adicionar, renomear e reordenar as colunas para mapear seu fluxo de trabalho real. Use o botão "Adicionar Nova Coluna" ou a engrenagem em cada coluna para gerenciá-las.
-                        </li>
-                        <li>
-                            <strong>Limite WIP (Work In Progress):</strong> Ao editar uma coluna, você pode definir um "Limite WIP". Quando o número de tarefas na coluna excede esse limite, o cabeçalho fica vermelho. Isso é um sinal visual para a equipe parar de iniciar novas tarefas e focar em finalizar o que já está em andamento, resolvendo gargalos.
-                        </li>
-                        <li>
-                            <strong>Priorização por Valor e Urgência:</strong> Ao criar uma tarefa, você pode definir o "Valor do Projeto" (o benefício de concluí-la) e o "Custo do Atraso" (quanto custa não fazer a tarefa por um período). Tarefas com alto Custo de Atraso devem ser priorizadas. Esta é uma técnica poderosa para tomar decisões econômicas.
-                        </li>
-                        <li>
-                            <strong>Tags e Cores:</strong> Use as tags para categorizar suas tarefas (ex: "Bug", "Melhoria", "Infra"). Você pode criar novas tags e associar cores a elas, melhorando a organização visual do seu quadro.
-                        </li>
-                        <li>
-                            <strong>Atribuição Múltipla:</strong> O campo "Atribuído a" aceita múltiplos nomes separados por vírgula, ideal para tarefas que envolvem trabalho em par ou em equipe.
-                        </li>
-                    </ul>
+                <div className="grid grid-cols-2 gap-4 items-end">
+                    <div><Label htmlFor="value">Valor do Projeto (R$)</Label><Input id="value" type="number" step="0.01" {...taskRegister("value")} /></div>
+                    <div><Label htmlFor="delayCost">Custo do Atraso (R$)</Label><Input id="delayCost" type="number" step="0.01" {...taskRegister("delayCost")} /></div>
                 </div>
-                <div className="space-y-2 pt-2 border-t">
-                    <h4 className="font-semibold text-foreground">Como Começar?</h4>
-                    <p>1. **Mapeie seu Fluxo:** Adicione e renomeie as colunas para representar as etapas do seu processo (Ex: Ideias, A Fazer, Desenvolvendo, Testando, Concluído).</p>
-                    <p>2. **Defina Limites WIP:** Comece com limites baixos para as colunas "em andamento". Por exemplo, não mais que 1 ou 2 tarefas por pessoa na equipe.</p>
-                    <p>3. **Adicione Tarefas:** Preencha o backlog com suas tarefas. Tente estimar o Valor e o Custo do Atraso para as mais importantes.</p>
-                    <p>4. **Puxe o Trabalho:** Em vez de "empurrar" trabalho, puxe a próxima tarefa mais importante do "A Fazer" para "Em andamento" apenas quando houver capacidade (abaixo do limite WIP).</p>
-                    <p>5. **Observe e Melhore:** Use o quadro para identificar onde as tarefas estão parando. O objetivo é manter o fluxo suave e contínuo.</p>
+                <div className="grid grid-cols-1">
+                    <div><Label htmlFor="delayCostPeriod">Período do Custo de Atraso</Label><Controller name="delayCostPeriod" control={taskControl} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent><SelectItem value="hora">por Hora</SelectItem><SelectItem value="dia">por Dia</SelectItem><SelectItem value="semana">por Semana</SelectItem><SelectItem value="quinzenal">por Quinzena</SelectItem><SelectItem value="mensal">por Mês</SelectItem></SelectContent></Select>)}/></div>
                 </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild><Button>Entendi</Button></DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <div><Label htmlFor="assignedTo">Atribuído a (nomes separados por vírgula)</Label><Input id="assignedTo" {...taskRegister("assignedTo")} placeholder="Ex: João, Maria" /></div>
+              <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Adicionar Tarefa</Button></DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
-    </Dialog>
+      
+      {/* Column Modal */}
+      <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader><DialogTitle>{editingColumn ? 'Editar' : 'Adicionar'} Coluna</DialogTitle></DialogHeader>
+            <form onSubmit={handleColumnSubmit(handleColumnAction)} className="space-y-4 py-2">
+                <div><Label htmlFor="col-name">Nome da Coluna</Label><Input id="col-name" {...columnRegister("name")} autoFocus />{columnErrors.name && <p className="text-sm text-destructive mt-1">{columnErrors.name.message}</p>}</div>
+                <div><Label htmlFor="col-wip">Limite WIP (Opcional)</Label><Input id="col-wip" type="number" placeholder="Deixe em branco para sem limite" {...columnRegister("wipLimit")} />{columnErrors.wipLimit && <p className="text-sm text-destructive mt-1">{columnErrors.wipLimit.message}</p>}</div>
+                <div>
+                  <Label>Cor da Coluna</Label>
+                  <Controller name="colorClass" control={columnControl} render={({field}) => (
+                    <div className="grid grid-cols-4 gap-2 pt-2">
+                      {columnColors.map(color => (
+                        <button key={color.value} type="button" onClick={() => field.onChange(color.value)} className={cn("h-8 rounded-md border-2", field.value === color.value ? "border-primary ring-2 ring-primary" : "border-transparent", color.value)}></button>
+                      ))}
+                    </div>
+                  )} />
+                </div>
+                <DialogFooter className="pt-2"><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Salvar</Button></DialogFooter>
+            </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Tag Modal */}
+      <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
+        <DialogContent className="sm:max-w-md">
+              <DialogHeader><DialogTitle>Criar Nova Tag</DialogTitle></DialogHeader>
+              <form onSubmit={handleTagSubmit(handleAddTag)} className="space-y-4">
+                  <div><Label htmlFor="tag-name">Nome da Tag</Label><Input id="tag-name" {...tagRegister("name")} />{tagErrors.name && <p className="text-sm text-destructive mt-1">{tagErrors.name.message}</p>}</div>
+                  <div>
+                      <Label>Cor da Tag</Label>
+                      <Controller name="colorClass" control={tagControl} render={({field}) => (
+                          <div className="grid grid-cols-5 gap-2 pt-2">
+                              {Object.values(initialTags).map(tag => (
+                                  <button key={tag.id} type="button" onClick={() => field.onChange(tag.colorClass)} className={cn("h-8 rounded-md border-2", field.value === tag.colorClass ? "border-primary ring-2 ring-primary" : "border-transparent", tag.colorClass)}></button>
+                              ))}
+                          </div>
+                      )} />
+                      {tagErrors.colorClass && <p className="text-sm text-destructive mt-1">{tagErrors.colorClass.message}</p>}
+                  </div>
+                  <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar</Button></DialogFooter>
+              </form>
+          </DialogContent>
+      </Dialog>
+
+      {/* Help Modal */}
+      <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline flex items-center"><HelpCircle className="h-5 w-5 mr-2 text-primary"/>Guia de Uso do Quadro Kanban</DialogTitle>
+            <DialogDescription>Entenda os conceitos e como usar esta ferramenta para maximizar sua produtividade.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-6 text-sm text-muted-foreground max-h-[70vh] overflow-y-auto pr-4">
+            <div className="space-y-2">
+                <h4 className="font-semibold text-foreground">O que é Kanban?</h4>
+                <p>Kanban é um método para gerenciar o fluxo de trabalho. Seu principal objetivo é visualizar o trabalho, limitar o trabalho em andamento (WIP) e maximizar a eficiência. Em vez de planejar iterações fixas como no Scrum, o Kanban foca no fluxo contínuo de entrega de valor.</p>
+            </div>
+            <div className="space-y-2">
+                <h4 className="font-semibold text-foreground">Funcionalidades Implementadas</h4>
+                <ul className="list-disc list-inside space-y-3">
+                    <li>
+                        <strong>Colunas Personalizadas:</strong> Você pode adicionar, renomear e reordenar as colunas para mapear seu fluxo de trabalho real. Use o botão "Adicionar Nova Coluna" ou a engrenagem em cada coluna para gerenciá-las.
+                    </li>
+                    <li>
+                        <strong>Limite WIP (Work In Progress):</strong> Ao editar uma coluna, você pode definir um "Limite WIP". Quando o número de tarefas na coluna excede esse limite, o cabeçalho fica vermelho. Isso é um sinal visual para a equipe parar de iniciar novas tarefas e focar em finalizar o que já está em andamento, resolvendo gargalos.
+                    </li>
+                    <li>
+                        <strong>Priorização por Valor e Urgência:</strong> Ao criar uma tarefa, você pode definir o "Valor do Projeto" (o benefício de concluí-la) e o "Custo do Atraso" (quanto custa não fazer a tarefa por um período). Tarefas com alto Custo de Atraso devem ser priorizadas. Esta é uma técnica poderosa para tomar decisões econômicas.
+                    </li>
+                    <li>
+                        <strong>Tags e Cores:</strong> Use as tags para categorizar suas tarefas (ex: "Bug", "Melhoria", "Infra"). Você pode criar novas tags e associar cores a elas, melhorando a organização visual do seu quadro.
+                    </li>
+                    <li>
+                        <strong>Atribuição Múltipla:</strong> O campo "Atribuído a" aceita múltiplos nomes separados por vírgula, ideal para tarefas que envolvem trabalho em par ou em equipe.
+                    </li>
+                </ul>
+            </div>
+            <div className="space-y-2 pt-2 border-t">
+                <h4 className="font-semibold text-foreground">Como Começar?</h4>
+                <p>1. **Mapeie seu Fluxo:** Adicione e renomeie as colunas para representar as etapas do seu processo (Ex: Ideias, A Fazer, Desenvolvendo, Testando, Concluído).</p>
+                <p>2. **Defina Limites WIP:** Comece com limites baixos para as colunas "em andamento". Por exemplo, não mais que 1 ou 2 tarefas por pessoa na equipe.</p>
+                <p>3. **Adicione Tarefas:** Preencha o backlog com suas tarefas. Tente estimar o Valor e o Custo do Atraso para as mais importantes.</p>
+                <p>4. **Puxe o Trabalho:** Em vez de "empurrar" trabalho, puxe a próxima tarefa mais importante do "A Fazer" para "Em andamento" apenas quando houver capacidade (abaixo do limite WIP).</p>
+                <p>5. **Observe e Melhore:** Use o quadro para identificar onde as tarefas estão parando. O objetivo é manter o fluxo suave e contínuo.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button>Entendi</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isSyncAlertOpen} onOpenChange={setIsSyncAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-primary" />
+              Sincronizar Quadro Kanban Compartilhado?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você foi convidado para colaborar no módulo Kanban "{sharedModuleName}". Ao aceitar, seu quadro local atual (colunas e tarefas) será **completamente substituído** pelos dados deste módulo compartilhado para manter tudo sincronizado. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAcceptSync}>Aceitar e Sincronizar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

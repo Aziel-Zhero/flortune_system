@@ -1,14 +1,15 @@
+
 // src/app/(app)/profile/page.tsx
 "use client";
 
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare } from "lucide-react";
+import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare, Upload } from "lucide-react";
 import { useSession } from "@/contexts/auth-context";
 import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
@@ -29,9 +30,12 @@ export default function ProfilePage() {
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [rg, setRg] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarFallback, setAvatarFallback] = useState("U");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     document.title = `Meu Perfil - ${APP_NAME}`;
   }, []);
@@ -52,25 +56,57 @@ export default function ProfilePage() {
     }
   }, [profileFromSession, userFromSession]);
 
+  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result;
+        if (typeof result === 'string') {
+          setAvatarUrl(result); // Mostra o preview
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
-    if (!userFromSession?.id) {
-      toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
+    if (!userFromSession?.id || !supabase) {
+      toast({ title: "Erro", description: "Usuário não autenticado ou serviço indisponível.", variant: "destructive" });
       return;
     }
     setIsSavingProfile(true);
+
     try {
-      const updatedProfileData: Partial<Omit<Profile, 'id' | 'email'>> = {
+      let publicAvatarUrl = profileFromSession?.avatar_url;
+
+      // Se um novo arquivo de avatar foi selecionado, faça o upload
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const filePath = `${userFromSession.id}/avatar.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, avatarFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        publicAvatarUrl = data.publicUrl;
+      }
+      
+      const updatedProfileData = {
         full_name: fullName,
         display_name: displayName,
         phone,
         cpf_cnpj: cpfCnpj,
         rg,
+        avatar_url: publicAvatarUrl,
         updated_at: new Date().toISOString(),
       };
       
-      if (!supabase) throw new Error("Cliente Supabase não inicializado.");
-
       const { data: updatedProfile, error } = await supabase
         .from('profiles')
         .update(updatedProfileData)
@@ -78,22 +114,19 @@ export default function ProfilePage() {
         .select()
         .single();
 
-      if (error) throw error; // Lança o erro para ser pego pelo catch
+      if (error) throw error;
 
       if (updatedProfile) {
-        // Atualiza o contexto da sessão manualmente para refletir as mudanças imediatamente
         await update({
           ...session, 
-          user: { 
-            ...session?.user,
-            profile: updatedProfile as Profile, 
-          },
+          user: { ...session?.user, profile: updatedProfile as Profile },
         });
-        toast({ title: "Perfil Atualizado", description: "Suas informações de perfil foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
+        toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas.", action: <CheckSquare className="text-green-500"/> });
+        setAvatarFile(null); // Limpa o arquivo após o sucesso
       }
     } catch (error: any) {
       console.error("Error saving profile:", error);
-      toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar as alterações do perfil.", variant: "destructive" });
+      toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar as alterações.", variant: "destructive" });
     } finally {
       setIsSavingProfile(false);
     }
@@ -132,7 +165,11 @@ export default function ProfilePage() {
                 <AvatarImage src={avatarUrl} alt={displayName || "Avatar"} data-ai-hint="user avatar" />
                 <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
-              <Button type="button" variant="outline" disabled>Mudar Foto</Button>
+              <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-2 h-4 w-4"/>
+                Mudar Foto
+              </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
