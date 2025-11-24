@@ -3,12 +3,15 @@
 
 import Link from "next/link"; 
 import { usePathname } from "next/navigation"; 
-import * as LucideIcons from "lucide-react";
+import { 
+  HelpCircle, Home, LayoutDashboard, Package, FileText, Heart, Users, ShoppingBag, 
+  ClipboardList, Code, Send, Bot, MessageSquare, DollarSign, EyeOff 
+} from "lucide-react";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 import { ADMIN_NAV_LINKS_CONFIG, APP_NAME } from "@/lib/constants";
-import type { NavLinkItem } from "@/lib/constants";
+import type { NavLinkItem, NavLinkIconName } from "@/lib/constants";
 import {
   Sidebar,
   SidebarContent,
@@ -20,16 +23,47 @@ import {
   SidebarHeader,
   SidebarFooter
 } from "@/components/ui/sidebar";
-import { Separator } from "../ui/separator";
+import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PrivateValue } from "../shared/private-value";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { PrivateValue } from "@/components/shared/private-value";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppSettings } from "@/contexts/app-settings-context";
 
-const getIcon = (iconName?: string): React.ElementType => {
-  if (!iconName) return LucideIcons.HelpCircle;
-  const IconComponent = (LucideIcons as any)[iconName as keyof typeof LucideIcons];
-  return IconComponent || LucideIcons.HelpCircle;
+const iconMap: Record<NavLinkIconName, React.ElementType> = {
+  Home,
+  LayoutDashboard,
+  Package,
+  FileText,
+  Heart,
+  Users,
+  ShoppingBag,
+  ClipboardList,
+  Code,
+  Send,
+  Bot,
+  MessageSquare,
+  HelpCircle,
+  CalendarDays: HelpCircle, // Placeholder
+  ArrowRightLeft: HelpCircle, // Placeholder
+  BarChart3: HelpCircle, // Placeholder
+  Target: HelpCircle, // Placeholder
+  Trophy: HelpCircle, // Placeholder
+  ListChecks: HelpCircle, // Placeholder
+  NotebookPen: HelpCircle, // Placeholder
+  Share2: HelpCircle, // Placeholder
+  AreaChart: HelpCircle, // Placeholder
+  Users2: HelpCircle, // Placeholder
+  Wrench: HelpCircle, // Placeholder
+  Globe: HelpCircle, // Placeholder
+  GitMerge: HelpCircle, // Placeholder
+  KanbanSquare: HelpCircle, // Placeholder
+  PieChart: HelpCircle, // Placeholder
+  Gem: HelpCircle, // Placeholder
+};
+
+const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
+  if (!iconName) return HelpCircle;
+  return iconMap[iconName as NavLinkIconName] || HelpCircle;
 };
 
 // Mock admin user data
@@ -92,7 +126,7 @@ export function AdminSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center justify-center h-9 w-9 rounded-md bg-sidebar-accent/50 text-sidebar-accent-foreground">
-                   <LucideIcons.DollarSign className="h-5 w-5" />
+                   <DollarSign className="h-5 w-5" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right" align="center">
@@ -107,7 +141,7 @@ export function AdminSidebar() {
                 <span className="font-bold text-lg text-sidebar-accent-foreground">
                     <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                 </span>
-                <LucideIcons.EyeOff
+                <EyeOff
                     className="h-5 w-5 text-sidebar-accent-foreground/70 cursor-pointer hover:text-sidebar-accent-foreground"
                     onClick={togglePrivateMode}
                 />
