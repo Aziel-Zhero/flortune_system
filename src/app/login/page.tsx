@@ -5,6 +5,8 @@ import { APP_NAME } from "@/lib/constants";
 import type { Metadata } from 'next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { MailCheck, CheckCircle } from 'lucide-react';
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
   title: `Bem-vindo de Volta! - ${APP_NAME}`,
@@ -47,17 +49,33 @@ function LoginAlerts({ signupSuccess, isConfirmed }: { signupSuccess?: boolean, 
     return null;
 }
 
-// ✅ CORREÇÃO: A página agora é `async` e usa `await` nos searchParams.
-export default async function LoginPage({
+function LoginFormSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <div className="relative py-2">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">Ou continue com</span>
+        </div>
+      </div>
+      <Skeleton className="h-10 w-full" />
+    </div>
+  );
+}
+
+
+export default function LoginPage({
   searchParams,
 }: {
-  // ✅ A tipagem correta é uma Promise.
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // ✅ A Promise é resolvida com `await` antes de usar os parâmetros.
-  const params = await searchParams;
-  const signupParam = params?.signup;
-  const message = params?.message as string | undefined;
+  const signupParam = searchParams?.signup;
+  const message = searchParams?.message as string | undefined;
   
   const signupSuccess = signupParam === 'success';
   const isConfirmed = signupParam === 'success_direct';
@@ -71,7 +89,9 @@ export default async function LoginPage({
       footerLinkHref="/signup"
     >
       <LoginAlerts signupSuccess={signupSuccess} isConfirmed={isConfirmed} />
-      <LoginForm message={message} />
+       <Suspense fallback={<LoginFormSkeleton />}>
+        <LoginForm message={message} />
+      </Suspense>
     </AuthLayout>
   );
 }
