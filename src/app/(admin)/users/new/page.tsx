@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, ArrowLeft, Mail, KeyRound, User, Loader2, ShieldCheck, CheckCircle, AlertCircle } from "lucide-react";
+import { UserPlus, ArrowLeft, Mail, KeyRound, User, Loader2, ShieldCheck, CheckCircle, AlertCircle} from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { createUser } from "@/app/actions/user.actions";

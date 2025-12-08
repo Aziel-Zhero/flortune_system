@@ -162,7 +162,7 @@ export default function AnalysisPage() {
     const monthlyEvolutionMap = new Map<string, { Receitas: number; Despesas: number }>();
     for (let i = 11; i >= 0; i--) {
         const date = new Date(now.getUTCFullYear(), now.getUTCMonth() - i, 1);
-        const monthKey = `${'' + (date.getUTCMonth() + 1)}/${date.getUTCFullYear()}`;
+        const monthKey = `${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
         monthlyEvolutionMap.set(monthKey, { Receitas: 0, Despesas: 0 });
     }
 
@@ -177,7 +177,7 @@ export default function AnalysisPage() {
     for(const tx of transactions) { // Monthly evolution uses all transactions
         if(!tx.date) continue;
         const txDate = new Date(tx.date + 'T00:00:00Z');
-        const monthKey = `${'' + (txDate.getUTCMonth() + 1)}/${txDate.getUTCFullYear()}`;
+        const monthKey = `${txDate.getUTCMonth() + 1}/${txDate.getUTCFullYear()}`;
         const monthData = monthlyEvolutionMap.get(monthKey);
         if (monthData) {
             if(tx.type === 'income') monthData.Receitas += tx.amount;
