@@ -283,12 +283,12 @@ export default function LandingPage() {
               <p className="text-foreground/80 max-w-xl mx-auto opacity-0">Tudo o que você precisa para florescer financeiramente e profissionalmente.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <FeatureCard className="feature-card" icon={BarChart3} title="Análise Visual" description="Entenda seus gastos e receitas com gráficos intuitivos e relatórios detalhados." />
-                <FeatureCard className="feature-card" icon={CalendarDays} title="Calendário Financeiro" description="Visualize todos os seus eventos e transações importantes em um único lugar." />
-                <FeatureCard className="feature-card" icon={BrainCircuit} title="Insights com IA" description="Receba sugestões inteligentes para otimizar seus gastos e alcançar suas metas mais rápido (em breve)." />
-                <FeatureCard className="feature-card" icon={Eye} title="Modo Privado" description="Proteja sua privacidade com um clique, ocultando todos os valores sensíveis na tela." />
-                <FeatureCard className="feature-card" icon={ShieldCheck} title="Segurança Avançada" description="Seus dados são protegidos com as melhores práticas de segurança e criptografia." />
-                <FeatureCard className="feature-card" icon={GanttChartSquare} title="Ferramentas DEV" description="Gerencie clientes, projetos e utilize calculadoras especializadas para freelancers." />
+                <FeatureCard className="feature-card" icon={BarChart3} title="Análise Visual" description="Acompanhe o fluxo de caixa e a distribuição de gastos por categoria com gráficos interativos e relatórios detalhados." />
+                <FeatureCard className="feature-card" icon={CalendarDays} title="Calendário Financeiro" description="Visualize pagamentos, recebimentos e lembretes em um calendário integrado para nunca mais perder um prazo." />
+                <FeatureCard className="feature-card" icon={BrainCircuit} title="Insights com IA" description="Receba sugestões personalizadas e categorização automática de despesas para otimizar suas finanças (em breve)." />
+                <FeatureCard className="feature-card" icon={Eye} title="Modo Privado" description="Proteja sua privacidade com um clique, ocultando todos os valores sensíveis na tela ao usar o app em público." />
+                <FeatureCard className="feature-card" icon={ShieldCheck} title="Segurança Avançada" description="Seus dados são protegidos com as melhores práticas de segurança e criptografia, garantindo sua tranquilidade." />
+                <FeatureCard className="feature-card" icon={GanttChartSquare} title="Ferramentas DEV" description="Gerencie clientes e projetos com o Quadro Kanban e use calculadoras de precificação para otimizar seu trabalho." />
             </div>
           </section>
 
