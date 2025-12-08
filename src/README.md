@@ -138,7 +138,7 @@ npm run build
 
 ### 7. Deploy com Netlify
 1.  Conecte seu repositório ao Netlify.
-2.  **Configure as Variáveis de Ambiente no Netlify:** Vá para Site configuration -> Build & deploy -> Environment -> Environment variables. Adicione **todas** as variáveis de ambiente do seu arquivo `.env` local, usando os valores corretos para produção.
+2.  **🔥 CRÍTICO: Configure as Variáveis de Ambiente no Netlify:** Vá para `Site configuration` > `Build & deploy` > `Environment` > `Environment variables`. Adicione **todas** as variáveis de ambiente do seu arquivo `.env` local. O arquivo `.env` **não** é enviado para o servidor de produção, então esta etapa é obrigatória para que o site funcione.
 3.  O Netlify usará o `netlify.toml` e o plugin `@netlify/plugin-nextjs` para construir e implantar seu site. A variável `NEXTAUTH_URL` será configurada automaticamente por ele.
 
 ## 📂 Estrutura do Projeto
@@ -165,7 +165,16 @@ npm run build
 
 Durante a configuração e desenvolvimento, você pode encontrar alguns problemas comuns. Aqui estão as soluções para os mais frequentes:
 
-### 1. Login com Google Falha com `Erro 400: redirect_uri_mismatch`
+### 1. Erro "Failed to fetch" ou Erros de API em Produção (Netlify/Vercel)
+
+*   **Causa:** Este é o erro mais comum. Ocorre porque as variáveis de ambiente (como `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`) definidas no seu arquivo `.env` local **não** são enviadas automaticamente para o ambiente de produção.
+*   **Solução:**
+    1.  Vá para o painel do seu site no Netlify (ou Vercel, etc.).
+    2.  Navegue até a seção de configuração do site, geralmente em `Site configuration` > `Build & deploy` > `Environment`.
+    3.  Clique em `Environment variables` e adicione, uma por uma, **todas as chaves e valores** do seu arquivo `.env`.
+    4.  Após adicionar todas as variáveis, acione um novo deploy para que as alterações entrem em vigor.
+
+### 2. Login com Google Falha com `Erro 400: redirect_uri_mismatch`
 
 *   **Causa:** Este erro indica que a "URI de redirecionamento autorizada" configurada no Google Cloud Console para o seu Client ID OAuth não corresponde exatamente à URI que o NextAuth.js (e seu app) está usando.
 *   **Solução:**
@@ -179,7 +188,7 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
     2.  **Variável de Ambiente `NEXTAUTH_URL`:**
         *   Em ambientes de produção como Netlify e Vercel, esta variável geralmente é configurada automaticamente. Se o erro persistir, você pode configurá-la manualmente nas variáveis de ambiente do seu provedor de hospedagem para garantir que ela aponte para a URL base do seu site (ex: `https://SEU-DOMINIO.netlify.app`).
 
-### 2. Cadastro Manual Falha com Erro de Banco de Dados
+### 3. Cadastro Manual Falha com Erro de Banco de Dados
 
 *   **Causa:** Conflitos na criação de usuários entre a lógica da aplicação e os `triggers` do banco de dados, ou restrições de chave estrangeira incorretas.
 *   **Solução:**
@@ -188,7 +197,7 @@ Durante a configuração e desenvolvimento, você pode encontrar alguns problema
     *   As restrições de chave estrangeira conflitantes foram removidas do script `docs/database_schema.sql`.
     *   **Se você encontrar erros, a primeira etapa é sempre re-executar o script `docs/database_schema.sql` completo no seu SQL Editor do Supabase para garantir que a estrutura mais recente e correta esteja em vigor.**
 
-### 3. Build no Netlify Falha
+### 4. Build no Netlify Falha
 
 *   **Causas Comuns:** Variáveis de ambiente ausentes no Netlify, erros de runtime (Edge vs. Node.js), ou `useSearchParams()` sem um `<Suspense>`.
 *   **Soluções:**
