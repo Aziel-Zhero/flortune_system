@@ -1,4 +1,3 @@
-
 // src/app/terms/page.tsx
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

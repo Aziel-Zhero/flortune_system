@@ -1,4 +1,3 @@
-
 // src/app/policy/page.tsx
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,7 +75,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h3 className="font-semibold text-foreground">4. Segurança dos Dados</h3>
               <p>
-                A segurança dos seus dados é de extrema importância para nós. Usamos medidas de segurança padrão da indústria, incluindo criptografia e as melhores práticas fornecidas por nossos parceiros tecnológicos como o NextAuth.js e Supabase, para proteger suas informações. No entanto, lembre-se de que nenhum método de transmissão pela Internet ou método de armazenamento eletrônico é 100% seguro.
+                A segurança dos seus dados é de extrema importância para nós. Usamos medidas de segurança padrão da indústria, incluindo criptografia e as melhores práticas fornecidas por nossos parceiros tecnológicos como o Supabase, para proteger suas informações. No entanto, lembre-se de que nenhum método de transmissão pela Internet ou método de armazenamento eletrônico é 100% seguro.
               </p>
             </section>
 

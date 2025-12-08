@@ -143,6 +143,16 @@ export default function LandingPage() {
   const { session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
+  // Fallback seguro para garantir que o objeto não seja nulo no servidor
+  const safeLandingPageContent = landingPageContent || {
+    heroTitle: "",
+    heroDescription: "",
+    heroImageUrl: "",
+    ctaTitle: "",
+    ctaDescription: "",
+    ctaButtonText: ""
+  };
+
   const getCampaignProps = () => {
     switch (activeCampaignTheme) {
       case 'black-friday':
@@ -249,15 +259,15 @@ export default function LandingPage() {
         </header>
         <main className="container mx-auto px-4 md:px-8">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
-            <h1 ref={heroTitleRef} className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0">{landingPageContent.heroTitle}</h1>
-            <p ref={heroParagraphRef} className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto opacity-0">{landingPageContent.heroDescription}</p>
+            <h1 ref={heroTitleRef} className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0">{safeLandingPageContent.heroTitle}</h1>
+            <p ref={heroParagraphRef} className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto opacity-0">{safeLandingPageContent.heroDescription}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
               <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
               <Link href="/dashboard" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-foreground border-foreground/50 hover:bg-foreground/10 hover:text-foreground")}>Acessar Painel (Demo)</Link>
             </div>
             <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0">
               <Image 
-                src={landingPageContent.heroImageUrl} 
+                src={safeLandingPageContent.heroImageUrl} 
                 alt="Flortune App Mockup" 
                 width={800} 
                 height={450} 
@@ -334,9 +344,9 @@ export default function LandingPage() {
 
           <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
               <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">{landingPageContent.ctaTitle}</h2>
-                <p className="text-foreground/80 mb-8">{landingPageContent.ctaDescription}</p>
-                <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>{landingPageContent.ctaButtonText}</Link>
+                <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">{safeLandingPageContent.ctaTitle}</h2>
+                <p className="text-foreground/80 mb-8">{safeLandingPageContent.ctaDescription}</p>
+                <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>{safeLandingPageContent.ctaButtonText}</Link>
               </div>
           </section>
         </main>
@@ -347,8 +357,6 @@ export default function LandingPage() {
                 <Link href="/terms" className="hover:text-foreground/80 px-2">Termos de Serviço</Link>
                 <span className="px-1">|</span>
                 <Link href="/policy" className="hover:text-foreground/80 px-2">Política de Privacidade</Link>
-                <span className="px-1">|</span>
-                <Link href="/login-admin" className="hover:text-foreground/80 px-2">Admin</Link>
             </nav>
           </div>
         </footer>
