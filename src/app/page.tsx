@@ -140,7 +140,7 @@ const ReviewCard: FC<(typeof mockReviews)[0]> = ({ quote, author, role, avatar, 
 
 
 export default function LandingPage() {
-  const { session } = useSession();
+  const { data: session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
   // Fallback seguro para garantir que o objeto não seja nulo no servidor
@@ -263,7 +263,6 @@ export default function LandingPage() {
             <p ref={heroParagraphRef} className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto opacity-0">{safeLandingPageContent.heroDescription}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
               <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
-              <Link href="/dashboard" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), "text-foreground border-foreground/50 hover:bg-foreground/10 hover:text-foreground")}>Acessar Painel (Demo)</Link>
             </div>
             <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0">
               <Image 
