@@ -137,7 +137,7 @@ export default function AnalysisPage() {
     setIsLoading(true);
     const { data, error } = await getTransactions(session.user.id);
     if (error) {
-      toast({ title: "Erro ao buscar dados", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao buscar dados", description: error, variant: "destructive" });
     } else {
       setTransactions(data || []);
     }
