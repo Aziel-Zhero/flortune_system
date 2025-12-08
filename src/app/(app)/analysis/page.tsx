@@ -162,7 +162,7 @@ export default function AnalysisPage() {
     const monthlyEvolutionMap = new Map<string, { Receitas: number; Despesas: number }>();
     for (let i = 11; i >= 0; i--) {
         const date = new Date(now.getUTCFullYear(), now.getUTCMonth() - i, 1);
-        const monthKey = `${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
+        const monthKey = `${'' + (date.getUTCMonth() + 1)}/${date.getUTCFullYear()}`;
         monthlyEvolutionMap.set(monthKey, { Receitas: 0, Despesas: 0 });
     }
 
@@ -177,7 +177,7 @@ export default function AnalysisPage() {
     for(const tx of transactions) { // Monthly evolution uses all transactions
         if(!tx.date) continue;
         const txDate = new Date(tx.date + 'T00:00:00Z');
-        const monthKey = `${txDate.getUTCMonth() + 1}/${txDate.getUTCFullYear()}`;
+        const monthKey = `${'' + (txDate.getUTCMonth() + 1)}/${txDate.getUTCFullYear()}`;
         const monthData = monthlyEvolutionMap.get(monthKey);
         if (monthData) {
             if(tx.type === 'income') monthData.Receitas += tx.amount;
@@ -289,7 +289,7 @@ export default function AnalysisPage() {
                                   </defs>
                                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                                   <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={-45} textAnchor="end" height={80} dy={10} tick={{ fontSize: '0.65rem' }} />
-                                  <YAxis tickFormatter={(value) => `R$${Number(value / 1000).toFixed(0)}k`} tick={{ fontSize: '0.65rem' }} tickLine={false} axisLine={false} tickMargin={5} dx={-5} width={60} />
+                                  <YAxis tickFormatter={(value) => `R$${(Number(value) / 1000).toFixed(0)}k`} tick={{ fontSize: '0.65rem' }} tickLine={false} axisLine={false} tickMargin={5} dx={-5} width={60} />
                                   <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
                                   <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
                                   <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitasEvolution)" stackId="1" name="Receitas" />

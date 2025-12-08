@@ -21,7 +21,7 @@ import { BudgetForm } from "./budget-form";
 import { useSession } from "@/contexts/auth-context";
 
 // MOCK FUNCTIONS to be replaced with real API calls
-async function getBudgets(userId: string): Promise<{ data: Budget[], error: null | Error }> {
+async function getBudgets(userId: string): Promise<{ data: Budget[], error: null | string }> {
   console.log("Fetching budgets for user:", userId);
   // Em um app real, aqui viria a chamada ao Supabase
   await new Promise(resolve => setTimeout(resolve, 500));
@@ -29,7 +29,7 @@ async function getBudgets(userId: string): Promise<{ data: Budget[], error: null
   return { data: [], error: null };
 }
 
-async function deleteBudget(budgetId: string): Promise<{ error: null | Error }> {
+async function deleteBudget(budgetId: string): Promise<{ error: null | string }> {
     console.log(`Deleting budget: ${budgetId}`);
     await new Promise(resolve => setTimeout(resolve, 300));
     return { error: null };
@@ -53,7 +53,7 @@ export default function BudgetsPage() {
     setIsLoading(true);
     const { data, error } = await getBudgets(session.user.id);
     if (error) {
-      toast({ title: "Erro ao carregar orçamentos", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao carregar orçamentos", description: error, variant: "destructive" });
     } else {
       setCurrentBudgets(data || []);
     }
@@ -78,7 +78,7 @@ export default function BudgetsPage() {
       
       const { error } = await deleteBudget(deleteDialog.item.id);
       if(error) {
-        toast({ title: "Erro ao deletar", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao deletar", description: error, variant: "destructive" });
         setCurrentBudgets(originalBudgets); // Reverte a UI em caso de erro
       } else {
         toast({ title: "Orçamento Deletado!", description: `O orçamento para "${deleteDialog.item.name}" foi removido.` });

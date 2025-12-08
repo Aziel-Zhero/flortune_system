@@ -62,12 +62,12 @@ export default function GoalsPage() {
     try {
       const { data, error } = await getFinancialGoals(user.id);
       if (error) {
-        toast({ title: "Erro ao buscar metas", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao buscar metas", description: error, variant: "destructive" });
         setCurrentGoals([]);
       } else {
         setCurrentGoals(Array.isArray(data) ? data : []);
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar as metas.", variant: "destructive" });
       setCurrentGoals([]);
     } finally {
