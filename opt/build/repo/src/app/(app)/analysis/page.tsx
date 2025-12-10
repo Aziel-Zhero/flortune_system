@@ -137,7 +137,7 @@ export default function AnalysisPage() {
     setIsLoading(true);
     const { data, error } = await getTransactions(session.user.id);
     if (error) {
-      toast({ title: "Erro ao buscar dados", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao buscar dados", description: error, variant: "destructive" });
     } else {
       setTransactions(data || []);
     }
@@ -289,7 +289,7 @@ export default function AnalysisPage() {
                                   </defs>
                                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                                   <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} interval={0} angle={-45} textAnchor="end" height={80} dy={10} tick={{ fontSize: '0.65rem' }} />
-                                  <YAxis tickFormatter={(value) => `R$${Number(value / 1000).toFixed(0)}k`} tick={{ fontSize: '0.65rem' }} tickLine={false} axisLine={false} tickMargin={5} dx={-5} width={60} />
+                                  <YAxis tickFormatter={(value) => `R$${(Number(value) / 1000).toFixed(0)}k`} tick={{ fontSize: '0.65rem' }} tickLine={false} axisLine={false} tickMargin={5} dx={-5} width={60} />
                                   <ChartTooltip cursor={false} content={<RealDataCustomTooltip />} />
                                   <Legend verticalAlign="top" wrapperStyle={{paddingBottom: '15px', fontSize: '12px', paddingTop: '5px'}}/>
                                   <Area type="monotone" dataKey="Receitas" stroke="var(--color-Receitas)" fillOpacity={1} fill="url(#fillReceitasEvolution)" stackId="1" name="Receitas" />

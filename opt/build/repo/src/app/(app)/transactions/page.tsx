@@ -80,12 +80,12 @@ export default function TransactionsPage() {
       const transactionsRes = await getTransactions(user.id);
 
       if (transactionsRes.error) {
-        toast({ title: "Erro ao buscar transações", description: transactionsRes.error.message, variant: "destructive" });
+        toast({ title: "Erro ao buscar transações", description: transactionsRes.error, variant: "destructive" });
         setTransactions([]);
       } else {
         setTransactions(Array.isArray(transactionsRes.data) ? transactionsRes.data : []);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar os dados da página.", variant: "destructive" });
       setTransactions([]);
     } finally {
