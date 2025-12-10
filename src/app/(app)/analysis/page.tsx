@@ -162,7 +162,7 @@ export default function AnalysisPage() {
     const monthlyEvolutionMap = new Map<string, { Receitas: number; Despesas: number }>();
     for (let i = 11; i >= 0; i--) {
         const date = new Date(now.getUTCFullYear(), now.getUTCMonth() - i, 1);
-        const monthKey = `${'${date.getUTCMonth() + 1}'}/${date.getUTCFullYear()}`;
+        const monthKey = `${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
         monthlyEvolutionMap.set(monthKey, { Receitas: 0, Despesas: 0 });
     }
 
@@ -177,7 +177,7 @@ export default function AnalysisPage() {
     for(const tx of transactions) { // Monthly evolution uses all transactions
         if(!tx.date) continue;
         const txDate = new Date(tx.date + 'T00:00:00Z');
-        const monthKey = `${'${txDate.getUTCMonth() + 1}'}/${txDate.getUTCFullYear()}`;
+        const monthKey = `${txDate.getUTCMonth() + 1}/${txDate.getUTCFullYear()}`;
         const monthData = monthlyEvolutionMap.get(monthKey);
         if (monthData) {
             if(tx.type === 'income') monthData.Receitas += tx.amount;
@@ -207,7 +207,7 @@ export default function AnalysisPage() {
           const [m, y] = month.split('/');
           const shortYear = y.substring(2);
           const monthName = new Date(Number(y), Number(m)-1, 1).toLocaleString('pt-BR', { month: 'short' });
-          return { month: `${'${monthName}'}/${shortYear}`, ...data };
+          return { month: `${monthName}/${shortYear}`, ...data };
       }),
     };
   }, [transactions, timePeriod]);
@@ -268,7 +268,7 @@ export default function AnalysisPage() {
                 <CardContent className="h-80 sm:h-96">
                   <ScrollArea className="h-full pr-2">
                     {finalIsLoading ? Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-10 mb-2" />) : topExpenses.length === 0 ? (<div className="flex items-center justify-center h-full text-muted-foreground text-sm">Nenhuma despesa.</div>) : (
-                      <Table size="sm">
+                      <Table>
                           <TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
                           <TableBody>{topExpenses.map(tx => (<TableRow key={tx.id}><TableCell className="font-medium text-xs break-words max-w-[150px] sm:max-w-none" title={tx.description}>{tx.description}<br/><span className="text-muted-foreground text-[10px]">{tx.categoryName} - {tx.date}</span></TableCell><TableCell className="text-right text-xs"><PrivateValue value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="text-destructive/80" /></TableCell></TableRow>))}</TableBody>
                       </Table>
