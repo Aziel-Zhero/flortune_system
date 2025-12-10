@@ -3,10 +3,10 @@
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, BrainCircuit } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -67,6 +67,53 @@ const PieCustomTooltip = ({ active, payload }: any) => {
   }
   return null;
 };
+
+function SmartSuggestionCard() {
+  const [suggestion, setSuggestion] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fullText = 'Você gastou R$ 120,00 com café este mês. Que tal tentar reduzir para R$ 80,00 preparando mais em casa?';
+
+  const handleGenerate = () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setSuggestion("");
+
+    let i = 0;
+    const interval = setInterval(() => {
+      setSuggestion(prev => prev + fullText[i]);
+      i++;
+      if (i >= fullText.length) {
+        clearInterval(interval);
+        setIsGenerating(false);
+      }
+    }, 25);
+  };
+  
+  return (
+      <Card className="shadow-lg bg-card/50 backdrop-blur-sm border-border/30 overflow-hidden">
+        <CardHeader>
+          <CardTitle className="font-headline text-primary flex items-center gap-2">
+            <BrainCircuit className="h-6 w-6" />
+            Sugestões da IA
+          </CardTitle>
+          <CardDescription>Receba insights para otimizar suas finanças.</CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-[100px] flex items-center justify-center">
+            {suggestion ? (
+                <p className="text-sm text-foreground/90 font-medium">“{suggestion}”</p>
+            ) : (
+                <p className="text-sm text-muted-foreground italic">Clique em "Gerar Sugestão" para ver um exemplo.</p>
+            )}
+        </CardContent>
+        <CardFooter>
+            <Button className="w-full" onClick={handleGenerate} disabled={isGenerating}>
+                {isGenerating ? "Analisando..." : "Gerar Sugestão (Exemplo)"}
+            </Button>
+        </CardFooter>
+      </Card>
+  );
+}
+
 
 export default function DashboardPage() {
   const { session, isLoading: authIsLoading, update: updateSession } = useSession();
@@ -490,21 +537,7 @@ export default function DashboardPage() {
         </div>
         
         <motion.div custom={12} variants={cardVariants} initial="hidden" animate="visible">
-        <Card className="shadow-sm bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30">
-          <CardHeader>
-              <CardTitle className="font-headline text-primary flex items-center">
-                  <Sprout className="mr-2 h-6 w-6"/>
-                  Sugestões Inteligentes (Em Breve)
-              </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-              <p className="text-sm text-foreground/80">Em breve, o Flortune usará IA para analisar seus padrões e oferecer dicas personalizadas para otimizar suas finanças!</p>
-              <p className="text-sm text-foreground/80">Ex: "Você gastou <PrivateValue value="R$120" className="font-semibold"/> em café este mês. Considere preparar em casa para economizar!"</p>
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={() => toast({ title: "Funcionalidade Futura", description: "Insights com IA estarão disponíveis em breve." })} disabled>
-                  Ver Todos os Insights
-                </Button>
-          </CardContent>
-        </Card>
+            <SmartSuggestionCard />
         </motion.div>
       </div>
 
