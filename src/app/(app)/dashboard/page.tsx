@@ -1,3 +1,4 @@
+
 // src/app/(app)/dashboard/page.tsx
 
 "use client";
@@ -59,7 +60,7 @@ const PieCustomTooltip = ({ active, payload }: any) => {
     const data = payload[0].payload;
     return (
       <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
-        <p className="text-sm font-medium" style={{color: data.fill}}>{`${data.name}`}</p>
+        <p className="text-sm font-medium" style={{color: data.fill}}>{data.name}</p>
         <p className="text-xs text-foreground">{`Valor: ${data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
         <p className="text-xs text-muted-foreground">{`(${(payload[0].percent * 100).toFixed(2)}%)`}</p>
       </div>
@@ -161,7 +162,9 @@ export default function DashboardPage() {
     } else {
          toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
         // Update session context with the new profile data
-        await updateSession({ ...session, user: { ...session?.user, profile: updatedProfile as Profile } as any });
+        if(session) {
+          await updateSession({ ...session, user: { ...session?.user, profile: updatedProfile as Profile } as any });
+        }
     }
   }
 
@@ -248,7 +251,7 @@ export default function DashboardPage() {
     } finally {
       setTransactionsLoading(false);
     }
-  }, [user]);
+  }, [user, updateSession, session]);
 
   useEffect(() => {
     document.title = `Painel - ${APP_NAME}`;
@@ -568,3 +571,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
