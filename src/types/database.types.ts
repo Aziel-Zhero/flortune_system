@@ -6,6 +6,7 @@ export interface Profile {
   email: string; // Unique
   avatar_url?: string | null;
   account_type?: 'pessoa' | 'empresa' | null;
+  phone?: string | null;
   cpf_cnpj?: string | null; // Unique
   rg?: string | null;
   plan_id?: string;
