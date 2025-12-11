@@ -60,9 +60,9 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
 };
 
 export default function TransactionsPage() {
-  const { data: session, status: authStatus } = useSession(); 
+  const { session, status: authStatus } = useSession(); 
   const authLoading = authStatus === "loading";
-  const user = session?.user; 
+  const user = session?.user;
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
