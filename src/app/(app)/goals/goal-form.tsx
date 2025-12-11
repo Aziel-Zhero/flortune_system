@@ -83,6 +83,7 @@ interface FinancialGoalFormProps {
 
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
+
   const { session, isLoading: isAuthLoading } = useSession();
   const user = session?.user;
 
