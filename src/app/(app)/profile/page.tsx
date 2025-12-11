@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const { session, isLoading, update } = useSession();
@@ -115,10 +115,10 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile) {
-         if (!session || !session.user) {
+        // Correção aqui: Garantindo que o user existe antes de atualizar
+        if (!session || !session.user) {
           throw new Error("Sessão ou usuário inválido.");
         }
-        // Corrigindo a atualização da sessão para evitar erros de tipo
         await update({
           user: { ...session.user, profile: updatedProfile as Profile },
         });

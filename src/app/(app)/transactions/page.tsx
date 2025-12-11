@@ -60,8 +60,8 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
 };
 
 export default function TransactionsPage() {
-  const { session, isLoading: authLoading } = useSession(); 
-  const user = session?.user; 
+  const { session, isLoading: authLoading } = useSession();
+  const user = session?.user;
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +94,7 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user?.id && !authLoading) { 
+    if (user?.id && !authLoading) {
       fetchPageData();
     } else if (!authLoading && !user?.id) {
       setIsLoading(false);
@@ -109,7 +109,7 @@ export default function TransactionsPage() {
   const handleConfirmDelete = async () => {
     if (deleteDialog.item) {
       const originalTransactions = [...transactions];
-      setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
+      setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!));
 
       const { error } = await deleteTransaction(deleteDialog.item.id);
       if (error) {
@@ -118,7 +118,7 @@ export default function TransactionsPage() {
           description: error || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
           variant: "destructive",
         });
-        setTransactions(originalTransactions); 
+        setTransactions(originalTransactions);
       } else {
         toast({
           title: "Transação Deletada",
