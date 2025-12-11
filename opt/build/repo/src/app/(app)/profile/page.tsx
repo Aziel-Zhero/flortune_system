@@ -1,4 +1,3 @@
-
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -82,7 +81,6 @@ export default function ProfilePage() {
     try {
       let publicAvatarUrl = profileFromSession?.avatar_url;
 
-      // Se um novo arquivo de avatar foi selecionado, faça o upload
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const filePath = `${userFromSession.id}/avatar.${fileExt}`;
@@ -118,11 +116,10 @@ export default function ProfilePage() {
 
       if (updatedProfile) {
         await update({
-          ...session, 
-          user: { ...session?.user, profile: updatedProfile as Profile },
+          user: { profile: updatedProfile as Profile },
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas.", action: <CheckSquare className="text-green-500"/> });
-        setAvatarFile(null); // Limpa o arquivo após o sucesso
+        setAvatarFile(null);
       }
     } catch (error: any) {
       console.error("Error saving profile:", error);
