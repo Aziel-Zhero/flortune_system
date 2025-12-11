@@ -107,7 +107,7 @@ export default function TransactionsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item) { 
+    if (deleteDialog.item && user?.id) { 
       const originalTransactions = [...transactions];
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
 
