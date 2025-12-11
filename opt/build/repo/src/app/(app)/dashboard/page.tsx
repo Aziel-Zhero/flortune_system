@@ -1,232 +1,532 @@
+// src/app/(app)/dashboard/page.tsx
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { PageHeader } from "@/components/shared/page-header";
+import { PrivateValue } from "@/components/shared/private-value";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, BrainCircuit } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Sprout, BarChart } from "lucide-react";
-import { getTransactions } from "@/lib/data/get-transactions";
-import { getCategories } from "@/lib/data/get-categories";
-import { ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { ChartContainer } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 import { cn } from "@/lib/utils";
-import { PrivateValue } from "@/components/private-value";
-import { SmartSuggestionCard } from "@/components/smart-suggestion-card";
+import { APP_NAME } from "@/lib/constants";
+import { toast } from "@/hooks/use-toast";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useSession } from "@/contexts/auth-context";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getTransactions } from "@/services/transaction.service";
+import { getFinancialGoals } from "@/services/goal.service";
+import type { Transaction, FinancialGoal, Profile } from "@/types/database.types";
+import { motion } from "framer-motion";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { PieCustomTooltip } from "@/components/charts/pie-custom-tooltip";
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"; 
+import { useAppSettings } from "@/contexts/app-settings-context";
+import type { QuoteData } from "@/types/database.types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase/client";
+
+// Estes componentes não existem, foram removidos
+// import { SmartSuggestionCard } from "@/components/smart-suggestion-card";
+// import { PieCustomTooltip } from "@/components/charts/pie-custom-tooltip";
+
+
+interface SummaryData {
+  title: string;
+  value: number | null;
+  icon: React.ElementType;
+  trend?: string | null;
+  trendColor?: string;
+  unit?: string;
+  isLoading: boolean;
+}
+
+interface SpendingCategoryChartData {
+  name: string;
+  value: number;
+  fill: string;
+}
+
+const chartColors = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
+const PieCustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length && payload[0] && payload[0].payload) {
+    const data = payload[0].payload;
+    return (
+      <div className="p-2 bg-background/80 border border-border rounded-md shadow-lg">
+        <p className="text-sm font-medium" style={{color: data.fill}}>{data.name}</p>
+        <p className="text-xs text-foreground">{`Valor: ${data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
+        <p className="text-xs text-muted-foreground">{`(${(payload[0].percent * 100).toFixed(2)}%)`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+function SmartSuggestionCard() {
+  const [suggestion, setSuggestion] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fullText = 'Você gastou R$ 120,00 com café este mês. Que tal tentar reduzir para R$ 80,00 preparando mais em casa?';
+
+  const handleGenerate = () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setSuggestion("");
+
+    let i = 0;
+    const interval = setInterval(() => {
+      setSuggestion(prev => prev + fullText[i]);
+      i++;
+      if (i >= fullText.length) {
+        clearInterval(interval);
+        setIsGenerating(false);
+      }
+    }, 25);
+  };
+  
+  return (
+      <Card className="shadow-lg bg-card/50 backdrop-blur-sm border-border/30 overflow-hidden">
+        <CardHeader>
+          <CardTitle className="font-headline text-primary flex items-center gap-2">
+            <BrainCircuit className="h-6 w-6" />
+            Sugestões da IA
+          </CardTitle>
+          <CardDescription>Receba insights para otimizar suas finanças.</CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-[100px] flex items-center justify-center">
+            {suggestion ? (
+                <p className="text-sm text-foreground/90 font-medium">“{suggestion}”</p>
+            ) : (
+                <p className="text-sm text-muted-foreground italic">Clique em "Gerar Sugestão" para ver um exemplo.</p>
+            )}
+        </CardContent>
+        <CardFooter>
+            <Button className="w-full" onClick={handleGenerate} disabled={isGenerating}>
+                {isGenerating ? "Analisando..." : "Gerar Sugestão (Exemplo)"}
+            </Button>
+        </CardFooter>
+      </Card>
+  );
+}
+
 
 export default function DashboardPage() {
-  const mockUserId = "demo";
-  const [transactions, setTransactions] = useState([]);
+  const { session, isLoading: authIsLoading, update: updateSession } = useSession();
+  const user = session?.user;
+  const profile = user?.profile;
+
+  const { quotes, isLoadingQuotes } = useAppSettings();
+
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [categories, setCategories] = useState([]);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
-
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  useEffect(() => {
-    async function fetchData() {
-      const { data, error } = await getTransactions(mockUserId, { limit: 5 });
-
-      if (!error && data) {
-        setTransactions(data);
-      }
-      setTransactionsLoading(false);
-
-      const categoriesResult = await getCategories(mockUserId);
-      if (!categoriesResult.error && categoriesResult.data) {
-        setCategories(categoriesResult.data);
-      }
-    }
-
-    fetchData();
-  }, []);
+  
+  const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
+    { title: "Saldo Total", value: null, icon: DollarSign, trend: null, trendColor: "text-muted-foreground", isLoading: true },
+    { title: "Receitas Este Mês", value: null, icon: TrendingUp, trend: null, trendColor: "text-emerald-500", isLoading: true },
+    { title: "Despesas Este Mês", value: null, icon: CreditCard, trend: null, trendColor: "text-red-500", isLoading: true },
+    { title: "Balanço Recorrente", value: null, icon: Repeat, trend: null, trendColor: "text-blue-500", isLoading: true },
+    { title: "Meta Principal", value: null, icon: PiggyBank, unit: "%", trend: "Nenhuma meta ativa", trendColor: "text-emerald-500", isLoading: true },
+  ]);
 
   useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem("hasSeenWelcome");
-    if (!hasSeenWelcome) {
+    if (profile && profile.has_seen_welcome_message === false) {
       setIsWelcomeOpen(true);
-      localStorage.setItem("hasSeenWelcome", "true");
     }
-  }, []);
+  }, [profile]);
 
-  const handleDismissWelcome = () => setIsWelcomeOpen(false);
+  const handleDismissWelcome = async () => {
+    if (!user?.id || !supabase) return;
+    
+    // Optimistic UI update
+    setIsWelcomeOpen(false);
 
-  const monthlySpendingByCategory = categories
-    .filter((c) => c.type === "expense")
-    .map((c) => ({
-      name: c.name,
-      value:
-        transactions
-          .filter((t) => t.categoryId === c.id && t.type === "expense")
-          .reduce((acc, cur) => acc + Number(cur.amount), 0) || 0,
-      fill: c.color ?? "#8884d8",
-    }))
-    .filter((item) => item.value > 0);
+    // Update database
+    const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update({ has_seen_welcome_message: true })
+        .eq('id', user.id)
+        .select()
+        .single();
+    
+    if (error) {
+        toast({ title: "Erro", description: "Não foi possível salvar sua preferência.", variant: "destructive"});
+        // Revert UI if update fails
+        setIsWelcomeOpen(true);
+    } else {
+         toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
+        // Update session context with the new profile data
+        if(session) {
+          await updateSession({ ...session, user: { ...session?.user, profile: updatedProfile as Profile } as any });
+        }
+    }
+  }
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!user?.id) {
+        setTransactionsLoading(false);
+        setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: false, value: s.title.includes("Saldo") ? 0 : null })));
+        setAllTransactions([]);
+        return;
+    }
+
+    setTransactionsLoading(true);
+    setSummaryValues(prev => prev.map(s => ({ ...s, isLoading: true })));
+
+    try {
+      const [transactionsRes, goalsRes] = await Promise.all([
+        getTransactions(user.id),
+        getFinancialGoals(user.id)
+      ]);
+      
+      const currentTransactions = Array.isArray(transactionsRes.data) ? transactionsRes.data : [];
+      setAllTransactions(currentTransactions);
+      
+      let totalIncome = 0;
+      let totalExpenses = 0;
+      let recurringIncome = 0;
+      let recurringExpenses = 0;
+      let totalBalance = 0;
+      const currentMonth = new Date().getUTCMonth();
+      const currentYear = new Date().getUTCFullYear();
+
+      currentTransactions.forEach(tx => {
+        if (tx.type === 'income') {
+            totalBalance += tx.amount;
+        } else if (tx.type === 'expense') {
+            totalBalance -= tx.amount;
+        }
+
+        if (!tx.date || typeof tx.date !== 'string') return;
+        try {
+            const txDate = new Date(tx.date + 'T00:00:00Z');
+            if (isNaN(txDate.getTime())) return;
+
+            if (tx.is_recurring) {
+              if (tx.type === 'income') recurringIncome += tx.amount;
+              else if (tx.type === 'expense') recurringExpenses += tx.amount;
+            }
+
+            if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+              if (tx.type === 'income' && typeof tx.amount === 'number') totalIncome += tx.amount;
+              else if (tx.type === 'expense' && typeof tx.amount === 'number') totalExpenses += tx.amount;
+            }
+        } catch(e) {
+            console.error("Error processing transaction for summary: ", tx, e);
+        }
+      });
+      
+      const recurringBalance = recurringIncome - recurringExpenses;
+
+      let primaryGoalProgress: number | null = null;
+      let primaryGoalTrend: string | null = "Nenhuma meta ativa";
+      if (!goalsRes.error && goalsRes.data && goalsRes.data.length > 0) {
+        const inProgressGoals = goalsRes.data.filter(g => g.status === 'in_progress');
+        if (inProgressGoals.length > 0) {
+            const primaryGoal = inProgressGoals.sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]; 
+            if (primaryGoal.target_amount > 0) {
+                 primaryGoalProgress = Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100);
+                 primaryGoalTrend = `Meta: "${primaryGoal.name}"`;
+            }
+        }
+      }
+      
+      setSummaryValues([
+        { title: "Saldo Total", value: totalBalance, icon: DollarSign, trend: totalBalance >= 0 ? "Positivo" : "Negativo", trendColor: totalBalance >= 0 ? "text-emerald-500" : "text-destructive", isLoading: false },
+        { title: "Receitas Este Mês", value: totalIncome, icon: TrendingUp, trend: totalIncome > 0 ? "Ver Detalhes" : "Nenhuma receita", trendColor: "text-emerald-500", isLoading: false },
+        { title: "Despesas Este Mês", value: totalExpenses, icon: CreditCard, trend: totalExpenses > 0 ? "Ver Detalhes": "Nenhuma despesa", trendColor: "text-red-500", isLoading: false },
+        { title: "Balanço Recorrente", value: recurringBalance, icon: Repeat, trend: recurringBalance > 0 ? "Saldo Positivo" : (recurringBalance < 0 ? "Saldo Negativo" : "Saldo Neutro"), trendColor: recurringBalance > 0 ? "text-emerald-500" : (recurringBalance < 0 ? "text-destructive" : "text-muted-foreground"), isLoading: false },
+        { title: "Meta Principal", value: primaryGoalProgress, icon: PiggyBank, unit: "%", trend: primaryGoalTrend, trendColor: "text-emerald-500", isLoading: false },
+      ]);
+
+    } catch (error) {
+      console.error("Failed to fetch dashboard data", error);
+      toast({ title: "Erro de Dados", description: "Não foi possível carregar todos os dados do painel.", variant: "destructive" });
+    } finally {
+      setTransactionsLoading(false);
+    }
+  }, [user, updateSession, session]);
+
+  useEffect(() => {
+    document.title = `Painel - ${APP_NAME}`;
+    if (user?.id && !authIsLoading) {
+      fetchDashboardData();
+    } else if (!authIsLoading && !user?.id) {
+      setAllTransactions([]);
+      setSummaryValues(prev => prev.map(s => ({ ...s, value: null, isLoading: false })));
+      setTransactionsLoading(false);
+    }
+  }, [user, authIsLoading, fetchDashboardData]);
+
+  const recentTransactions = useMemo(() => {
+    if (!Array.isArray(allTransactions)) return [];
+    return allTransactions.slice(0, 4);
+  }, [allTransactions]);
+
+  const monthlySpendingByCategory = useMemo((): SpendingCategoryChartData[] => {
+    if (transactionsLoading || !Array.isArray(allTransactions) || allTransactions.length === 0) return [];
+    const spendingMap = new Map<string, number>();
+    const currentMonth = new Date().getUTCMonth();
+    const currentYear = new Date().getUTCFullYear();
+
+    allTransactions.forEach(tx => {
+      if (!tx.date || typeof tx.date !== 'string') return;
+      try {
+        const txDate = new Date(tx.date + 'T00:00:00Z');
+        if (isNaN(txDate.getTime())) return;
+
+        if (txDate.getUTCMonth() === currentMonth && txDate.getUTCFullYear() === currentYear) {
+          if (tx.type === 'expense' && typeof tx.amount === 'number' && tx.amount > 0 && tx.category) {
+            const categoryName = tx.category.name;
+            spendingMap.set(categoryName, (spendingMap.get(categoryName) || 0) + tx.amount);
+          }
+        }
+      } catch (e) {
+        console.error("Error processing transaction for chart:", tx, e);
+      }
+    });
+    return Array.from(spendingMap, ([name, value], index) => ({ name, value, fill: chartColors[index % chartColors.length] }))
+           .sort((a,b) => b.value - a.value);
+  }, [allTransactions, transactionsLoading]);
+
+
+  const welcomeName = profile?.display_name || profile?.full_name?.split(" ")[0] || session?.user?.email?.split('@')[0] || "Usuário";
 
   const cardVariants = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({
       opacity: 1,
       y: 0,
-      transition: { delay: i * 0.07, duration: 0.4 },
+      transition: { delay: i * 0.1, type: "spring", stiffness: 100 },
     }),
   };
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    setTimeout(() => setIsGenerating(false), 1500);
-  };
+  
+  if (authIsLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title={`Bem-vindo(a) de volta!`}
+          description="Aqui está seu resumo financeiro para este mês."
+           actions={<Skeleton className="h-10 w-36 rounded-md" />}
+        />
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          {Array(5).fill(0).map((_, index) => (
+            <Card key={index} className="shadow-sm h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-1/2 mb-1" />
+                <Skeleton className="h-3 w-1/4" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-1"/>
+              <Skeleton className="h-4 w-3/4"/>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {Array(3).fill(0).map((_, index) => (
+                <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-b-0">
+                  <div>
+                    <Skeleton className="h-5 w-32 mb-1" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-5 w-20" />
+                </div>
+              ))}
+               <Skeleton className="h-10 w-full mt-4" />
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-1"/>
+              <Skeleton className="h-4 w-3/4"/>
+            </CardHeader>
+            <CardContent className="h-64 flex items-center justify-center">
+              <Skeleton className="w-full h-[200px] md:w-[300px]" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!session) { 
+    return null;
+  }
 
   return (
     <>
-      <div className="flex flex-col gap-6 relative">
-        <motion.h1
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="font-headline font-semibold text-3xl tracking-tight"
-        >
-          Dashboard
-        </motion.h1>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title={`Bem-vindo(a) de volta, ${welcomeName}!`}
+          description="Aqui está seu resumo financeiro."
+          actions={
+            <Link 
+              href="/transactions/new" 
+              className={cn(buttonVariants({ variant: "default", size: "default" }))}
+            >
+              <PlusCircle className="mr-2 h-4 w-4"/>
+              Adicionar Transação
+            </Link>
+          }
+        />
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center">
-                  <Sprout className="mr-2 h-5 w-5 text-primary" />
-                  Resumo Rápido
-                </CardTitle>
-                <CardDescription>Veja sua evolução financeira.</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                <p>Total de transações: {transactions.length}</p>
-                <p>Categorias cadastradas: {categories.length}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          {summaryValues.map((item, index) => (
+            <motion.div key={item.title} custom={index} variants={cardVariants} initial="hidden" animate="visible">
+              <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {item.title}
+                  </CardTitle>
+                  <item.icon className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {item.isLoading ? (
+                    <>
+                      <Skeleton className="h-8 w-3/5 mb-1" />
+                      <Skeleton className="h-3 w-2/5" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold font-headline">
+                        {item.value === null || item.value === undefined ? (
+                          item.unit === "%" ? "N/A %" : "N/A"
+                        ) : item.unit === "%" ? (
+                          <span><PrivateValue value={String(item.value.toFixed(0))} />%</span>
+                        ) : (
+                          <span>R$<PrivateValue value={item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span>
+                        )}
+                      </div>
+                      {item.trend && (
+                        <p className={cn("text-xs text-muted-foreground mt-1 truncate", item.trendColor)}>
+                          {item.trend}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+        
+        {(isLoadingQuotes || quotes.length > 0) && (
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+            {(isLoadingQuotes ? Array(5).fill(0) : quotes).map((quote, index) => {
+                const isLoading = quote === 0;
+                const isAvailable = typeof quote === 'object' && quote !== null && 'name' in quote;
 
-          <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center">
-                  <Sprout className="mr-2 h-5 w-5 text-primary" />
-                  Rápida ação
-                </CardTitle>
-                <CardDescription>Crie algo novo rapidamente.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3">
-                  <Button asChild>
-                    <Link href="/transactions/new">Adicionar Transação</Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href="/budgets">Criar Orçamento</Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href="/goals">Criar Meta</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                let pctChange = 0;
+                let isPositive = false;
+                let quoteName = 'Carregando...';
+                let bid = '0';
 
-          <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
-            <Card className="shadow-sm h-full">
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center">
-                  <Sprout className="mr-2 h-5 w-5 text-primary" />
-                  Últimas Transações
-                </CardTitle>
-                <CardDescription>Veja o que aconteceu recentemente.</CardDescription>
-              </CardHeader>
+                if (isAvailable) {
+                    pctChange = quote.pctChange ? parseFloat(quote.pctChange) : 0;
+                    isPositive = pctChange >= 0;
+                    quoteName = quote.name ? quote.name.split('/')[0] : 'Cotação';
+                    bid = quote.bid;
+                }
+                
+                return (
+                  <motion.div key={isLoading ? `skel-quote-${index}` : (isAvailable ? quote.code : `quote-fallback-${index}`)} custom={index + 5} variants={cardVariants} initial="hidden" animate="visible">
+                    <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground truncate">
+                          {isLoading ? <Skeleton className="h-4 w-16" /> : quoteName}
+                        </CardTitle>
+                        {isAvailable && quote.pctChange !== undefined && (
+                          <div className={cn("flex items-center text-xs font-semibold", isPositive ? "text-emerald-500" : "text-destructive")}>
+                              {isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                              {pctChange.toFixed(2)}%
+                          </div>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold font-headline">
+                            {isLoading ? <Skeleton className="h-8 w-24" /> : (isAvailable ? <span>R$<PrivateValue value={parseFloat(bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span> : '—')}
+                          </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+            })}
+          </div>
+        )}
 
-              <CardContent>
-                {transactionsLoading ? (
-                  <Skeleton className="w-full h-[200px]" />
-                ) : transactions.length > 0 ? (
-                  <ul className="space-y-2">
-                    {transactions.map((tx: any) => (
-                      <li
-                        key={tx.id}
-                        className="flex items-center justify-between py-2 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors"
-                      >
-                        <div>
-                          <p className="font-medium text-sm">{tx.description}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(tx.date + "T00:00:00Z").toLocaleDateString("pt-BR")} -{" "}
-                            {tx.category?.name || "Sem Categoria"}
-                          </p>
-                        </div>
-
-                        <PrivateValue
-                          value={tx.amount.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
-                          className={cn(
-                            "font-medium text-sm",
-                            tx.type === "income"
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-red-600 dark:text-red-400"
-                          )}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhuma transação recente encontrada.
-                  </p>
-                )}
-
-                <Button variant="outline" className="mt-4 w-full" asChild>
-                  <Link href="/transactions">Ver Todas as Transações</Link>
-                </Button>
-              </CardContent>
-            </Card>
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          <motion.div custom={10} variants={cardVariants} initial="hidden" animate="visible">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="font-headline">Transações Recentes</CardTitle>
+              <CardDescription>Suas últimas atividades financeiras.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {transactionsLoading ? (
+                Array(4).fill(0).map((_, index) => (
+                  <div key={index} className="flex items-center justify-between py-3 border-b border-border/50 last:border-b-0">
+                    <div>
+                      <Skeleton className="h-5 w-32 mb-1" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                ))
+              ) : recentTransactions.length > 0 ? (
+                <ul className="space-y-1">
+                  {recentTransactions.map((tx) => (
+                    <li key={tx.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors">
+                      <div>
+                        <p className="font-medium text-sm">{tx.description}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(tx.date + 'T00:00:00Z').toLocaleDateString('pt-BR')} - {tx.category?.name || "Sem Categoria"}</p>
+                      </div>
+                      <PrivateValue 
+                        value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                        className={cn("font-medium text-sm", tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma transação recente encontrada.</p>
+              )}
+              <Button variant="outline" className="mt-4 w-full" asChild>
+                <Link href="/transactions">Ver Todas as Transações</Link>
+              </Button>
+            </CardContent>
+          </Card>
           </motion.div>
 
           <motion.div custom={11} variants={cardVariants} initial="hidden" animate="visible">
-            <Card className="shadow-sm h-full">
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center">
-                  <BarChart className="mr-2 h-5 w-5 text-primary" />
-                  Visão Geral de Gastos (Este Mês)
-                </CardTitle>
-                <CardDescription>Suas principais categorias de despesas.</CardDescription>
-              </CardHeader>
-
-              <CardContent className="min-h-[280px] flex items-center justify-center">
-                {transactionsLoading ? (
+          <Card className="shadow-sm h-full">
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Visão Geral de Gastos (Este Mês)</CardTitle>
+              <CardDescription>Suas principais categorias de despesas.</CardDescription>
+            </CardHeader>
+            <CardContent className="min-h-[280px] flex items-center justify-center">
+              {transactionsLoading ? (
                   <Skeleton className="w-full h-[200px]" />
-                ) : monthlySpendingByCategory.length > 0 ? (
+              ): monthlySpendingByCategory.length > 0 ? (
                   <ChartContainer config={{}} className="min-h-[200px] w-full h-64">
                     <PieChart>
                       <RechartsTooltip content={<PieCustomTooltip />} />
-                      <Pie
-                        data={monthlySpendingByCategory}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        labelLine={false}
-                        label={({ name, percent }) =>
-                          name && percent ? `${name} (${(percent * 100).toFixed(0)}%)` : ""
-                        }
-                      >
+                      <Pie data={monthlySpendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} labelLine={false} label={({ name, percent }) => (name && percent ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
                         {monthlySpendingByCategory.map((entry, index) => (
                           <Cell key={`cell-${entry.name}-${index}`} fill={entry.fill} />
                         ))}
@@ -234,63 +534,42 @@ export default function DashboardPage() {
                       <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                     </PieChart>
                   </ChartContainer>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Sem dados de gastos para exibir o gráfico.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+              ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">Sem dados de gastos para exibir o gráfico.</p>
+              )}
+            </CardContent>
+          </Card>
           </motion.div>
         </div>
-
+        
         <motion.div custom={12} variants={cardVariants} initial="hidden" animate="visible">
-          <SmartSuggestionCard />
+            <SmartSuggestionCard />
         </motion.div>
       </div>
 
       <Dialog open={isWelcomeOpen} onOpenChange={setIsWelcomeOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-primary flex items-center text-2xl">
-              <Sprout className="mr-2 h-7 w-7" />
-              Bem-vindo(a) ao Flortune!
-            </DialogTitle>
-
-            <DialogDescription className="pt-2 text-base">
-              Estamos felizes em ter você aqui. Flortune é seu novo parceiro para cultivar um futuro financeiro mais próspero.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4 space-y-3">
-            <h4 className="font-semibold">Primeiros Passos:</h4>
-
-            <ul className="list-disc list-inside text-sm text-foreground/80 space-y-2">
-              <li>
-                Adicione sua primeira transação clicando no botão{" "}
-                <span className="font-bold">Adicionar Transação</span> no topo da página.
-              </li>
-              <li>
-                Crie um orçamento para uma categoria de gastos na página{" "}
-                <Link href="/budgets" className="underline font-medium" onClick={handleDismissWelcome}>
-                  Orçamentos
-                </Link>
-                .
-              </li>
-              <li>
-                Defina sua primeira meta financeira na página{" "}
-                <Link href="/goals" className="underline font-medium" onClick={handleDismissWelcome}>
-                  Metas
-                </Link>
-                .
-              </li>
-            </ul>
-          </div>
-
-          <DialogFooter>
-            <Button onClick={handleDismissWelcome}>Começar a Cultivar!</Button>
-          </DialogFooter>
-        </DialogContent>
+          <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                  <DialogTitle className="font-headline text-primary flex items-center text-2xl">
+                      <Sprout className="mr-2 h-7 w-7"/>
+                      Bem-vindo(a) ao Flortune!
+                  </DialogTitle>
+                  <DialogDescription className="pt-2 text-base">
+                      Estamos felizes em ter você aqui. Flortune é seu novo parceiro para cultivar um futuro financeiro mais próspero.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-3">
+                   <h4 className="font-semibold">Primeiros Passos:</h4>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 space-y-2">
+                        <li>Adicione sua primeira transação clicando no botão <span className="font-bold">Adicionar Transação</span> no topo da página.</li>
+                        <li>Crie um orçamento para uma categoria de gastos na página <Link href="/budgets" className="underline font-medium" onClick={handleDismissWelcome}>Orçamentos</Link>.</li>
+                        <li>Defina sua primeira meta financeira na página <Link href="/goals" className="underline font-medium" onClick={handleDismissWelcome}>Metas</Link>.</li>
+                    </ul>
+              </div>
+              <DialogFooter>
+                  <Button onClick={handleDismissWelcome}>Começar a Cultivar!</Button>
+              </DialogFooter>
+          </DialogContent>
       </Dialog>
     </>
   );
