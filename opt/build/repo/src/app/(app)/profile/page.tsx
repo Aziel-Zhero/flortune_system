@@ -115,12 +115,28 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile) {
+        // 🔒 Garante ao TS que o usuário existe
+        if (!session?.user) {
+          throw new Error("Usuário inválido na sessão.");
+        }
+      
         await update({
-          user: { profile: updatedProfile as Profile },
+          user: {
+            ...session.user,                     // Mantém todos os campos obrigatórios
+            id: session.user.id,                 // Garante que id é string obrigatória
+            profile: updatedProfile as Profile,  // Atualiza apenas o profile
+          }
         });
-        toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas.", action: <CheckSquare className="text-green-500"/> });
+      
+        toast({
+          title: "Perfil Atualizado",
+          description: "Suas informações foram salvas.",
+          action: <CheckSquare className="text-green-500"/>
+        });
+      
         setAvatarFile(null);
       }
+      
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar as alterações.", variant: "destructive" });
