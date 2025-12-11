@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from '@/lib/supabase/client';
 
 export default function ProfilePage() {
   const { session, isLoading, update } = useSession();
@@ -119,9 +119,14 @@ export default function ProfilePage() {
           throw new Error("Sessão ou usuário inválido.");
         }
         await update({
+          ...session,
           user: { ...session.user, profile: updatedProfile as Profile },
         });
-        toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas.", action: <CheckSquare className="text-green-500"/> });
+        toast({
+          title: "Perfil Atualizado",
+          description: "Suas informações foram salvas.",
+          action: <CheckSquare className="text-green-500"/>
+        });
         setAvatarFile(null);
       }
       
