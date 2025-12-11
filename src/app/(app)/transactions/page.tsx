@@ -107,7 +107,7 @@ export default function TransactionsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item && user?.id) { 
+    if (deleteDialog.item) { 
       const originalTransactions = [...transactions];
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
 
@@ -115,7 +115,7 @@ export default function TransactionsPage() {
       if (error) {
         toast({
           title: "Erro ao Deletar",
-          description: error.message || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
+          description: error || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
           variant: "destructive",
         });
         setTransactions(originalTransactions); 
