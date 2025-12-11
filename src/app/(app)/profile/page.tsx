@@ -95,7 +95,7 @@ export default function ProfilePage() {
         publicAvatarUrl = data.publicUrl;
       }
       
-      const updatedProfileData = {
+      const updatedProfileData: Partial<Profile> = {
         full_name: fullName,
         display_name: displayName,
         phone,
@@ -115,18 +115,20 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile) {
-        if (!session || !session.user) {
+         if (!session || !session.user) {
           throw new Error("Sessão ou usuário inválido.");
         }
+        // Corrigindo a atualização da sessão para evitar erros de tipo
         await update({
-          ...session,
           user: { ...session.user, profile: updatedProfile as Profile },
         });
+      
         toast({
           title: "Perfil Atualizado",
           description: "Suas informações foram salvas.",
           action: <CheckSquare className="text-green-500"/>
         });
+      
         setAvatarFile(null);
       }
       
