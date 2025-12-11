@@ -84,9 +84,16 @@ interface FinancialGoalFormProps {
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
 
-  // ✅ CORREÇÃO: seu AuthContext usa { user, status }
-  const { user, status: authStatus } = useSession();
-  const isAuthLoading = authStatus === "loading";
+ // Correção baseada no AuthContext real
+const { session, isLoading } = useSession();
+
+// Extrai o usuário corretamente
+const user = session?.user || null;
+
+// Mantém compatibilidade com seu código
+const authStatus = isLoading ? "loading" : "authenticated";
+const isAuthLoading = isLoading;
+
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 

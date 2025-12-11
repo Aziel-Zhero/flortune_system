@@ -1,14 +1,22 @@
 // src/contexts/auth-context.tsx
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { AuthSession, User } from '@supabase/supabase-js';
-import type { Profile } from '@/types/database.types';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
+
+import { supabase } from "@/lib/supabase/client";
+import type { AuthSession, User } from "@supabase/supabase-js";
+import type { Profile } from "@/types/database.types";
 
 type UserWithProfile = User & { profile: Profile | null };
 
-export type Session = Omit<AuthSession, 'user'> & {
+export type Session = Omit<AuthSession, "user"> & {
   user: UserWithProfile | null;
 };
 
@@ -24,89 +32,144 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfileAndSetSession = useCallback(async (currentSession: AuthSession | null): Promise<void> => {
-    if (!currentSession?.user) {
-      setSession(null);
-      setIsLoading(false);
-      return;
-    }
-    
-    // Inicia o carregamento apenas se a sessão for nova ou diferente
-    if (session?.user?.id !== currentSession.user.id) {
-        setIsLoading(true);
-    }
-    
-    try {
-      const authUser = currentSession.user;
-      const { data: profile, error } = await supabase!
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error("AuthContext: Erro ao buscar perfil:", error.message);
-        const userWithNullProfile = { ...authUser, profile: null } as UserWithProfile;
-        setSession({ ...currentSession, user: userWithNullProfile });
-      } else {
-        const userWithProfile = { ...authUser, profile: profile || null } as UserWithProfile;
-        setSession({ ...currentSession, user: userWithProfile });
+  /**
+   * Carrega perfil + monta sessão
+   */
+  const fetchProfileAndSetSession = useCallback(
+    async (incomingSession: AuthSession | null): Promise<void> => {
+      // Sem sessão
+      if (!incomingSession?.user) {
+        setSession(null);
+        setIsLoading(false);
+        return;
       }
-    } catch (e) {
-      console.error("AuthContext: Exceção ao buscar perfil:", e);
-      setSession({ ...currentSession, user: { ...currentSession.user, profile: null } as UserWithProfile });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [session?.user?.id]); // Depende do ID do usuário da sessão atual para evitar re-fetches desnecessários
 
+      // Evita re-fetch desnecessário
+      const sameUser =
+        session?.user?.id && session.user.id === incomingSession.user.id;
+
+      if (!sameUser) {
+        setIsLoading(true);
+      }
+
+      try {
+        const authUser = incomingSession.user;
+
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .single();
+
+        if (error && error.code !== "PGRST116") {
+          console.error("AuthContext: Erro ao buscar perfil:", error.message);
+
+          setSession({
+            ...incomingSession,
+            user: {
+              ...authUser,
+              profile: null,
+            },
+          });
+
+          return;
+        }
+
+        setSession({
+          ...incomingSession,
+          user: {
+            ...authUser,
+            profile: profile ?? null,
+          },
+        });
+      } catch (err) {
+        console.error("AuthContext: Exceção ao buscar perfil:", err);
+
+        setSession({
+          ...incomingSession,
+          user: {
+            ...incomingSession.user,
+            profile: null,
+          },
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [session?.user?.id]
+  );
+
+  /**
+   * Inicialização + listener Auth
+   */
   useEffect(() => {
     if (!supabase) {
-      console.error("AuthProvider: Cliente Supabase não inicializado.");
+      console.error("AuthProvider: Supabase não inicializado.");
       setIsLoading(false);
       return;
     }
-    
-    const getInitialSession = async () => {
-        const { data: { session: initialSupabaseSession } } = await supabase.auth.getSession();
-        await fetchProfileAndSetSession(initialSupabaseSession);
+
+    const loadSession = async () => {
+      const {
+        data: { session: initialSession },
+      } = await supabase.auth.getSession();
+
+      await fetchProfileAndSetSession(initialSession);
     };
 
-    getInitialSession();
+    loadSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
-      await fetchProfileAndSetSession(newSupabaseSession);
-    });
+    const { data } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        await fetchProfileAndSetSession(newSession);
+      }
+    );
 
     return () => {
-      subscription.unsubscribe();
+      data.subscription.unsubscribe();
     };
   }, [fetchProfileAndSetSession]);
 
-  const updateSessionManually = async (newSessionData: Partial<Session>) => {
-    setSession(prevSession => {
-      if (!prevSession) return null;
+  /**
+   * Atualização manual da sessão
+   */
+  const update = async (newSessionData: Partial<Session>) => {
+    setSession((prev) => {
+      if (!prev) return null;
+
       return {
-        ...prevSession,
+        ...prev,
         ...newSessionData,
-        user: newSessionData.user 
-          ? { ...prevSession.user, ...newSessionData.user } as UserWithProfile
-          : prevSession.user
+        user: newSessionData.user
+          ? {
+              ...prev.user,
+              ...newSessionData.user,
+            }
+          : prev.user,
       };
     });
   };
 
   return (
-    <AuthContext.Provider value={{ session, isLoading, update: updateSessionManually }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        isLoading,
+        update,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+/**
+ * Hook seguro
+ */
 export const useSession = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useSession deve ser usado dentro de um AuthProvider.');
+  if (!context) {
+    throw new Error("useSession deve ser usado dentro de um AuthProvider.");
   }
   return context;
 };
