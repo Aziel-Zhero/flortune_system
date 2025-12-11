@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import type { Category, Budget } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { getCategories, addCategory } from "@/services/category.service";
+import { useSession } from "@/contexts/auth-context";
 
 
 const budgetFormSchema = z.object({
@@ -49,6 +50,8 @@ interface BudgetFormProps {
 }
 
 export function BudgetForm({ onFormSuccess, initialData, isModal = true }: BudgetFormProps) {
+  const { session } = useSession();
+  const user = session?.user;
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,17 +88,17 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   }, [initialData, reset]);
   
   const fetchCategories = useCallback(async () => {
-    const mockUserId = "mock-user-id"; // Placeholder
+    if (!user?.id) return;
     setIsLoadingCategories(true);
-    const { data, error } = await getCategories(mockUserId);
+    const { data, error } = await getCategories(user.id);
     if (error) {
-      toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao buscar categorias", description: String(error), variant: "destructive" });
     } else {
       const expenseCategories = (data || []).filter(c => c.type === 'expense');
       setCategories(expenseCategories);
     }
     setIsLoadingCategories(false);
-  }, []);
+  }, [user?.id]);
   
   useEffect(() => {
       fetchCategories();
@@ -115,7 +118,7 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
     const { data: newCategory, error } = await addCategory({ name: data.name, type: 'expense' });
 
     if (error) {
-        toast({ title: "Erro ao criar categoria", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao criar categoria", description: String(error), variant: "destructive" });
     } else if (newCategory) {
         setCategories(prev => [...prev, newCategory]);
         setValue("category_id", newCategory.id, { shouldValidate: true });

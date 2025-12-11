@@ -31,14 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Inicia o carregamento apenas se a sessão for nova ou diferente
     if (session?.user?.id !== currentSession.user.id) {
         setIsLoading(true);
     }
     
     try {
+      if (!supabase) {
+        throw new Error("Supabase client is not initialized.");
+      }
       const authUser = currentSession.user;
-      const { data: profile, error } = await supabase!
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
@@ -52,13 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userWithProfile = { ...authUser, profile: profile || null } as UserWithProfile;
         setSession({ ...currentSession, user: userWithProfile });
       }
-    } catch (e) {
-      console.error("AuthContext: Exceção ao buscar perfil:", e);
-      setSession({ ...currentSession, user: { ...currentSession.user, profile: null } as UserWithProfile });
+    } catch (e: any) {
+      console.error("AuthContext: Exceção ao buscar perfil:", e.message);
+      if (currentSession.user) {
+        setSession({ ...currentSession, user: { ...currentSession.user, profile: null } as UserWithProfile });
+      } else {
+        setSession(currentSession as Session);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [session?.user?.id]); // Depende do ID do usuário da sessão atual para evitar re-fetches desnecessários
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!supabase) {
@@ -85,13 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateSessionManually = async (newSessionData: Partial<Session>) => {
     setSession(prevSession => {
-      if (!prevSession) return null;
+      if (!prevSession || !prevSession.user) return null;
+      
+      const updatedUser = newSessionData.user 
+          ? { ...prevSession.user, ...newSessionData.user } 
+          : prevSession.user;
+
       return {
         ...prevSession,
         ...newSessionData,
-        user: newSessionData.user 
-          ? { ...prevSession.user, ...newSessionData.user } as UserWithProfile
-          : prevSession.user
+        user: updatedUser
       };
     });
   };

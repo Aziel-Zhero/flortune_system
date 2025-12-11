@@ -1,4 +1,3 @@
-
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -15,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const { session, isLoading, update } = useSession();
@@ -82,7 +81,6 @@ export default function ProfilePage() {
     try {
       let publicAvatarUrl = profileFromSession?.avatar_url;
 
-      // Se um novo arquivo de avatar foi selecionado, faça o upload
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const filePath = `${userFromSession.id}/avatar.${fileExt}`;
@@ -117,13 +115,16 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile) {
+        if (!session || !session.user) {
+          throw new Error("Sessão ou usuário inválido.");
+        }
         await update({
-          ...session, 
-          user: { ...session?.user, profile: updatedProfile as Profile },
+          user: { ...session.user, profile: updatedProfile as Profile },
         });
         toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas.", action: <CheckSquare className="text-green-500"/> });
-        setAvatarFile(null); // Limpa o arquivo após o sucesso
+        setAvatarFile(null);
       }
+      
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar as alterações.", variant: "destructive" });
