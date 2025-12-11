@@ -49,7 +49,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { session, isLoading: isAuthLoading } = useSession();
   const user = session?.user;
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -74,12 +74,12 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     try {
       const { data, error } = await getCategories(user.id);
       if (error) {
-        toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao buscar categorias", description: error, variant: "destructive" });
         setCategories([]);
       } else {
         setCategories(data || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: "Erro inesperado", description: "Não foi possível carregar as categorias.", variant: "destructive" });
     } finally {
       setIsLoadingCategories(false);
@@ -87,10 +87,10 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
   }, [user?.id]);
 
   useEffect(() => {
-    if (user?.id && status !== "loading") {
+    if (user?.id && !isAuthLoading) {
       fetchCategoriesData();
     }
-  }, [user, status, fetchCategoriesData]);
+  }, [user, isAuthLoading, fetchCategoriesData]);
   
   const onSubmit: SubmitHandler<TransactionFormData> = async (data) => {
     if (!user?.id) {
@@ -112,7 +112,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     try {
       const result = await addTransaction(user.id, newTxData);
       if (result.error) {
-        throw result.error;
+        throw new Error(result.error);
       }
       toast({
         title: "Transação Adicionada!",

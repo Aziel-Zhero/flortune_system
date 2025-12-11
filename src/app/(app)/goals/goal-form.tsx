@@ -66,9 +66,8 @@ interface FinancialGoalFormProps {
 
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
-  const { data: session, status: authStatus } = useSession();
+  const { session, isLoading: isAuthLoading } = useSession();
   const user = session?.user;
-  const isAuthLoading = authStatus === "loading";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,7 +92,7 @@ export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }
     };
     try {
       const result = await addFinancialGoal(user.id, newGoalData);
-      if (result.error) throw result.error;
+      if (result.error) throw new Error(result.error);
       toast({ title: "Meta Criada!", description: `Sua meta "${data.name}" foi criada com sucesso.`, action: <CheckCircle className="text-green-500" />, });
       reset({ name: "", target_amount: 0, deadline_date: null, icon: NO_ICON_VALUE, notes: "" }); 
       onGoalCreated(); 

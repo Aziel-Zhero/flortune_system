@@ -60,8 +60,7 @@ const getCategoryColorClass = (categoryType?: 'income' | 'expense') => {
 };
 
 export default function TransactionsPage() {
-  const { data: session, status: authStatus } = useSession(); 
-  const authLoading = authStatus === "loading";
+  const { session, isLoading: authLoading } = useSession(); 
   const user = session?.user; 
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -95,13 +94,13 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     document.title = `Transações - ${APP_NAME}`;
-    if (user?.id && authStatus === "authenticated") { 
+    if (user?.id && !authLoading) { 
       fetchPageData();
-    } else if (authStatus === "unauthenticated") {
+    } else if (!authLoading && !user?.id) {
       setIsLoading(false);
       setTransactions([]);
     }
-  }, [user?.id, authStatus, fetchPageData]);
+  }, [user?.id, authLoading, fetchPageData]);
 
   const handleDeleteClick = (transactionId: string, transactionDescription: string) => {
     setDeleteDialog({ isOpen: true, item: { id: transactionId, description: transactionDescription } });
@@ -112,7 +111,7 @@ export default function TransactionsPage() {
       const originalTransactions = [...transactions];
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
 
-      const { error } = await deleteTransaction(deleteDialog.item.id, user.id);
+      const { error } = await deleteTransaction(deleteDialog.item.id);
       if (error) {
         toast({
           title: "Erro ao Deletar",
@@ -371,8 +370,8 @@ export default function TransactionsPage() {
             Registre uma nova receita ou despesa.
           </DialogDescription>
         </DialogHeader>
-        {isCreateModalOpen && session?.user && authStatus === "authenticated" && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
-        {isCreateModalOpen && (authLoading || !session?.user || authStatus !== "authenticated") && (
+        {isCreateModalOpen && session?.user && !authLoading && <TransactionForm onTransactionCreated={handleTransactionCreated} isModal={true} />}
+        {isCreateModalOpen && (authLoading || !session?.user) && (
              <div className="py-8 text-center min-h-[300px] flex flex-col items-center justify-center">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4"/>
                 <p className="text-muted-foreground">Carregando formulário...</p>

@@ -54,21 +54,20 @@ export async function addTransaction(userId: string, transactionData: NewTransac
   return { data: newTransaction, error: null };
 }
 
-export async function deleteTransaction(transactionId: string, userId: string): Promise<{ error: Error | null }> {
-  if (!userId || !transactionId) {
-    return { error: new Error("ID da transação ou do usuário não fornecido.") };
+export async function deleteTransaction(transactionId: string): Promise<{ error: string | null }> {
+  if (!transactionId) {
+    return { error: "ID da transação não fornecido." };
   }
   
   const supabase = createClient();
   const { error } = await supabase
     .from('transactions')
     .delete()
-    .eq('id', transactionId)
-    .eq('user_id', userId); // Garante que o usuário só pode deletar suas próprias transações
+    .eq('id', transactionId);
 
   if (error) {
     console.error(`Erro ao deletar transação ${transactionId}:`, error.message);
-    return { error: new Error("Não foi possível deletar a transação.") };
+    return { error: "Não foi possível deletar a transação." };
   }
 
   return { error: null };
