@@ -5,20 +5,28 @@ import type { Transaction } from "@/types/database.types";
 import type { ServiceListResponse, ServiceResponse } from "@/types/database.types";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getTransactions(userId: string): Promise<ServiceListResponse<Transaction>> {
+// --------------------------------------------------------
+// Buscar transações
+// --------------------------------------------------------
+export async function getTransactions(
+  userId: string
+): Promise<ServiceListResponse<Transaction>> {
   if (!userId) {
     return { data: [], error: "ID do usuário não fornecido." };
   }
-  
+
   const supabase = createClient();
+
   const { data, error } = await supabase
-    .from('transactions')
-    .select(`
+    .from("transactions")
+    .select(
+      `
       *,
       category:categories(*)
-    `)
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    `
+    )
+    .eq("user_id", userId)
+    .order("date", { ascending: false });
 
   if (error) {
     console.error("Erro ao buscar transações:", error.message);
@@ -28,17 +36,26 @@ export async function getTransactions(userId: string): Promise<ServiceListRespon
   return { data, error: null };
 }
 
-export type NewTransactionData = Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category'>;
+// --------------------------------------------------------
+// Criar nova transação
+// --------------------------------------------------------
+export type NewTransactionData = Omit<
+  Transaction,
+  "id" | "created_at" | "updated_at" | "user_id" | "category"
+>;
 
-export async function addTransaction(userId: string, transactionData: NewTransactionData): Promise<ServiceResponse<Transaction>> {
+export async function addTransaction(
+  userId: string,
+  transactionData: NewTransactionData
+): Promise<ServiceResponse<Transaction>> {
   if (!userId) {
     return { data: null, error: "ID do usuário não fornecido." };
   }
-  
+
   const supabase = createClient();
-  
+
   const { data: newTransaction, error } = await supabase
-    .from('transactions')
+    .from("transactions")
     .insert({
       user_id: userId,
       ...transactionData,
@@ -50,10 +67,13 @@ export async function addTransaction(userId: string, transactionData: NewTransac
     console.error("Erro ao adicionar transação:", error.message);
     return { data: null, error: "Não foi possível salvar a nova transação." };
   }
-  
+
   return { data: newTransaction, error: null };
 }
 
+// --------------------------------------------------------
+// Deletar transação
+// --------------------------------------------------------
 export async function deleteTransaction(
   transactionId: string,
   userId: string
@@ -72,10 +92,13 @@ export async function deleteTransaction(
     .from("transactions")
     .delete()
     .eq("id", transactionId)
-    .eq("user_id", userId); // segurança extra
+    .eq("user_id", userId); // Segurança obrigatória
 
   if (error) {
-    console.error(`Erro ao deletar transação ${transactionId}:`, error.message);
+    console.error(
+      `Erro ao deletar transação ${transactionId}:`,
+      error.message
+    );
     return { error: "Não foi possível deletar a transação." };
   }
 
