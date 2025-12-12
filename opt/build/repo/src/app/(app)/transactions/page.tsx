@@ -113,20 +113,30 @@ export default function TransactionsPage() {
       const originalTransactions = [...transactions];
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
 
-      const { error } = await deleteTransaction(deleteDialog.item.id, user.id);
+      const { error } = await deleteTransaction(
+        deleteDialog.item.id,
+        user.id // ← Obrigatório
+      );
+      
       if (error) {
         toast({
           title: "Erro ao Deletar",
-          description: error.message || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
+          description:
+            typeof error === "string"
+              ? error
+              : `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
           variant: "destructive",
         });
-        setTransactions(originalTransactions); 
+      
+        // restaura estado original caso falhe
+        setTransactions(originalTransactions);
       } else {
         toast({
           title: "Transação Deletada",
           description: `A transação "${deleteDialog.item.description}" foi deletada com sucesso.`,
         });
       }
+      
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
