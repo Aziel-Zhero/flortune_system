@@ -1,6 +1,6 @@
 // src/app/(app)/transactions/page.tsx
 "use client";
-
+import { deleteTransaction } from "@/services/transaction.service";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
