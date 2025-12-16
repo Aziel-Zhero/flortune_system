@@ -237,13 +237,13 @@ export default function LandingPage() {
 
   return (
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
-      {campaignProps?.showFluid && (
+      {/*campaignProps?.showFluid && (
         <Iridescence 
           fluidColor={campaignProps.fluidColor} 
           speed={campaignProps.speed} 
           amplitude={campaignProps.amplitude} 
         />
-      )}
+      )*/}
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
