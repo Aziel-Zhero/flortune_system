@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
-  const { session, isLoading, update } = useSession();
+  const { session, isLoading, update: updateSession } = useSession();
 
   const userFromSession = session?.user;
   const profileFromSession = session?.user?.profile;
@@ -118,7 +118,7 @@ export default function ProfilePage() {
         if (!session || !session.user) {
           throw new Error("Sessão ou usuário inválido.");
         }
-        await update({
+        await updateSession({
           ...session,
           user: { ...session.user, profile: updatedProfile as Profile },
         });
