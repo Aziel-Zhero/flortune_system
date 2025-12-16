@@ -1,6 +1,5 @@
 // src/app/(app)/transactions/page.tsx
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/shared/page-header";
@@ -107,18 +106,19 @@ export default function TransactionsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item && user?.id) {
+    if (deleteDialog.item && user?.id) { 
       const originalTransactions = [...transactions];
-      setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!));
+      setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
 
       const { error } = await deleteTransaction(deleteDialog.item.id, user.id);
-
+      
       if (error) {
         toast({
           title: "Erro ao Deletar",
           description: error || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
           variant: "destructive",
         });
+      
         setTransactions(originalTransactions);
       } else {
         toast({
@@ -126,6 +126,7 @@ export default function TransactionsPage() {
           description: `A transação "${deleteDialog.item.description}" foi deletada com sucesso.`,
         });
       }
+      
     }
     setDeleteDialog({ isOpen: false, item: null });
   };
