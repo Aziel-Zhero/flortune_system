@@ -17,15 +17,18 @@ export function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // Ação de servidor 'set' pode ser chamada em um Client Component.
-            // Isso deve ser evitado, mas caso aconteça, não quebra a aplicação.
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
-            // Ação de servidor 'remove' pode ser chamada em um Client Component.
+            // The `delete` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
       },
