@@ -66,21 +66,31 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     },
   });
 
-  const transactionType = watch("type");
-
   const fetchCategoriesData = useCallback(async () => {
     if (!user?.id) return;
     setIsLoadingCategories(true);
     try {
       const { data, error } = await getCategories(user.id);
       if (error) {
-        toast({ title: "Erro ao buscar categorias", description: error.message, variant: "destructive" });
+        // ANTES: description: error.message
+        // DEPOIS: description: error (ou converta para string)
+        toast({ 
+          title: "Erro ao buscar categorias", 
+          description: error, // ← error já é uma string
+          variant: "destructive" 
+        });
         setCategories([]);
       } else {
         setCategories(data || []);
       }
     } catch (err) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar as categorias.", variant: "destructive" });
+      // Se ocorrer um erro inesperado (não do getCategories)
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+      toast({ 
+        title: "Erro inesperado", 
+        description: errorMessage, 
+        variant: "destructive" 
+      });
     } finally {
       setIsLoadingCategories(false);
     }

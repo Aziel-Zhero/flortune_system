@@ -49,7 +49,6 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  
   const { session, isLoading: isAuthLoading } = useSession();
   const user = session?.user;
 
@@ -134,7 +133,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     }
   };
 
-  const filteredCategories = categories.filter(cat => cat.type === transactionType || cat.is_default);
+  const filteredCategories = categories.filter(Boolean).filter(cat => cat.type === transactionType || cat.is_default);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
