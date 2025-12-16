@@ -75,28 +75,29 @@ export async function addTransaction(
 // Deletar transação
 // --------------------------------------------------------
 export async function deleteTransaction(
-  transactionId: string
+  transactionId: string,
+  userId: string
 ): Promise<{ error: string | null }> {
   if (!transactionId) {
     return { error: "ID da transação não fornecido." };
   }
+  if (!userId) {
+    return { error: "ID do usuário não autenticado." };
+  }
 
   const supabase = createClient();
-
-  // Primeiro, obtenha o ID do usuário da sessão para garantir a segurança.
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Usuário não autenticado." };
-  }
 
   const { error } = await supabase
     .from("transactions")
     .delete()
     .eq("id", transactionId)
-    .eq("user_id", user.id); // Garante que o usuário só pode deletar suas próprias transações.
+    .eq("user_id", userId); // Segurança obrigatória
 
   if (error) {
-    console.error(`Erro ao deletar transação ${transactionId}:`, error.message);
+    console.error(
+      `Erro ao deletar transação ${transactionId}:`,
+      error.message
+    );
     return { error: "Não foi possível deletar a transação." };
   }
 
