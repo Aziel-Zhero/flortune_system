@@ -107,12 +107,12 @@ export default function TransactionsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteDialog.item && user?.id) { 
+    if (deleteDialog.item && user?.id) {
       const originalTransactions = [...transactions];
-      setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
+      setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!));
 
-      const { error } = await deleteTransaction(deleteDialog.item.id);
-      
+      const { error } = await deleteTransaction(deleteDialog.item.id, user.id);
+
       if (error) {
         toast({
           title: "Erro ao Deletar",
