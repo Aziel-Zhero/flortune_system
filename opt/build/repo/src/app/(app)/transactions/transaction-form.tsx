@@ -66,17 +66,17 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     },
   });
 
+  const transactionType = watch("type");
+
   const fetchCategoriesData = useCallback(async () => {
     if (!user?.id) return;
     setIsLoadingCategories(true);
     try {
       const { data, error } = await getCategories(user.id);
       if (error) {
-        // ANTES: description: error.message
-        // DEPOIS: description: error (ou converta para string)
         toast({ 
           title: "Erro ao buscar categorias", 
-          description: error, // ← error já é uma string
+          description: error,
           variant: "destructive" 
         });
         setCategories([]);
@@ -84,7 +84,6 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
         setCategories(data || []);
       }
     } catch (err) {
-      // Se ocorrer um erro inesperado (não do getCategories)
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
       toast({ 
         title: "Erro inesperado", 
@@ -96,14 +95,11 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     }
   }, [user?.id]);
 
-  // MUDANÇA NECESSÁRIA NO USEEFFECT:
-useEffect(() => {
-  // ANTES: if (user?.id && status !== "loading") {
-  // DEPOIS:
-  if (user?.id && session !== undefined) {
-    fetchCategoriesData();
-  }
-}, [user, session, fetchCategoriesData]); // Adicione `session` às dependências
+  useEffect(() => {
+    if (user?.id && session !== undefined) {
+      fetchCategoriesData();
+    }
+  }, [user, session, fetchCategoriesData]);
   
   const onSubmit: SubmitHandler<TransactionFormData> = async (data) => {
     if (!user?.id) {
@@ -125,7 +121,7 @@ useEffect(() => {
     try {
       const result = await addTransaction(user.id, newTxData);
       if (result.error) {
-        throw result.error;
+        throw new Error(result.error);
       }
       toast({
         title: "Transação Adicionada!",
@@ -146,7 +142,7 @@ useEffect(() => {
     }
   };
 
-  const filteredCategories = categories.filter(cat => cat.type === transactionType || cat.is_default);
+  const filteredCategories = categories.filter(cat => cat && (cat.type === transactionType || cat.is_default));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
