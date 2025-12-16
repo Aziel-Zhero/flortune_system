@@ -49,7 +49,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  const { session, isLoading: isAuthLoading } = useSession();
+  const { session } = useSession();
   const user = session?.user;
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -74,23 +74,32 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     try {
       const { data, error } = await getCategories(user.id);
       if (error) {
-        toast({ title: "Erro ao buscar categorias", description: error, variant: "destructive" });
+        toast({ 
+          title: "Erro ao buscar categorias", 
+          description: error,
+          variant: "destructive" 
+        });
         setCategories([]);
       } else {
         setCategories(data || []);
       }
-    } catch (err: any) {
-      toast({ title: "Erro inesperado", description: "Não foi possível carregar as categorias.", variant: "destructive" });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+      toast({ 
+        title: "Erro inesperado", 
+        description: errorMessage, 
+        variant: "destructive" 
+      });
     } finally {
       setIsLoadingCategories(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    if (user?.id && !isAuthLoading) {
+    if (user?.id && session !== undefined) {
       fetchCategoriesData();
     }
-  }, [user, isAuthLoading, fetchCategoriesData]);
+  }, [user, session, fetchCategoriesData]);
   
   const onSubmit: SubmitHandler<TransactionFormData> = async (data) => {
     if (!user?.id) {
@@ -133,7 +142,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     }
   };
 
-  const filteredCategories = categories.filter(Boolean).filter(cat => cat.type === transactionType || cat.is_default);
+  const filteredCategories = categories.filter(cat => cat && (cat.type === transactionType || cat.is_default));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
