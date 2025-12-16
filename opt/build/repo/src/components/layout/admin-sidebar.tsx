@@ -42,23 +42,25 @@ const iconMap: Record<NavLinkIconName, React.ElementType> = {
   Send,
   Bot,
   MessageSquare,
-  HelpCircle,
-  CalendarDays: HelpCircle, // Placeholder
-  ArrowRightLeft: HelpCircle, // Placeholder
-  BarChart3: HelpCircle, // Placeholder
-  Target: HelpCircle, // Placeholder
-  Trophy: HelpCircle, // Placeholder
-  ListChecks: HelpCircle, // Placeholder
-  NotebookPen: HelpCircle, // Placeholder
-  Share2: HelpCircle, // Placeholder
-  AreaChart: HelpCircle, // Placeholder
-  Users2: HelpCircle, // Placeholder
-  Wrench: HelpCircle, // Placeholder
-  Globe: HelpCircle, // Placeholder
-  GitMerge: HelpCircle, // Placeholder
-  KanbanSquare: HelpCircle, // Placeholder
-  PieChart: HelpCircle, // Placeholder
-  Gem: HelpCircle, // Placeholder
+  // A chave 'HelpCircle' não é um ícone de navegação válido e foi removida.
+  // Placeholders para ícones de outras seções:
+  CalendarDays: HelpCircle,
+  ArrowRightLeft: HelpCircle,
+  BarChart3: HelpCircle,
+  Target: HelpCircle,
+  Trophy: HelpCircle,
+  ListChecks: HelpCircle,
+  NotebookPen: HelpCircle,
+  Share2: HelpCircle,
+  AreaChart: HelpCircle,
+  Users2: HelpCircle,
+  Wrench: HelpCircle,
+  Globe: HelpCircle,
+  GitMerge: HelpCircle,
+  KanbanSquare: HelpCircle,
+  PieChart: HelpCircle,
+  Gem: HelpCircle,
+  LifeBuoy: HelpCircle,
 };
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
