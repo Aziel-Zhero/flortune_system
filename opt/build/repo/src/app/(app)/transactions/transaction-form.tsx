@@ -49,7 +49,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { session } = useSession();
   const user = session?.user;
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -86,11 +86,14 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    if (user?.id && status !== "loading") {
-      fetchCategoriesData();
-    }
-  }, [user, status, fetchCategoriesData]);
+  // MUDANÇA NECESSÁRIA NO USEEFFECT:
+useEffect(() => {
+  // ANTES: if (user?.id && status !== "loading") {
+  // DEPOIS:
+  if (user?.id && session !== undefined) {
+    fetchCategoriesData();
+  }
+}, [user, session, fetchCategoriesData]); // Adicione `session` às dependências
   
   const onSubmit: SubmitHandler<TransactionFormData> = async (data) => {
     if (!user?.id) {
