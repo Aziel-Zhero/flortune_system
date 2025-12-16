@@ -239,7 +239,7 @@ export default function LandingPage() {
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
       {campaignProps?.showFluid && (
         <Iridescence 
-          color={campaignProps.fluidColor} 
+          fluidColor={campaignProps.fluidColor} 
           speed={campaignProps.speed} 
           amplitude={campaignProps.amplitude} 
         />

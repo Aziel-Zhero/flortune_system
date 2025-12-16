@@ -53,14 +53,14 @@ void main() {
 `;
 
 interface IridescenceProps extends React.HTMLAttributes<HTMLDivElement> {
-  color?: [number, number, number];
+  fluidColor?: [number, number, number];
   speed?: number;
   amplitude?: number;
   mouseReact?: boolean;
 }
 
 export default function Iridescence({
-  color = [1, 1, 1], // Default white
+  fluidColor = [1, 1, 1], // Default white
   speed = 1.0,
   amplitude = 0.1, // Default based on your example
   mouseReact = true, // Default based on your example
@@ -104,7 +104,7 @@ export default function Iridescence({
       fragment: fragmentShader,
       uniforms: {
         uTime: { value: 0 },
-        uColor: { value: new Color(...color) },
+        uColor: { value: new Color(...fluidColor) },
         uResolution: { // Will be set in resize
           value: new Vec3(1, 1, 1), // Initial placeholder
         },
@@ -174,7 +174,7 @@ export default function Iridescence({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [color, speed, amplitude, mouseReact]); // Dependencies for the effect
+  }, [fluidColor, speed, amplitude, mouseReact]); // Dependencies for the effect
 
   return (
     <div
@@ -184,4 +184,3 @@ export default function Iridescence({
     />
   );
 }
-
