@@ -112,13 +112,14 @@ export default function TransactionsPage() {
       setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item!.id!)); 
 
       const { error } = await deleteTransaction(deleteDialog.item.id);
+      
       if (error) {
         toast({
           title: "Erro ao Deletar",
           description: error || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
           variant: "destructive",
         });
-        setTransactions(originalTransactions); 
+        setTransactions(originalTransactions);
       } else {
         toast({
           title: "Transação Deletada",
