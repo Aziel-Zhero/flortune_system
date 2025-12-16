@@ -52,6 +52,7 @@ void main() {
 }
 `;
 
+// Omit 'color' from HTMLAttributes to avoid conflict
 interface IridescenceProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'color'> {
   fluidColor?: [number, number, number];
   speed?: number;
