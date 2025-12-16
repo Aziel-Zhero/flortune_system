@@ -1,3 +1,4 @@
+
 // src/app/page.tsx
 "use client";
 
@@ -11,7 +12,6 @@ import Image from "next/image";
 import * as LucideIcons from "lucide-react";
 import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { useSession } from "@/contexts/auth-context";
-
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -140,7 +140,7 @@ const ReviewCard: FC<(typeof mockReviews)[0]> = ({ quote, author, role, avatar, 
 
 
 export default function LandingPage() {
-  const { data: session } = useSession();
+  const { session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
   // Fallback seguro para garantir que o objeto não seja nulo no servidor
@@ -239,7 +239,7 @@ export default function LandingPage() {
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
       {campaignProps?.showFluid && (
         <Iridescence 
-          color={campaignProps.fluidColor} 
+          fluidColor={campaignProps.fluidColor} 
           speed={campaignProps.speed} 
           amplitude={campaignProps.amplitude} 
         />
