@@ -49,7 +49,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  const { session } = useSession();
+  const { session, isLoading: authLoading } = useSession();
   const user = session?.user;
 
   const [categories, setCategories] = useState<Category[]>([]);

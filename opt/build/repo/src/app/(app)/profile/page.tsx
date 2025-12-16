@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { APP_NAME } from '@/lib/constants';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const { session, isLoading, update } = useSession();
@@ -95,7 +95,7 @@ export default function ProfilePage() {
         publicAvatarUrl = data.publicUrl;
       }
       
-      const updatedProfileData = {
+      const updatedProfileData: Partial<Profile> = {
         full_name: fullName,
         display_name: displayName,
         phone,
@@ -115,17 +115,12 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile) {
-        // 🔒 Garante ao TS que o usuário existe
-        if (!session?.user) {
-          throw new Error("Usuário inválido na sessão.");
+        if (!session || !session.user) {
+          throw new Error("Sessão ou usuário inválido.");
         }
-      
         await update({
-          user: {
-            ...session.user,                     // Mantém todos os campos obrigatórios
-            id: session.user.id,                 // Garante que id é string obrigatória
-            profile: updatedProfile as Profile,  // Atualiza apenas o profile
-          }
+          ...session,
+          user: { ...session.user, profile: updatedProfile as Profile },
         });
       
         toast({

@@ -83,17 +83,8 @@ interface FinancialGoalFormProps {
 
 export function FinancialGoalForm({ onGoalCreated, initialData, isModal = true }: FinancialGoalFormProps) {
   const router = useRouter();
-
- // Correção baseada no AuthContext real
-const { session, isLoading } = useSession();
-
-// Extrai o usuário corretamente
-const user = session?.user || null;
-
-// Mantém compatibilidade com seu código
-const authStatus = isLoading ? "loading" : "authenticated";
-const isAuthLoading = isLoading;
-
+  const { session, isLoading: isAuthLoading } = useSession();
+  const user = session?.user;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -137,7 +128,7 @@ const isAuthLoading = isLoading;
 
     try {
       const result = await addFinancialGoal(user.id, newGoalData);
-      if (result.error) throw result.error;
+      if (result.error) throw new Error(result.error);
 
       toast({
         title: "Meta Criada!",
@@ -351,14 +342,14 @@ const isAuthLoading = isLoading;
             <Button
               type="button"
               variant="outline"
-              disabled={isSubmitting || isAuthLoading}
+              disabled={isSubmitting || isAuthLoading || !user}
             >
               Cancelar
             </Button>
           </DialogClose>
         )}
 
-        <Button type="submit" disabled={isSubmitting || isAuthLoading}>
+        <Button type="submit" disabled={isSubmitting || isAuthLoading || !user}>
           {isSubmitting
             ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             : <Save className="mr-2 h-4 w-4" />}
