@@ -62,8 +62,8 @@ interface IridescenceProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'c
 export default function Iridescence({
   fluidColor = [1, 1, 1], // Default white
   speed = 1.0,
-  amplitude = 0.1, // Default based on your example
-  mouseReact = true, // Default based on your example
+  amplitude = 0.1,
+  mouseReact = true,
   ...rest
 }: IridescenceProps) {
   const ctnDom = useRef<HTMLDivElement>(null);
@@ -75,8 +75,6 @@ export default function Iridescence({
     
     const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio, 2), antialias: true });
     const gl = renderer.gl;
-    // Set a default clear color (e.g., black or transparent if desired)
-    // For this effect, the shader covers the whole screen, so clearColor might not be visually dominant
     gl.clearColor(0,0,0,1); // Black, fully opaque
 
     let program: Program;
@@ -97,7 +95,7 @@ export default function Iridescence({
     window.addEventListener("resize", resize, false);
     
 
-    const geometry = new Triangle(gl); // A simple triangle that covers the screen in NDC
+    const geometry = new Triangle(gl);
     
     program = new Program(gl, {
       vertex: vertexShader,
@@ -105,8 +103,8 @@ export default function Iridescence({
       uniforms: {
         uTime: { value: 0 },
         uColor: { value: new Color(...fluidColor) },
-        uResolution: { // Will be set in resize
-          value: new Vec3(1, 1, 1), // Initial placeholder
+        uResolution: {
+          value: new Vec3(1, 1, 1),
         },
         uMouse: { value: new Vec2(mousePos.current.x, mousePos.current.y) },
         uAmplitude: { value: amplitude },
@@ -116,18 +114,17 @@ export default function Iridescence({
 
     mesh = new Mesh(gl, { geometry, program });
     
-    resize(); // Call resize initially to set uResolution
+    resize();
 
     let animateId: number;
 
     function update(t: number) {
       animateId = requestAnimationFrame(update);
-      program.uniforms.uTime.value = t * 0.001; // Time in seconds
+      program.uniforms.uTime.value = t * 0.001;
       renderer.render({ scene: mesh });
     }
     animateId = requestAnimationFrame(update);
     
-    // Prepend canvas to ensure it's in the background
     if (ctn.firstChild) {
         ctn.insertBefore(gl.canvas, ctn.firstChild);
     } else {
@@ -138,14 +135,12 @@ export default function Iridescence({
     gl.canvas.style.left = '0';
     gl.canvas.style.width = '100%';
     gl.canvas.style.height = '100%';
-    gl.canvas.style.zIndex = '-1'; // Ensure it's behind other content
+    gl.canvas.style.zIndex = '-1';
 
     function handleMouseMove(e: MouseEvent) {
       if (!ctn) return;
       const rect = ctn.getBoundingClientRect();
-      // Normalize mouse position to 0-1 range relative to the canvas/container
       const x = (e.clientX - rect.left) / rect.width;
-      // Invert Y because WebGL's Y is typically bottom-up, while clientY is top-down
       const y = 1.0 - (e.clientY - rect.top) / rect.height; 
       mousePos.current = { x, y };
       if(program) {
@@ -154,7 +149,6 @@ export default function Iridescence({
     }
 
     if (mouseReact) {
-      // Attach to window to capture mouse even if it's outside the direct container initially
       window.addEventListener("mousemove", handleMouseMove);
     }
 
@@ -167,19 +161,17 @@ export default function Iridescence({
       if (ctn && gl.canvas.parentNode === ctn) {
          ctn.removeChild(gl.canvas);
       }
-      // Attempt to gracefully lose WebGL context
       const loseContextExt = gl.getExtension("WEBGL_lose_context");
       if (loseContextExt) {
         loseContextExt.loseContext();
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fluidColor, speed, amplitude, mouseReact]); // Dependencies for the effect
+  }, [fluidColor, speed, amplitude, mouseReact]);
 
   return (
     <div
       ref={ctnDom}
-      className="w-full h-full fixed inset-0 overflow-hidden -z-10" // Ensure it covers the screen and is behind content
+      className="w-full h-full fixed inset-0 overflow-hidden -z-10"
       {...rest}
     />
   );
