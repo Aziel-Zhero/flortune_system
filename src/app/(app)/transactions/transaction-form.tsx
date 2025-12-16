@@ -49,6 +49,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
+  
   const { session, isLoading: isAuthLoading } = useSession();
   const user = session?.user;
 
@@ -74,7 +75,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     try {
       const { data, error } = await getCategories(user.id);
       if (error) {
-        toast({ title: "Erro ao buscar categorias", description: String(error), variant: "destructive" });
+        toast({ title: "Erro ao buscar categorias", description: error, variant: "destructive" });
         setCategories([]);
       } else {
         setCategories(data || []);
