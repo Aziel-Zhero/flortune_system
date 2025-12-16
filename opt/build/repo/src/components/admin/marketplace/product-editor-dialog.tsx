@@ -72,6 +72,7 @@ export function ProductEditorDialog({ isOpen, onOpenChange, product, onSave }: P
   const onSubmit: SubmitHandler<ProductFormData> = (data) => {
     const finalData: PricingTier = {
         ...data,
+        id: product?.id || data.id || `tier_${Date.now()}`, // Garante que o ID sempre seja uma string
         features: data.features.split('\n').map(f => f.trim()).filter(f => f), // Convert string back to array
     };
     onSave(finalData);
