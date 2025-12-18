@@ -4,8 +4,8 @@
 import Link from "next/link"; 
 import { usePathname } from "next/navigation"; 
 import { 
-  HelpCircle, Home, LayoutDashboard, Package, FileText, Heart, Users, ShoppingBag, 
-  ClipboardList, Code, Send, Bot, MessageSquare, DollarSign, EyeOff 
+  Home, LayoutDashboard, Package, FileText, Heart, Users, ShoppingBag, 
+  ClipboardList, Code, Send, Bot, MessageSquare, DollarSign, EyeOff, HelpCircle
 } from "lucide-react";
 import Image from "next/image";
 
@@ -29,7 +29,8 @@ import { PrivateValue } from "@/components/shared/private-value";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppSettings } from "@/contexts/app-settings-context";
 
-const iconMap: Record<NavLinkIconName, React.ElementType> = {
+// Correção: O mapa de ícones deve conter apenas os ícones usados na configuração do admin.
+const iconMap: Record<Extract<NavLinkIconName, keyof typeof ADMIN_NAV_LINKS_CONFIG[number]>, React.ElementType> = {
   Home,
   LayoutDashboard,
   Package,
@@ -42,28 +43,11 @@ const iconMap: Record<NavLinkIconName, React.ElementType> = {
   Send,
   Bot,
   MessageSquare,
-  HelpCircle,
-  CalendarDays: HelpCircle, // Placeholder
-  ArrowRightLeft: HelpCircle, // Placeholder
-  BarChart3: HelpCircle, // Placeholder
-  Target: HelpCircle, // Placeholder
-  Trophy: HelpCircle, // Placeholder
-  ListChecks: HelpCircle, // Placeholder
-  NotebookPen: HelpCircle, // Placeholder
-  Share2: HelpCircle, // Placeholder
-  AreaChart: HelpCircle, // Placeholder
-  Users2: HelpCircle, // Placeholder
-  Wrench: HelpCircle, // Placeholder
-  Globe: HelpCircle, // Placeholder
-  GitMerge: HelpCircle, // Placeholder
-  KanbanSquare: HelpCircle, // Placeholder
-  PieChart: HelpCircle, // Placeholder
-  Gem: HelpCircle, // Placeholder
 };
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return HelpCircle;
-  return iconMap[iconName as NavLinkIconName] || HelpCircle;
+  return iconMap[iconName as keyof typeof iconMap] || HelpCircle;
 };
 
 // Mock admin user data
