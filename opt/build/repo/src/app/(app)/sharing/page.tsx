@@ -281,12 +281,11 @@ export default function SharingPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-  onClick={handleLeaveModuleConfirm}
-  className="bg-destructive text-white hover:bg-destructive/90"
->
-  Sair
-</AlertDialogAction>
-
+              onClick={handleLeaveModuleConfirm}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Sair
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
