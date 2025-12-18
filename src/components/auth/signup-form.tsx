@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { UserPlus, KeyRound, Mail, User, Eye, EyeOff, CheckCircle, Loader2, AlertCircle, Building, UserCheck } from "lucide-react";
 import { supabase } from '@/lib/supabase/client';
 import { Button } from "@/components/ui/button";
