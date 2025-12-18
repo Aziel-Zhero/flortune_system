@@ -31,9 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    if (session?.user?.id !== currentSession.user.id) {
-        setIsLoading(true);
+    // Evita recarregar o perfil desnecessariamente se o usuário for o mesmo
+    if (session?.user?.id === currentSession.user.id) {
+        setIsLoading(false);
+        return;
     }
+    
+    setIsLoading(true);
     
     try {
       if (!supabase) {
@@ -46,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', authUser.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
         console.error("AuthContext: Erro ao buscar perfil:", error.message);
         const userWithNullProfile = { ...authUser, profile: null } as UserWithProfile;
         setSession({ ...currentSession, user: userWithNullProfile });
