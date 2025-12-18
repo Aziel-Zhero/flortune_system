@@ -42,7 +42,7 @@ type ProductFormData = z.infer<typeof productSchema>;
 const iconOptions = Object.keys(LucideIcons).filter(key => /^[A-Z]/.test(key));
 
 export function ProductEditorDialog({ isOpen, onOpenChange, product, onSave }: ProductEditorDialogProps) {
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ProductFormData>({
+  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
   });
   
@@ -70,14 +70,19 @@ export function ProductEditorDialog({ isOpen, onOpenChange, product, onSave }: P
   }, [isOpen, product, reset]);
 
   const onSubmit: SubmitHandler<ProductFormData> = (data) => {
+    const { id, ...restOfData } = data; // Remove id opcional de data
     const finalData: PricingTier = {
-        ...data,
-        features: data.features.split('\n').map(f => f.trim()).filter(f => f), // Convert string back to array
+        id: product?.id || data.id || `tier_${Date.now()}`, // Garante que o ID é sempre string
+        ...restOfData,
+        features: data.features.split('\n').map(f => f.trim()).filter(f => f),
+        stripePriceId: data.stripePriceId ?? null,
     };
     onSave(finalData);
   };
   
-  const IconPreview = LucideIcons[control._getWatch('icon') as keyof typeof LucideIcons] || Gem;
+  const watchedIcon = watch('icon');
+  const IconPreviewComponent = (LucideIcons as any)[watchedIcon] || Gem;
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -108,7 +113,7 @@ export function ProductEditorDialog({ isOpen, onOpenChange, product, onSave }: P
                 <Label htmlFor="icon">Ícone</Label>
                 <div className="flex items-center gap-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                        <IconPreview className="h-6 w-6"/>
+                        {IconPreviewComponent && <IconPreviewComponent className="h-6 w-6"/>}
                     </div>
                     <Controller name="icon" control={control} render={({ field }) => (
                          <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent className="max-h-60">{iconOptions.map(iconName => <SelectItem key={iconName} value={iconName}>{iconName}</SelectItem>)}</SelectContent></Select>
