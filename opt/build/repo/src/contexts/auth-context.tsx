@@ -37,8 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       if (!supabase) {
-        throw new Error("Supabase client is not initialized.");
+        console.error("AuthContext: Supabase client is not initialized.");
+        setSession(null);
+        setIsLoading(false);
+        return;
       }
+      
       const authUser = currentSession.user;
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -74,18 +78,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     const getInitialSession = async () => {
-        const { data: { session: initialSupabaseSession } } = await supabase.auth.getSession();
+      try {
+        // Verificação adicional para garantir que supabase não é null
+        if (!supabase?.auth) {
+          console.error("AuthProvider: Supabase auth não disponível.");
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data: { session: initialSupabaseSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("AuthProvider: Erro ao obter sessão:", error.message);
+          setIsLoading(false);
+          return;
+        }
+        
         await fetchProfileAndSetSession(initialSupabaseSession);
+      } catch (error) {
+        console.error("AuthProvider: Exceção ao obter sessão inicial:", error);
+        setIsLoading(false);
+      }
     };
 
     getInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
+    // Verificar se supabase.auth.onAuthStateChange existe
+    const authSubscription = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
       await fetchProfileAndSetSession(newSupabaseSession);
     });
 
     return () => {
-      subscription.unsubscribe();
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
     };
   }, [fetchProfileAndSetSession]);
 
