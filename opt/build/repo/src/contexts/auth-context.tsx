@@ -31,16 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    if (session?.user?.id !== currentSession.user.id) {
-        setIsLoading(true);
+    if (session?.user?.id === currentSession.user.id) {
+        setIsLoading(false);
+        return;
     }
+    
+    setIsLoading(true);
     
     try {
       if (!supabase) {
-        console.error("AuthContext: Supabase client is not initialized.");
-        setSession(null);
-        setIsLoading(false);
-        return;
+        throw new Error("AuthContext: Supabase client is not initialized.");
       }
       
       const authUser = currentSession.user;
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', authUser.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
         console.error("AuthContext: Erro ao buscar perfil:", error.message);
         const userWithNullProfile = { ...authUser, profile: null } as UserWithProfile;
         setSession({ ...currentSession, user: userWithNullProfile });
@@ -79,13 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const getInitialSession = async () => {
       try {
-        // Verificação adicional para garantir que supabase não é null
-        if (!supabase?.auth) {
-          console.error("AuthProvider: Supabase auth não disponível.");
-          setIsLoading(false);
-          return;
-        }
-        
         const { data: { session: initialSupabaseSession }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -103,14 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getInitialSession();
 
-    // Verificar se supabase.auth.onAuthStateChange existe
-    const authSubscription = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
       await fetchProfileAndSetSession(newSupabaseSession);
     });
 
     return () => {
-      if (authSubscription?.data?.subscription) {
-        authSubscription.data.subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
       }
     };
   }, [fetchProfileAndSetSession]);
