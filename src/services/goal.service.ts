@@ -10,7 +10,7 @@ export async function getFinancialGoals(userId: string): Promise<ServiceListResp
     return { data: [], error: "ID do usuário não fornecido." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('financial_goals')
     .select('*')
@@ -32,7 +32,7 @@ export async function addFinancialGoal(userId: string, goalData: NewFinancialGoa
     return { data: null, error: "ID do usuário não fornecido." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: newGoal, error } = await supabase
     .from('financial_goals')
     .insert({
@@ -57,7 +57,7 @@ export async function deleteFinancialGoal(goalId: string): Promise<{ error: stri
     return { error: "ID da meta não fornecido." };
   }
   
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from('financial_goals')
     .delete()

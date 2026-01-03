@@ -2,8 +2,10 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies()
+// A função foi tornada async para usar await no cookieStore.
+export async function createClient() {
+  // A Promise é resolvida aqui.
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,18 +19,17 @@ export function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // O método 'set' pode ser chamado de um Server Component, o que pode
+            // gerar um erro em algumas versões do Next.js. Ignoramos se o middleware
+            // estiver tratando a atualização da sessão.
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // O método 'delete' (via set com valor vazio) pode ser chamado
+            // de um Server Component. Ignoramos o erro.
           }
         },
       },
