@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
+    // Evita recarregar o perfil desnecessariamente se o usuário for o mesmo
     if (session?.user?.id === currentSession.user.id) {
         setIsLoading(false);
         return;
@@ -71,13 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (!supabase) {
-      console.error("AuthProvider: Cliente Supabase não inicializado.");
-      setIsLoading(false);
-      return;
-    }
-    
     const getInitialSession = async () => {
+      // ✅ CORREÇÃO: Verifica se o supabase existe antes de usá-lo.
+      if (!supabase) {
+        console.error("AuthProvider: Cliente Supabase não inicializado no useEffect.");
+        setIsLoading(false);
+        return;
+      }
       try {
         const { data: { session: initialSupabaseSession }, error } = await supabase.auth.getSession();
         
@@ -95,6 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     getInitialSession();
+
+    // ✅ CORREÇÃO: Verifica se o supabase existe antes de criar a subscrição.
+    if (!supabase) {
+      return;
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
       await fetchProfileAndSetSession(newSupabaseSession);
