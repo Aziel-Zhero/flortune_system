@@ -1,4 +1,3 @@
-
 // src/contexts/auth-context.tsx
 "use client";
 
@@ -78,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const getInitialSession = async () => {
-      // Adicionada verificação de nulidade para o cliente supabase
+      // ✅ CORREÇÃO: Verifica se o supabase existe antes de usá-lo.
       if (!supabase) {
         console.error("AuthProvider: Cliente Supabase não inicializado no useEffect.");
         setIsLoading(false);
@@ -102,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getInitialSession();
 
-    // Adicionada verificação de nulidade para o cliente supabase
+    // ✅ CORREÇÃO: Verifica se o supabase existe antes de criar a subscrição.
     if (!supabase) {
       return;
     }

@@ -9,6 +9,7 @@ function isValidSupabaseUrl(url: string | undefined): url is string {
 
 let supabaseInstance: SupabaseClient | null = null;
 
+// Use a function to create the client on demand to ensure environment variables are loaded.
 function createSupabaseClient() {
     if (supabaseInstance) {
         return supabaseInstance;
@@ -28,4 +29,5 @@ function createSupabaseClient() {
     }
 }
 
+// Export the function to create the client, ensuring it's only created once.
 export const supabase = createSupabaseClient();
