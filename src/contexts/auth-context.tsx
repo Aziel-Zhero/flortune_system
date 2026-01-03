@@ -1,3 +1,4 @@
+
 // src/contexts/auth-context.tsx
 "use client";
 
@@ -25,6 +26,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfileAndSetSession = useCallback(async (currentSession: AuthSession | null): Promise<void> => {
+    // Adicionada verificação de nulidade para o cliente supabase
+    if (!supabase) {
+      console.error("AuthContext: Cliente Supabase não inicializado ao buscar perfil.");
+      setSession(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (!currentSession?.user) {
       setSession(null);
       setIsLoading(false);
@@ -40,9 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      if (!supabase) {
-        throw new Error("Supabase client is not initialized.");
-      }
       const authUser = currentSession.user;
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -71,25 +77,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (!supabase) {
-      console.error("AuthProvider: Cliente Supabase não inicializado.");
-      setIsLoading(false);
-      return;
-    }
-    
     const getInitialSession = async () => {
-        const { data: { session: initialSupabaseSession } } = await supabase.auth.getSession();
+      // Adicionada verificação de nulidade para o cliente supabase
+      if (!supabase) {
+        console.error("AuthProvider: Cliente Supabase não inicializado no useEffect.");
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const { data: { session: initialSupabaseSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("AuthProvider: Erro ao obter sessão:", error.message);
+          setIsLoading(false);
+          return;
+        }
+        
         await fetchProfileAndSetSession(initialSupabaseSession);
+      } catch (error) {
+        console.error("AuthProvider: Exceção ao obter sessão inicial:", error);
+        setIsLoading(false);
+      }
     };
 
     getInitialSession();
+
+    // Adicionada verificação de nulidade para o cliente supabase
+    if (!supabase) {
+      return;
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
       await fetchProfileAndSetSession(newSupabaseSession);
     });
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, [fetchProfileAndSetSession]);
 
