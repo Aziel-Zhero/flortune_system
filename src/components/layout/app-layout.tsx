@@ -14,10 +14,9 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
+  const { session, isLoading } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const isLoading = status === "loading";
 
   useEffect(() => {
     if (isLoading) return;
