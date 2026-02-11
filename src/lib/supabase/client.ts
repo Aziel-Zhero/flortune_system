@@ -7,27 +7,19 @@ function isValidSupabaseUrl(url: string | undefined): url is string {
   return !!url && url.startsWith('http') && !url.includes('<');
 }
 
+// --- Initialize Supabase Client ---
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 let supabaseInstance: SupabaseClient | null = null;
 
-// Use a function to create the client on demand to ensure environment variables are loaded.
-function createSupabaseClient() {
-    if (supabaseInstance) {
-        return supabaseInstance;
-    }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (isValidSupabaseUrl(supabaseUrl) && supabaseAnonKey) {
-        supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
-        return supabaseInstance;
-    } else {
-      console.warn(
-        "⚠️ WARNING: Supabase client not initialized. NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY are invalid or missing. Database features will fail."
-      );
-      return null;
-    }
+if (isValidSupabaseUrl(supabaseUrl) && supabaseAnonKey) {
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
+} else {
+  console.warn(
+    "⚠️ WARNING: Supabase client not initialized. NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY are invalid or missing. Database features will fail."
+  );
 }
 
-// Export the function to create the client, ensuring it's only created once.
-export const supabase = createSupabaseClient();
+// --- Export the potentially null client ---
+export const supabase = supabaseInstance;

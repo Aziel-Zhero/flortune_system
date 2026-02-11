@@ -3,36 +3,48 @@
 
 import type { Budget } from "@/types/database.types";
 import type { ServiceListResponse, ServiceResponse } from "@/types/database.types";
-
-const mockBudgets: Budget[] = [];
+import { createClient } from "@/lib/supabase/server";
 
 export async function getBudgets(userId: string): Promise<ServiceListResponse<Budget>> {
   if (!userId) {
     return { data: [], error: "ID do usuário não fornecido." };
   }
-  // Simula um atraso da API
-  await new Promise(resolve => setTimeout(resolve, 500));
-  // Filtra os orçamentos para o usuário mockado
-  const userBudgets = mockBudgets.filter(b => b.user_id === userId);
-  return { data: userBudgets, error: null };
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('budgets')
+    .select('*, category:categories(*)')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error("Erro ao buscar orçamentos:", error.message);
+    return { data: null, error: "Não foi possível carregar os orçamentos." };
+  }
+
+  return { data, error: null };
 }
 
-export type NewBudgetData = Omit<Budget, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'spent_amount'>;
+export type NewBudgetData = Omit<Budget, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'spent_amount' | 'category'>;
 
 export async function addBudget(userId: string, budgetData: NewBudgetData): Promise<ServiceResponse<Budget>> {
   if (!userId) {
     return { data: null, error: "ID do usuário não fornecido." };
   }
-  const newBudget: Budget = {
-    id: `budget_${Date.now()}`,
-    user_id: userId,
-    ...budgetData,
-    spent_amount: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  mockBudgets.push(newBudget);
-  await new Promise(resolve => setTimeout(resolve, 200));
+  const supabase = createClient();
+  const { data: newBudget, error } = await supabase
+    .from('budgets')
+    .insert({
+      user_id: userId,
+      ...budgetData,
+      spent_amount: 0,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao adicionar orçamento:", error.message);
+    return { data: null, error: "Não foi possível salvar o novo orçamento." };
+  }
+
   return { data: newBudget, error: null };
 }
 
@@ -40,12 +52,17 @@ export async function deleteBudget(budgetId: string): Promise<{ error: string | 
   if (!budgetId) {
     return { error: "ID do orçamento não fornecido." };
   }
-  const index = mockBudgets.findIndex(b => b.id === budgetId);
-  if (index > -1) {
-    mockBudgets.splice(index, 1);
-  } else {
-    return { error: "Orçamento não encontrado." };
+  
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('budgets')
+    .delete()
+    .eq('id', budgetId);
+
+  if (error) {
+    console.error(`Erro ao deletar orçamento ${budgetId}:`, error.message);
+    return { error: "Não foi possível deletar o orçamento." };
   }
-  await new Promise(resolve => setTimeout(resolve, 200));
+
   return { error: null };
 }

@@ -70,9 +70,9 @@ export function ProductEditorDialog({ isOpen, onOpenChange, product, onSave }: P
   }, [isOpen, product, reset]);
 
   const onSubmit: SubmitHandler<ProductFormData> = (data) => {
-    const { id, ...restOfData } = data; // Remove id opcional de data
+    const { id, ...restOfData } = data;
     const finalData: PricingTier = {
-        id: product?.id || data.id || `tier_${Date.now()}`, // Garante que o ID é sempre string
+        id: product?.id || id || `tier_${Date.now()}`,
         ...restOfData,
         features: data.features.split('\n').map(f => f.trim()).filter(f => f),
         stripePriceId: data.stripePriceId ?? null,

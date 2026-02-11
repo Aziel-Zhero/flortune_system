@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
-  const { session, isLoading, update } = useSession();
+  const { session, isLoading, update: updateSession } = useSession();
 
   const userFromSession = session?.user;
   const profileFromSession = session?.user?.profile;
@@ -115,11 +115,11 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile) {
-        // Correção aqui: Garantindo que o user existe antes de atualizar
         if (!session || !session.user) {
           throw new Error("Sessão ou usuário inválido.");
         }
-        await update({
+        await updateSession({
+          ...session,
           user: { ...session.user, profile: updatedProfile as Profile },
         });
       
@@ -199,7 +199,7 @@ export default function ProfilePage() {
                 <Label htmlFor="phone">Telefone</Label>
                  <div className="relative">
                     <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
+                    <Input id="phone" type="tel" value={phone || ''} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
                 </div>
               </div>
             </div>
@@ -209,14 +209,14 @@ export default function ProfilePage() {
                   <Label htmlFor="cpfCnpj">CPF</Label>
                   <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
+                      <Input id="cpfCnpj" value={cpfCnpj || ''} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="rg">RG</Label>
                   <div className="relative">
                       <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="rg" value={rg} onChange={(e) => setRg(e.target.value)} className="pl-10" />
+                      <Input id="rg" value={rg || ''} onChange={(e) => setRg(e.target.value)} className="pl-10" />
                   </div>
                 </div>
               </div>
@@ -226,7 +226,7 @@ export default function ProfilePage() {
                   <Label htmlFor="cpfCnpj">CNPJ</Label>
                   <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
+                      <Input id="cpfCnpj" value={cpfCnpj || ''} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
               </div>
             )}

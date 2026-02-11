@@ -15,7 +15,7 @@ export async function getTransactions(
     return { data: [], error: "ID do usuário não fornecido." };
   }
 
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase
     .from("transactions")
@@ -52,7 +52,7 @@ export async function addTransaction(
     return { data: null, error: "ID do usuário não fornecido." };
   }
   
-  const supabase = await createClient();
+  const supabase = createClient();
   
   const { data: newTransaction, error } = await supabase
     .from("transactions")
@@ -85,7 +85,7 @@ export async function deleteTransaction(
     return { error: "ID do usuário não autenticado." };
   }
 
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from("transactions")

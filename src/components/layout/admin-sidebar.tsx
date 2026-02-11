@@ -1,18 +1,16 @@
-
 // src/components/layout/admin-sidebar.tsx
 "use client"
 
 import Link from "next/link"; 
 import { usePathname } from "next/navigation"; 
 import { 
-  Home, LayoutDashboard, Package, FileText, Heart, Users, ShoppingBag, 
-  ClipboardList, Code, Send, Bot, MessageSquare, DollarSign, EyeOff, HelpCircle 
+  HelpCircle, Home, LayoutDashboard, Package, FileText, Heart, Users, ShoppingBag, 
+  ClipboardList, Code, Send, Bot, MessageSquare, DollarSign, EyeOff 
 } from "lucide-react";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 import { ADMIN_NAV_LINKS_CONFIG, APP_NAME } from "@/lib/constants";
-import type { NavLinkItem } from "@/lib/constants";
 import {
   Sidebar,
   SidebarContent,
@@ -30,10 +28,8 @@ import { PrivateValue } from "@/components/shared/private-value";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppSettings } from "@/contexts/app-settings-context";
 
-// Correção: O tipo agora extrai apenas os ícones da configuração de admin.
 type AdminNavLinkIconName = Extract<typeof ADMIN_NAV_LINKS_CONFIG[number], { type: "link" }>["icon"];
 
-// Correção: O mapa agora contém SOMENTE os ícones necessários para o admin.
 const iconMap: Record<AdminNavLinkIconName, React.ElementType> = {
   Home,
   LayoutDashboard,

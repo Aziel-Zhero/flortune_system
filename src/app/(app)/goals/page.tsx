@@ -95,7 +95,7 @@ export default function GoalsPage() {
       if (error) {
         toast({
           title: "Erro ao Deletar",
-          description: error || `Não foi possível deletar a meta "${deleteDialog.item.name}".`,
+          description: error,
           variant: "destructive",
         });
         setCurrentGoals(originalGoals);

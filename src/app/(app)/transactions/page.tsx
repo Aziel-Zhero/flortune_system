@@ -115,7 +115,7 @@ export default function TransactionsPage() {
       if (error) {
         toast({
           title: "Erro ao Deletar",
-          description: error || `Não foi possível deletar a transação "${deleteDialog.item.description}".`,
+          description: error,
           variant: "destructive",
         });
       

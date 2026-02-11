@@ -94,7 +94,7 @@ export default function BudgetsPage() {
   if (finalIsLoading) {
     return (
       <div>
-        <PageHeader title="Orçamentos" description="Defina e acompanhe seus limites de gastos para diferentes categorias." actions={<Skeleton className="h-10 w-40 rounded-md" />} />
+        <PageHeader title="Orçamentos" description="Defina e acompanhe seus limites de gastos para diferentes categorias." icon={<Target className="mr-2 h-6 w-6 text-primary"/>} actions={<Skeleton className="h-10 w-40 rounded-md" />} />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array(3).fill(0).map((_, index) => (
             <Card key={index} className="shadow-sm h-full">

@@ -20,6 +20,7 @@ import type { Category, Budget } from "@/types/database.types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { getCategories, addCategory } from "@/services/category.service";
 import { useSession } from "@/contexts/auth-context";
+import { addBudget } from "@/services/budget.service";
 
 
 const budgetFormSchema = z.object({
@@ -101,16 +102,34 @@ export function BudgetForm({ onFormSuccess, initialData, isModal = true }: Budge
   }, [user?.id]);
   
   useEffect(() => {
-      fetchCategories();
-  }, [fetchCategories]);
+      if (user?.id) {
+        fetchCategories();
+      }
+  }, [user?.id, fetchCategories]);
 
 
   const onBudgetSubmit: SubmitHandler<BudgetFormData> = async (data) => {
+    if (!user?.id) {
+        toast({ title: "Erro de autenticação", variant: "destructive"});
+        return;
+    }
     setIsSubmitting(true);
-    // Simulação, pois o backend não foi implementado
-    await new Promise(resolve => setTimeout(resolve, 500));
-    toast({ title: isEditing ? "Orçamento Atualizado! (Simulação)" : "Orçamento Criado! (Simulação)", action: <CheckCircle className="text-green-500" /> });
-    onFormSuccess();
+    
+    const newBudgetData = {
+        ...data,
+        period_start_date: format(data.period_start_date, 'yyyy-MM-dd'),
+        period_end_date: format(data.period_end_date, 'yyyy-MM-dd'),
+    };
+    
+    // Na edição, a lógica seria diferente (chamar updateBudget)
+    const { error } = await addBudget(user.id, newBudgetData);
+
+    if (error) {
+        toast({ title: "Erro ao criar orçamento", description: error, variant: "destructive"});
+    } else {
+        toast({ title: "Orçamento Criado!", action: <CheckCircle className="text-green-500" /> });
+        onFormSuccess();
+    }
     setIsSubmitting(false);
   };
 

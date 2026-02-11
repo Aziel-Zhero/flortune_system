@@ -39,6 +39,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface SharedAccess {
   id: string;
@@ -282,7 +283,7 @@ export default function SharingPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLeaveModuleConfirm}
-              className={buttonVariants({ variant: "destructive" })}
+              className={cn(buttonVariants({ variant: "destructive" }))}
             >
               Sair
             </AlertDialogAction>

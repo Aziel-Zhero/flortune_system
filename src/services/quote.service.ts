@@ -37,7 +37,7 @@ export async function getQuotes(codes: string[]): Promise<ServiceListResponse<Qu
     console.error('Erro ao buscar cotações na API externa:', error.message);
     if (axios.isAxiosError(error)) {
         if (error.response?.status === 404) {
-            return { data: null, error: `Uma ou mais cotações (${query}) não foram encontradas.` };
+            return { data: null, error: `Uma ou mais cotações (${query}) não foram encontradas na API externa.` };
         }
         if (error.response?.status === 429) {
             return { data: null, error: "Limite de requisições para a API de cotações foi atingido. Tente novamente mais tarde." };

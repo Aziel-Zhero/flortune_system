@@ -18,27 +18,28 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+          // IMPORTANTE: Não modifique request.cookies diretamente
+          // Apenas atualize a response
+          response.cookies.set({
+            name,
+            value,
+            ...options,
           })
-          response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+          // Para remover uma cookie, defina maxAge: 0
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+            maxAge: 0,
           })
-          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
+  // IMPORTANTE: Verifique a sessão do usuário
   await supabase.auth.getUser()
 
   return response

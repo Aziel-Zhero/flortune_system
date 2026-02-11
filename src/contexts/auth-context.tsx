@@ -25,7 +25,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfileAndSetSession = useCallback(async (currentSession: AuthSession | null): Promise<void> => {
-    // Adicionada verificação de nulidade para o cliente supabase
     if (!supabase) {
       console.error("AuthContext: Cliente Supabase não inicializado ao buscar perfil.");
       setSession(null);
@@ -40,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     // Evita recarregar o perfil desnecessariamente se o usuário for o mesmo
-    if (session?.user?.id === currentSession.user.id) {
+    if (session?.user?.id === currentSession.user.id && session?.user?.profile) {
         setIsLoading(false);
         return;
     }
@@ -73,11 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, session?.user?.profile]);
 
   useEffect(() => {
     const getInitialSession = async () => {
-      // ✅ CORREÇÃO: Verifica se o supabase existe antes de usá-lo.
       if (!supabase) {
         console.error("AuthProvider: Cliente Supabase não inicializado no useEffect.");
         setIsLoading(false);
@@ -101,7 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getInitialSession();
 
-    // ✅ CORREÇÃO: Verifica se o supabase existe antes de criar a subscrição.
     if (!supabase) {
       return;
     }
