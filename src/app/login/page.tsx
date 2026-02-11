@@ -74,7 +74,6 @@ function LoginFormSkeleton() {
   );
 }
 
-
 export default function LoginPage({
   searchParams,
 }: {
