@@ -14,12 +14,12 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-        // Redirect to the dashboard after successful login/signup
+        // Redireciona para o dashboard ou para a URL 'next' após login/cadastro bem-sucedido
         return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  // Redirect to an error page if something goes wrong
+  // Redireciona para a página de erro se algo der errado
   console.error("Authentication callback error");
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
 }
