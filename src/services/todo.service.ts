@@ -10,7 +10,7 @@ export async function getTodos(userId: string): Promise<ServiceListResponse<Todo
     return { data: [], error: "ID do usuário não fornecido." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('todos')
     .select('*')
@@ -32,7 +32,7 @@ export async function addTodo(userId: string, todoData: NewTodoData): Promise<Se
     return { data: null, error: "ID do usuário não fornecido." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: newTodo, error } = await supabase
     .from('todos')
     .insert({
@@ -51,7 +51,7 @@ export async function addTodo(userId: string, todoData: NewTodoData): Promise<Se
 }
 
 export async function updateTodo(id: string, updates: Partial<Todo>): Promise<ServiceResponse<Todo>> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('todos')
     .update(updates)
@@ -71,7 +71,7 @@ export async function deleteTodo(id: string): Promise<{ error: string | null }> 
     return { error: "ID da tarefa não fornecido." };
   }
   
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from('todos')
     .delete()

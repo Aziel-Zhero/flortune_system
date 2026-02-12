@@ -2,8 +2,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,17 +17,18 @@ export function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // O método 'set' pode ser chamado de um Server Component, o que pode
-            // gerar um erro em algumas versões do Next.js. Ignoramos se o middleware
-            // estiver tratando a atualização da sessão.
+            // O método 'set' foi chamado de um Server Component.
+            // Isso pode ser ignorado se você tiver middleware atualizando
+            // sessões de usuário.
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
-            // O método 'delete' (via set com valor vazio) pode ser chamado
-            // de um Server Component. Ignoramos o erro.
+            // O método 'delete' foi chamado de um Server Component.
+            // Isso pode ser ignorado se você tiver middleware atualizando
+            // sessões de usuário.
           }
         },
       },

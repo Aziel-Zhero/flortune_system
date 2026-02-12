@@ -8,14 +8,14 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   // Se 'next' estiver no searchParams, use-o como a URL de redirecionamento,
   // senão, redirecione para a página inicial.
-  const next = searchParams.get('next') ?? '/';
+  const next = searchParams.get('next') ?? '/dashboard';
 
   if (code) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
         // Redireciona para o dashboard após login/cadastro bem-sucedido
-        return NextResponse.redirect(`${origin}/dashboard`);
+        return NextResponse.redirect(`${origin}${next}`);
     }
   }
 

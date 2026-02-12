@@ -9,7 +9,7 @@ export async function getBudgets(userId: string): Promise<ServiceListResponse<Bu
   if (!userId) {
     return { data: [], error: "ID do usuário não fornecido." };
   }
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('budgets')
     .select('*, category:categories(*)')
@@ -29,7 +29,7 @@ export async function addBudget(userId: string, budgetData: NewBudgetData): Prom
   if (!userId) {
     return { data: null, error: "ID do usuário não fornecido." };
   }
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: newBudget, error } = await supabase
     .from('budgets')
     .insert({
@@ -53,7 +53,7 @@ export async function deleteBudget(budgetId: string): Promise<{ error: string | 
     return { error: "ID do orçamento não fornecido." };
   }
   
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from('budgets')
     .delete()
