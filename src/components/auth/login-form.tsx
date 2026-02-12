@@ -122,10 +122,16 @@ export function LoginForm({ message }: LoginFormProps) {
         </div>
       </div>
       
-      <OAuthButton
-        provider="google"
-        buttonText="Entrar com Google"
-      />
+      <div className="space-y-2">
+        <OAuthButton
+          provider="google"
+          buttonText="Entrar com Google"
+        />
+        <OAuthButton
+          provider="github"
+          buttonText="Entrar com GitHub"
+        />
+      </div>
     </div>
   );
 }
