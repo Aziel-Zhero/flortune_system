@@ -1,25 +1,41 @@
 // src/app/api/auth/callback/route.ts
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
-import { type NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get('code');
-  // If 'next' is in the searchParams, use it as the redirect URL,
-  // otherwise, redirect to the dashboard.
-  const next = searchParams.get('next') ?? '/dashboard';
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next') ?? '/dashboard'
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-        // Redireciona para o dashboard ou para a URL 'next' após login/cadastro bem-sucedido
-        return NextResponse.redirect(`${origin}${next}`);
-    }
+  if (!code) {
+    console.error('No code found in callback URL')
+    return NextResponse.redirect(
+      new URL('/login?error=no_code', request.url)
+    )
   }
 
-  // Redireciona para a página de erro se algo der errado
-  console.error("Authentication callback error");
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
+  try {
+    const supabase = await createClient()
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (error) {
+      console.error('Error exchanging code for session:', error.message)
+      return NextResponse.redirect(
+        new URL('/login?error=auth_callback_failed', request.url)
+      )
+    }
+
+    // 🔐 Segurança: evita open redirect
+    const safeNext = next.startsWith('/') ? next : '/dashboard'
+
+    return NextResponse.redirect(new URL(safeNext, request.url))
+
+  } catch (err) {
+    console.error('Unexpected auth callback error:', err)
+    return NextResponse.redirect(
+      new URL('/login?error=server_error', request.url)
+    )
+  }
 }
