@@ -1,3 +1,4 @@
+
 // src/app/api/auth/callback/route.ts
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
@@ -14,8 +15,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-        // Redireciona para o dashboard ou para a URL 'next' após login/cadastro bem-sucedido
-        return NextResponse.redirect(`${origin}${next}`);
+        // Redireciona para o dashboard após login/cadastro bem-sucedido
+        return NextResponse.redirect(`${origin}/dashboard`);
     }
   }
 
