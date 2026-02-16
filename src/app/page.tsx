@@ -14,13 +14,14 @@ import { useSession } from "@/contexts/auth-context";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import anime from 'animejs';
-import React, { useRef, useEffect, type FC, useState } from 'react';
+import React, { useRef, useEffect, type FC, useState, Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MaintenancePopup } from "@/components/popups/maintenance-popup";
-import { PromotionPopup } from "@/components/popups/promotion-popup";
-import { NewsletterPopup } from "@/components/popups/newsletter-popup";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import dynamic from "next/dynamic";
+
+const MaintenancePopup = dynamic(() => import('@/components/popups/maintenance-popup').then(mod => mod.MaintenancePopup));
+const PromotionPopup = dynamic(() => import('@/components/popups/promotion-popup').then(mod => mod.PromotionPopup));
+const NewsletterPopup = dynamic(() => import('@/components/popups/newsletter-popup').then(mod => mod.NewsletterPopup));
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -40,40 +41,9 @@ interface FeatureCardProps {
 }
 
 const FeatureCard: FC<FeatureCardProps> = ({ icon: Icon, title, description, link, className }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const iconRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const currentCardRef = cardRef.current;
-    const currentIconRef = iconRef.current;
-    if (!currentCardRef || !currentIconRef) return;
-
-    const handleMouseEnter = () => {
-      anime.remove(currentIconRef);
-      anime({ targets: currentIconRef, scale: [{ value: 1.2, duration: 200, easing: 'easeOutQuad' }, { value: 1, duration: 300, easing: 'easeInOutQuad' }], rotate: [{ value: 10, duration: 150, easing: 'easeOutSine' }, { value: -10, duration: 150, delay: 50, easing: 'easeInOutSine' }, { value: 0, duration: 150, delay: 50, easing: 'easeInSine' }], translateY: [{ value: -5, duration: 150, easing: 'easeOutQuad' }, { value: 0, duration: 200, easing: 'easeInQuad' }], duration: 600 });
-      anime({ targets: currentCardRef, translateY: -5, scale: 1.02, duration: 300, easing: 'easeOutQuad' });
-    };
-    
-    const handleMouseLeave = () => {
-      anime.remove(currentIconRef);
-      anime({ targets: currentIconRef, scale: 1, rotate: 0, translateY: 0, duration: 300, easing: 'easeOutQuad' });
-      anime({ targets: currentCardRef, translateY: 0, scale: 1, duration: 300, easing: 'easeOutQuad' });
-    };
-
-    currentCardRef.addEventListener('mouseenter', handleMouseEnter);
-    currentCardRef.addEventListener('mouseleave', handleMouseLeave);
-    return () => {
-      if (currentCardRef) {
-        currentCardRef.removeEventListener('mouseenter', handleMouseEnter);
-        currentCardRef.removeEventListener('mouseleave', handleMouseLeave);
-      }
-      if (currentIconRef) anime.remove(currentIconRef);
-    };
-  }, []);
-
   return (
-    <div ref={cardRef} className={cn("bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-all duration-300 h-full flex flex-col", className)}>
-      <div ref={iconRef} className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
+    <div className={cn("bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-border/50 hover:shadow-primary/20 transition-all duration-300 h-full flex flex-col hover:scale-105 hover:-translate-y-1", className)}>
+      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
         <Icon className="w-6 h-6" />
       </div>
       <h3 className="text-xl font-headline font-semibold mb-2 text-foreground">{title}</h3>
@@ -142,6 +112,7 @@ export default function LandingPage() {
   const { session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
+  // Fallback seguro para garantir que o objeto não seja nulo no servidor
   const safeLandingPageContent = landingPageContent || {
     heroTitle: "",
     heroDescription: "",
@@ -323,11 +294,13 @@ export default function LandingPage() {
         </footer>
       </div>
       {/* Pop-up Rendering */}
-      <div className="fixed bottom-5 right-5 z-50">
-        {showPopup && activePopup === 'maintenance' && popupConfigs?.maintenance && <MaintenancePopup config={popupConfigs.maintenance} onDismiss={() => setShowPopup(false)} />}
-        {showPopup && activePopup === 'promotion' && popupConfigs?.promotion && <PromotionPopup config={popupConfigs.promotion} onDismiss={() => setShowPopup(false)} />}
-        {showPopup && activePopup === 'newsletter' && popupConfigs?.newsletter && <NewsletterPopup config={popupConfigs.newsletter} onDismiss={() => setShowPopup(false)} />}
-      </div>
+      <Suspense fallback={null}>
+        <div className="fixed bottom-5 right-5 z-50">
+          {showPopup && activePopup === 'maintenance' && popupConfigs?.maintenance && <MaintenancePopup config={popupConfigs.maintenance} onDismiss={() => setShowPopup(false)} />}
+          {showPopup && activePopup === 'promotion' && popupConfigs?.promotion && <PromotionPopup config={popupConfigs.promotion} onDismiss={() => setShowPopup(false)} />}
+          {showPopup && activePopup === 'newsletter' && popupConfigs?.newsletter && <NewsletterPopup config={popupConfigs.newsletter} onDismiss={() => setShowPopup(false)} />}
+        </div>
+      </Suspense>
     </div>
   );
 }

@@ -35,8 +35,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt" suppressHydrationWarning>
-      <head>
-      </head>
       <body 
         className={cn(
           "font-body antialiased",
