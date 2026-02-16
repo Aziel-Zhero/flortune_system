@@ -9,7 +9,7 @@
     --foreground: 180 30% 25%; 
 
     --muted: 180 25% 85%;
-    --muted-foreground: 180 20% 50%;
+    --muted-foreground: 180 25% 40%;
 
     --popover: 204 20% 98%; 
     --popover-foreground: 180 30% 25%;
@@ -422,10 +422,10 @@
     @apply bg-background text-foreground font-body antialiased;
   }
   .font-headline {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--font-poppins), sans-serif;
   }
   .font-body {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-inter), sans-serif;
   }
   
   /* Estilo da barra de rolagem para navegadores WebKit */
@@ -447,5 +447,6 @@
   }
 
 }
+
 
 

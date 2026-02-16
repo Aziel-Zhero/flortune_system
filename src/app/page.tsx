@@ -1,3 +1,4 @@
+
 // src/app/page.tsx
 "use client";
 
@@ -213,7 +214,8 @@ export default function LandingPage() {
           <Iridescence 
             fluidColor={campaignProps.fluidColor} 
             speed={campaignProps.speed} 
-            amplitude={campaignProps.amplitude} 
+            amplitude={campaignProps.amplitude}
+            mouseReact={false} 
           />
         </Suspense>
       )}
@@ -344,3 +346,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
