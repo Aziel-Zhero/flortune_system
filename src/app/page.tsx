@@ -5,7 +5,6 @@
 import Link from "next/link";
 import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare, Star, Origami, Code, Briefcase, Leaf } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import Iridescence from "@/components/shared/iridescence";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -143,7 +142,6 @@ export default function LandingPage() {
   const { session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
-  // Fallback seguro para garantir que o objeto não seja nulo no servidor
   const safeLandingPageContent = landingPageContent || {
     heroTitle: "",
     heroDescription: "",
@@ -152,35 +150,6 @@ export default function LandingPage() {
     ctaDescription: "",
     ctaButtonText: ""
   };
-
-  const getCampaignProps = () => {
-    switch (activeCampaignTheme) {
-      case 'black-friday':
-        return { showFluid: false };
-      case 'flash-sale':
-        return {
-          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number],
-          speed: 0.2, amplitude: 0.1, showFluid: true,
-        };
-       case 'super-promocao':
-        return {
-          fluidColor: [255 / 255, 69 / 255, 0 / 255] as [number, number, number],
-          speed: 0.4, amplitude: 0.2, showFluid: true,
-        };
-      case 'aniversario':
-         return {
-          fluidColor: [0 / 255, 51 / 255, 102 / 255] as [number, number, number],
-          speed: 0.15, amplitude: 0.08, showFluid: true,
-        };
-      default:
-        return {
-          fluidColor: [22 / 255, 163 / 255, 129 / 255] as [number, number, number],
-          speed: 0.3, amplitude: 0.15, showFluid: true,
-        };
-    }
-  };
-
-  const campaignProps = getCampaignProps();
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -237,13 +206,6 @@ export default function LandingPage() {
 
   return (
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
-      {campaignProps?.showFluid && (
-        <Iridescence 
-          fluidColor={campaignProps.fluidColor} 
-          speed={campaignProps.speed} 
-          amplitude={campaignProps.amplitude} 
-        />
-      )}
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">
