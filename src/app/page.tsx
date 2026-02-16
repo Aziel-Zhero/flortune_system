@@ -1,4 +1,3 @@
-
 // src/app/page.tsx
 "use client";
 
@@ -22,6 +21,9 @@ import dynamic from "next/dynamic";
 const MaintenancePopup = dynamic(() => import('@/components/popups/maintenance-popup').then(mod => mod.MaintenancePopup));
 const PromotionPopup = dynamic(() => import('@/components/popups/promotion-popup').then(mod => mod.PromotionPopup));
 const NewsletterPopup = dynamic(() => import('@/components/popups/newsletter-popup').then(mod => mod.NewsletterPopup));
+const Iridescence = dynamic(() => import("@/components/shared/iridescence"), {
+  ssr: false,
+});
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -122,6 +124,35 @@ export default function LandingPage() {
     ctaButtonText: ""
   };
 
+  const getCampaignProps = () => {
+    switch (activeCampaignTheme) {
+      case 'black-friday':
+        return { showFluid: false };
+      case 'flash-sale':
+        return {
+          fluidColor: [224 / 255, 103 / 255, 145 / 255] as [number, number, number],
+          speed: 0.2, amplitude: 0.1, showFluid: true,
+        };
+       case 'super-promocao':
+        return {
+          fluidColor: [255 / 255, 69 / 255, 0 / 255] as [number, number, number],
+          speed: 0.4, amplitude: 0.2, showFluid: true,
+        };
+      case 'aniversario':
+         return {
+          fluidColor: [0 / 255, 51 / 255, 102 / 255] as [number, number, number],
+          speed: 0.15, amplitude: 0.08, showFluid: true,
+        };
+      default:
+        return {
+          fluidColor: [22 / 255, 163 / 255, 129 / 255] as [number, number, number],
+          speed: 0.3, amplitude: 0.15, showFluid: true,
+        };
+    }
+  };
+
+  const campaignProps = getCampaignProps();
+
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
   const heroParagraphRef = useRef<HTMLParagraphElement>(null);
@@ -177,6 +208,15 @@ export default function LandingPage() {
 
   return (
     <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
+      {campaignProps?.showFluid && (
+        <Suspense fallback={null}>
+          <Iridescence 
+            fluidColor={campaignProps.fluidColor} 
+            speed={campaignProps.speed} 
+            amplitude={campaignProps.amplitude} 
+          />
+        </Suspense>
+      )}
       <div className="relative z-10 isolate">
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center">

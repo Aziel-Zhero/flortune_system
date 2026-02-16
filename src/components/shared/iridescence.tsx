@@ -1,10 +1,6 @@
 
 "use client";
 
-// This component has been deprecated for performance reasons.
-// The WebGL animation was causing a high Total Blocking Time.
-// It is kept in the codebase for reference but is no longer used.
-
 import { Renderer, Program, Mesh, Color, Triangle, Vec2, Vec3 } from "ogl";
 import type { Texture } from "ogl";
 import { useEffect, useRef } from "react";
