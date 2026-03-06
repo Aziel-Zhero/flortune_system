@@ -112,6 +112,9 @@ export function AppHeader() {
                   notifications.map(n => {
                     const Icon = n.icon || BellRing;
                     const colorClass = n.color ? iconColorClasses[n.color] : 'text-primary';
+                    // Garantir que createdAt é um objeto Date para evitar erro no formatDistanceToNow
+                    const date = n.createdAt instanceof Date ? n.createdAt : new Date(n.createdAt);
+                    
                     return (
                       <DropdownMenuItem key={n.id} className="flex items-start gap-2 cursor-pointer" onSelect={() => markNotificationAsRead(n.id)}>
                         {!n.read && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary" />}
@@ -119,7 +122,9 @@ export function AppHeader() {
                         <div className="flex-1">
                            <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
                            <p className="text-xs text-muted-foreground">{n.description}</p>
-                           <p className="text-xs text-muted-foreground/70 mt-1">{formatDistanceToNow(n.createdAt, { addSuffix: true, locale: ptBR })}</p>
+                           <p className="text-xs text-muted-foreground/70 mt-1">
+                             {formatDistanceToNow(date, { addSuffix: true, locale: ptBR })}
+                           </p>
                         </div>
                       </DropdownMenuItem>
                     )

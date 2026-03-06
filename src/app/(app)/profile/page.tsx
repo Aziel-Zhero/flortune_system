@@ -1,3 +1,4 @@
+
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -46,9 +47,10 @@ export default function ProfilePage() {
       setPhone(profileFromSession.phone || "");
       setCpfCnpj(profileFromSession.cpf_cnpj || "");
       setRg(profileFromSession.rg || "");
-      const currentAvatar = profileFromSession.avatar_url || userFromSession?.user_metadata?.avatar_url || `https://placehold.co/100x100.png?text=${(profileFromSession.display_name || userFromSession?.email)?.charAt(0)?.toUpperCase() || 'U'}`;
+      
+      const currentAvatar = profileFromSession.avatar_url || userFromSession?.user_metadata?.avatar_url || "";
       setAvatarUrl(currentAvatar);
-      setAvatarFallback((profileFromSession.display_name || userFromSession?.email)?.charAt(0)?.toUpperCase() || "U");
+      setAvatarFallback((profileFromSession.display_name || userFromSession?.email || "U").charAt(0).toUpperCase());
     }
     if (userFromSession?.email) {
       setEmail(userFromSession.email);
@@ -63,7 +65,7 @@ export default function ProfilePage() {
       reader.onload = (event) => {
         const result = event.target?.result;
         if (typeof result === 'string') {
-          setAvatarUrl(result); // Mostra o preview
+          setAvatarUrl(result);
         }
       };
       reader.readAsDataURL(file);
@@ -83,13 +85,16 @@ export default function ProfilePage() {
 
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
-        const filePath = `${userFromSession.id}/avatar.${fileExt}`;
+        const filePath = `${userFromSession.id}/avatar-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(filePath, avatarFile, { upsert: true });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+            console.error("Storage upload error:", uploadError);
+            throw new Error("Não foi possível enviar a imagem. Verifique se o bucket 'avatars' existe e está público.");
+        }
 
         const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
         publicAvatarUrl = data.publicUrl;
@@ -115,17 +120,16 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile) {
-        if (!session || !session.user) {
-          throw new Error("Sessão ou usuário inválido.");
+        if (session && session.user) {
+            await updateSession({
+                ...session,
+                user: { ...session.user, profile: updatedProfile as Profile },
+            });
         }
-        await updateSession({
-          ...session,
-          user: { ...session.user, profile: updatedProfile as Profile },
-        });
       
         toast({
           title: "Perfil Atualizado",
-          description: "Suas informações foram salvas.",
+          description: "Suas informações foram salvas com sucesso.",
           action: <CheckSquare className="text-green-500"/>
         });
       
@@ -134,7 +138,7 @@ export default function ProfilePage() {
       
     } catch (error: any) {
       console.error("Error saving profile:", error);
-      toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar as alterações.", variant: "destructive" });
+      toast({ title: "Erro ao Salvar", description: error.message || "Ocorreu um erro ao salvar as alterações.", variant: "destructive" });
     } finally {
       setIsSavingProfile(false);
     }
@@ -199,7 +203,7 @@ export default function ProfilePage() {
                 <Label htmlFor="phone">Telefone</Label>
                  <div className="relative">
                     <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" value={phone || ''} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
+                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
                 </div>
               </div>
             </div>
@@ -209,14 +213,14 @@ export default function ProfilePage() {
                   <Label htmlFor="cpfCnpj">CPF</Label>
                   <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="cpfCnpj" value={cpfCnpj || ''} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
+                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="rg">RG</Label>
                   <div className="relative">
                       <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="rg" value={rg || ''} onChange={(e) => setRg(e.target.value)} className="pl-10" />
+                      <Input id="rg" value={rg} onChange={(e) => setRg(e.target.value)} className="pl-10" />
                   </div>
                 </div>
               </div>
@@ -226,7 +230,7 @@ export default function ProfilePage() {
                   <Label htmlFor="cpfCnpj">CNPJ</Label>
                   <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="cpfCnpj" value={cpfCnpj || ''} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
+                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
                   </div>
               </div>
             )}
