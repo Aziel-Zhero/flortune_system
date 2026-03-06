@@ -1,3 +1,4 @@
+
 // src/services/transaction.service.ts
 "use server";
 
@@ -19,12 +20,10 @@ export async function getTransactions(
 
   const { data, error } = await supabase
     .from("transactions")
-    .select(
-      `
+    .select(`
       *,
       category:categories(*)
-    `
-    )
+    `)
     .eq("user_id", userId)
     .order("date", { ascending: false });
 

@@ -1,3 +1,4 @@
+
 // src/app/login/page.tsx
 import { Suspense } from 'react';
 import { AuthLayout } from "@/components/auth/auth-layout";
@@ -74,13 +75,14 @@ function LoginFormSkeleton() {
   );
 }
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const signupParam = searchParams?.signup;
-  const message = searchParams?.message as string | undefined;
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function LoginPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const signupParam = params?.signup;
+  const message = params?.message as string | undefined;
   
   const signupSuccess = signupParam === 'success';
   const isConfirmed = signupParam === 'success_direct';

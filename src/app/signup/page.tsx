@@ -1,4 +1,5 @@
 
+// src/app/signup/page.tsx
 import { Suspense } from 'react';
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { SignupForm } from "@/components/auth/signup-form";
@@ -41,7 +42,14 @@ function SignupFormSkeleton() {
   );
 }
 
-export default function SignupPage() {
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function SignupPage({ searchParams }: PageProps) {
+  // No Next.js 15, searchParams é uma Promise e deve ser aguardada se usada em um Server Component
+  await searchParams;
+
   return (
     <AuthLayout
       title="Criar uma Conta"
