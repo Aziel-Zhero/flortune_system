@@ -1,5 +1,4 @@
 
-// src/app/api/auth/callback/route.ts
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
