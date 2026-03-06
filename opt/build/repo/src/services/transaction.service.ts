@@ -15,16 +15,14 @@ export async function getTransactions(
     return { data: [], error: "ID do usuário não fornecido." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("transactions")
-    .select(
-      `
+    .select(`
       *,
       category:categories(*)
-    `
-    )
+    `)
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
@@ -51,9 +49,9 @@ export async function addTransaction(
   if (!userId) {
     return { data: null, error: "ID do usuário não fornecido." };
   }
-
-  const supabase = createClient();
-
+  
+  const supabase = await createClient();
+  
   const { data: newTransaction, error } = await supabase
     .from("transactions")
     .insert({
@@ -67,7 +65,7 @@ export async function addTransaction(
     console.error("Erro ao adicionar transação:", error.message);
     return { data: null, error: "Não foi possível salvar a nova transação." };
   }
-
+  
   return { data: newTransaction, error: null };
 }
 
@@ -81,12 +79,11 @@ export async function deleteTransaction(
   if (!transactionId) {
     return { error: "ID da transação não fornecido." };
   }
-
   if (!userId) {
-    return { error: "ID do usuário não fornecido." };
+    return { error: "ID do usuário não autenticado." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from("transactions")
