@@ -1,3 +1,4 @@
+
 // src/contexts/app-settings-context.tsx
 
 "use client";
@@ -179,7 +180,7 @@ function AppSettingsInitializer({
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const lastFetchTime = useRef<number>(0);
-  const cacheDuration = 180000; // 3 minutos de cache
+  const cacheDuration = 300000; // 5 minutos de cache
   const isRateLimited = useRef<boolean>(false);
 
   const [state, setState] = useState<AppSettingsProviderValue>({
@@ -316,7 +317,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [cacheDuration]);
 
-  // Carrega cotações sempre que a lista de selecionadas mudar (com debounce/throttle natural do useEffect)
+  // Carrega cotações sempre que a lista de selecionadas mudar
   useEffect(() => {
     if (state.selectedQuotes.length > 0) {
       loadQuotes(state.selectedQuotes);

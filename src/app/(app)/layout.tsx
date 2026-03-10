@@ -23,7 +23,7 @@ export default function AppLayout({
     if (isLoading) return;
     
     if (!session && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
-      router.replace('/login');
+      router.push('/login');
     }
 
   }, [isLoading, session, router, pathname]);
@@ -59,7 +59,10 @@ export default function AppLayout({
     );
   }
 
-  if (!session && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
+  // Se não houver sessão e não for página pública, o useEffect cuidará do redirect.
+  // Renderizamos o conteúdo se houver sessão ou se for página pública.
+  const isPublicPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  if (!session && !isPublicPage) {
       return null; 
   }
 

@@ -235,7 +235,7 @@ export default function LandingPage() {
             </nav>
           </div>
         </header>
-        <main className="container mx-auto px-4 md:px-8 max-w-[1600px]">
+        <main className="container mx-auto px-4 md:px-8 max-w-[1850px]">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
             <h1 ref={heroTitleRef} className="text-4xl md:text-6xl 2xl:text-7xl font-headline font-extrabold mb-6 tracking-tight opacity-0">{safeLandingPageContent.heroTitle}</h1>
             <p ref={heroParagraphRef} className="text-lg md:text-xl 2xl:text-2xl text-foreground/80 mb-10 max-w-3xl 2xl:max-w-4xl mx-auto opacity-0">{safeLandingPageContent.heroDescription}</p>
@@ -328,7 +328,7 @@ export default function LandingPage() {
           </section>
         </main>
         <footer className="py-8 border-t border-foreground/10 mt-16">
-          <div className="container mx-auto text-center text-sm text-foreground/60 max-w-[1600px]">
+          <div className="container mx-auto text-center text-sm text-foreground/60 max-w-[1850px]">
             <p>&copy; {new Date().getFullYear()} {APP_NAME}. Todos os direitos reservados.</p>
             <nav className="mt-2">
                 <Link href="/terms" className="hover:text-foreground/80 px-2">Termos de Serviço</Link>

@@ -1,3 +1,4 @@
+
 // src/components/auth/login-form.tsx
 "use client";
 
@@ -27,8 +28,8 @@ export function LoginForm({ message }: LoginFormProps) {
 
   useEffect(() => {
     if (session) {
-      const isAdmin = session.user?.profile?.role === 'admin';
-      router.replace(isAdmin ? '/dashboard-admin' : '/dashboard');
+      const isAdmin = session.user?.profile?.role === 'admin' || session.user?.email === 'admin@flortune.com';
+      router.push(isAdmin ? '/dashboard-admin' : '/dashboard');
     }
   }, [session, router]);
   
@@ -67,10 +68,10 @@ export function LoginForm({ message }: LoginFormProps) {
       return;
     }
 
-    if (data.user) {
-        // A lógica de redirecionamento agora é tratada pelo useEffect que observa a mudança de sessão.
-        // Apenas recarregamos a página para garantir que o layout principal reavalie a sessão.
-        router.refresh();
+    if (data.session) {
+        toast({ title: "Sucesso!", description: "Entrando no seu painel..." });
+        const isAdmin = data.user?.user_metadata?.role === 'admin' || data.user?.email === 'admin@flortune.com';
+        router.push(isAdmin ? '/dashboard-admin' : '/dashboard');
     }
   };
 

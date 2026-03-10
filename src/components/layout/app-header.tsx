@@ -119,7 +119,6 @@ export function AppHeader() {
                     const Icon = n.icon || BellRing;
                     const colorClass = n.color ? iconColorClasses[n.color] : 'text-primary';
                     
-                    // Garantir que a data seja um objeto Date válido para evitar erros no date-fns
                     let dateObj: Date;
                     try {
                         dateObj = n.createdAt instanceof Date ? n.createdAt : new Date(n.createdAt);
