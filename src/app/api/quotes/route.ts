@@ -15,10 +15,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const uniqueQuotes = [...new Set(codes.split(','))];
+  // Limpa os códigos e remove duplicatas
+  const uniqueQuotes = [...new Set(codes.split(',').map(c => c.trim()).filter(c => c))];
   const query = uniqueQuotes.join(',');
   
-  // Endpoint autenticado conforme documentação: https://economia.awesomeapi.com.br/json/last/{moedas}?token=...
+  // Endpoint oficial conforme documentação: https://economia.awesomeapi.com.br/json/last/{moedas}
+  // Se houver token, adiciona como query param
   const apiUrl = `https://economia.awesomeapi.com.br/json/last/${query}${token ? `?token=${token}` : ''}`;
 
   try {
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       },
-      timeout: 10000
+      timeout: 15000 // Aumentado para 15s para maior estabilidade
     });
 
     const responseData = response.data;
@@ -35,12 +37,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ data: [], error: 'Nenhum dado retornado da API externa.' });
     }
 
-    // A API retorna um objeto onde as chaves são os pares (ex: USDBRL)
+    // A API retorna um objeto onde as chaves são os pares colados (ex: USDBRL)
+    // Convertemos para um array para facilitar o consumo no front-end
     const dataArray: QuoteData[] = Object.values(responseData);
     
     const res = NextResponse.json({ data: dataArray, error: null });
-    // Cache de borda para mitigar 429
+    
+    // Cache de borda por 5 minutos para evitar excesso de requisições
     res.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+    
     return res;
 
   } catch (error: any) {
@@ -49,9 +54,15 @@ export async function GET(request: NextRequest) {
     if (axios.isAxiosError(error)) {
         const status = error.response?.status || 500;
         if (status === 429) {
-            return NextResponse.json({ error: "Erro da API externa: Too Many Requests (429)" }, { status: 429 });
+            return NextResponse.json(
+                { error: "Limite de requisições atingido na AwesomeAPI. Tente novamente em instantes." }, 
+                { status: 429 }
+            );
         }
-        return NextResponse.json({ error: `Erro da API externa: ${error.message}` }, { status });
+        return NextResponse.json(
+            { error: `Erro na comunicação com AwesomeAPI: ${error.message}` }, 
+            { status }
+        );
     }
     
     return NextResponse.json({ 

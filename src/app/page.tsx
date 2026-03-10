@@ -228,7 +228,7 @@ export default function LandingPage() {
                 alt="Flortune Logo" 
                 width={32} 
                 height={32} 
-                style={{ height: 'auto' }} 
+                style={{ height: 'auto', width: 'auto' }} 
               />
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>

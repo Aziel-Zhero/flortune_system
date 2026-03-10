@@ -276,6 +276,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         isRateLimited.current = false;
     }
 
+    // Só busca se for forçado ou se o cache expirou
     if (!force && now - lastFetchTime.current < cacheDuration) {
         setState(prev => ({...prev, isLoadingQuotes: false}));
         return; 
@@ -315,6 +316,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [cacheDuration]);
 
+  // Carrega cotações sempre que a lista de selecionadas mudar (com debounce/throttle natural do useEffect)
   useEffect(() => {
     if (state.selectedQuotes.length > 0) {
       loadQuotes(state.selectedQuotes);
