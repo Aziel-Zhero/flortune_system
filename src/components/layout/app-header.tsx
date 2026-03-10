@@ -118,7 +118,15 @@ export function AppHeader() {
                   notifications.map(n => {
                     const Icon = n.icon || BellRing;
                     const colorClass = n.color ? iconColorClasses[n.color] : 'text-primary';
-                    const date = n.createdAt instanceof Date ? n.createdAt : new Date(n.createdAt);
+                    
+                    // Garantir que a data seja um objeto Date válido para evitar erros no date-fns
+                    let dateObj: Date;
+                    try {
+                        dateObj = n.createdAt instanceof Date ? n.createdAt : new Date(n.createdAt);
+                        if (isNaN(dateObj.getTime())) throw new Error("Invalid Date");
+                    } catch (e) {
+                        dateObj = new Date();
+                    }
                     
                     return (
                       <DropdownMenuItem key={n.id} className="flex items-start gap-2 cursor-pointer" onSelect={() => markNotificationAsRead(n.id)}>
@@ -127,8 +135,8 @@ export function AppHeader() {
                         <div className="flex-1">
                            <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
                            <p className="text-xs text-muted-foreground">{n.description}</p>
-                           <p className="text-xs text-muted-foreground/70 mt-1">
-                             {date instanceof Date && !isNaN(date.getTime()) ? formatDistanceToNow(date, { addSuffix: true, locale: ptBR }) : ''}
+                           <p className="text-[10px] text-muted-foreground/70 mt-1">
+                             {formatDistanceToNow(dateObj, { addSuffix: true, locale: ptBR })}
                            </p>
                         </div>
                       </DropdownMenuItem>

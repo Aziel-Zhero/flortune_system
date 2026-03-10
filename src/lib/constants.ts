@@ -150,10 +150,10 @@ export const PRICING_TIERS: PricingTier[] = [
 export type PricingTierIconName = typeof PRICING_TIERS[number]["icon"];
 
 
-// Lista de cotações disponíveis na API AwesomeAPI
+// Lista de cotações disponíveis na API AwesomeAPI expandida
 export const AVAILABLE_QUOTES = [
   { name: "Dólar Comercial", code: "USD-BRL" },
-  { name: "Dólar Turismo", code: "USDT-BRL" },
+  { name: "Dólar Turismo", code: "USD-BRLT" },
   { name: "Euro", code: "EUR-BRL" },
   { name: "Libra Esterlina", code: "GBP-BRL" },
   { name: "Iene Japonês", code: "JPY-BRL" },
@@ -161,7 +161,27 @@ export const AVAILABLE_QUOTES = [
   { name: "Bitcoin", code: "BTC-BRL" },
   { name: "Ethereum", code: "ETH-BRL" },
   { name: "Litecoin", code: "LTC-BRL" },
-  { name: "Ibovespa", code: "IBOV" },
-  { name: "Nasdaq", code: "NASDAQ" },
-  { name: "Cacau", code: "CAC" },
+  { name: "Dogecoin", code: "DOGE-BRL" },
+  { name: "Solana", code: "SOL-BRL" },
+  { name: "XRP", code: "XRP-BRL" },
+  { name: "Franco Suíço", code: "CHF-BRL" },
+  { name: "Dólar Canadense", code: "CAD-BRL" },
+  { name: "Dólar Australiano", code: "AUD-BRL" },
+  { name: "Yuan Chinês", code: "CNY-BRL" },
+  { name: "Novo Shekel", code: "ILS-BRL" },
+  { name: "Peso Chileno", code: "CLP-BRL" },
+  { name: "Peso Colombiano", code: "COP-BRL" },
+  { name: "Peso Mexicano", code: "MXN-BRL" },
+  { name: "Rublo Russo", code: "RUB-BRL" },
+  { name: "Rúpia Indiana", code: "INR-BRL" },
+  { name: "Coroa Dinamarquesa", code: "DKK-BRL" },
+  { name: "Coroa Norueguesa", code: "NOK-BRL" },
+  { name: "Coroa Sueca", code: "SEK-BRL" },
+  { name: "Dinar Sérvio", code: "RSD-BRL" },
+  { name: "Won Sul-Coreano", code: "KRW-BRL" },
+  { name: "Dólar Taiuanês", code: "TWD-BRL" },
+  { name: "Boliviano", code: "BOB-BRL" },
+  { name: "Colón Costarriquenho", code: "CRC-BRL" },
+  { name: "Leu Romeno", code: "RON-BRL" },
+  { name: "Zlóti Polonês", code: "PLN-BRL" },
 ];

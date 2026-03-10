@@ -1,3 +1,4 @@
+
 // src/contexts/auth-context.tsx
 "use client";
 
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Evita recarregar o perfil desnecessariamente se o usuário for o mesmo
+    // Evita recarregar o perfil desnecessariamente se o usuário for o mesmo e já tiver perfil
     if (session?.user?.id === currentSession.user.id && session?.user?.profile) {
         setIsLoading(false);
         return;
