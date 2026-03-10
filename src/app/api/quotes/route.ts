@@ -24,24 +24,20 @@ export async function GET(request: NextRequest) {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       },
-      timeout: 5000 // 5 segundos de timeout
+      timeout: 8000
     });
 
     const responseData = response.data;
     
-    // A API retorna um objeto onde as chaves são os pares (ex: USDBRL)
+    if (!responseData || Object.keys(responseData).length === 0) {
+        return NextResponse.json({ data: [], error: 'Nenhum dado retornado da API externa.' });
+    }
+
     const dataArray: QuoteData[] = Object.values(responseData);
     
-    if (dataArray.length === 0) {
-      return NextResponse.json(
-        { error: `Nenhuma cotação encontrada para: ${query}` },
-        { status: 404 }
-      );
-    }
-    
     const res = NextResponse.json({ data: dataArray, error: null });
-    // Cache de borda por 1 minuto para reduzir chamadas externas
-    res.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate');
+    // Cache severo de borda para mitigar 429
+    res.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     return res;
 
   } catch (error: any) {
@@ -49,11 +45,10 @@ export async function GET(request: NextRequest) {
     
     if (axios.isAxiosError(error)) {
         const status = error.response?.status || 500;
-        const errorMessage = status === 429 ? "Too Many Requests" : error.message;
-        
-        return NextResponse.json({ 
-            error: `Erro da API externa: ${errorMessage}`
-        }, { status });
+        if (status === 429) {
+            return NextResponse.json({ error: "Erro da API externa: Too Many Requests" }, { status: 429 });
+        }
+        return NextResponse.json({ error: `Erro da API externa: ${error.message}` }, { status });
     }
     
     return NextResponse.json({ 

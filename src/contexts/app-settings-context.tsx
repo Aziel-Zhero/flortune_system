@@ -180,7 +180,8 @@ function AppSettingsInitializer({
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const lastFetchTime = useRef<number>(0);
-  const cacheDuration = 120000; // 2 minutos
+  const cacheDuration = 180000; // Aumentado para 3 minutos para ser mais defensivo contra 429
+  const isRateLimited = useRef<boolean>(false);
 
   const [state, setState] = useState<AppSettingsProviderValue>({
     isPrivateMode: false,
@@ -267,8 +268,16 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const now = Date.now();
+    
+    // Bloqueio temporário se estiver sofrendo rate limit
+    if (isRateLimited.current && now - lastFetchTime.current < 600000) { // 10 minutos de pausa se sofrer 429
+        setState(prev => ({...prev, isLoadingQuotes: false, quotesError: "Sistema em pausa devido a limite de requisições. Tente novamente mais tarde."}));
+        return;
+    } else {
+        isRateLimited.current = false;
+    }
+
     if (!force && now - lastFetchTime.current < cacheDuration) {
-        // Se já carregamos recentemente, não fazemos nada (evita o loop infinito)
         setState(prev => ({...prev, isLoadingQuotes: false}));
         return; 
     }
@@ -279,6 +288,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         const result = await response.json();
         
         if (!response.ok) {
+            if (response.status === 429) {
+                isRateLimited.current = true;
+                lastFetchTime.current = now;
+                throw new Error("Limite de requisições atingido (429).");
+            }
             throw new Error(result.error || `Erro de rede: ${response.statusText}`);
         }
         
@@ -290,12 +304,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         lastFetchTime.current = now;
         setState(prev => ({...prev, quotes: orderedQuotes, quotesError: null}));
     } catch (err: any) {
-      // Usamos apenas console.warn para evitar o overlay de erro em desenvolvimento
       console.warn('Aviso ao buscar cotações:', err.message);
       setState(prev => ({
         ...prev, 
-        quotesError: err.message.includes("Too Many Requests") 
-          ? "Limite de requisições atingido. Tentando novamente em breve." 
+        quotesError: err.message.includes("429") || err.message.includes("Too Many Requests")
+          ? "Limite de requisições atingido. O painel entrará em pausa temporária." 
           : "Não foi possível carregar as cotações."
       }));
     } finally {

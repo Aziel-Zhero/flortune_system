@@ -1,3 +1,4 @@
+
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -130,7 +131,13 @@ export function AppSidebar() {
                   )} 
                   onClick={closeMobileSidebar}
                 >
-                    <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} className="h-7 w-auto" />
+                    <Image 
+                      src="/Logo.png" 
+                      alt="Flortune Logo" 
+                      width={28} 
+                      height={28} 
+                      style={{ height: 'auto' }} 
+                    />
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
                 </Link>
             </div>
