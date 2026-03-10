@@ -179,6 +179,9 @@ function AppSettingsInitializer({
 // --- Provedor ---
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
+  const lastFetchTime = useRef<number>(0);
+  const cacheDuration = 120000; // 2 minutos
+
   const [state, setState] = useState<AppSettingsProviderValue>({
     isPrivateMode: false,
     isDarkMode: false,
@@ -216,9 +219,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     markAllNotificationsAsRead: () => {},
     clearNotifications: () => {},
   });
-
-  const lastFetchTime = useRef<number>(0);
-  const cacheDuration = 120000; // 2 minutos
 
   const toggleDarkMode = useCallback(() => {
     setState(prev => {
@@ -267,8 +267,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const now = Date.now();
-    if (!force && now - lastFetchTime.current < cacheDuration && state.quotes.length > 0) {
-        return; // Usa os dados do estado atual se estiver dentro do tempo de cache
+    if (!force && now - lastFetchTime.current < cacheDuration) {
+        // Se já carregamos recentemente, não fazemos nada (evita o loop infinito)
+        setState(prev => ({...prev, isLoadingQuotes: false}));
+        return; 
     }
 
     setState(prev => ({...prev, isLoadingQuotes: true, quotesError: null}));
@@ -288,13 +290,18 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         lastFetchTime.current = now;
         setState(prev => ({...prev, quotes: orderedQuotes, quotesError: null}));
     } catch (err: any) {
-      console.error('Falha ao buscar cotações:', err.message);
-      // Não limpa as cotações se for apenas erro de rate limit, mantém as antigas
-      setState(prev => ({...prev, quotesError: err.message.includes("Too Many Requests") ? "Limite de requisições atingido. Tentando novamente em breve." : "Não foi possível carregar as cotações."}));
+      // Usamos apenas console.warn para evitar o overlay de erro em desenvolvimento
+      console.warn('Aviso ao buscar cotações:', err.message);
+      setState(prev => ({
+        ...prev, 
+        quotesError: err.message.includes("Too Many Requests") 
+          ? "Limite de requisições atingido. Tentando novamente em breve." 
+          : "Não foi possível carregar as cotações."
+      }));
     } finally {
       setState(prev => ({...prev, isLoadingQuotes: false}));
     }
-  }, [state.quotes.length]);
+  }, [cacheDuration]);
 
   useEffect(() => {
     if (state.selectedQuotes.length > 0) {
@@ -302,6 +309,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [state.selectedQuotes, loadQuotes]);
 
+  // --- Funções de atualização que modificam o estado ---
   const value: AppSettingsProviderValue = React.useMemo(() => ({
     ...state,
     toggleDarkMode,
