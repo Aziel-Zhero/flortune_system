@@ -112,7 +112,6 @@ export function AppHeader() {
                   notifications.map(n => {
                     const Icon = n.icon || BellRing;
                     const colorClass = n.color ? iconColorClasses[n.color] : 'text-primary';
-                    // Garantir que createdAt é um objeto Date para evitar erro no formatDistanceToNow
                     const date = n.createdAt instanceof Date ? n.createdAt : new Date(n.createdAt);
                     
                     return (
@@ -123,7 +122,7 @@ export function AppHeader() {
                            <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
                            <p className="text-xs text-muted-foreground">{n.description}</p>
                            <p className="text-xs text-muted-foreground/70 mt-1">
-                             {formatDistanceToNow(date, { addSuffix: true, locale: ptBR })}
+                             {date instanceof Date && !isNaN(date.getTime()) ? formatDistanceToNow(date, { addSuffix: true, locale: ptBR }) : ''}
                            </p>
                         </div>
                       </DropdownMenuItem>

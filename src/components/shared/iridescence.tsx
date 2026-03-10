@@ -122,7 +122,7 @@ export default function Iridescence({
     gl.canvas.style.left = '0';
     gl.canvas.style.width = '100%';
     gl.canvas.style.height = '100%';
-    gl.canvas.style.zIndex = '-1';
+    gl.canvas.style.zIndex = '0';
 
     function handleMouseMove(e: MouseEvent) {
       if (!ctn) return;
@@ -154,7 +154,7 @@ export default function Iridescence({
   return (
     <div
       ref={ctnDom}
-      className="w-full h-full fixed inset-0 overflow-hidden -z-10 pointer-events-none"
+      className="w-full h-full fixed inset-0 overflow-hidden z-0 pointer-events-none"
       {...rest}
     />
   );

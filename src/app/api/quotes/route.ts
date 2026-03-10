@@ -28,8 +28,7 @@ export async function GET(request: NextRequest) {
 
     const responseData = response.data;
     
-    // A AwesomeAPI retorna um objeto onde as chaves são os pares (ex: USDBRL)
-    // Extraímos os valores desse objeto para um array
+    // A API retorna um objeto onde as chaves são os pares (ex: USDBRL)
     const dataArray: QuoteData[] = Object.values(responseData);
     
     if (dataArray.length === 0) {

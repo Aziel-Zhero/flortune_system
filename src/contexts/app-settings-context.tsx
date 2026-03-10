@@ -1,3 +1,4 @@
+
 // src/contexts/app-settings-context.tsx
 
 "use client";
@@ -198,7 +199,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     activePopup: null,
     notifications: [],
     hasUnreadNotifications: false,
-    // As funções são definidas abaixo para evitar problemas de referência
     setIsPrivateMode: () => {},
     togglePrivateMode: () => {},
     setIsDarkMode: () => {},
@@ -253,7 +253,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         }}));
     } catch (err: any) {
         setState(prev => ({ ...prev, weatherError: err.message, weatherData: null }));
-        toast({ title: "Erro ao buscar clima", description: err.message, variant: "destructive" });
     } finally {
         setState(prev => ({ ...prev, isLoadingWeather: false }));
     }
@@ -268,12 +267,13 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     setState(prev => ({...prev, isLoadingQuotes: true, quotesError: null}));
     try {
         const response = await fetch(`/api/quotes?codes=${encodeURIComponent(validQuotes.join(','))}`);
-        if (!response.ok) throw new Error(`Erro de rede: ${response.statusText}`);
         const result = await response.json();
         if (result.error) throw new Error(result.error);
         
+        const dataArray = result.data || [];
+        // Mantém a ordem solicitada pelo usuário
         const orderedQuotes = validQuotes
-            .map(code => result.data?.find((d: QuoteData) => `${d.code}-${d.codein}` === code || d.code === code))
+            .map(code => dataArray.find((d: QuoteData) => `${d.code}-${d.codein}` === code || d.code === code))
             .filter((q): q is QuoteData => !!q);
             
         setState(prev => ({...prev, quotes: orderedQuotes}));
@@ -285,7 +285,13 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // --- Funções de atualização que modificam o estado ---
+  // Busca cotações automaticamente quando a seleção mudar
+  useEffect(() => {
+    if (state.selectedQuotes.length > 0) {
+      loadQuotes(state.selectedQuotes);
+    }
+  }, [state.selectedQuotes, loadQuotes]);
+
   const value: AppSettingsProviderValue = React.useMemo(() => ({
     ...state,
     toggleDarkMode,
@@ -318,10 +324,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
           localStorage.setItem('flortune-active-campaign', theme);
         } else {
           localStorage.removeItem('flortune-active-campaign');
-        }
-        document.body.classList.remove('theme-black-friday', 'theme-flash-sale', 'theme-super-promocao', 'aniversario');
-        if(theme) {
-           document.body.classList.add(`theme-${theme}`);
         }
         return {...prev, activeCampaignTheme: theme};
     }),

@@ -3,13 +3,13 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare, Star, Origami, Code, Briefcase, Leaf } from "lucide-react";
+import { BarChart3, CalendarDays, BrainCircuit, Eye, ShieldCheck, ArrowRight, Check, Gem, GanttChartSquare, Star, Code, Briefcase } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
-import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
+import { useAppSettings } from "@/contexts/app-settings-context";
 import { useSession } from "@/contexts/auth-context";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -208,7 +208,7 @@ export default function LandingPage() {
 
 
   return (
-    <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground")} ref={mainContainerRef}>
+    <div className={cn("relative min-h-screen w-full overflow-x-hidden text-foreground bg-transparent")} ref={mainContainerRef}>
       {campaignProps?.showFluid && (
         <Suspense fallback={null}>
           <Iridescence 
@@ -346,5 +346,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
