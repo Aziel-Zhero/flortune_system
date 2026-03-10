@@ -76,8 +76,8 @@ export default function Iridescence({
 
     function resize() {
       if (!ctn) return;
-      const ctnWidth = ctn.offsetWidth || window.innerWidth;
-      const ctnHeight = ctn.offsetHeight || window.innerHeight;
+      const ctnWidth = window.innerWidth;
+      const ctnHeight = window.innerHeight;
       renderer.setSize(ctnWidth, ctnHeight);
       if (program) {
         program.uniforms.uResolution.value = new Vec3(
@@ -117,18 +117,17 @@ export default function Iridescence({
     animateId = requestAnimationFrame(update);
     
     ctn.appendChild(gl.canvas);
-    gl.canvas.style.position = 'absolute';
+    gl.canvas.style.position = 'fixed';
     gl.canvas.style.top = '0';
     gl.canvas.style.left = '0';
-    gl.canvas.style.width = '100%';
-    gl.canvas.style.height = '100%';
+    gl.canvas.style.width = '100vw';
+    gl.canvas.style.height = '100vh';
     gl.canvas.style.zIndex = '0';
 
     function handleMouseMove(e: MouseEvent) {
       if (!ctn) return;
-      const rect = ctn.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = 1.0 - (e.clientY - rect.top) / rect.height; 
+      const x = e.clientX / window.innerWidth;
+      const y = 1.0 - (e.clientY / window.innerHeight); 
       mousePos.current = { x, y };
       if(program) {
         program.uniforms.uMouse.value.set(x, y);
@@ -154,7 +153,7 @@ export default function Iridescence({
   return (
     <div
       ref={ctnDom}
-      className="w-full h-full fixed inset-0 overflow-hidden z-0 pointer-events-none"
+      className="fixed inset-0 overflow-hidden z-0 pointer-events-none"
       {...rest}
     />
   );

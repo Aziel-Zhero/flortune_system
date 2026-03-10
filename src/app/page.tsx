@@ -1,5 +1,4 @@
 
-// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -115,7 +114,6 @@ export default function LandingPage() {
   const { session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
-  // Fallback seguro para garantir que o objeto não seja nulo no servidor
   const safeLandingPageContent = landingPageContent || {
     heroTitle: "",
     heroDescription: "",
@@ -195,13 +193,12 @@ export default function LandingPage() {
   
   const [showPopup, setShowPopup] = useState(false);
   useEffect(() => {
-    // Only show popup once per session to avoid annoying users
     const hasSeenPopup = sessionStorage.getItem('flortune-popup-seen');
     if (activePopup && !hasSeenPopup) {
       const timer = setTimeout(() => {
         setShowPopup(true);
         sessionStorage.setItem('flortune-popup-seen', 'true');
-      }, 2500); // Delay before showing popup
+      }, 2500); 
       return () => clearTimeout(timer);
     }
   }, [activePopup]);
@@ -238,10 +235,10 @@ export default function LandingPage() {
             </nav>
           </div>
         </header>
-        <main className="container mx-auto px-4 md:px-8">
+        <main className="container mx-auto px-4 md:px-8 max-w-[1600px]">
           <section className="text-center py-20 md:py-32 min-h-[calc(100vh-150px)] flex flex-col justify-center items-center">
-            <h1 ref={heroTitleRef} className="text-4xl md:text-6xl font-headline font-extrabold mb-6 tracking-tight opacity-0">{safeLandingPageContent.heroTitle}</h1>
-            <p ref={heroParagraphRef} className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto opacity-0">{safeLandingPageContent.heroDescription}</p>
+            <h1 ref={heroTitleRef} className="text-4xl md:text-6xl 2xl:text-7xl font-headline font-extrabold mb-6 tracking-tight opacity-0">{safeLandingPageContent.heroTitle}</h1>
+            <p ref={heroParagraphRef} className="text-lg md:text-xl 2xl:text-2xl text-foreground/80 mb-10 max-w-3xl 2xl:max-w-4xl mx-auto opacity-0">{safeLandingPageContent.heroDescription}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0" ref={heroButtonsRef}>
               <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent hover:bg-accent/90 text-accent-foreground")}>Comece Agora (Grátis)</Link>
             </div>
@@ -249,9 +246,9 @@ export default function LandingPage() {
               <Image 
                 src={safeLandingPageContent.heroImageUrl} 
                 alt="Flortune App Mockup" 
-                width={800} 
-                height={450} 
-                className="rounded-lg shadow-2xl border-4 border-foreground/20" 
+                width={1000} 
+                height={562} 
+                className="rounded-lg shadow-2xl border-4 border-foreground/20 max-w-full h-auto" 
                 data-ai-hint="app dashboard" 
                 priority 
               />
@@ -260,10 +257,10 @@ export default function LandingPage() {
 
           <section className="py-16 md:py-24" ref={featuresSectionRef}>
             <div className="text-center mb-12 md:mb-16" ref={featuresHeaderRef}>
-              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4 opacity-0">Funcionalidades Principais</h2>
-              <p className="text-foreground/80 max-w-xl mx-auto opacity-0">Tudo o que você precisa para florescer financeiramente e profissionalmente.</p>
+              <h2 className="text-3xl md:text-4xl 2xl:text-5xl font-headline font-bold mb-4 opacity-0">Funcionalidades Principais</h2>
+              <p className="text-foreground/80 max-w-xl 2xl:max-w-2xl mx-auto opacity-0 2xl:text-lg">Tudo o que você precisa para florescer financeiramente e profissionalmente.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 xl:gap-12">
                 <FeatureCard className="feature-card" icon={BarChart3} title="Análise Visual" description="Acompanhe o fluxo de caixa e a distribuição de gastos por categoria com gráficos interativos e relatórios detalhados." />
                 <FeatureCard className="feature-card" icon={CalendarDays} title="Calendário Financeiro" description="Visualize pagamentos, recebimentos e lembretes em um calendário integrado para nunca mais perder um prazo." />
                 <FeatureCard className="feature-card" icon={BrainCircuit} title="Insights com IA" description="Receba sugestões personalizadas e categorização automática de despesas para otimizar suas finanças (em breve)." />
@@ -275,10 +272,10 @@ export default function LandingPage() {
 
           <section className="py-16 md:py-24" ref={pricingSectionRef}>
              <div className="text-center pricing-header">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Planos Para Todos os Perfis</h2>
-              <p className="text-foreground/80 mb-12 md:mb-16 max-w-xl mx-auto">Do cultivador iniciante ao mestre desenvolvedor, temos o plano perfeito para você.</p>
+              <h2 className="text-3xl md:text-4xl 2xl:text-5xl font-headline font-bold mb-4">Planos Para Todos os Perfis</h2>
+              <p className="text-foreground/80 mb-12 md:mb-16 max-w-xl 2xl:max-w-2xl mx-auto 2xl:text-lg">Do cultivador iniciante ao mestre desenvolvedor, temos o plano perfeito para você.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-8 xl:gap-10 items-stretch">
                 {PRICING_TIERS.map((tier) => {
                   const TierIcon = getPricingIcon(tier.icon as PricingTierIconName);
                   const isPaidPlan = tier.priceMonthly !== 'Grátis';
@@ -311,10 +308,10 @@ export default function LandingPage() {
 
           <section className="py-16 md:py-24" ref={reviewsSectionRef}>
             <div className="text-center mb-12 md:mb-16 reviews-header">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">O que nossos primeiros usuários dizem</h2>
-              <p className="text-foreground/80 max-w-xl mx-auto">Feedback real de pessoas que estão cultivando suas finanças com o Flortune.</p>
+              <h2 className="text-3xl md:text-4xl 2xl:text-5xl font-headline font-bold mb-4">O que nossos primeiros usuários dizem</h2>
+              <p className="text-foreground/80 max-w-xl mx-auto 2xl:text-lg">Feedback real de pessoas que estão cultivando suas finanças com o Flortune.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 xl:gap-8">
               {mockReviews.map((review, index) => (
                 <ReviewCard key={index} {...review} />
               ))}
@@ -323,15 +320,15 @@ export default function LandingPage() {
 
 
           <section className="py-16 md:py-24 text-center" ref={finalCtaSectionRef}>
-              <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 rounded-xl shadow-xl border border-primary/50 max-w-3xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-headline font-bold mb-6">{safeLandingPageContent.ctaTitle}</h2>
-                <p className="text-foreground/80 mb-8">{safeLandingPageContent.ctaDescription}</p>
-                <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground")}>{safeLandingPageContent.ctaButtonText}</Link>
+              <div className="bg-primary/20 backdrop-blur-md p-8 md:p-12 2xl:p-16 rounded-xl shadow-xl border border-primary/50 max-w-3xl 2xl:max-w-4xl mx-auto">
+                <h2 className="text-3xl md:text-4xl 2xl:text-5xl font-headline font-bold mb-6">{safeLandingPageContent.ctaTitle}</h2>
+                <p className="text-foreground/80 mb-8 2xl:text-xl">{safeLandingPageContent.ctaDescription}</p>
+                <Link href="/signup" className={cn(buttonVariants({size: 'lg'}), "bg-accent hover:bg-accent/90 text-accent-foreground 2xl:text-xl 2xl:px-10 2xl:py-8")}>{safeLandingPageContent.ctaButtonText}</Link>
               </div>
           </section>
         </main>
         <footer className="py-8 border-t border-foreground/10 mt-16">
-          <div className="container mx-auto text-center text-sm text-foreground/60">
+          <div className="container mx-auto text-center text-sm text-foreground/60 max-w-[1600px]">
             <p>&copy; {new Date().getFullYear()} {APP_NAME}. Todos os direitos reservados.</p>
             <nav className="mt-2">
                 <Link href="/terms" className="hover:text-foreground/80 px-2">Termos de Serviço</Link>
@@ -341,7 +338,6 @@ export default function LandingPage() {
           </div>
         </footer>
       </div>
-      {/* Pop-up Rendering */}
       <Suspense fallback={null}>
         <div className="fixed bottom-5 right-5 z-50">
           {showPopup && activePopup === 'maintenance' && popupConfigs?.maintenance && <MaintenancePopup config={popupConfigs.maintenance} onDismiss={() => setShowPopup(false)} />}
