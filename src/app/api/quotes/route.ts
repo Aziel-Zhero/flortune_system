@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     const response = await axios.get(apiUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+      },
+      timeout: 5000 // 5 segundos de timeout
     });
 
     const responseData = response.data;
@@ -38,15 +39,23 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    return NextResponse.json({ data: dataArray, error: null });
+    const res = NextResponse.json({ data: dataArray, error: null });
+    // Cache de borda por 1 minuto para reduzir chamadas externas
+    res.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate');
+    return res;
 
   } catch (error: any) {
     console.error('Erro na API route de cotações:', error.message);
+    
     if (axios.isAxiosError(error)) {
+        const status = error.response?.status || 500;
+        const errorMessage = status === 429 ? "Too Many Requests" : error.message;
+        
         return NextResponse.json({ 
-            error: `Erro da API externa: ${error.response?.statusText || error.message}`
-        }, { status: error.response?.status || 500 });
+            error: `Erro da API externa: ${errorMessage}`
+        }, { status });
     }
+    
     return NextResponse.json({ 
       error: `Falha ao buscar dados das cotações. Detalhes: ${error.message}`
     }, { status: 500 });

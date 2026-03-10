@@ -9,7 +9,7 @@ import { APP_NAME, PRICING_TIERS, type PricingTierIconName } from "@/lib/constan
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import * as LucideIcons from "lucide-react";
-import { useAppSettings } from "@/contexts/app-settings-context";
+import { useAppSettings, type PopupType } from "@/contexts/app-settings-context";
 import { useSession } from "@/contexts/auth-context";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';

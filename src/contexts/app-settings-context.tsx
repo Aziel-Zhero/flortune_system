@@ -4,11 +4,9 @@
 "use client";
 
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 import type { QuoteData } from '@/types/database.types';
-import * as LucideIcons from "lucide-react";
-
 
 // --- Tipos ---
 
@@ -74,7 +72,7 @@ export interface AppSettingsProviderValue {
   quotes: QuoteData[];
   isLoadingQuotes: boolean;
   quotesError: string | null;
-  loadQuotes: (quoteList: string[]) => Promise<void>;
+  loadQuotes: (quoteList: string[], force?: boolean) => Promise<void>;
   
   activeCampaignTheme: CampaignTheme;
   setActiveCampaignTheme: (theme: CampaignTheme) => void;
@@ -219,6 +217,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     clearNotifications: () => {},
   });
 
+  const lastFetchTime = useRef<number>(0);
+  const cacheDuration = 120000; // 2 minutos
+
   const toggleDarkMode = useCallback(() => {
     setState(prev => {
       const newIsDark = !prev.isDarkMode;
@@ -258,34 +259,43 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const loadQuotes = useCallback(async (quoteList: string[]) => {
+  const loadQuotes = useCallback(async (quoteList: string[], force: boolean = false) => {
     const validQuotes = quoteList.filter(q => q && q.trim() !== '');
     if (validQuotes.length === 0) {
       setState(prev => ({...prev, quotes: [], isLoadingQuotes: false}));
       return;
     }
+
+    const now = Date.now();
+    if (!force && now - lastFetchTime.current < cacheDuration && state.quotes.length > 0) {
+        return; // Usa os dados do estado atual se estiver dentro do tempo de cache
+    }
+
     setState(prev => ({...prev, isLoadingQuotes: true, quotesError: null}));
     try {
         const response = await fetch(`/api/quotes?codes=${encodeURIComponent(validQuotes.join(','))}`);
         const result = await response.json();
-        if (result.error) throw new Error(result.error);
+        
+        if (!response.ok) {
+            throw new Error(result.error || `Erro de rede: ${response.statusText}`);
+        }
         
         const dataArray = result.data || [];
-        // Mantém a ordem solicitada pelo usuário
         const orderedQuotes = validQuotes
             .map(code => dataArray.find((d: QuoteData) => `${d.code}-${d.codein}` === code || d.code === code))
             .filter((q): q is QuoteData => !!q);
             
-        setState(prev => ({...prev, quotes: orderedQuotes}));
+        lastFetchTime.current = now;
+        setState(prev => ({...prev, quotes: orderedQuotes, quotesError: null}));
     } catch (err: any) {
       console.error('Falha ao buscar cotações:', err.message);
-      setState(prev => ({...prev, quotesError: "Não foi possível carregar as cotações.", quotes: []}));
+      // Não limpa as cotações se for apenas erro de rate limit, mantém as antigas
+      setState(prev => ({...prev, quotesError: err.message.includes("Too Many Requests") ? "Limite de requisições atingido. Tentando novamente em breve." : "Não foi possível carregar as cotações."}));
     } finally {
       setState(prev => ({...prev, isLoadingQuotes: false}));
     }
-  }, []);
+  }, [state.quotes.length]);
 
-  // Busca cotações automaticamente quando a seleção mudar
   useEffect(() => {
     if (state.selectedQuotes.length > 0) {
       loadQuotes(state.selectedQuotes);
