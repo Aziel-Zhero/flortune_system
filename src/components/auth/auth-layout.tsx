@@ -1,4 +1,3 @@
-
 // src/components/auth/auth-layout.tsx
 import type { ReactNode } from 'react';
 import Link from 'next/link';
@@ -32,7 +31,7 @@ export function AuthLayout({
               alt="Flortune Logo" 
               width={36} 
               height={36} 
-              style={{ height: 'auto' }} 
+              style={{ height: 'auto', width: 'auto' }} 
             />
             <h1 className="text-4xl font-headline font-bold">{APP_NAME}</h1>
           </Link>

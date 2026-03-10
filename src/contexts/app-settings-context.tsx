@@ -1,4 +1,3 @@
-
 // src/contexts/app-settings-context.tsx
 
 "use client";
@@ -180,7 +179,7 @@ function AppSettingsInitializer({
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const lastFetchTime = useRef<number>(0);
-  const cacheDuration = 180000; // Aumentado para 3 minutos para ser mais defensivo contra 429
+  const cacheDuration = 180000; // 3 minutos de cache
   const isRateLimited = useRef<boolean>(false);
 
   const [state, setState] = useState<AppSettingsProviderValue>({
@@ -269,9 +268,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
     const now = Date.now();
     
-    // Bloqueio temporário se estiver sofrendo rate limit
-    if (isRateLimited.current && now - lastFetchTime.current < 600000) { // 10 minutos de pausa se sofrer 429
-        setState(prev => ({...prev, isLoadingQuotes: false, quotesError: "Sistema em pausa devido a limite de requisições. Tente novamente mais tarde."}));
+    // Bloqueio temporário se estiver sofrendo rate limit (429)
+    if (isRateLimited.current && now - lastFetchTime.current < 600000) { // 10 minutos de pausa
+        setState(prev => ({...prev, isLoadingQuotes: false, quotesError: "Limite de requisições atingido. Sistema em pausa temporária."}));
         return;
     } else {
         isRateLimited.current = false;

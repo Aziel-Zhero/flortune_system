@@ -1,4 +1,3 @@
-
 // src/components/layout/app-sidebar.tsx
 "use client"
 
@@ -136,7 +135,7 @@ export function AppSidebar() {
                       alt="Flortune Logo" 
                       width={28} 
                       height={28} 
-                      style={{ height: 'auto' }} 
+                      style={{ height: 'auto', width: 'auto' }} 
                     />
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
                 </Link>
