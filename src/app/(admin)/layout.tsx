@@ -1,3 +1,4 @@
+
 // src/app/(admin)/layout.tsx
 "use client";
 
@@ -18,7 +19,9 @@ export default function AdminLayout({
         <div className="flex flex-1 pt-16 h-full">
           <AdminSidebar />
           <main className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col overflow-y-auto min-w-0">
-            {children}
+            <div className="max-w-[1850px] mx-auto w-full h-full">
+              {children}
+            </div>
           </main>
         </div>
       </div>

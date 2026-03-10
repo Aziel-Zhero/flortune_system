@@ -1,3 +1,4 @@
+
 // src/app/(app)/calendar/page.tsx
 "use client";
 
@@ -33,6 +34,7 @@ import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { getTransactions } from "@/services/transaction.service";
+import { useSession } from "@/contexts/auth-context";
 
 interface CalendarEvent extends EventInput {
   id: string;
@@ -59,6 +61,7 @@ const getEventTypeConfig = (typeValue: string) => {
 };
 
 export default function CalendarPage() {
+  const { session } = useSession();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -69,12 +72,13 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   
-  useEffect(() => {
+  const fetchEvents = useCallback(async () => {
+    if (!session?.user?.id) return;
     setIsLoading(true);
     const storedManualEvents: CalendarEvent[] = JSON.parse(localStorage.getItem('flortune-manual-events') || '[]');
-    const mockUserId = "mock-user-id";
     
-    getTransactions(mockUserId).then(({ data: transactions, error }) => {
+    try {
+      const { data: transactions, error } = await getTransactions(session.user.id);
       if (error) {
         toast({ title: "Erro ao buscar transações", variant: "destructive" });
         setEvents(storedManualEvents);
@@ -94,9 +98,18 @@ export default function CalendarPage() {
         }));
         setEvents([...transactionEvents, ...storedManualEvents]);
       }
+    } catch (e) {
+      setEvents(storedManualEvents);
+    } finally {
       setIsLoading(false);
-    });
-  }, []);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchEvents();
+    }
+  }, [session?.user?.id, fetchEvents]);
 
   useEffect(() => {
     document.title = `Calendário Financeiro - ${APP_NAME}`;
@@ -169,7 +182,6 @@ export default function CalendarPage() {
         .filter(e => {
             if (!e.start) return false;
             const eventStart = parseISO(e.start as string);
-            // If a day is selected, filter for that day, otherwise filter for the current month view
             if (selectedDay) {
                 const eventEnd = e.end ? parseISO(e.end as string) : eventStart;
                 return selectedDay >= eventStart && selectedDay <= eventEnd;
@@ -180,14 +192,14 @@ export default function CalendarPage() {
   }, [events, currentDate, selectedDay]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col min-h-[calc(100vh-120px)]">
       <PageHeader
         title="Calendário Financeiro"
         description="Visualize e gerencie seus eventos de forma interativa."
         icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
       />
-      <div className="flex flex-1 flex-col lg:flex-row gap-6">
-        <div className="flex-1 bg-card border rounded-lg shadow-sm min-h-[500px] min-w-0">
+      <div className="flex flex-1 flex-col lg:flex-row gap-6 w-full h-full">
+        <div className="flex-1 bg-card border rounded-lg shadow-sm min-h-[600px] w-full min-w-0">
             {isLoading ? (
                 <div className="p-4 space-y-4">
                     <Skeleton className="h-10 w-1/2" />
@@ -215,7 +227,7 @@ export default function CalendarPage() {
                 />
             )}
         </div>
-        <Card className="lg:flex lg:flex-col shadow-sm w-full lg:w-[320px] xl:w-[384px] shrink-0">
+        <Card className="lg:flex lg:flex-col shadow-sm w-full lg:w-[350px] 2xl:w-[450px] shrink-0">
           <CardHeader>
               <CardTitle className="font-headline text-lg">
                   {selectedDay ? `Eventos de ${format(selectedDay, "d 'de' MMMM", {locale: ptBR})}` : `Eventos de ${format(currentDate, "MMMM", {locale: ptBR})}`}
@@ -228,12 +240,12 @@ export default function CalendarPage() {
                   {eventsForSidebar.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento neste período.</p> : eventsForSidebar.map(event => {
                       const eventConfig = getEventTypeConfig(event.extendedProps.type);
                       return(
-                          <div key={event.id} className="flex items-start gap-3 p-2 rounded-md border-l-4" style={{borderColor: eventConfig.color}}>
+                          <div key={event.id} className="flex items-start gap-3 p-3 rounded-md border-l-4 bg-muted/20" style={{borderColor: eventConfig.color}}>
                               <div className="mt-1"><eventConfig.icon className="h-4 w-4" style={{color: eventConfig.color}}/></div>
                               <div>
-                                  <p className="font-semibold text-sm">{event.title}</p>
-                                  <p className="text-xs text-muted-foreground">{event.extendedProps.description}</p>
-                                  <p className="text-xs text-muted-foreground/80">{event.start ? format(parseISO(event.start as string), "dd/MM/yy") : 'Data indefinida'}</p>
+                                  <p className="font-semibold text-sm 2xl:text-base">{event.title}</p>
+                                  <p className="text-xs 2xl:text-sm text-muted-foreground">{event.extendedProps.description}</p>
+                                  <p className="text-[10px] 2xl:text-xs text-muted-foreground/80">{event.start ? format(parseISO(event.start as string), "dd/MM/yy") : 'Data indefinida'}</p>
                               </div>
                           </div>
                       );

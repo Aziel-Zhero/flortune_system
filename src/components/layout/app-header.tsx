@@ -45,7 +45,7 @@ export function AppHeader() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6 max-w-[1600px]">
+      <div className="container mx-auto flex h-16 items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6 max-w-[1850px]">
         <div className="flex items-center gap-2 md:gap-4">
            <Button variant="ghost" size="icon" onClick={() => setOpenMobile(true)} className="md:hidden -ml-2">
             <Menu className="h-6 w-6" />
