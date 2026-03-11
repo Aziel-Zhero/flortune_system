@@ -1,3 +1,4 @@
+
 // src/lib/supabase/middleware.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -42,7 +43,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANTE: Verifique a sessão do usuário
+  // IMPORTANTE: supabase.auth.getUser() atualiza o token se necessário
   await supabase.auth.getUser()
 
   return response

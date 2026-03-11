@@ -136,7 +136,7 @@ export function AppSidebar() {
                       alt="Flortune Logo" 
                       width={28} 
                       height={28} 
-                      style={{ height: 'auto', width: 'auto' }} 
+                      style={{ height: 'auto' }} 
                     />
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{APP_NAME}</span>
                 </Link>

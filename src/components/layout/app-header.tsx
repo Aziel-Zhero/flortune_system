@@ -1,3 +1,4 @@
+
 // src/components/layout/app-header.tsx
 "use client";
 
@@ -55,7 +56,7 @@ export function AppHeader() {
               alt="Flortune Logo" 
               width={28} 
               height={28} 
-              style={{ height: 'auto', width: 'auto' }} 
+              style={{ height: 'auto' }} 
             />
             <span className="font-bold text-xl font-headline hidden sm:inline-block">{appTitle}</span>
           </Link>
