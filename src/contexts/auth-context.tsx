@@ -1,4 +1,3 @@
-
 // src/contexts/auth-context.tsx
 "use client";
 
@@ -27,7 +26,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfileAndSetSession = useCallback(async (currentSession: AuthSession | null): Promise<void> => {
     if (!supabase) {
-      console.error("AuthContext: Cliente Supabase não inicializado ao buscar perfil.");
       setSession(null);
       setIsLoading(false);
       return;
@@ -39,14 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Evita recarregar o perfil desnecessariamente se o usuário for o mesmo e já tiver perfil
-    if (session?.user?.id === currentSession.user.id && session?.user?.profile) {
-        setIsLoading(false);
-        return;
-    }
-    
-    setIsLoading(true);
-    
     try {
       const authUser = currentSession.user;
       const { data: profile, error } = await supabase
@@ -55,16 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', authUser.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
-        console.error("AuthContext: Erro ao buscar perfil:", error.message);
-        const userWithNullProfile = { ...authUser, profile: null } as UserWithProfile;
-        setSession({ ...currentSession, user: userWithNullProfile });
-      } else {
-        const userWithProfile = { ...authUser, profile: profile || null } as UserWithProfile;
-        setSession({ ...currentSession, user: userWithProfile });
-      }
+      const userWithProfile = { ...authUser, profile: profile || null } as UserWithProfile;
+      setSession({ ...currentSession, user: userWithProfile });
     } catch (e: any) {
-      console.error("AuthContext: Exceção ao buscar perfil:", e.message);
+      console.error("AuthContext Error:", e.message);
       if (currentSession.user) {
         setSession({ ...currentSession, user: { ...currentSession.user, profile: null } as UserWithProfile });
       } else {
@@ -73,36 +57,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [session?.user?.id, session?.user?.profile]);
+  }, []);
 
   useEffect(() => {
     const getInitialSession = async () => {
       if (!supabase) {
-        console.error("AuthProvider: Cliente Supabase não inicializado no useEffect.");
         setIsLoading(false);
         return;
       }
       try {
-        const { data: { session: initialSupabaseSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("AuthProvider: Erro ao obter sessão:", error.message);
-          setIsLoading(false);
-          return;
-        }
-        
+        const { data: { session: initialSupabaseSession } } = await supabase.auth.getSession();
         await fetchProfileAndSetSession(initialSupabaseSession);
       } catch (error) {
-        console.error("AuthProvider: Exceção ao obter sessão inicial:", error);
+        console.error("AuthContext Initial Error:", error);
         setIsLoading(false);
       }
     };
 
     getInitialSession();
 
-    if (!supabase) {
-      return;
-    }
+    if (!supabase) return;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSupabaseSession) => {
       await fetchProfileAndSetSession(newSupabaseSession);
@@ -118,15 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateSessionManually = async (newSessionData: Partial<Session>) => {
     setSession(prevSession => {
       if (!prevSession || !prevSession.user) return null;
-      
-      const updatedUser = newSessionData.user 
-          ? { ...prevSession.user, ...newSessionData.user } 
-          : prevSession.user;
-
       return {
         ...prevSession,
         ...newSessionData,
-        user: updatedUser
+        user: newSessionData.user ? { ...prevSession.user, ...newSessionData.user } : prevSession.user
       };
     });
   };

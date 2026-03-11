@@ -1,8 +1,8 @@
+// src/lib/supabase/server.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
-export async function createClient(): Promise<SupabaseClient> {
+export async function createClient() {
   const cookieStore = await cookies()
 
   return createServerClient(
@@ -16,12 +16,16 @@ export async function createClient(): Promise<SupabaseClient> {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
-          } catch {}
+          } catch (error) {
+            // Ignorado em Server Components
+          }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
-          } catch {}
+          } catch (error) {
+            // Ignorado em Server Components
+          }
         },
       },
     }

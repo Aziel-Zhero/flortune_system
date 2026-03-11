@@ -1,4 +1,3 @@
-
 // src/components/auth/login-form.tsx
 "use client";
 
@@ -29,7 +28,7 @@ export function LoginForm({ message }: LoginFormProps) {
   useEffect(() => {
     if (session) {
       const isAdmin = session.user?.profile?.role === 'admin' || session.user?.email === 'admin@flortune.com';
-      router.push(isAdmin ? '/dashboard-admin' : '/dashboard');
+      router.replace(isAdmin ? '/dashboard-admin' : '/dashboard');
     }
   }, [session, router]);
   
@@ -68,10 +67,9 @@ export function LoginForm({ message }: LoginFormProps) {
       return;
     }
 
-    if (data.session) {
+    if (data.user) {
         toast({ title: "Sucesso!", description: "Entrando no seu painel..." });
-        const isAdmin = data.user?.user_metadata?.role === 'admin' || data.user?.email === 'admin@flortune.com';
-        router.push(isAdmin ? '/dashboard-admin' : '/dashboard');
+        router.push('/dashboard');
     }
   };
 
@@ -123,16 +121,10 @@ export function LoginForm({ message }: LoginFormProps) {
         </div>
       </div>
       
-      <div className="space-y-2">
-        <OAuthButton
-          provider="google"
-          buttonText="Entrar com Google"
-        />
-        <OAuthButton
-          provider="github"
-          buttonText="Entrar com GitHub"
-        />
-      </div>
+      <OAuthButton
+        provider="google"
+        buttonText="Entrar com Google"
+      />
     </div>
   );
 }

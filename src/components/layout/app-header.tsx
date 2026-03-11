@@ -1,6 +1,4 @@
-
 // src/components/layout/app-header.tsx
-
 "use client";
 
 import Link from "next/link";
@@ -118,14 +116,7 @@ export function AppHeader() {
                   notifications.map(n => {
                     const Icon = n.icon || BellRing;
                     const colorClass = n.color ? iconColorClasses[n.color] : 'text-primary';
-                    
-                    let dateObj: Date;
-                    try {
-                        dateObj = n.createdAt instanceof Date ? n.createdAt : new Date(n.createdAt);
-                        if (isNaN(dateObj.getTime())) throw new Error("Invalid Date");
-                    } catch (e) {
-                        dateObj = new Date();
-                    }
+                    const dateObj = new Date(n.createdAt);
                     
                     return (
                       <DropdownMenuItem key={n.id} className="flex items-start gap-2 cursor-pointer" onSelect={() => markNotificationAsRead(n.id)}>
@@ -135,7 +126,7 @@ export function AppHeader() {
                            <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
                            <p className="text-xs text-muted-foreground">{n.description}</p>
                            <p className="text-[10px] text-muted-foreground/70 mt-1">
-                             {formatDistanceToNow(dateObj, { addSuffix: true, locale: ptBR })}
+                             {!isNaN(dateObj.getTime()) ? formatDistanceToNow(dateObj, { addSuffix: true, locale: ptBR }) : 'Agora'}
                            </p>
                         </div>
                       </DropdownMenuItem>

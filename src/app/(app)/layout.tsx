@@ -1,4 +1,3 @@
-
 // src/app/(app)/layout.tsx
 "use client";
 
@@ -22,10 +21,10 @@ export default function AppLayout({
   useEffect(() => {
     if (isLoading) return;
     
-    if (!session && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
-      router.push('/login');
+    const isPublicPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
+    if (!session && !isPublicPage) {
+      router.replace('/login');
     }
-
   }, [isLoading, session, router, pathname]);
 
   if (isLoading) {
@@ -59,9 +58,7 @@ export default function AppLayout({
     );
   }
 
-  // Se não houver sessão e não for página pública, o useEffect cuidará do redirect.
-  // Renderizamos o conteúdo se houver sessão ou se for página pública.
-  const isPublicPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isPublicPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
   if (!session && !isPublicPage) {
       return null; 
   }

@@ -18,21 +18,24 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // IMPORTANTE: Não modifique request.cookies diretamente
-          // Apenas atualize a response
           response.cookies.set({
             name,
             value,
             ...options,
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
           })
         },
         remove(name: string, options: CookieOptions) {
-          // Para remover uma cookie, defina maxAge: 0
           response.cookies.set({
             name,
             value: '',
             ...options,
             maxAge: 0,
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
           })
         },
       },
