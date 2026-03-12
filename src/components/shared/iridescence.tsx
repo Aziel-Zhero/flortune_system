@@ -1,4 +1,4 @@
-
+// src/components/shared/iridescence.tsx
 "use client";
 
 import { Renderer, Program, Mesh, Color, Triangle, Vec2, Vec3 } from "ogl";

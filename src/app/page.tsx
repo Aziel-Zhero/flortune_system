@@ -1,4 +1,3 @@
-
 // src/app/page.tsx
 "use client";
 
@@ -42,32 +41,18 @@ const FeatureCard: FC<{ icon: React.ElementType; title: string; description: str
   </div>
 );
 
-const ReviewCard: FC<any> = ({ quote, author, role, avatar, rating }) => (
-  <div className="review-card bg-foreground/5 backdrop-blur-md p-6 rounded-2xl border border-foreground/10 flex flex-col h-full shadow-xl">
-    <div className="flex items-center mb-4">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} className={cn("w-4 h-4", i < rating ? "text-yellow-400 fill-yellow-400" : "text-foreground/20 fill-foreground/20")} />
-      ))}
-    </div>
-    <p className="text-foreground/80 text-sm flex-grow">"{quote}"</p>
-    <div className="flex items-center gap-3 mt-6">
-      <Avatar className="h-10 w-10">
-        <AvatarImage src={avatar} alt={author} />
-        <AvatarFallback>{author.charAt(0)}</AvatarFallback>
-      </Avatar>
-      <div>
-        <p className="font-semibold text-foreground">{author}</p>
-        <p className="text-xs text-muted-foreground">{role}</p>
-      </div>
-    </div>
-  </div>
-);
-
 export default function LandingPage() {
   const { session } = useSession();
   const { activeCampaignTheme, landingPageContent, activePopup, popupConfigs } = useAppSettings();
 
-  const safeLandingPageContent = landingPageContent || { heroTitle: "", heroDescription: "", heroImageUrl: "", ctaTitle: "", ctaDescription: "", ctaButtonText: "" };
+  const safeLandingPageContent = landingPageContent || {
+    heroTitle: "Cultive Suas Finanças e Projetos com Inteligência.",
+    heroDescription: "Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos.",
+    heroImageUrl: "https://placehold.co/800x450.png",
+    ctaTitle: "Pronto para Cultivar seu Futuro?",
+    ctaDescription: "Junte-se a nós.",
+    ctaButtonText: "Criar Minha Conta Grátis"
+  };
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -92,12 +77,18 @@ export default function LandingPage() {
         <header className="py-4 px-4 md:px-8">
           <div className="container mx-auto flex justify-between items-center max-w-[1850px]">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
-              <Image src="/Logo.png" alt="Flortune Logo" width={32} height={32} style={{ height: 'auto' }} />
+              <Image 
+                src="/Logo.png" 
+                alt="Flortune Logo" 
+                width={32} 
+                height={32} 
+                style={{ height: 'auto' }} 
+              />
               <span className="text-2xl font-headline font-bold">{APP_NAME}</span>
             </Link>
             <nav className="flex items-center gap-2">
               <Link href={session ? "/dashboard" : "/login"} className={cn(buttonVariants({ variant: 'ghost' }), "text-foreground")}>{session ? "Acessar Painel" : "Login"}</Link>
-              {!session && <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent")}>Criar Conta Grátis</Link>}
+              {!session && <Link href="/signup" className={cn(buttonVariants({ variant: 'default' }), "bg-accent text-accent-foreground")}>Criar Conta Grátis</Link>}
             </nav>
           </div>
         </header>
@@ -106,13 +97,12 @@ export default function LandingPage() {
             <h1 ref={heroTitleRef} className="text-4xl md:text-6xl 2xl:text-7xl font-headline font-extrabold mb-6 opacity-0">{safeLandingPageContent.heroTitle}</h1>
             <p ref={heroParagraphRef} className="text-lg md:text-xl 2xl:text-2xl text-foreground/80 mb-10 max-w-3xl opacity-0">{safeLandingPageContent.heroDescription}</p>
             <div className="flex flex-col sm:flex-row gap-4 opacity-0" ref={heroButtonsRef}>
-              <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent")}>Comece Agora (Grátis)</Link>
+              <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), "bg-accent text-accent-foreground")}>Comece Agora (Grátis)</Link>
             </div>
             <div ref={heroImageRef} className="mt-16 md:mt-24 opacity-0">
               <Image src={safeLandingPageContent.heroImageUrl} alt="Mockup" width={1000} height={562} className="rounded-lg shadow-2xl border-4 border-foreground/20 h-auto" priority />
             </div>
           </section>
-          {/* Outras seções... */}
         </main>
       </div>
     </div>

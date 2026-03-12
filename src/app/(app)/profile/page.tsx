@@ -1,4 +1,3 @@
-
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -9,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare, Upload } from "lucide-react";
+import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare, Upload, Beaker, ShieldAlert } from "lucide-react";
 import { useSession } from "@/contexts/auth-context";
 import { toast } from '@/hooks/use-toast';
-import { APP_NAME } from '@/lib/constants';
+import { APP_NAME, PRICING_TIERS } from '@/lib/constants';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase/client";
@@ -93,7 +92,7 @@ export default function ProfilePage() {
 
         if (uploadError) {
             console.error("Storage upload error:", uploadError);
-            throw new Error("Não foi possível enviar a imagem. Verifique se o bucket 'avatars' existe e está público.");
+            throw new Error("Erro ao enviar imagem.");
         }
 
         const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
@@ -138,9 +137,39 @@ export default function ProfilePage() {
       
     } catch (error: any) {
       console.error("Error saving profile:", error);
-      toast({ title: "Erro ao Salvar", description: error.message || "Ocorreu um erro ao salvar as alterações.", variant: "destructive" });
+      toast({ title: "Erro ao Salvar", description: error.message || "Ocorreu um erro.", variant: "destructive" });
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const handleSwitchPlan = async (planId: string) => {
+    if (!userFromSession?.id || !supabase) return;
+    const { data, error } = await supabase
+        .from('profiles')
+        .update({ plan_id: planId })
+        .eq('id', userFromSession.id)
+        .select()
+        .single();
+    
+    if (!error && data) {
+        await updateSession({ ...session, user: { ...session?.user, profile: data as Profile } as any });
+        toast({ title: "Plano Alterado", description: `Plano atualizado para ${planId}.` });
+    }
+  };
+
+  const handleSwitchRole = async (role: 'user' | 'admin') => {
+    if (!userFromSession?.id || !supabase) return;
+    const { data, error } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', userFromSession.id)
+        .select()
+        .single();
+    
+    if (!error && data) {
+        await updateSession({ ...session, user: { ...session?.user, profile: data as Profile } as any });
+        toast({ title: "Permissão Alterada", description: `Role atualizada para ${role}.` });
     }
   };
   
@@ -148,11 +177,7 @@ export default function ProfilePage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary"/>}/>
-        <Card>
-            <CardHeader><Skeleton className="h-6 w-1/3 mb-1" /><Skeleton className="h-4 w-2/3" /></CardHeader>
-            <CardContent className="space-y-6"><Skeleton className="h-64 w-full rounded-lg" /></CardContent>
-            <CardFooter><Skeleton className="h-10 w-24 ml-auto" /></CardFooter>
-        </Card>
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
@@ -197,7 +222,6 @@ export default function ProfilePage() {
               <div>
                 <Label htmlFor="email">Endereço de Email</Label>
                 <Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" />
-                <p className="text-xs text-muted-foreground mt-1">O email não pode ser alterado.</p>
               </div>
               <div>
                 <Label htmlFor="phone">Telefone</Label>
@@ -207,33 +231,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            {profileFromSession?.account_type === 'pessoa' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="cpfCnpj">CPF</Label>
-                  <div className="relative">
-                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="rg">RG</Label>
-                  <div className="relative">
-                      <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="rg" value={rg} onChange={(e) => setRg(e.target.value)} className="pl-10" />
-                  </div>
-                </div>
-              </div>
-            )}
-             {profileFromSession?.account_type === 'empresa' && (
-              <div>
-                  <Label htmlFor="cpfCnpj">CNPJ</Label>
-                  <div className="relative">
-                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="cpfCnpj" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} className="pl-10" />
-                  </div>
-              </div>
-            )}
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={isSavingProfile} className="ml-auto">
@@ -241,6 +238,55 @@ export default function ProfilePage() {
             </Button>
           </CardFooter>
         </form>
+      </Card>
+
+      {/* SEÇÃO DE TESTE - PARA VALIDAÇÃO DE PLANOS */}
+      <Card className="shadow-sm border-amber-500/50 bg-amber-500/5">
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center text-lg text-amber-700">
+            <Beaker className="mr-2 h-5 w-5"/> Modo Teste: Validação de Planos
+          </CardTitle>
+          <CardDescription>Use estes botões para alternar seu plano e validar as restrições de navegação do sistema.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="space-y-3">
+                <Label className="text-amber-800 font-bold">Mudar Tipo de Usuário (Plano):</Label>
+                <div className="flex flex-wrap gap-2">
+                    {PRICING_TIERS.map(tier => (
+                        <Button 
+                            key={tier.id} 
+                            variant={profileFromSession?.plan_id === tier.id ? "default" : "outline"} 
+                            size="sm"
+                            onClick={() => handleSwitchPlan(tier.id)}
+                            className={cn(profileFromSession?.plan_id === tier.id && "bg-amber-600")}
+                        >
+                            {tier.name}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                <Label className="text-amber-800 font-bold">Mudar Papel (Role):</Label>
+                <div className="flex gap-2">
+                    <Button 
+                        variant={profileFromSession?.role === 'user' ? "default" : "outline"} 
+                        size="sm" 
+                        onClick={() => handleSwitchRole('user')}
+                        className={cn(profileFromSession?.role === 'user' && "bg-amber-600")}
+                    >
+                        <User className="mr-2 h-4 w-4"/> Usuário Padrão
+                    </Button>
+                    <Button 
+                        variant={profileFromSession?.role === 'admin' ? "default" : "outline"} 
+                        size="sm" 
+                        onClick={() => handleSwitchRole('admin')}
+                        className={cn(profileFromSession?.role === 'admin' && "bg-amber-600")}
+                    >
+                        <ShieldAlert className="mr-2 h-4 w-4"/> Administrador
+                    </Button>
+                </div>
+            </div>
+        </CardContent>
       </Card>
     </div>
   );
