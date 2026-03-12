@@ -1,4 +1,3 @@
-
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -185,7 +184,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-[1850px] mx-auto w-full">
       <PageHeader
         title="Meu Perfil"
         description="Gerencie suas informações pessoais e de conta."

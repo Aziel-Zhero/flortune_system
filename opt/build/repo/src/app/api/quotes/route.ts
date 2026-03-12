@@ -2,66 +2,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-interface AwesomeApiResponse {
-  [key: string]: {
-    code: string;
-    codein: string;
-    name: string;
-    high: string;
-    low: string;
-    varBid: string;
-    pctChange: string;
-    bid: string;
-    ask: string;
-    timestamp: string;
-    create_date: string;
-  };
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const codes = searchParams.get('codes');
+  const token = process.env.AWESOMEAPI_API_KEY;
   
   if (!codes) {
-    return NextResponse.json(
-      { error: 'Parâmetro "codes" é obrigatório.' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Parâmetro "codes" é obrigatório.' }, { status: 400 });
   }
 
-  const uniqueQuotes = [...new Set(codes.split(','))];
-  const query = uniqueQuotes.join(',');
-  const apiUrl = `https://economia.awesomeapi.com.br/last/${query}`;
+  const query = codes.split(',').map(c => c.trim()).filter(Boolean).join(',');
+  const apiUrl = `https://economia.awesomeapi.com.br/json/last/${query}${token ? `?token=${token}` : ''}`;
 
   try {
-    const response = await fetch(apiUrl, {
-      next: { revalidate: 600 }, // Cache de 10 minutos
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
-      }
+    const response = await axios.get(apiUrl, {
+      headers: { 'User-Agent': 'FlortuneApp/1.0' },
+      timeout: 10000
     });
 
-    if (!response.ok) {
-      throw new Error(`API externa respondeu com status: ${response.status}`);
-    }
-
-    const responseData = await response.json();
+    const dataArray = Object.values(response.data || {});
     
-    const dataArray = Object.values(responseData);
-
-    if (dataArray.length === 0) {
-      return NextResponse.json(
-        { error: `Nenhuma cotação encontrada para: ${query}` },
-        { status: 404 }
-      );
-    }
-    
-    return NextResponse.json({ data: dataArray, error: null });
+    const res = NextResponse.json({ data: dataArray, error: null });
+    res.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+    return res;
 
   } catch (error: any) {
-    console.error('Erro na API route de cotações:', error.message);
-    return NextResponse.json({ 
-      error: `Falha ao buscar dados das cotações na API externa. Detalhes: ${error.message}`
-    }, { status: 500 });
+    console.error('Quotes API Error:', error.message);
+    const status = error.response?.status || 500;
+    return NextResponse.json({ error: status === 429 ? 'Too Many Requests' : error.message }, { status });
   }
 }

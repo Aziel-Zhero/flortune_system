@@ -1,4 +1,3 @@
-
 // src/app/(app)/dashboard/page.tsx
 "use client";
 
@@ -361,7 +360,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 max-w-[1850px] mx-auto w-full">
         <PageHeader
           title={`Bem-vindo(a) de volta, ${welcomeName}!`}
           description="Aqui está seu resumo financeiro."
