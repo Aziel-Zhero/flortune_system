@@ -1,3 +1,4 @@
+
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -15,6 +16,7 @@ import { APP_NAME, PRICING_TIERS } from '@/lib/constants';
 import type { Profile } from '@/types/database.types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase/client";
+import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const { session, isLoading, update: updateSession } = useSession();
@@ -272,7 +274,7 @@ export default function ProfilePage() {
                         variant={profileFromSession?.role === 'user' ? "default" : "outline"} 
                         size="sm" 
                         onClick={() => handleSwitchRole('user')}
-                        className={cn(profileFromSession?.role === 'user' && "bg-amber-600")}
+                        className={cn(profileFromSession?.role === 'user' && "bg-amber-600 text-white")}
                     >
                         <User className="mr-2 h-4 w-4"/> Usuário Padrão
                     </Button>
@@ -280,7 +282,7 @@ export default function ProfilePage() {
                         variant={profileFromSession?.role === 'admin' ? "default" : "outline"} 
                         size="sm" 
                         onClick={() => handleSwitchRole('admin')}
-                        className={cn(profileFromSession?.role === 'admin' && "bg-amber-600")}
+                        className={cn(profileFromSession?.role === 'admin' && "bg-amber-600 text-white")}
                     >
                         <ShieldAlert className="mr-2 h-4 w-4"/> Administrador
                     </Button>

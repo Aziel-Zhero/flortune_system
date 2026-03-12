@@ -1,12 +1,12 @@
-// src/app/(app)/dashboard/page.tsx
 
+// src/app/(app)/dashboard/page.tsx
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, BrainCircuit } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, BrainCircuit, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -25,14 +25,8 @@ import {
 } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"; 
 import { useAppSettings } from "@/contexts/app-settings-context";
-import type { QuoteData } from "@/types/database.types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase/client";
-
-// Estes componentes não existem, foram removidos
-// import { SmartSuggestionCard } from "@/components/smart-suggestion-card";
-// import { PieCustomTooltip } from "@/components/charts/pie-custom-tooltip";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface SummaryData {
   title: string;
@@ -124,7 +118,7 @@ export default function DashboardPage() {
   const user = session?.user;
   const profile = user?.profile;
 
-  const { quotes, isLoadingQuotes } = useAppSettings();
+  const { quotes, isLoadingQuotes, quotesError } = useAppSettings();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
@@ -147,10 +141,8 @@ export default function DashboardPage() {
   const handleDismissWelcome = async () => {
     if (!user?.id || !supabase) return;
     
-    // Optimistic UI update
     setIsWelcomeOpen(false);
 
-    // Update database
     const { data: updatedProfile, error } = await supabase
         .from('profiles')
         .update({ has_seen_welcome_message: true })
@@ -160,11 +152,9 @@ export default function DashboardPage() {
     
     if (error) {
         toast({ title: "Erro", description: "Não foi possível salvar sua preferência.", variant: "destructive"});
-        // Revert UI if update fails
         setIsWelcomeOpen(true);
     } else {
          toast({ title: "Bem-vindo(a)!", description: "Vamos começar a organizar suas finanças."});
-        // Update session context with the new profile data
         if(session) {
           await updateSession({ ...session, user: { ...session?.user, profile: updatedProfile as Profile } as any });
         }
@@ -318,7 +308,7 @@ export default function DashboardPage() {
           description="Aqui está seu resumo financeiro para este mês."
            actions={<Skeleton className="h-10 w-36 rounded-md" />}
         />
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           {Array(5).fill(0).map((_, index) => (
             <Card key={index} className="shadow-sm h-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -333,14 +323,14 @@ export default function DashboardPage() {
           ))}
         </div>
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm h-full flex flex-col">
             <CardHeader>
               <Skeleton className="h-6 w-1/2 mb-1"/>
               <Skeleton className="h-4 w-3/4"/>
             </CardHeader>
             <CardContent className="space-y-3">
               {Array(3).fill(0).map((_, index) => (
-                <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-b-0">
+                <div key={index} className="flex items-center justify-between py-3 border-b border-border/50 last:border-b-0">
                   <div>
                     <Skeleton className="h-5 w-32 mb-1" />
                     <Skeleton className="h-3 w-24" />
@@ -351,7 +341,7 @@ export default function DashboardPage() {
                <Skeleton className="h-10 w-full mt-4" />
             </CardContent>
           </Card>
-          <Card className="shadow-sm">
+          <Card className="shadow-sm h-full flex flex-col">
             <CardHeader>
               <Skeleton className="h-6 w-1/2 mb-1"/>
               <Skeleton className="h-4 w-3/4"/>
@@ -386,7 +376,7 @@ export default function DashboardPage() {
           }
         />
 
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           {summaryValues.map((item, index) => (
             <motion.div key={item.title} custom={index} variants={cardVariants} initial="hidden" animate="visible">
               <Card className="shadow-sm hover:shadow-md transition-shadow h-full">
@@ -404,7 +394,7 @@ export default function DashboardPage() {
                     </>
                   ) : (
                     <>
-                      <div className="text-2xl font-bold font-headline">
+                      <div className="text-2xl 2xl:text-3xl font-bold font-headline">
                         {item.value === null || item.value === undefined ? (
                           item.unit === "%" ? "N/A %" : "N/A"
                         ) : item.unit === "%" ? (
@@ -427,7 +417,7 @@ export default function DashboardPage() {
         </div>
         
         {(isLoadingQuotes || quotes.length > 0) && (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
             {(isLoadingQuotes ? Array(5).fill(0) : quotes).map((quote, index) => {
                 const isLoading = quote === 0;
                 const isAvailable = typeof quote === 'object' && quote !== null && 'name' in quote;
@@ -459,7 +449,7 @@ export default function DashboardPage() {
                         )}
                       </CardHeader>
                       <CardContent>
-                          <div className="text-2xl font-bold font-headline">
+                          <div className="text-2xl 2xl:text-3xl font-bold font-headline">
                             {isLoading ? <Skeleton className="h-8 w-24" /> : (isAvailable ? <span>R$<PrivateValue value={parseFloat(bid).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></span> : '—')}
                           </div>
                       </CardContent>
@@ -472,12 +462,12 @@ export default function DashboardPage() {
 
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
           <motion.div custom={10} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm h-full flex flex-col">
             <CardHeader>
               <CardTitle className="font-headline">Transações Recentes</CardTitle>
               <CardDescription>Suas últimas atividades financeiras.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-grow">
               {transactionsLoading ? (
                 Array(4).fill(0).map((_, index) => (
                   <div key={index} className="flex items-center justify-between py-3 border-b border-border/50 last:border-b-0">
@@ -491,14 +481,14 @@ export default function DashboardPage() {
               ) : recentTransactions.length > 0 ? (
                 <ul className="space-y-1">
                   {recentTransactions.map((tx) => (
-                    <li key={tx.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors">
+                    <li key={tx.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors">
                       <div>
-                        <p className="font-medium text-sm">{tx.description}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(tx.date + 'T00:00:00Z').toLocaleDateString('pt-BR')} - {tx.category?.name || "Sem Categoria"}</p>
+                        <p className="font-medium text-sm 2xl:text-base">{tx.description}</p>
+                        <p className="text-xs 2xl:text-sm text-muted-foreground">{new Date(tx.date + 'T00:00:00Z').toLocaleDateString('pt-BR')} - {tx.category?.name || "Sem Categoria"}</p>
                       </div>
                       <PrivateValue 
                         value={tx.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
-                        className={cn("font-medium text-sm", tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
+                        className={cn("font-medium text-sm 2xl:text-base", tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
                       />
                     </li>
                   ))}
@@ -506,27 +496,29 @@ export default function DashboardPage() {
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhuma transação recente encontrada.</p>
               )}
-              <Button variant="outline" className="mt-4 w-full" asChild>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full" asChild>
                 <Link href="/transactions">Ver Todas as Transações</Link>
               </Button>
-            </CardContent>
+            </CardFooter>
           </Card>
           </motion.div>
 
           <motion.div custom={11} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="shadow-sm h-full">
+          <Card className="shadow-sm h-full flex flex-col">
             <CardHeader>
               <CardTitle className="font-headline flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Visão Geral de Gastos (Este Mês)</CardTitle>
               <CardDescription>Suas principais categorias de despesas.</CardDescription>
             </CardHeader>
-            <CardContent className="min-h-[280px] flex items-center justify-center">
+            <CardContent className="flex-grow min-h-[280px] flex items-center justify-center">
               {transactionsLoading ? (
                   <Skeleton className="w-full h-[200px]" />
               ): monthlySpendingByCategory.length > 0 ? (
-                  <ChartContainer config={{}} className="min-h-[200px] w-full h-64">
+                  <ChartContainer config={{}} className="min-h-[200px] w-full h-full max-h-[350px]">
                     <PieChart>
                       <RechartsTooltip content={<PieCustomTooltip />} />
-                      <Pie data={monthlySpendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} labelLine={false} label={({ name, percent }) => (name && percent ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
+                      <Pie data={monthlySpendingByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => (name && percent ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}>
                         {monthlySpendingByCategory.map((entry, index) => (
                           <Cell key={`cell-${entry.name}-${index}`} fill={entry.fill} />
                         ))}

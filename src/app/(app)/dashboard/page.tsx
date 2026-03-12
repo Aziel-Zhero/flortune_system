@@ -1,3 +1,4 @@
+
 // src/app/(app)/dashboard/page.tsx
 "use client";
 
@@ -25,6 +26,7 @@ import {
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"; 
 import { useAppSettings } from "@/contexts/app-settings-context";
 import { supabase } from "@/lib/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface SummaryData {
   title: string;
@@ -321,7 +323,7 @@ export default function DashboardPage() {
           ))}
         </div>
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm h-full flex flex-col">
             <CardHeader>
               <Skeleton className="h-6 w-1/2 mb-1"/>
               <Skeleton className="h-4 w-3/4"/>
@@ -339,7 +341,7 @@ export default function DashboardPage() {
                <Skeleton className="h-10 w-full mt-4" />
             </CardContent>
           </Card>
-          <Card className="shadow-sm">
+          <Card className="shadow-sm h-full flex flex-col">
             <CardHeader>
               <Skeleton className="h-6 w-1/2 mb-1"/>
               <Skeleton className="h-4 w-3/4"/>
