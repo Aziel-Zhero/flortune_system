@@ -1,3 +1,4 @@
+
 // src/app/(app)/transactions/transaction-form.tsx
 "use client";
 
@@ -64,7 +65,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       amount: initialData?.amount || 0,
       date: initialData?.date || new Date(),
       is_recurring: initialData?.is_recurring || false,
-      category_id: initialData?.category_id || "", // Fix controlled/uncontrolled warning
+      category_id: initialData?.category_id || "", // Avoid uncontrolled/controlled warning
       notes: initialData?.notes || "",
     },
   });

@@ -1,3 +1,4 @@
+
 // src/app/(app)/profile/page.tsx
 "use client";
 
@@ -159,6 +160,8 @@ export default function ProfilePage() {
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
         toast({ title: "Permissão Alterada", description: `Role atualizada para ${role}.` });
+        
+        // Redirecionamento baseado na role
         if (role === 'admin') {
             router.push('/dashboard-admin');
         } else {
