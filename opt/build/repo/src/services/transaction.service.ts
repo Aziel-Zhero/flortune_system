@@ -1,13 +1,10 @@
-// src/services/transaction.service.ts
+// opt/build/repo/src/services/transaction.service.ts
 "use server";
 
 import type { Transaction } from "@/types/database.types";
 import type { ServiceListResponse, ServiceResponse } from "@/types/database.types";
 import { createClient } from "@/lib/supabase/server";
 
-// --------------------------------------------------------
-// Buscar transações
-// --------------------------------------------------------
 export async function getTransactions(
   userId: string
 ): Promise<ServiceListResponse<Transaction>> {
@@ -34,9 +31,6 @@ export async function getTransactions(
   return { data, error: null };
 }
 
-// --------------------------------------------------------
-// Criar nova transação
-// --------------------------------------------------------
 export type NewTransactionData = Omit<
   Transaction,
   "id" | "created_at" | "updated_at" | "user_id" | "category"
@@ -56,22 +50,25 @@ export async function addTransaction(
     .from("transactions")
     .insert({
       user_id: userId,
-      ...transactionData,
+      description: transactionData.description,
+      amount: transactionData.amount,
+      date: transactionData.date,
+      type: transactionData.type,
+      category_id: transactionData.category_id,
+      notes: transactionData.notes || "",
+      is_recurring: transactionData.is_recurring || false,
     })
     .select()
     .single();
 
   if (error) {
     console.error("Erro ao adicionar transação:", error.message);
-    return { data: null, error: "Não foi possível salvar a nova transação." };
+    return { data: null, error: `Não foi possível salvar: ${error.message}` };
   }
   
   return { data: newTransaction, error: null };
 }
 
-// --------------------------------------------------------
-// Deletar transação
-// --------------------------------------------------------
 export async function deleteTransaction(
   transactionId: string,
   userId: string
@@ -89,13 +86,10 @@ export async function deleteTransaction(
     .from("transactions")
     .delete()
     .eq("id", transactionId)
-    .eq("user_id", userId); // Segurança obrigatória
+    .eq("user_id", userId);
 
   if (error) {
-    console.error(
-      `Erro ao deletar transação ${transactionId}:`,
-      error.message
-    );
+    console.error(`Erro ao deletar transação ${transactionId}:`, error.message);
     return { error: "Não foi possível deletar a transação." };
   }
 

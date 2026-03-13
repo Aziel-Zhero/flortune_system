@@ -120,7 +120,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     weatherData: null,
     weatherError: null,
     isLoadingWeather: false,
-    selectedQuotes: [],
+    selectedQuotes: ['USD-BRL', 'EUR-BRL'],
     quotes: [],
     isLoadingQuotes: true,
     quotesError: null,
@@ -133,33 +133,37 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const loadQuotes = useCallback(async (quoteList: string[], force: boolean = false) => {
     const validQuotes = quoteList.filter(q => q && q.trim() !== '');
-    if (validQuotes.length === 0) return;
-
-    const now = Date.now();
-    if (!force && (now - lastFetchTime.current < cacheDuration || rateLimitPause.current)) {
-        setState((prev: any) => ({...prev, isLoadingQuotes: false}));
+    if (validQuotes.length === 0) {
+        setState((p: any) => ({ ...p, isLoadingQuotes: false, quotes: [] }));
         return;
     }
 
-    setState((prev: any) => ({...prev, isLoadingQuotes: true, quotesError: null}));
+    const now = Date.now();
+    if (!force && (now - lastFetchTime.current < cacheDuration || rateLimitPause.current)) {
+        setState((p: any) => ({ ...p, isLoadingQuotes: false }));
+        return;
+    }
+
+    setState((p: any) => ({ ...p, isLoadingQuotes: true, quotesError: null }));
     try {
         const response = await fetch(`/api/quotes?codes=${encodeURIComponent(validQuotes.join(','))}`);
         const result = await response.json();
         
         if (response.status === 429) {
             rateLimitPause.current = true;
-            setTimeout(() => { rateLimitPause.current = false; }, 600000); // 10 min de pausa
-            throw new Error("Muitas requisições. O painel de cotações entrará em pausa.");
+            setTimeout(() => { rateLimitPause.current = false; }, 600000);
+            throw new Error("Muitas requisições. Tente novamente em 10 minutos.");
         }
 
         if (!response.ok) throw new Error(result.error || 'Erro na API de cotações');
         
         lastFetchTime.current = now;
-        setState((prev: any) => ({...prev, quotes: result.data || [], quotesError: null}));
+        const quotesArray = Array.isArray(result.data) ? result.data : Object.values(result.data || {});
+        setState((p: any) => ({ ...p, quotes: quotesArray, quotesError: null }));
     } catch (err: any) {
-        setState((prev: any) => ({...prev, quotesError: err.message}));
+        setState((p: any) => ({ ...p, quotesError: err.message }));
     } finally {
-        setState((prev: any) => ({...prev, isLoadingQuotes: false}));
+        setState((p: any) => ({ ...p, isLoadingQuotes: false }));
     }
   }, []);
 
@@ -204,7 +208,9 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (state.selectedQuotes.length > 0) loadQuotes(state.selectedQuotes);
+    if (state.selectedQuotes.length > 0) {
+        loadQuotes(state.selectedQuotes);
+    }
   }, [state.selectedQuotes, loadQuotes]);
 
   return (

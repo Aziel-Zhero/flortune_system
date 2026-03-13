@@ -1,4 +1,4 @@
-// src/app/(app)/transactions/transaction-form.tsx
+// opt/build/repo/src/app/(app)/transactions/transaction-form.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -49,7 +49,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onTransactionCreated, initialData, isModal = true }: TransactionFormProps) {
   const router = useRouter();
-  const { session, isLoading: authLoading } = useSession();
+  const { session } = useSession();
   const user = session?.user;
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -58,11 +58,14 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
 
   const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionFormSchema),
-    defaultValues: initialData || {
-      type: "expense",
-      amount: 0,
-      date: new Date(),
-      is_recurring: false,
+    defaultValues: {
+      description: initialData?.description || "",
+      type: initialData?.type || "expense",
+      amount: initialData?.amount || 0,
+      date: initialData?.date || new Date(),
+      is_recurring: initialData?.is_recurring || false,
+      category_id: initialData?.category_id || "", // Fix controlled/uncontrolled warning
+      notes: initialData?.notes || "",
     },
   });
 
@@ -74,32 +77,23 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     try {
       const { data, error } = await getCategories(user.id);
       if (error) {
-        toast({ 
-          title: "Erro ao buscar categorias", 
-          description: error,
-          variant: "destructive" 
-        });
+        toast({ title: "Erro ao buscar categorias", description: error, variant: "destructive" });
         setCategories([]);
       } else {
         setCategories(data || []);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
-      toast({ 
-        title: "Erro inesperado", 
-        description: errorMessage, 
-        variant: "destructive" 
-      });
+      setCategories([]);
     } finally {
       setIsLoadingCategories(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    if (user?.id && session !== undefined) {
+    if (user?.id) {
       fetchCategoriesData();
     }
-  }, [user, session, fetchCategoriesData]);
+  }, [user?.id, fetchCategoriesData]);
   
   const onSubmit: SubmitHandler<TransactionFormData> = async (data) => {
     if (!user?.id) {
@@ -114,29 +108,20 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
       date: format(data.date, "yyyy-MM-dd"),
       type: data.type,
       category_id: data.category_id,
-      notes: data.notes,
+      notes: data.notes || "",
       is_recurring: data.is_recurring ?? false,
     };
 
     try {
       const result = await addTransaction(user.id, newTxData);
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      toast({
-        title: "Transação Adicionada!",
-        description: `A transação "${data.description}" foi adicionada com sucesso.`,
-        action: <CheckCircle className="text-green-500" />,
-      });
+      if (result.error) throw new Error(result.error);
+
+      toast({ title: "Transação Adicionada!", description: `"${data.description}" salva com sucesso.`, action: <CheckCircle className="text-green-500" /> });
       reset();
       onTransactionCreated();
       if (!isModal) router.push("/transactions");
     } catch (error: any) {
-      toast({
-        title: "Erro ao Adicionar Transação",
-        description: error.message || "Não foi possível salvar a nova transação.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao Adicionar", description: error.message || "Falha ao salvar transação.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -148,11 +133,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
         <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
-            <Input
-            id="description"
-            placeholder="Ex: Salário, Compras no Supermercado"
-            {...register("description")}
-            />
+            <Input id="description" placeholder="Ex: Salário, Supermercado" {...register("description")} disabled={isSubmitting} />
             {errors.description && <p className="text-sm text-destructive mt-1">{errors.description.message}</p>}
         </div>
 
@@ -161,14 +142,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 <Label htmlFor="amount">Valor (R$)</Label>
                 <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    placeholder="Ex: 150,00"
-                    {...register("amount")}
-                    className="pl-10"
-                    />
+                    <Input id="amount" type="number" step="0.01" {...register("amount")} className="pl-10" disabled={isSubmitting} />
                 </div>
                 {errors.amount && <p className="text-sm text-destructive mt-1">{errors.amount.message}</p>}
             </div>
@@ -180,25 +154,13 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                     render={({ field }) => (
                         <Popover>
                         <PopoverTrigger asChild>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                            )}
-                            >
+                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
-                            <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            locale={ptBR}
-                            />
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} />
                         </PopoverContent>
                         </Popover>
                     )}
@@ -213,19 +175,9 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 name="type"
                 control={control}
                 render={({ field }) => (
-                    <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="flex space-x-4"
-                    >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="income" id="income" />
-                        <Label htmlFor="income" className="font-normal">Receita</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="expense" id="expense" />
-                        <Label htmlFor="expense" className="font-normal">Despesa</Label>
-                    </div>
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex space-x-4" disabled={isSubmitting}>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="income" id="income" /><Label htmlFor="income" className="font-normal">Receita</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="expense" id="expense" /><Label htmlFor="expense" className="font-normal">Despesa</Label></div>
                     </RadioGroup>
                 )}
             />
@@ -238,19 +190,14 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 name="category_id"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingCategories}>
+                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={isLoadingCategories || isSubmitting}>
                     <SelectTrigger id="category_id">
-                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria de ${transactionType === 'income' ? 'receita' : 'despesa'}`} />
+                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria`} />
                     </SelectTrigger>
                     <SelectContent>
                       {filteredCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
+                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                       ))}
-                      {filteredCategories.length === 0 && !isLoadingCategories && (
-                        <div className="p-4 text-sm text-center text-muted-foreground">Nenhuma categoria encontrada para este tipo.</div>
-                      )}
                     </SelectContent>
                   </Select>
                 )}
@@ -263,34 +210,23 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                 name="is_recurring"
                 control={control}
                 render={({ field }) => (
-                    <Checkbox
-                        id="is_recurring"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                    />
+                    <Checkbox id="is_recurring" checked={field.value} onCheckedChange={field.onChange} disabled={isSubmitting} />
                 )}
             />
             <Label htmlFor="is_recurring" className="font-normal text-sm text-muted-foreground flex items-center gap-1.5">
-                <Repeat className="h-3 w-3" />
-                Marcar como transação recorrente.
+                <Repeat className="h-3 w-3" /> Marcar como transação recorrente.
             </Label>
         </div>
         
         <div className="space-y-2">
             <Label htmlFor="notes">Notas (Opcional)</Label>
-            <Textarea 
-                id="notes"
-                placeholder="Detalhes adicionais sobre a transação..."
-                {...register("notes")}
-                rows={3}
-            />
+            <Textarea id="notes" placeholder="Detalhes adicionais..." {...register("notes")} rows={3} disabled={isSubmitting} />
         </div>
 
         <DialogFooter className="pt-4">
-            {isModal && <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>}
+            {isModal && <DialogClose asChild><Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button></DialogClose>}
             <Button type="submit" disabled={isSubmitting || isLoadingCategories}>
-                <Save className="mr-2 h-4 w-4" />
-                {isSubmitting ? "Salvando..." : "Salvar Transação"}
+                <Save className="mr-2 h-4 w-4" /> {isSubmitting ? "Salvando..." : "Salvar Transação"}
             </Button>
         </DialogFooter>
     </form>

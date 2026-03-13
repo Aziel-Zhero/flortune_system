@@ -2,13 +2,14 @@
 "use client";
 
 import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Smartphone, FileText, Fingerprint, Save, CheckSquare, Upload, Beaker, ShieldAlert } from "lucide-react";
+import { User, Smartphone, Save, CheckSquare, Upload, Beaker, ShieldAlert } from "lucide-react";
 import { useSession } from "@/contexts/auth-context";
 import { toast } from '@/hooks/use-toast';
 import { APP_NAME, PRICING_TIERS } from '@/lib/constants';
@@ -18,6 +19,7 @@ import { supabase } from "@/lib/supabase/client";
 import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { session, isLoading, update: updateSession } = useSession();
 
   const userFromSession = session?.user;
@@ -91,53 +93,39 @@ export default function ProfilePage() {
           .from('avatars')
           .upload(filePath, avatarFile, { upsert: true });
 
-        if (uploadError) {
-            console.error("Storage upload error:", uploadError);
-            throw new Error("Erro ao enviar imagem.");
-        }
+        if (uploadError) throw new Error("Erro ao enviar imagem.");
 
         const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
         publicAvatarUrl = data.publicUrl;
       }
       
-      const updatedProfileData: Partial<Profile> = {
-        full_name: fullName,
-        display_name: displayName,
-        phone,
-        cpf_cnpj: cpfCnpj,
-        rg,
-        avatar_url: publicAvatarUrl,
-        updated_at: new Date().toISOString(),
-      };
-      
       const { data: updatedProfile, error } = await supabase
         .from('profiles')
-        .update(updatedProfileData)
+        .update({
+          full_name: fullName,
+          display_name: displayName,
+          phone,
+          cpf_cnpj: cpfCnpj,
+          rg,
+          avatar_url: publicAvatarUrl,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', userFromSession.id)
         .select()
         .single();
 
       if (error) throw error;
 
-      if (updatedProfile) {
-        if (session && session.user) {
-            await updateSession({
-                ...session,
-                user: { ...session.user, profile: updatedProfile as Profile },
-            });
-        }
-      
-        toast({
-          title: "Perfil Atualizado",
-          description: "Suas informações foram salvas com sucesso.",
-          action: <CheckSquare className="text-green-500"/>
+      if (updatedProfile && session) {
+        await updateSession({
+          ...session,
+          user: { ...session.user, profile: updatedProfile as Profile } as any,
         });
       
+        toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
         setAvatarFile(null);
       }
-      
     } catch (error: any) {
-      console.error("Error saving profile:", error);
       toast({ title: "Erro ao Salvar", description: error.message || "Ocorreu um erro.", variant: "destructive" });
     } finally {
       setIsSavingProfile(false);
@@ -153,8 +141,8 @@ export default function ProfilePage() {
         .select()
         .single();
     
-    if (!error && data) {
-        await updateSession({ ...session, user: { ...session?.user, profile: data as Profile } as any });
+    if (!error && data && session) {
+        await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
         toast({ title: "Plano Alterado", description: `Plano atualizado para ${planId}.` });
     }
   };
@@ -168,15 +156,20 @@ export default function ProfilePage() {
         .select()
         .single();
     
-    if (!error && data) {
-        await updateSession({ ...session, user: { ...session?.user, profile: data as Profile } as any });
+    if (!error && data && session) {
+        await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
         toast({ title: "Permissão Alterada", description: `Role atualizada para ${role}.` });
+        if (role === 'admin') {
+            router.push('/dashboard-admin');
+        } else {
+            router.push('/dashboard');
+        }
     }
   };
   
   if (isLoading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 max-w-[1850px] mx-auto">
         <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary"/>}/>
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
@@ -210,22 +203,12 @@ export default function ProfilePage() {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="fullName">Nome Completo / Razão Social</Label>
-                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="displayName">Nome de Exibição / Fantasia</Label>
-                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-              </div>
+              <div className="space-y-2"><Label htmlFor="fullName">Nome Completo / Razão Social</Label><Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="displayName">Nome de Exibição / Fantasia</Label><Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} /></div>
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Endereço de Email</Label>
-                <Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" />
-              </div>
-              <div>
-                <Label htmlFor="phone">Telefone</Label>
+              <div className="space-y-2"><Label htmlFor="email">Endereço de Email</Label><Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" /></div>
+              <div className="space-y-2"><Label htmlFor="phone">Telefone</Label>
                  <div className="relative">
                     <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
@@ -241,13 +224,12 @@ export default function ProfilePage() {
         </form>
       </Card>
 
-      {/* SEÇÃO DE TESTE - PARA VALIDAÇÃO DE PLANOS */}
       <Card className="shadow-sm border-amber-500/50 bg-amber-500/5">
         <CardHeader>
           <CardTitle className="font-headline flex items-center text-lg text-amber-700">
-            <Beaker className="mr-2 h-5 w-5"/> Modo Teste: Validação de Planos
+            <Beaker className="mr-2 h-5 w-5"/> Modo Teste: Validação de Papéis
           </CardTitle>
-          <CardDescription>Use estes botões para alternar seu plano e validar as restrições de navegação do sistema.</CardDescription>
+          <CardDescription>Alterne entre perfis de Administrador e Usuário para validar as funcionalidades do sistema.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="space-y-3">
@@ -266,7 +248,7 @@ export default function ProfilePage() {
                     ))}
                 </div>
             </div>
-            <div className="space-y-3 pt-2 border-t border-amber-500/20">
+            <div className="space-y-3 pt-4 border-t border-amber-500/20">
                 <Label className="text-amber-800 font-bold">Mudar Papel (Role):</Label>
                 <div className="flex gap-2">
                     <Button 

@@ -1,4 +1,3 @@
-
 // src/app/(app)/layout.tsx
 "use client";
 
