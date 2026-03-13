@@ -1,5 +1,4 @@
 
-// src/app/(app)/profile/page.tsx
 "use client";
 
 import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
@@ -78,7 +77,7 @@ export default function ProfilePage() {
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!userFromSession?.id || !supabase) {
-      toast({ title: "Erro", description: "Usuário não autenticado ou serviço indisponível.", variant: "destructive" });
+      toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
       return;
     }
     setIsSavingProfile(true);
@@ -89,13 +88,8 @@ export default function ProfilePage() {
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const filePath = `${userFromSession.id}/avatar-${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, avatarFile, { upsert: true });
-
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
         if (uploadError) throw new Error("Erro ao enviar imagem.");
-
         const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
         publicAvatarUrl = data.publicUrl;
       }
@@ -118,16 +112,12 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile && session) {
-        await updateSession({
-          ...session,
-          user: { ...session.user, profile: updatedProfile as Profile } as any,
-        });
-      
-        toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
+        await updateSession({ ...session, user: { ...session.user, profile: updatedProfile as Profile } as any });
+        toast({ title: "Perfil Atualizado", action: <CheckSquare className="text-green-500"/> });
         setAvatarFile(null);
       }
     } catch (error: any) {
-      toast({ title: "Erro ao Salvar", description: error.message || "Ocorreu um erro.", variant: "destructive" });
+      toast({ title: "Erro ao Salvar", description: error.message, variant: "destructive" });
     } finally {
       setIsSavingProfile(false);
     }
@@ -135,13 +125,7 @@ export default function ProfilePage() {
 
   const handleSwitchPlan = async (planId: string) => {
     if (!userFromSession?.id || !supabase) return;
-    const { data, error } = await supabase
-        .from('profiles')
-        .update({ plan_id: planId })
-        .eq('id', userFromSession.id)
-        .select()
-        .single();
-    
+    const { data, error } = await supabase.from('profiles').update({ plan_id: planId }).eq('id', userFromSession.id).select().single();
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
         toast({ title: "Plano Alterado", description: `Plano atualizado para ${planId}.` });
@@ -150,60 +134,30 @@ export default function ProfilePage() {
 
   const handleSwitchRole = async (role: 'user' | 'admin') => {
     if (!userFromSession?.id || !supabase) return;
-    const { data, error } = await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', userFromSession.id)
-        .select()
-        .single();
-    
+    const { data, error } = await supabase.from('profiles').update({ role }).eq('id', userFromSession.id).select().single();
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
-        toast({ title: "Permissão Alterada", description: `Role atualizada para ${role}.` });
-        
-        // Redirecionamento baseado na role
-        if (role === 'admin') {
-            router.push('/dashboard-admin');
-        } else {
-            router.push('/dashboard');
-        }
+        toast({ title: "Permissão Alterada" });
+        if (role === 'admin') window.location.href = '/dashboard-admin';
+        else window.location.href = '/dashboard';
     }
   };
   
   if (isLoading) {
-    return (
-      <div className="space-y-8 max-w-[1850px] mx-auto">
-        <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary"/>}/>
-        <Skeleton className="h-64 w-full rounded-lg" />
-      </div>
-    );
+    return <div className="space-y-8 max-w-[1850px] mx-auto"><PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais." icon={<User className="h-6 w-6 text-primary"/>}/><Skeleton className="h-64 w-full rounded-lg" /></div>;
   }
 
   return (
     <div className="space-y-8 max-w-[1850px] mx-auto w-full">
-      <PageHeader
-        title="Meu Perfil"
-        description="Gerencie suas informações pessoais e de conta."
-        icon={<User className="h-6 w-6 text-primary"/>}
-      />
-
+      <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary"/>} />
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center text-lg md:text-xl">Informações do Usuário</CardTitle>
-          <CardDescription>Atualize suas informações pessoais e de contato.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle className="font-headline flex items-center text-lg md:text-xl">Informações do Usuário</CardTitle><CardDescription>Atualize suas informações pessoais e de contato.</CardDescription></CardHeader>
         <form onSubmit={handleProfileSave}>
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={avatarUrl} alt={displayName || "Avatar"} data-ai-hint="user avatar" />
-                <AvatarFallback>{avatarFallback}</AvatarFallback>
-              </Avatar>
+              <Avatar className="h-20 w-20"><AvatarImage src={avatarUrl} alt={displayName || "Avatar"} data-ai-hint="user avatar" /><AvatarFallback>{avatarFallback}</AvatarFallback></Avatar>
               <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4"/>
-                Mudar Foto
-              </Button>
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4"/>Mudar Foto</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label htmlFor="fullName">Nome Completo / Razão Social</Label><Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
@@ -211,67 +165,20 @@ export default function ProfilePage() {
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label htmlFor="email">Endereço de Email</Label><Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" /></div>
-              <div className="space-y-2"><Label htmlFor="phone">Telefone</Label>
-                 <div className="relative">
-                    <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
-                </div>
-              </div>
+              <div className="space-y-2"><Label htmlFor="phone">Telefone</Label><div className="relative"><Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" /></div></div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isSavingProfile} className="ml-auto">
-              {isSavingProfile ? "Salvando..." : <><Save className="mr-2 h-4 w-4" /> Salvar Perfil</>}
-            </Button>
-          </CardFooter>
+          <CardFooter><Button type="submit" disabled={isSavingProfile} className="ml-auto">{isSavingProfile ? "Salvando..." : <><Save className="mr-2 h-4 w-4" /> Salvar Perfil</>}</Button></CardFooter>
         </form>
       </Card>
-
       <Card className="shadow-sm border-amber-500/50 bg-amber-500/5">
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center text-lg text-amber-700">
-            <Beaker className="mr-2 h-5 w-5"/> Modo Teste: Validação de Papéis
-          </CardTitle>
-          <CardDescription>Alterne entre perfis de Administrador e Usuário para validar as funcionalidades do sistema.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle className="font-headline flex items-center text-lg text-amber-700"><Beaker className="mr-2 h-5 w-5"/> Modo Teste: Validação de Papéis</CardTitle><CardDescription>Alterne entre perfis de Administrador e Usuário para validar as funcionalidades.</CardDescription></CardHeader>
         <CardContent className="space-y-6">
-            <div className="space-y-3">
-                <Label className="text-amber-800 font-bold">Mudar Tipo de Usuário (Plano):</Label>
-                <div className="flex flex-wrap gap-2">
-                    {PRICING_TIERS.map(tier => (
-                        <Button 
-                            key={tier.id} 
-                            variant={profileFromSession?.plan_id === tier.id ? "default" : "outline"} 
-                            size="sm"
-                            onClick={() => handleSwitchPlan(tier.id)}
-                            className={cn(profileFromSession?.plan_id === tier.id && "bg-amber-600")}
-                        >
-                            {tier.name}
-                        </Button>
-                    ))}
-                </div>
-            </div>
-            <div className="space-y-3 pt-4 border-t border-amber-500/20">
-                <Label className="text-amber-800 font-bold">Mudar Papel (Role):</Label>
-                <div className="flex gap-2">
-                    <Button 
-                        variant={profileFromSession?.role === 'user' ? "default" : "outline"} 
-                        size="sm" 
-                        onClick={() => handleSwitchRole('user')}
-                        className={cn(profileFromSession?.role === 'user' && "bg-amber-600 text-white")}
-                    >
-                        <User className="mr-2 h-4 w-4"/> Usuário Padrão
-                    </Button>
-                    <Button 
-                        variant={profileFromSession?.role === 'admin' ? "default" : "outline"} 
-                        size="sm" 
-                        onClick={() => handleSwitchRole('admin')}
-                        className={cn(profileFromSession?.role === 'admin' && "bg-amber-600 text-white")}
-                    >
-                        <ShieldAlert className="mr-2 h-4 w-4"/> Administrador
-                    </Button>
-                </div>
-            </div>
+            <div className="space-y-3"><Label className="text-amber-800 font-bold">Mudar Tipo de Usuário (Plano):</Label><div className="flex flex-wrap gap-2">{PRICING_TIERS.map(tier => (<Button key={tier.id} variant={profileFromSession?.plan_id === tier.id ? "default" : "outline"} size="sm" onClick={() => handleSwitchPlan(tier.id)} className={cn(profileFromSession?.plan_id === tier.id && "bg-amber-600")}>{tier.name}</Button>))}</div></div>
+            <div className="space-y-3 pt-4 border-t border-amber-500/20"><Label className="text-amber-800 font-bold">Mudar Papel (Role):</Label><div className="flex gap-2">
+                <Button variant={profileFromSession?.role === 'user' ? "default" : "outline"} size="sm" onClick={() => handleSwitchRole('user')} className={cn(profileFromSession?.role === 'user' && "bg-amber-600 text-white")}><User className="mr-2 h-4 w-4"/> Usuário Padrão</Button>
+                <Button variant={profileFromSession?.role === 'admin' ? "default" : "outline"} size="sm" onClick={() => handleSwitchRole('admin')} className={cn(profileFromSession?.role === 'admin' && "bg-amber-600 text-white")}><ShieldAlert className="mr-2 h-4 w-4"/> Administrador</Button>
+            </div></div>
         </CardContent>
       </Card>
     </div>

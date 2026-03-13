@@ -1,8 +1,8 @@
-// src/contexts/app-settings-context.tsx
+
 "use client";
 
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 import type { QuoteData } from '@/types/database.types';
 
@@ -93,10 +93,10 @@ const AppSettingsContext = createContext<AppSettingsProviderValue | undefined>(u
 
 const defaultLpContent: LandingPageContent = {
   heroTitle: 'Cultive Suas Finanças e Projetos com Inteligência.',
-  heroDescription: 'Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento com ferramentas poderosas e insights inteligentes.',
+  heroDescription: 'Flortune é a plataforma completa para organizar suas finanças pessoais e gerenciar projetos de desenvolvimento.',
   heroImageUrl: 'https://placehold.co/800x450.png',
   ctaTitle: "Pronto para Cultivar seu Futuro?",
-  ctaDescription: "Junte-se a milhares de usuários e desenvolvedores que estão transformando suas finanças e projetos com o Flortune.",
+  ctaDescription: "Junte-se a nós.",
   ctaButtonText: "Criar Minha Conta Grátis",
 };
 
@@ -108,8 +108,8 @@ const defaultPopupConfigs: Record<PopupType, PopupConfig> = {
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const lastFetchTime = useRef<number>(0);
-  const cacheDuration = 180000; // 3 minutos
-  const rateLimitPause = useRef<boolean>(false);
+  const cacheDuration = 180000; 
+  const rateLimitPauseUntil = useRef<number>(0);
 
   const [state, setState] = useState<any>({
     isPrivateMode: false,
@@ -139,7 +139,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const now = Date.now();
-    if (!force && (now - lastFetchTime.current < cacheDuration || rateLimitPause.current)) {
+    if (!force && (now < rateLimitPauseUntil.current || (now - lastFetchTime.current < cacheDuration))) {
         setState((p: any) => ({ ...p, isLoadingQuotes: false }));
         return;
     }
@@ -148,15 +148,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
         const response = await fetch(`/api/quotes?codes=${encodeURIComponent(validQuotes.join(','))}`);
         const result = await response.json();
-        
         if (response.status === 429) {
-            rateLimitPause.current = true;
-            setTimeout(() => { rateLimitPause.current = false; }, 600000);
-            throw new Error("Muitas requisições. Tente novamente em 10 minutos.");
+            rateLimitPauseUntil.current = now + 600000; 
+            throw new Error("Muitas requisições. Pausando por 10 minutos.");
         }
-
-        if (!response.ok) throw new Error(result.error || 'Erro na API de cotações');
-        
+        if (!response.ok) throw new Error(result.error || 'Erro na API');
         lastFetchTime.current = now;
         const quotesArray = Array.isArray(result.data) ? result.data : Object.values(result.data || {});
         setState((p: any) => ({ ...p, quotes: quotesArray, quotesError: null }));
@@ -171,7 +167,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     ...state,
     toggleDarkMode: () => setState((p: any) => {
         const next = !p.isDarkMode;
-        localStorage.setItem('flortune-dark-mode', JSON.stringify(next));
         document.documentElement.classList.toggle('dark', next);
         return {...p, isDarkMode: next};
     }),
@@ -179,7 +174,6 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         const root = document.documentElement;
         root.classList.remove(...Array.from(root.classList).filter(cls => cls.startsWith('theme-')));
         if (themeId !== 'default') root.classList.add(themeId);
-        localStorage.setItem('flortune-theme', themeId);
         setState((p: any) => ({ ...p, currentTheme: themeId }));
     },
     loadWeatherForCity: async (city: string) => {
@@ -208,16 +202,10 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (state.selectedQuotes.length > 0) {
-        loadQuotes(state.selectedQuotes);
-    }
+    if (state.selectedQuotes.length > 0) loadQuotes(state.selectedQuotes);
   }, [state.selectedQuotes, loadQuotes]);
 
-  return (
-    <AppSettingsContext.Provider value={value}>
-      {children}
-    </AppSettingsContext.Provider>
-  );
+  return (<AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>);
 };
 
 export const useAppSettings = () => {

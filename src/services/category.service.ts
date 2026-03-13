@@ -1,22 +1,12 @@
 
-// src/services/category.service.ts
-"use server";
+'use server';
 
 import type { Category } from "@/types/database.types";
 import type { ServiceListResponse, ServiceResponse } from "@/types/database.types";
 import { createClient } from "@/lib/supabase/server";
 
-// Mock categories using valid UUID strings to prevent database errors
-const mockCategories: Category[] = [
-    { id: '00000000-0000-0000-0000-000000000001', user_id: null, name: 'Salário', type: 'income', is_default: true, created_at: '', updated_at: '' },
-    { id: '00000000-0000-0000-0000-000000000002', user_id: null, name: 'Moradia', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: '00000000-0000-0000-0000-000000000003', user_id: null, name: 'Alimentação', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: '00000000-0000-0000-0000-000000000004', user_id: null, name: 'Lazer', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-    { id: '00000000-0000-0000-0000-000000000005', user_id: null, name: 'Transporte', type: 'expense', is_default: true, created_at: '', updated_at: '' },
-];
-
 export async function getCategories(userId: string): Promise<ServiceListResponse<Category>> {
-  if (!userId) return { data: mockCategories, error: null };
+  if (!userId) return { data: [], error: "Usuário não identificado." };
 
   try {
     const supabase = await createClient();
@@ -28,10 +18,10 @@ export async function getCategories(userId: string): Promise<ServiceListResponse
 
     if (error) throw error;
 
-    return { data: data && data.length > 0 ? data : mockCategories, error: null };
+    return { data: data || [], error: null };
   } catch (error: any) {
     console.error("Error fetching categories:", error.message);
-    return { data: mockCategories, error: null };
+    return { data: [], error: "Falha ao carregar categorias." };
   }
 }
 
