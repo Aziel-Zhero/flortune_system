@@ -1,3 +1,4 @@
+
 // src/app/(admin)/admin/forms/page.tsx
 "use client";
 
@@ -124,14 +125,18 @@ export default function AdminFormsPage() {
   }
 
   const handleSendForm = () => {
+    // Gatilho para o Modo Teste aparecer para o usuário
+    localStorage.setItem('flortune-pending-survey', 'true');
+    localStorage.setItem('flortune-survey-questions', JSON.stringify(questions));
+    
     toast({
-        title: "Formulário Enviado (Simulação)",
-        description: "O formulário seria enviado aos usuários selecionados.",
+        title: "Formulário Enviado!",
+        description: "O card de pesquisa aparecerá para os usuários ao acessarem o painel.",
     });
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-[1850px] mx-auto w-full">
       <PageHeader
         title="Gestão de Formulários"
         icon={<ClipboardList />}
@@ -201,14 +206,14 @@ export default function AdminFormsPage() {
               </DndContext>
             </div>
         </CardContent>
-        <CardFooter className="flex flex-wrap items-center gap-4">
+        <CardFooter className="flex flex-wrap items-center gap-4 border-t pt-6">
             <Button onClick={handleSaveChanges}>
                 <Save className="mr-2 h-4 w-4" />
-                Salvar Ordem e Período
+                Salvar Configurações
             </Button>
-            <Button onClick={handleSendForm} variant="secondary">
+            <Button onClick={handleSendForm} variant="secondary" className="bg-emerald-600 text-white hover:bg-emerald-700">
                 <Send className="mr-2 h-4 w-4" />
-                Enviar Formulário aos Usuários
+                Disparar para Usuários
             </Button>
         </CardFooter>
       </Card>

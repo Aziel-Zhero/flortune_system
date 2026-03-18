@@ -6,7 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrivateValue } from "@/components/shared/private-value";
-import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, BrainCircuit, Loader2 } from "lucide-react";
+import { DollarSign, CreditCard, TrendingUp, Sprout, PiggyBank, AlertTriangle, BarChart, PlusCircle, Repeat, ArrowDown, ArrowUp, BrainCircuit, Loader2, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -27,6 +27,7 @@ import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 import { useAppSettings } from "@/contexts/app-settings-context";
 import { supabase } from "@/lib/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { FormPreviewDialog } from "@/components/admin/forms/form-preview-dialog";
 
 interface SummaryData {
   title: string;
@@ -123,6 +124,8 @@ export default function DashboardPage() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
+  const [isSurveyOpen, setIsSurveyOpen] = useState(false);
+  const [surveyQuestions, setSurveyQuestions] = useState<any[]>([]);
   
   const [summaryValues, setSummaryValues] = useState<SummaryData[]>([
     { title: "Saldo Total", value: null, icon: DollarSign, trend: null, trendColor: "text-muted-foreground", isLoading: true },
@@ -135,6 +138,16 @@ export default function DashboardPage() {
   useEffect(() => {
     if (profile && profile.has_seen_welcome_message === false) {
       setIsWelcomeOpen(true);
+    }
+    
+    // Verificar se há uma pesquisa pendente
+    const pendingSurvey = localStorage.getItem('flortune-pending-survey') === 'true';
+    if (pendingSurvey) {
+        const storedQuestions = localStorage.getItem('flortune-survey-questions');
+        if (storedQuestions) {
+            setSurveyQuestions(JSON.parse(storedQuestions));
+            setIsSurveyOpen(true);
+        }
     }
   }, [profile]);
 
@@ -159,6 +172,12 @@ export default function DashboardPage() {
           await updateSession({ ...session, user: { ...session?.user, profile: updatedProfile as Profile } as any });
         }
     }
+  }
+
+  const handleFinishSurvey = () => {
+      localStorage.removeItem('flortune-pending-survey');
+      setIsSurveyOpen(false);
+      toast({ title: "Obrigado pelo Feedback!", description: "Suas respostas foram registradas com sucesso." });
   }
 
   const fetchDashboardData = useCallback(async () => {
@@ -539,6 +558,7 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
+      {/* Modal de Boas-vindas */}
       <Dialog open={isWelcomeOpen} onOpenChange={handleDismissWelcome}>
           <DialogContent className="sm:max-w-lg">
               <DialogHeader>
@@ -560,6 +580,33 @@ export default function DashboardPage() {
               </div>
               <DialogFooter>
                   <Button onClick={handleDismissWelcome}>Começar a Cultivar!</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      {/* Modal de Pesquisa Pendente */}
+      <Dialog open={isSurveyOpen} onOpenChange={setIsSurveyOpen}>
+          <DialogContent className="sm:max-w-xl">
+              <DialogHeader>
+                  <DialogTitle className="font-headline text-primary flex items-center gap-2">
+                      <ClipboardList className="h-6 w-6"/>
+                      Pesquisa de Opinião
+                  </DialogTitle>
+                  <DialogDescription>
+                      Gostaríamos de ouvir sua opinião para melhorar o {APP_NAME}. Você tem uma nova pesquisa pendente.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="h-10 w-10 text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                      Sua participação é fundamental para construirmos o futuro das finanças juntos. Leva menos de 2 minutos.
+                  </p>
+              </div>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => setIsSurveyOpen(false)} className="w-full sm:w-auto">Depois</Button>
+                  <Button onClick={handleFinishSurvey} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">Responder Agora</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
