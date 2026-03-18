@@ -1,5 +1,4 @@
 
-// src/app/(admin)/admin/profile/page.tsx
 "use client";
 
 import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
@@ -134,7 +133,6 @@ export default function AdminProfilePage() {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
         toast({ title: "Permissão Alterada", description: "Redirecionando..." });
         
-        // Uso de window.location.href para garantir recarregamento total do layout
         setTimeout(() => {
             window.location.href = role === 'admin' ? '/dashboard-admin' : '/dashboard';
         }, 500);

@@ -1,5 +1,4 @@
 
-// src/app/(admin)/layout.tsx
 "use client";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -22,9 +21,17 @@ export default function AdminLayout({
   useEffect(() => {
     if (isLoading) return;
     
+    // Verifica se há sessão
     if (!session && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
       router.replace('/login');
+      return;
     }
+
+    // 🔥 Proteção de Rota: Verifica se é admin
+    if (session && session.user?.profile?.role !== 'admin' && session.user?.email !== 'admin@flortune.com') {
+        router.replace('/dashboard');
+    }
+
   }, [isLoading, session, router, pathname]);
 
   if (isLoading) {
@@ -43,12 +50,19 @@ export default function AdminLayout({
                     {Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-8 w-8 rounded-md" />)}
                 </div>
                 <main className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col overflow-y-auto min-w-0">
-                    <Skeleton className="h-12 w-1/3 mb-6" />
-                    <Skeleton className="h-64 w-full rounded-lg" />
+                    <div className="max-w-[1850px] mx-auto w-full">
+                        <Skeleton className="h-12 w-1/3 mb-6" />
+                        <Skeleton className="h-64 w-full rounded-lg" />
+                    </div>
                 </main>
             </div>
         </div>
     );
+  }
+
+  // Não renderiza nada se não for admin
+  if (session && session.user?.profile?.role !== 'admin' && session.user?.email !== 'admin@flortune.com') {
+      return null;
   }
 
   if (!session && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {

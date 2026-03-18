@@ -1,5 +1,4 @@
 
-// src/app/(app)/profile/page.tsx
 "use client";
 
 import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
@@ -78,7 +77,7 @@ export default function ProfilePage() {
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!userFromSession?.id || !supabase) {
-      toast({ title: "Erro", description: "Usuário não autenticado ou serviço indisponível.", variant: "destructive" });
+      toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
       return;
     }
     setIsSavingProfile(true);
@@ -89,13 +88,8 @@ export default function ProfilePage() {
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const filePath = `${userFromSession.id}/avatar-${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, avatarFile, { upsert: true });
-
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
         if (uploadError) throw new Error("Erro ao enviar imagem.");
-
         const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
         publicAvatarUrl = data.publicUrl;
       }
@@ -118,16 +112,12 @@ export default function ProfilePage() {
       if (error) throw error;
 
       if (updatedProfile && session) {
-        await updateSession({
-          ...session,
-          user: { ...session.user, profile: updatedProfile as Profile } as any,
-        });
-      
-        toast({ title: "Perfil Atualizado", description: "Suas informações foram salvas com sucesso.", action: <CheckSquare className="text-green-500"/> });
+        await updateSession({ ...session, user: { ...session.user, profile: updatedProfile as Profile } as any });
+        toast({ title: "Perfil Atualizado", action: <CheckSquare className="text-green-500"/> });
         setAvatarFile(null);
       }
     } catch (error: any) {
-      toast({ title: "Erro ao Salvar", description: error.message || "Ocorreu um erro.", variant: "destructive" });
+      toast({ title: "Erro ao Salvar", description: error.message, variant: "destructive" });
     } finally {
       setIsSavingProfile(false);
     }
@@ -135,13 +125,7 @@ export default function ProfilePage() {
 
   const handleSwitchPlan = async (planId: string) => {
     if (!userFromSession?.id || !supabase) return;
-    const { data, error } = await supabase
-        .from('profiles')
-        .update({ plan_id: planId })
-        .eq('id', userFromSession.id)
-        .select()
-        .single();
-    
+    const { data, error } = await supabase.from('profiles').update({ plan_id: planId }).eq('id', userFromSession.id).select().single();
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
         toast({ title: "Plano Alterado", description: `Plano atualizado para ${planId}.` });
@@ -150,18 +134,11 @@ export default function ProfilePage() {
 
   const handleSwitchRole = async (role: 'user' | 'admin') => {
     if (!userFromSession?.id || !supabase) return;
-    const { data, error } = await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', userFromSession.id)
-        .select()
-        .single();
-    
+    const { data, error } = await supabase.from('profiles').update({ role }).eq('id', userFromSession.id).select().single();
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
-        toast({ title: "Permissão Alterada", description: `Role atualizada para ${role}. Redirecionando...` });
+        toast({ title: "Permissão Alterada", description: "Redirecionando..." });
         
-        // Uso de window.location.href para garantir recarregamento total do layout
         setTimeout(() => {
             window.location.href = role === 'admin' ? '/dashboard-admin' : '/dashboard';
         }, 500);
@@ -171,7 +148,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="space-y-8 max-w-[1850px] mx-auto">
-        <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary"/>}/>
+        <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais." icon={<User className="h-6 w-6 text-primary" style={{ height: 'auto' }} />}/>
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
@@ -181,14 +158,14 @@ export default function ProfilePage() {
     <div className="space-y-8 max-w-[1850px] mx-auto w-full">
       <PageHeader
         title="Meu Perfil"
-        description="Gerencie suas informações pessoais e de conta."
-        icon={<User className="h-6 w-6 text-primary"/>}
+        description="Gerencie as informações da sua conta."
+        icon={<User className="h-6 w-6 text-primary" style={{ height: 'auto' }} />}
       />
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="font-headline flex items-center text-lg md:text-xl">Informações do Usuário</CardTitle>
-          <CardDescription>Atualize suas informações pessoais e de contato.</CardDescription>
+          <CardTitle className="font-headline flex items-center text-lg md:text-xl">Suas Informações</CardTitle>
+          <CardDescription>Atualize suas informações de contato e exibição.</CardDescription>
         </CardHeader>
         <form onSubmit={handleProfileSave}>
           <CardContent className="space-y-6">
@@ -198,19 +175,26 @@ export default function ProfilePage() {
                 <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
               <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4" style={{ height: 'auto' }} />
-                Mudar Foto
-              </Button>
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>Mudar Foto</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="fullName">Nome Completo / Razão Social</Label><Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
-              <div className="space-y-2"><Label htmlFor="displayName">Nome de Exibição / Fantasia</Label><Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} /></div>
+              <div>
+                <Label htmlFor="fullName">Nome Completo</Label>
+                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="displayName">Nome de Exibição</Label>
+                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              </div>
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="email">Endereço de Email</Label><Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" /></div>
-              <div className="space-y-2"><Label htmlFor="phone">Telefone</Label>
-                 <div className="relative">
+              <div>
+                <Label htmlFor="email">Endereço de Email</Label>
+                <Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" />
+              </div>
+              <div>
+                <Label htmlFor="phone">Telefone</Label>
+                <div className="relative">
                     <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
                 </div>
@@ -230,7 +214,7 @@ export default function ProfilePage() {
           <CardTitle className="font-headline flex items-center text-lg text-amber-700">
             <Beaker className="mr-2 h-5 w-5"/> Modo Teste: Validação de Papéis
           </CardTitle>
-          <CardDescription>Alterne entre perfis de Administrador e Usuário para validar as funcionalidades do sistema.</CardDescription>
+          <CardDescription>Alterne entre perfis para validar as funcionalidades do sistema.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="space-y-3">

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Briefcase, Code, Star, Home, PieChart as PieChartIcon, TrendingUp, Megaphone, Leaf, UserPlus, Loader2 } from "lucide-react";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface StatCard {
   title: string;
@@ -116,20 +117,23 @@ export default function AdminDashboardPage() {
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-        {stats.map((card, index) => (
-          <motion.div key={card.title} custom={index} variants={cardVariants} initial="hidden" animate="visible">
-            <Card className="h-full">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-                <card.icon className={cn("h-4 w-4", card.color)} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{card.value}</div>
-                 <p className="text-xs text-muted-foreground mt-1">Dados reais do sistema</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+        {stats.map((card, index) => {
+          const Icon = card.icon;
+          return (
+            <motion.div key={card.title} custom={index} variants={cardVariants} initial="hidden" animate="visible">
+              <Card className="h-full">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                  <Icon className={cn("h-4 w-4", card.color)} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{card.value}</div>
+                   <p className="text-xs text-muted-foreground mt-1">Dados reais do sistema</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
       
        <div className="grid grid-cols-1 gap-6">
