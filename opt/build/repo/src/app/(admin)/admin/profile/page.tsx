@@ -1,4 +1,5 @@
 
+// src/app/(admin)/admin/profile/page.tsx
 "use client";
 
 import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
@@ -131,16 +132,19 @@ export default function AdminProfilePage() {
     const { data, error } = await supabase.from('profiles').update({ role }).eq('id', userFromSession.id).select().single();
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
-        toast({ title: "Permissão Alterada" });
-        if (role === 'admin') window.location.href = '/dashboard-admin';
-        else window.location.href = '/dashboard';
+        toast({ title: "Permissão Alterada", description: "Redirecionando..." });
+        
+        // Uso de window.location.href para garantir recarregamento total do layout
+        setTimeout(() => {
+            window.location.href = role === 'admin' ? '/dashboard-admin' : '/dashboard';
+        }, 500);
     }
   };
   
   if (isLoading) {
     return (
       <div className="space-y-8 max-w-[1850px] mx-auto">
-        <PageHeader title="Perfil de Administrador" description="Gerencie suas informações de administrador." icon={<User className="h-6 w-6 text-primary"/>}/>
+        <PageHeader title="Perfil de Administrador" description="Gerencie suas informações de administrador." icon={<User className="h-6 w-6 text-primary" style={{ height: 'auto' }} />}/>
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
@@ -151,7 +155,7 @@ export default function AdminProfilePage() {
       <PageHeader
         title="Perfil de Administrador"
         description="Gerencie as informações da sua conta de administrador."
-        icon={<User className="h-6 w-6 text-primary"/>}
+        icon={<User className="h-6 w-6 text-primary" style={{ height: 'auto' }} />}
       />
 
       <Card className="shadow-sm">

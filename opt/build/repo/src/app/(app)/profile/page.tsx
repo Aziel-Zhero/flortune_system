@@ -1,5 +1,5 @@
 
-// opt/build/repo/src/app/(app)/profile/page.tsx
+// src/app/(app)/profile/page.tsx
 "use client";
 
 import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
@@ -159,19 +159,19 @@ export default function ProfilePage() {
     
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
-        toast({ title: "Permissão Alterada", description: `Role atualizada para ${role}.` });
-        if (role === 'admin') {
-            router.push('/dashboard-admin');
-        } else {
-            router.push('/dashboard');
-        }
+        toast({ title: "Permissão Alterada", description: `Role atualizada para ${role}. Redirecionando...` });
+        
+        // Uso de window.location.href para garantir recarregamento total do layout
+        setTimeout(() => {
+            window.location.href = role === 'admin' ? '/dashboard-admin' : '/dashboard';
+        }, 500);
     }
   };
   
   if (isLoading) {
     return (
       <div className="space-y-8 max-w-[1850px] mx-auto">
-        <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary"/>}/>
+        <PageHeader title="Meu Perfil" description="Gerencie suas informações pessoais e de conta." icon={<User className="h-6 w-6 text-primary" style={{ height: 'auto' }} />}/>
         <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
@@ -182,7 +182,7 @@ export default function ProfilePage() {
       <PageHeader
         title="Meu Perfil"
         description="Gerencie suas informações pessoais e de conta."
-        icon={<User className="h-6 w-6 text-primary"/>}
+        icon={<User className="h-6 w-6 text-primary" style={{ height: 'auto' }} />}
       />
 
       <Card className="shadow-sm">
@@ -199,7 +199,7 @@ export default function ProfilePage() {
               </Avatar>
               <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
               <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4"/>
+                <Upload className="mr-2 h-4 w-4" style={{ height: 'auto' }} />
                 Mudar Foto
               </Button>
             </div>
