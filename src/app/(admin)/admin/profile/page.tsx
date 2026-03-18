@@ -1,74 +1,153 @@
-// src/app/(admin)/admin/profile/page.tsx
+
 "use client";
 
 import { useState, useEffect, type FormEvent, useRef, type ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Save } from "lucide-react";
+import { User, Smartphone, Save, CheckSquare, Upload, Beaker, ShieldAlert } from "lucide-react";
+import { useSession } from "@/contexts/auth-context";
 import { toast } from '@/hooks/use-toast';
-import { APP_NAME } from '@/lib/constants';
-
-// Mock data for admin profile
-const mockAdminProfile = {
-  fullName: "Administrador do Sistema",
-  displayName: "Admin",
-  email: "admin@flortune.com",
-  avatarUrl: `https://placehold.co/100x100/fca5a5/1e293b?text=A`,
-  avatarFallback: "A",
-};
-
+import { APP_NAME, PRICING_TIERS } from '@/lib/constants';
+import type { Profile } from '@/types/database.types';
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase/client";
+import { cn } from '@/lib/utils';
 
 export default function AdminProfilePage() {
-  const [fullName, setFullName] = useState(mockAdminProfile.fullName);
-  const [displayName, setDisplayName] = useState(mockAdminProfile.displayName);
-  const [email, setEmail] = useState(mockAdminProfile.email);
-  const [avatarUrl, setAvatarUrl] = useState(mockAdminProfile.avatarUrl);
-  const [avatarFallback, setAvatarFallback] = useState(mockAdminProfile.avatarFallback);
+  const router = useRouter();
+  const { session, isLoading, update: updateSession } = useSession();
+
+  const userFromSession = session?.user;
+  const profileFromSession = session?.user?.profile;
+
+  const [fullName, setFullName] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarFallback, setAvatarFallback] = useState("A");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     document.title = `Perfil de Admin - ${APP_NAME}`;
   }, []);
 
-  const handleProfileSave = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    
-    // Simulate saving
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real app, you would upload the new avatar if it changed
-    // and then save the new profile data.
-    mockAdminProfile.fullName = fullName;
-    mockAdminProfile.displayName = displayName;
-    mockAdminProfile.avatarUrl = avatarUrl;
-    
-    toast({ title: "Perfil de Admin Atualizado (Simulação)", description: "Suas informações de perfil foram salvas com sucesso." });
-    
-    setIsSavingProfile(false);
-  };
-  
+  useEffect(() => {
+    if (profileFromSession) {
+      setFullName(profileFromSession.full_name || "");
+      setDisplayName(profileFromSession.display_name || "");
+      setPhone(profileFromSession.phone || "");
+      
+      const currentAvatar = profileFromSession.avatar_url || userFromSession?.user_metadata?.avatar_url || "";
+      setAvatarUrl(currentAvatar);
+      setAvatarFallback((profileFromSession.display_name || userFromSession?.email || "A").charAt(0).toUpperCase());
+    }
+    if (userFromSession?.email) {
+      setEmail(userFromSession.email);
+    }
+  }, [profileFromSession, userFromSession]);
+
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const result = event.target?.result;
-            if (typeof result === 'string') {
-                setAvatarUrl(result);
-            }
-        };
-        reader.readAsDataURL(file);
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result;
+        if (typeof result === 'string') {
+          setAvatarUrl(result);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
+  const handleProfileSave = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!userFromSession?.id || !supabase) {
+      toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
+      return;
+    }
+    setIsSavingProfile(true);
+
+    try {
+      let publicAvatarUrl = profileFromSession?.avatar_url;
+
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const filePath = `${userFromSession.id}/avatar-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
+        if (uploadError) throw new Error("Erro ao enviar imagem.");
+        const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        publicAvatarUrl = data.publicUrl;
+      }
+      
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          display_name: displayName,
+          phone,
+          avatar_url: publicAvatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userFromSession.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (updatedProfile && session) {
+        await updateSession({ ...session, user: { ...session.user, profile: updatedProfile as Profile } as any });
+        toast({ title: "Perfil Atualizado", action: <CheckSquare className="text-green-500"/> });
+        setAvatarFile(null);
+      }
+    } catch (error: any) {
+      toast({ title: "Erro ao Salvar", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSwitchPlan = async (planId: string) => {
+    if (!userFromSession?.id || !supabase) return;
+    const { data, error } = await supabase.from('profiles').update({ plan_id: planId }).eq('id', userFromSession.id).select().single();
+    if (!error && data && session) {
+        await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
+        toast({ title: "Plano Alterado", description: `Plano atualizado para ${planId}.` });
+    }
+  };
+
+  const handleSwitchRole = async (role: 'user' | 'admin') => {
+    if (!userFromSession?.id || !supabase) return;
+    const { data, error } = await supabase.from('profiles').update({ role }).eq('id', userFromSession.id).select().single();
+    if (!error && data && session) {
+        await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
+        toast({ title: "Permissão Alterada" });
+        if (role === 'admin') window.location.href = '/dashboard-admin';
+        else window.location.href = '/dashboard';
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="space-y-8 max-w-[1850px] mx-auto">
+        <PageHeader title="Perfil de Administrador" description="Gerencie suas informações de administrador." icon={<User className="h-6 w-6 text-primary"/>}/>
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-[1850px] mx-auto w-full">
       <PageHeader
         title="Perfil de Administrador"
         description="Gerencie as informações da sua conta de administrador."
@@ -104,7 +183,13 @@ export default function AdminProfilePage() {
               <div>
                 <Label htmlFor="email">Endereço de Email</Label>
                 <Input id="email" type="email" value={email} disabled className="cursor-not-allowed bg-muted/50" />
-                <p className="text-xs text-muted-foreground mt-1">O email não pode ser alterado.</p>
+              </div>
+              <div>
+                <Label htmlFor="phone">Telefone</Label>
+                <div className="relative">
+                    <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-10" />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -114,6 +199,54 @@ export default function AdminProfilePage() {
             </Button>
           </CardFooter>
         </form>
+      </Card>
+
+      <Card className="shadow-sm border-amber-500/50 bg-amber-500/5">
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center text-lg text-amber-700">
+            <Beaker className="mr-2 h-5 w-5"/> Modo Teste: Validação de Papéis
+          </CardTitle>
+          <CardDescription>Alterne entre perfis para validar as funcionalidades do sistema.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="space-y-3">
+                <Label className="text-amber-800 font-bold">Mudar Tipo de Usuário (Plano):</Label>
+                <div className="flex flex-wrap gap-2">
+                    {PRICING_TIERS.map(tier => (
+                        <Button 
+                            key={tier.id} 
+                            variant={profileFromSession?.plan_id === tier.id ? "default" : "outline"} 
+                            size="sm"
+                            onClick={() => handleSwitchPlan(tier.id)}
+                            className={cn(profileFromSession?.plan_id === tier.id && "bg-amber-600")}
+                        >
+                            {tier.name}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-3 pt-4 border-t border-amber-500/20">
+                <Label className="text-amber-800 font-bold">Mudar Papel (Role):</Label>
+                <div className="flex gap-2">
+                    <Button 
+                        variant={profileFromSession?.role === 'user' ? "default" : "outline"} 
+                        size="sm" 
+                        onClick={() => handleSwitchRole('user')}
+                        className={cn(profileFromSession?.role === 'user' && "bg-amber-600 text-white")}
+                    >
+                        <User className="mr-2 h-4 w-4"/> Usuário Padrão
+                    </Button>
+                    <Button 
+                        variant={profileFromSession?.role === 'admin' ? "default" : "outline"} 
+                        size="sm" 
+                        onClick={() => handleSwitchRole('admin')}
+                        className={cn(profileFromSession?.role === 'admin' && "bg-amber-600 text-white")}
+                    >
+                        <ShieldAlert className="mr-2 h-4 w-4"/> Administrador
+                    </Button>
+                </div>
+            </div>
+        </CardContent>
       </Card>
     </div>
   );

@@ -1,3 +1,4 @@
+
 // src/app/(app)/dashboard/page.tsx
 "use client";
 
@@ -257,12 +258,12 @@ export default function DashboardPage() {
   }, [user, authIsLoading, fetchDashboardData]);
 
   const recentTransactions = useMemo(() => {
-    if (!Array.isArray(allTransactions)) return [];
+    if (!allTransactions || !Array.isArray(allTransactions)) return [];
     return allTransactions.slice(0, 4);
   }, [allTransactions]);
 
   const monthlySpendingByCategory = useMemo((): SpendingCategoryChartData[] => {
-    if (transactionsLoading || !Array.isArray(allTransactions) || allTransactions.length === 0) return [];
+    if (transactionsLoading || !allTransactions || !Array.isArray(allTransactions) || allTransactions.length === 0) return [];
     const spendingMap = new Map<string, number>();
     const currentMonth = new Date().getUTCMonth();
     const currentYear = new Date().getUTCFullYear();
@@ -480,7 +481,7 @@ export default function DashboardPage() {
               ) : recentTransactions.length > 0 ? (
                 <ul className="space-y-1">
                   {recentTransactions.map((tx) => (
-                    <li key={tx.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors">
+                    <li key={tx.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 hover:bg-muted/50 -mx-2 px-2 rounded-md transition-colors">
                       <div>
                         <p className="font-medium text-sm 2xl:text-base">{tx.description}</p>
                         <p className="text-xs 2xl:text-sm text-muted-foreground">{new Date(tx.date + 'T00:00:00Z').toLocaleDateString('pt-BR')} - {tx.category?.name || "Sem Categoria"}</p>
@@ -538,7 +539,7 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      <Dialog open={isWelcomeOpen} onOpenChange={setIsWelcomeOpen}>
+      <Dialog open={isWelcomeOpen} onOpenChange={handleDismissWelcome}>
           <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                   <DialogTitle className="font-headline text-primary flex items-center text-2xl">

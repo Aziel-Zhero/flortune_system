@@ -1,5 +1,4 @@
 
-// opt/build/repo/src/app/(app)/transactions/transaction-form.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -15,16 +14,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat, PlusCircle, Settings2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "@/contexts/auth-context";
 import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
-import { getCategories } from "@/services/category.service";
+import { getCategories, addCategory } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
-import { DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const transactionFormSchema = z.object({
@@ -42,6 +41,11 @@ const transactionFormSchema = z.object({
 
 type TransactionFormData = z.infer<typeof transactionFormSchema>;
 
+const newCategorySchema = z.object({
+  name: z.string().min(2, "Mínimo 2 caracteres.").max(50, "Muito longo."),
+});
+type NewCategoryFormData = z.infer<typeof newCategorySchema>;
+
 interface TransactionFormProps {
   onTransactionCreated: () => void;
   initialData?: Partial<TransactionFormData>;
@@ -56,8 +60,10 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  const { control, handleSubmit, register, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
+  const { control, handleSubmit, register, formState: { errors }, reset, watch, setValue } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionFormSchema),
     defaultValues: {
       description: initialData?.description || "",
@@ -70,19 +76,18 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     },
   });
 
+  const { register: catRegister, handleSubmit: handleCatSubmit, reset: resetCatForm, formState: { errors: catErrors } } = useForm<NewCategoryFormData>({
+    resolver: zodResolver(newCategorySchema)
+  });
+
   const transactionType = watch("type");
 
   const fetchCategoriesData = useCallback(async () => {
     if (!user?.id) return;
     setIsLoadingCategories(true);
     try {
-      const { data, error } = await getCategories(user.id);
-      if (error) {
-        toast({ title: "Erro ao buscar categorias", description: error, variant: "destructive" });
-        setCategories([]);
-      } else {
-        setCategories(data || []);
-      }
+      const { data } = await getCategories(user.id);
+      setCategories(data || []);
     } catch (err) {
       setCategories([]);
     } finally {
@@ -91,6 +96,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
   }, [user?.id]);
 
   useEffect(() => {
+    setIsClient(true);
     if (user?.id) {
       fetchCategoriesData();
     }
@@ -128,6 +134,19 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
     }
   };
 
+  const onCategorySubmit: SubmitHandler<NewCategoryFormData> = async (data) => {
+    const { data: newCat, error } = await addCategory({ name: data.name, type: transactionType });
+    if (error) {
+        toast({ title: "Erro", description: error, variant: "destructive" });
+    } else if (newCat) {
+        setCategories(prev => [...prev, newCat]);
+        setValue("category_id", newCat.id, { shouldValidate: true });
+        toast({ title: "Categoria Criada!" });
+        setIsCategoryModalOpen(false);
+        resetCatForm();
+    }
+  };
+
   const filteredCategories = categories.filter(cat => cat && (cat.type === transactionType || cat.is_default));
 
   return (
@@ -157,7 +176,7 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
                         <PopoverTrigger asChild>
                             <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")} disabled={isSubmitting}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                            {isClient && field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
@@ -187,22 +206,34 @@ export function TransactionForm({ onTransactionCreated, initialData, isModal = t
 
         <div className="space-y-2">
             <Label htmlFor="category_id">Categoria</Label>
-            <Controller
-                name="category_id"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={isLoadingCategories || isSubmitting}>
-                    <SelectTrigger id="category_id">
-                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione uma categoria`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-            />
+            <div className="flex items-center gap-2">
+                <Controller
+                    name="category_id"
+                    control={control}
+                    render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isLoadingCategories || isSubmitting}>
+                        <SelectTrigger id="category_id">
+                        <SelectValue placeholder={isLoadingCategories ? "Carregando..." : `Selecione`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {filteredCategories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    )}
+                />
+                <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+                    <DialogTrigger asChild><Button type="button" variant="outline" size="icon" title="Nova Categoria"><PlusCircle className="h-4 w-4"/></Button></DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle className="flex items-center gap-2"><Settings2 className="h-5 w-5"/> Nova Categoria</DialogTitle><DialogDescription>Crie uma categoria para suas {transactionType === 'income' ? 'receitas' : 'despesas'}.</DialogDescription></DialogHeader>
+                        <form onSubmit={handleCatSubmit(onCategorySubmit)} className="space-y-4 py-2">
+                            <div><Label>Nome da Categoria</Label><Input {...catRegister("name")} />{catErrors.name && <p className="text-xs text-destructive">{catErrors.name.message}</p>}</div>
+                            <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Criar</Button></DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
             {errors.category_id && <p className="text-sm text-destructive mt-1">{errors.category_id.message}</p>}
         </div>
 

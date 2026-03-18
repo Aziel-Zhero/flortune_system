@@ -1,6 +1,4 @@
 
-// src/components/layout/app-header.tsx
-
 "use client";
 
 import Link from "next/link";
@@ -30,11 +28,11 @@ export function AppHeader() {
   const { 
     isPrivateMode, 
     togglePrivateMode, 
-    notifications,
-    hasUnreadNotifications,
-    markNotificationAsRead,
-    markAllNotificationsAsRead,
-    clearNotifications,
+    notifications, 
+    hasUnreadNotifications, 
+    markNotificationAsRead, 
+    markAllNotificationsAsRead, 
+    clearNotifications 
   } = useAppSettings();
   const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
@@ -44,15 +42,21 @@ export function AppHeader() {
   const logoLink = isAdminArea ? "/dashboard-admin" : "/dashboard";
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center space-x-4 px-4 sm:justify-between sm:space-x-0 md:px-6">
+    <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
+      <div className="container mx-auto flex h-full items-center justify-between px-4 md:px-6 max-w-[1850px]">
         <div className="flex items-center gap-2 md:gap-4">
            <Button variant="ghost" size="icon" onClick={() => setOpenMobile(true)} className="md:hidden -ml-2">
             <Menu className="h-6 w-6" />
             <span className="sr-only">Abrir menu</span>
           </Button>
           <Link href={logoLink} className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity">
-            <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} className="h-7 w-auto" />
+            <Image 
+              src="/Logo.png" 
+              alt="Flortune Logo" 
+              width={28} 
+              height={28} 
+              style={{ height: 'auto' }} 
+            />
             <span className="font-bold text-xl font-headline hidden sm:inline-block">{appTitle}</span>
           </Link>
         </div>
@@ -65,7 +69,7 @@ export function AppHeader() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Buscar transações, orçamentos..."
+                    placeholder="Buscar..."
                     className="pl-10 h-9"
                   />
                 </div>
@@ -74,7 +78,6 @@ export function AppHeader() {
                 variant="ghost"
                 size="icon"
                 onClick={togglePrivateMode}
-                aria-label={isPrivateMode ? "Desabilitar modo privado" : "Habilitar modo privado"}
                 className="h-9 w-9"
               >
                 {isPrivateMode ? <EyeOff className="h-5 w-5 text-accent" /> : <Eye className="h-5 w-5" />}
@@ -84,11 +87,7 @@ export function AppHeader() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-               <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 relative"
-              >
+               <Button variant="ghost" size="icon" className="h-9 w-9 relative">
                 <Bell className="h-5 w-5" />
                 {hasUnreadNotifications && (
                    <span className="absolute top-1.5 right-1.5 flex h-3 w-3">
@@ -96,14 +95,13 @@ export function AppHeader() {
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                   </span>
                 )}
-                <span className="sr-only">Notificações</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80" align="end">
               <DropdownMenuLabel className="flex justify-between items-center">
                 <span>Notificações</span>
                 {notifications.length > 0 && (
-                  <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={markAllNotificationsAsRead}>Marcar todas como lidas</Button>
+                  <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={markAllNotificationsAsRead}>Marcar lidas</Button>
                 )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -119,13 +117,15 @@ export function AppHeader() {
                         <div className="flex-1">
                            <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
                            <p className="text-xs text-muted-foreground">{n.description}</p>
-                           <p className="text-xs text-muted-foreground/70 mt-1">{formatDistanceToNow(n.createdAt, { addSuffix: true, locale: ptBR })}</p>
+                           <p className="text-[10px] text-muted-foreground/70 mt-1">
+                             {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: ptBR })}
+                           </p>
                         </div>
                       </DropdownMenuItem>
                     )
                   })
                 ) : (
-                  <p className="text-sm text-center text-muted-foreground py-4">Nenhuma notificação nova.</p>
+                  <p className="text-sm text-center text-muted-foreground py-4">Nenhuma notificação.</p>
                 )}
               </ScrollArea>
                {notifications.length > 0 && (

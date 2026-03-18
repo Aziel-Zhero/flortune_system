@@ -1,3 +1,4 @@
+
 export const APP_NAME = "Flortune";
 export const NO_ICON_VALUE = "__NO_ICON__";
 
@@ -22,7 +23,7 @@ export const NAV_LINKS_CONFIG = [
   { href: "/dev/web-management", label: "Gestão Web", icon: "Globe" as const, type: "link" as const },
   { href: "/dev/devops", label: "Gestão de Sistemas", icon: "GitMerge" as const, type: "link" as const },
   { type: "title" as const, label: "Metodologia Kanban" },
-  { href: "/dev/kanban", label: "Quadro Kanban", icon: "KanbanSquare" as const, type: "link" as const },
+  { href: "/dev/kanban", label: "Quadro Kanban", icon: "Kanban" as const, type: "link" as const },
   { href: "/dev/kanban-analytics", label: "Análise Kanban", icon: "PieChart" as const, type: "link" as const },
   { type: "separator" as const },
   { type: "title" as const, label: "CORPORATIVO" },

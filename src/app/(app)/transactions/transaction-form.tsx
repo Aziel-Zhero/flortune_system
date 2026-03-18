@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat, PlusCircle, Settings2 } from "lucide-react";
+import { CalendarIcon, DollarSign, CheckCircle, Save, Repeat, PlusCircle, Settings2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,7 +23,7 @@ import { useSession } from "@/contexts/auth-context";
 import { addTransaction, type NewTransactionData } from "@/services/transaction.service";
 import { getCategories, addCategory } from "@/services/category.service";
 import type { Category } from "@/types/database.types";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const transactionFormSchema = z.object({
