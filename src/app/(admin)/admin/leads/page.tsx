@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -47,7 +46,6 @@ export default function LeadsPage() {
     if (!supabase) return;
     setIsLoading(true);
     try {
-      // Leads são usuários no plano gratuito
       const { data, error } = await supabase
         .from('profiles')
         .select('*')

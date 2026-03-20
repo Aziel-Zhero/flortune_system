@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -38,11 +37,10 @@ export default function AdminDashboardAnalyticsPage() {
       setMetrics({
         conversionRate: convRate,
         freeUsers: free,
-        totalShared: 0, // Informação futura
+        totalShared: 0, 
         paidUsers: paid
       });
 
-      // Gerar dados do gráfico dos últimos 6 meses
       const last6Months = Array.from({ length: 6 }, (_, i) => {
         const d = subMonths(new Date(), 5 - i);
         return {
