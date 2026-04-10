@@ -9,6 +9,7 @@ import {
   ClipboardList, Code, Send, Bot, MessageSquare, DollarSign, EyeOff 
 } from "lucide-react";
 import Image from "next/image";
+import React, { useState, useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 import { ADMIN_NAV_LINKS_CONFIG, APP_NAME } from "@/lib/constants";
@@ -28,6 +29,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PrivateValue } from "@/components/shared/private-value";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppSettings } from "@/contexts/app-settings-context";
+import { supabase } from "@/lib/supabase/client";
+import { useSession } from "@/contexts/auth-context";
 
 type AdminNavLinkIconName = Extract<typeof ADMIN_NAV_LINKS_CONFIG[number], { type: "link" }>["icon"];
 
@@ -51,21 +54,33 @@ const getIcon = (iconName?: AdminNavLinkIconName | string): React.ElementType =>
   return iconMap[iconName as AdminNavLinkIconName] || HelpCircle;
 };
 
-// Mock admin user data
-const mockAdmin = {
-    displayName: "Admin",
-    avatarUrl: `https://placehold.co/40x40/fca5a5/1e293b?text=A`,
-    avatarFallback: "A",
-    accountType: "Administrador"
-}
-
-// Mocked total revenue for admin workspace
-const totalRevenue = 25340.50;
-
 export function AdminSidebar() {
   const pathname = usePathname();
+  const { session } = useSession();
   const { isMobile, setOpenMobile } = useSidebar();
   const { togglePrivateMode } = useAppSettings();
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+
+  const displayName = session?.user?.profile?.display_name || "Admin";
+  const avatarUrl = session?.user?.profile?.avatar_url || `https://placehold.co/40x40/fca5a5/1e293b?text=A`;
+  const avatarFallback = displayName.charAt(0).toUpperCase();
+
+  useEffect(() => {
+    async function fetchGlobalRevenue() {
+        if (!supabase) return;
+        // Busca a soma de todas as transações de entrada do sistema
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('amount')
+            .eq('type', 'income');
+        
+        if (!error && data) {
+            const sum = data.reduce((acc, curr) => acc + curr.amount, 0);
+            setTotalRevenue(sum);
+        }
+    }
+    fetchGlobalRevenue();
+  }, []);
   
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -86,7 +101,7 @@ export function AdminSidebar() {
                   className="flex items-center space-x-2 text-primary hover:opacity-80 transition-opacity"
                   onClick={closeMobileSidebar}
                 >
-                    <Image src="/assistent.png" alt="Flortune Logo" width={28} height={28} style={{ height: 'auto' }} />
+                    <Image src="/Logo.png" alt="Flortune Logo" width={28} height={28} style={{ height: 'auto' }} />
                     <span className={cn("font-bold text-xl font-headline", { "group-data-[collapsible=icon]:hidden": !isMobile})}>{`${APP_NAME} WS`}</span>
                 </Link>
             </div>
@@ -95,17 +110,16 @@ export function AdminSidebar() {
         <div className="px-4 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 flex flex-col items-center">
           <Link href="/admin/profile" className="flex items-center gap-3 group hover:bg-muted/50 p-2 rounded-md w-full -mx-2 group-data-[collapsible=icon]:mx-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center" onClick={closeMobileSidebar}>
             <Avatar className="h-9 w-9 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
-                <AvatarImage src={mockAdmin.avatarUrl} alt={mockAdmin.displayName} data-ai-hint="admin avatar"/>
-                <AvatarFallback>{mockAdmin.avatarFallback}</AvatarFallback>
+                <AvatarImage src={avatarUrl} alt={displayName} data-ai-hint="admin avatar"/>
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium font-headline text-foreground">{mockAdmin.displayName}</span>
-                <span className="text-xs text-muted-foreground">{mockAdmin.accountType}</span>
+                <span className="text-sm font-medium font-headline text-foreground">{displayName}</span>
+                <span className="text-xs text-muted-foreground">Administrador</span>
             </div>
           </Link>
         </div>
         
-        {/* Total Revenue Section */}
         <div className="px-3 py-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-3">
           <div className="hidden group-data-[collapsible=icon]:flex justify-center">
             <Tooltip>
@@ -115,13 +129,13 @@ export function AdminSidebar() {
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right" align="center">
-                <p className="font-semibold">Receita Mensal</p>
+                <p className="font-semibold">Receita Total Sistema</p>
                 <p><PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} /></p>
               </TooltipContent>
             </Tooltip>
           </div>
           <div className="flex flex-col rounded-md bg-sidebar-accent/50 p-3 group-data-[collapsible=icon]:hidden">
-             <span className="text-xs text-sidebar-accent-foreground/80">Receita Mensal</span>
+             <span className="text-xs text-sidebar-accent-foreground/80">Receita Total Sistema</span>
              <div className="flex items-center justify-between">
                 <span className="font-bold text-lg text-sidebar-accent-foreground">
                     <PrivateValue value={totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
@@ -134,11 +148,9 @@ export function AdminSidebar() {
           </div>
         </div>
 
-        {/* Botão de recolher/expandir abaixo da receita */}
         <div className="px-3 mt-2 flex justify-end group-data-[collapsible=icon]:justify-center">
            <SidebarTrigger />
         </div>
-
 
         <Separator className="my-2 group-data-[collapsible=icon]:my-3" />
 
@@ -179,9 +191,6 @@ export function AdminSidebar() {
                 })}
           </SidebarMenu>
         </SidebarContent>
-
-        <SidebarFooter className="p-2 mt-auto">
-        </SidebarFooter>
     </Sidebar>
   );
 }

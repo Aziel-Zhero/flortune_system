@@ -1,3 +1,4 @@
+
 // src/services/integration.service.ts
 "use server";
 
@@ -8,10 +9,6 @@ interface TelegramCredentials {
     bot_token: string;
     chat_id: string;
 }
-
-// NOTE: This service uses the supabaseAdmin client because the 'telegram_integration'
-// table is not intended to be accessed by regular users via RLS. It's a system-level
-// configuration managed only by an administrator through a trusted server environment.
 
 export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<TelegramCredentials | null>> {
   if (!supabaseAdmin) {
@@ -27,7 +24,11 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
         .eq('id', 1)
         .single();
         
-    if (error && error.code !== 'PGRST116') { // PGRST116: no rows found
+    if (error) {
+        if (error.code === 'PGRST116') return { data: null, error: null };
+        if (error.message.includes("relation") && error.message.includes("does not exist")) {
+            return { data: null, error: "Tabela 'telegram_integration' não encontrada. Verifique o schema SQL." };
+        }
         throw error;
     }
     
@@ -35,12 +36,11 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
 
   } catch (err: any) {
     console.error(`Error fetching integration for ${service}:`, err);
-    return { data: null, error: `Falha ao buscar credenciais para ${service}.` };
+    return { data: null, error: `Falha ao buscar credenciais para ${service}. ${err.message}` };
   }
 }
 
 export async function updateIntegration(credentials: TelegramCredentials): Promise<ServiceResponse<TelegramCredentials>> {
-  
   if(!supabaseAdmin) {
     const errorMsg = "Conexão administrativa com o banco de dados não está disponível para salvar.";
     console.error(errorMsg);
@@ -51,7 +51,7 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
     const { data: updatedData, error } = await supabaseAdmin
         .from('telegram_integration')
         .upsert({
-            id: 1, // Always update the same row
+            id: 1,
             bot_token: credentials.bot_token,
             chat_id: credentials.chat_id,
             updated_at: new Date().toISOString()
@@ -59,12 +59,17 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
         .select()
         .single();
 
-    if (error) throw error;
+    if (error) {
+        if (error.message.includes("relation") && error.message.includes("does not exist")) {
+            throw new Error("A tabela 'telegram_integration' não existe. Execute o script SQL no seu painel Supabase.");
+        }
+        throw error;
+    }
     
     return { data: updatedData as TelegramCredentials, error: null };
 
   } catch (err: any) {
      console.error(`Error updating integration for telegram:`, err);
-    return { data: null, error: `Falha ao salvar credenciais para o Telegram.` };
+    return { data: null, error: err.message || "Falha ao salvar credenciais." };
   }
 }

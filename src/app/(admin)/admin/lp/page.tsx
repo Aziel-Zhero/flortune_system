@@ -1,3 +1,4 @@
+
 // src/app/(admin)/admin/lp/page.tsx
 "use client";
 
@@ -41,7 +42,7 @@ const colorOptions = [
 ];
 
 const getLucideIcon = (name?: string): React.ElementType => {
-    if (!name) return Info; // Fallback para ícone padrão
+    if (!name) return Info; 
     return (LucideIcons as any)[name] || Info;
 }
 
@@ -56,7 +57,6 @@ export default function LPEditorPage() {
     addNotification
   } = useAppSettings();
 
-  // Fallback seguro para evitar erros no lado do servidor
   const safeLandingPageContent = landingPageContent || {
     heroTitle: "",
     heroDescription: "",
@@ -76,7 +76,7 @@ export default function LPEditorPage() {
   const handleLpContentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setLandingPageContent(prev => ({
-      ...(prev || {}), // Garante que prev não é nulo/indefinido
+      ...(prev || {}),
       [name]: value,
     }));
   };
@@ -139,7 +139,7 @@ export default function LPEditorPage() {
   };
 
   return (
-    <>
+    <div className="max-w-[1850px] mx-auto w-full">
       <div className="space-y-8">
         <PageHeader
           title="Editor da Landing Page"
@@ -170,17 +170,17 @@ export default function LPEditorPage() {
                       <div className="space-y-4">
                           <div className="space-y-2">
                               <Label htmlFor="heroTitle">Título Principal</Label>
-                              <Input id="heroTitle" name="heroTitle" value={safeLandingPageContent.heroTitle} onChange={handleLpContentChange} />
+                              <Input id="heroTitle" name="heroTitle" value={safeLandingPageContent.heroTitle || ""} onChange={handleLpContentChange} />
                           </div>
                           <div className="space-y-2">
                               <Label htmlFor="heroDescription">Descrição (Parágrafo)</Label>
-                              <Textarea id="heroDescription" name="heroDescription" value={safeLandingPageContent.heroDescription} onChange={handleLpContentChange} rows={3} />
+                              <Textarea id="heroDescription" name="heroDescription" value={safeLandingPageContent.heroDescription || ""} onChange={handleLpContentChange} rows={3} />
                           </div>
                           <div className="space-y-2">
                             <Label>Imagem Principal</Label>
                             <div className="flex items-center gap-4 flex-wrap">
                               <div className="relative w-48 h-auto aspect-video rounded-md overflow-hidden border">
-                                <Image src={safeLandingPageContent.heroImageUrl || "/default-hero.jpg"} alt="Preview da imagem principal" layout="fill" objectFit="cover" />
+                                <Image src={safeLandingPageContent.heroImageUrl || "/default-hero.jpg"} alt="Preview da imagem principal" fill style={{ objectFit: 'cover' }} />
                               </div>
                               <Input
                                 type="file"
@@ -202,15 +202,15 @@ export default function LPEditorPage() {
                        <div className="space-y-4">
                           <div className="space-y-2">
                               <Label htmlFor="ctaTitle">Título da Chamada Final</Label>
-                              <Input id="ctaTitle" name="ctaTitle" value={safeLandingPageContent.ctaTitle} onChange={handleLpContentChange} />
+                              <Input id="ctaTitle" name="ctaTitle" value={safeLandingPageContent.ctaTitle || ""} onChange={handleLpContentChange} />
                           </div>
                           <div className="space-y-2">
                               <Label htmlFor="ctaDescription">Descrição da Chamada Final</Label>
-                              <Textarea id="ctaDescription" name="ctaDescription" value={safeLandingPageContent.ctaDescription} onChange={handleLpContentChange} rows={3} />
+                              <Textarea id="ctaDescription" name="ctaDescription" value={safeLandingPageContent.ctaDescription || ""} onChange={handleLpContentChange} rows={3} />
                           </div>
                            <div className="space-y-2">
                               <Label htmlFor="ctaButtonText">Texto do Botão Final</Label>
-                              <Input id="ctaButtonText" name="ctaButtonText" value={safeLandingPageContent.ctaButtonText} onChange={handleLpContentChange} />
+                              <Input id="ctaButtonText" name="ctaButtonText" value={safeLandingPageContent.ctaButtonText || ""} onChange={handleLpContentChange} />
                           </div>
                       </div>
                   </TabsContent>
@@ -249,7 +249,7 @@ export default function LPEditorPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-2">
                                       <Label htmlFor={`${popupKey}-title`}>Título do Pop-up</Label>
-                                      <Input id={`${popupKey}-title`} value={config.title} onChange={(e) => handlePopupConfigChange(popupKey, 'title', e.target.value)} />
+                                      <Input id={`${popupKey}-title`} value={config.title || ""} onChange={(e) => handlePopupConfigChange(popupKey, 'title', e.target.value)} />
                                   </div>
                                   <div className="space-y-2">
                                       <Label htmlFor={`${popupKey}-icon`}>Ícone</Label>
@@ -261,7 +261,7 @@ export default function LPEditorPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor={`${popupKey}-description`}>Descrição</Label>
-                                    <Textarea id={`${popupKey}-description`} value={config.description} onChange={(e) => handlePopupConfigChange(popupKey, 'description', e.target.value)} rows={3} />
+                                    <Textarea id={`${popupKey}-description`} value={config.description || ""} onChange={(e) => handlePopupConfigChange(popupKey, 'description', e.target.value)} rows={3} />
                                 </div>
 
                                 <div className="space-y-2 p-4 border rounded-md">
@@ -279,7 +279,7 @@ export default function LPEditorPage() {
                                       <div className="flex items-end gap-2">
                                           <div className="flex-1 space-y-2">
                                             <Label htmlFor={`${popupKey}-freq-val`}>Frequência</Label>
-                                            <Input id={`${popupKey}-freq-val`} type="number" value={config.frequencyValue || ''} onChange={(e) => handlePopupConfigChange(popupKey, 'frequencyValue', e.target.valueAsNumber)} placeholder="Ex: 2" />
+                                            <Input id={`${popupKey}-freq-val`} type="number" value={config.frequencyValue ?? ""} onChange={(e) => handlePopupConfigChange(popupKey, 'frequencyValue', e.target.valueAsNumber)} placeholder="Ex: 2" />
                                           </div>
                                            <Select value={config.frequencyUnit || 'horas'} onValueChange={(v) => handlePopupConfigChange(popupKey, 'frequencyUnit', v)}>
                                               <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
@@ -331,6 +331,6 @@ export default function LPEditorPage() {
             )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
