@@ -1,4 +1,4 @@
-// src/app/(admin)/admin/campaigns/page.tsx
+
 "use client";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingBag, CalendarIcon, Percent, Save, AlertCircle, Eye, Send } from "lucide-react";
+import { ShoppingBag, CalendarIcon, Percent, Save, AlertCircle, Eye, Send, Loader2 } from "lucide-react";
 import { PRICING_TIERS } from "@/lib/constants";
 import { DateRange } from "react-day-picker";
-import { addDays, format } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAppSettings, type CampaignTheme } from "@/contexts/app-settings-context";
 import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getActiveCampaign, updateCampaign } from "@/services/campaign.service";
 
 const campaignThemes: { value: CampaignTheme | 'none', label: string }[] = [
   { value: 'none', label: 'Nenhuma (Padrão)' },
@@ -30,40 +31,75 @@ const campaignThemes: { value: CampaignTheme | 'none', label: string }[] = [
 
 export default function CampaignsPage() {
   const { activeCampaignTheme, setActiveCampaignTheme } = useAppSettings();
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 7),
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [date, setDate] = useState<DateRange | undefined>();
+  const [discounts, setDiscounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    document.title = "Campanhas Promocionais - Flortune";
+    loadCampaign();
+  }, []);
+
+  async function loadCampaign() {
+    setIsLoading(true);
+    const { data, error } = await getActiveCampaign();
+    if (data) {
+        setActiveCampaignTheme(data.theme as CampaignTheme);
+        setDiscounts(data.discounts || {});
+        if (data.start_date && data.end_date) {
+            setDate({
+                from: parseISO(data.start_date),
+                to: parseISO(data.end_date)
+            });
+        }
+    }
+    setIsLoading(false);
+  }
   
   const handleThemeChange = (value: string) => {
     const theme = value === 'none' ? null : value as CampaignTheme;
     setActiveCampaignTheme(theme);
   }
 
-  const handleSaveChanges = () => {
-    toast({
-        title: "Alterações Salvas (Simulação)",
-        description: "As configurações da campanha promocional foram salvas.",
-    });
+  const handleDiscountChange = (planId: string, value: string) => {
+    setDiscounts(prev => ({
+        ...prev,
+        [planId]: parseInt(value) || 0
+    }));
   }
-  
-  const handleNotifyUsers = () => {
-    toast({
-        title: "Notificando Usuários (Simulação)",
-        description: "Uma notificação sobre a campanha atual seria enviada para os usuários.",
-    });
-  };
 
-  useEffect(() => {
-    document.title = "Campanhas Promocionais - Flortune";
-  }, []);
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    const { error } = await updateCampaign({
+        theme: activeCampaignTheme,
+        start_date: date?.from ? format(date.from, 'yyyy-MM-dd') : null,
+        end_date: date?.to ? format(date.to, 'yyyy-MM-dd') : null,
+        discounts: discounts
+    });
+
+    if (error) {
+        toast({ title: "Erro ao Salvar", description: error, variant: "destructive" });
+    } else {
+        toast({ title: "Campanha Atualizada!", description: "As configurações foram salvas no banco de dados." });
+    }
+    setIsSaving(false);
+  }
+
+  if (isLoading) {
+    return (
+        <div className="flex h-[60vh] items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-[1850px] mx-auto w-full">
       <PageHeader
         title="Campanhas Promocionais"
         icon={<ShoppingBag />}
-        description="Configure descontos, temas e o período de campanhas promocionais."
+        description="Configure descontos, temas e o período de campanhas promocionais reais."
       />
 
       <Card>
@@ -86,7 +122,6 @@ export default function CampaignsPage() {
                         ))}
                     </SelectContent>
                 </Select>
-                 <p className="text-sm text-muted-foreground">Selecionar um tema altera a aparência da página inicial para refletir a campanha.</p>
             </div>
              <div className="space-y-2">
                 <Label>Período da Campanha</Label>
@@ -103,9 +138,9 @@ export default function CampaignsPage() {
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {date?.from ? (
                         date.to ? (
-                            <>{format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}</>
+                            <>{format(date.from, "dd/MM/yy")} - {format(date.to, "dd/MM/yy")}</>
                         ) : (
-                            format(date.from, "LLL dd, y")
+                            format(date.from, "dd/MM/yy")
                         )
                         ) : (
                         <span>Escolha um período</span>
@@ -128,23 +163,19 @@ export default function CampaignsPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Atenção</AlertTitle>
                 <AlertDescription>
-                   Ativar uma campanha e definir descontos irá alterar os preços exibidos na página de planos. Certifique-se de que tudo está correto.
+                   Ativar uma campanha altera os preços exibidos na Landing Page para todos os visitantes.
                 </AlertDescription>
             </Alert>
         </CardContent>
          <CardFooter className="flex flex-wrap items-center gap-4">
-            <Button onClick={handleSaveChanges}>
-                <Save className="mr-2 h-4 w-4" />
+            <Button onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                 Salvar Alterações
-            </Button>
-            <Button onClick={handleNotifyUsers} variant="secondary">
-                <Send className="mr-2 h-4 w-4" />
-                Notificar Usuários
             </Button>
              <Button variant="outline" asChild>
                 <Link href="/" target="_blank">
                     <Eye className="mr-2 h-4 w-4" />
-                    Visualizar Página
+                    Visualizar Landing Page
                 </Link>
             </Button>
         </CardFooter>
@@ -153,7 +184,7 @@ export default function CampaignsPage() {
       <Card>
         <CardHeader>
             <CardTitle>Descontos por Plano</CardTitle>
-            <CardDescription>Defina o desconto em porcentagem para cada plano durante o período da campanha.</CardDescription>
+            <CardDescription>Defina o desconto real em porcentagem para cada plano.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {PRICING_TIERS.filter(t => t.priceMonthly !== 'Grátis').map(tier => (
@@ -161,14 +192,20 @@ export default function CampaignsPage() {
                     <Label htmlFor={`discount-${tier.id}`} className="font-semibold">{tier.name}</Label>
                     <div className="relative">
                         <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id={`discount-${tier.id}`} type="number" placeholder="Ex: 25" className="pl-10" />
+                        <Input 
+                            id={`discount-${tier.id}`} 
+                            type="number" 
+                            placeholder="Ex: 25" 
+                            className="pl-10" 
+                            value={discounts[tier.id] || ''}
+                            onChange={(e) => handleDiscountChange(tier.id, e.target.value)}
+                        />
                     </div>
-                    <p className="text-xs text-muted-foreground">Preço Original: {tier.priceMonthly}</p>
+                    <p className="text-xs text-muted-foreground">Preço Base: {tier.priceMonthly}</p>
                 </div>
             ))}
         </CardContent>
       </Card>
-
     </div>
   );
 }
