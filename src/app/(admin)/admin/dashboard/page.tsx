@@ -8,9 +8,9 @@ import { motion } from "framer-motion";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart as BarChartRecharts, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, Line, LineChart as LineChartRecharts } from "recharts";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getAdminAnalytics } from "@/services/admin.service";
 
 export default function AdminDashboardAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -23,36 +23,22 @@ export default function AdminDashboardAnalyticsPage() {
   const [growthData, setGrowthData] = useState<any[]>([]);
 
   const fetchAnalytics = async () => {
-    if (!supabase) return;
     setIsLoading(true);
     try {
-      const { data: profiles, error } = await supabase.from('profiles').select('plan_id, created_at');
-      if (error) throw error;
+      const { data, error } = await getAdminAnalytics();
+      if (error) throw new Error(error);
+      if (!data) throw new Error("Nenhum dado analítico retornado.");
 
-      const total = profiles?.length || 0;
-      const free = profiles?.filter(p => p.plan_id === 'tier-cultivador' || !p.plan_id).length || 0;
-      const paid = total - free;
-      const convRate = total > 0 ? (paid / total) * 100 : 0;
+      const { conversionRate, freeUsers, paidUsers, growthData } = data;
 
       setMetrics({
-        conversionRate: convRate,
-        freeUsers: free,
+        conversionRate,
+        freeUsers,
         totalShared: 0, 
-        paidUsers: paid
+        paidUsers
       });
 
-      const last6Months = Array.from({ length: 6 }, (_, i) => {
-        const d = subMonths(new Date(), 5 - i);
-        return {
-          month: format(d, 'MMM', { locale: ptBR }),
-          fullMonth: format(d, 'MM/yyyy'),
-          count: profiles?.filter(p => {
-            const created = new Date(p.created_at);
-            return created.getMonth() === d.getMonth() && created.getFullYear() === d.getFullYear();
-          }).length || 0
-        };
-      });
-      setGrowthData(last6Months);
+      setGrowthData(growthData);
 
     } catch (err: any) {
       toast({ title: "Erro Analytics", description: err.message, variant: "destructive" });

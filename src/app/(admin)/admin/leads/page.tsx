@@ -13,14 +13,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Users, Search, MoreHorizontal, Gift, User, Send, Calendar, Clock, MailIcon, Ban, CheckCircle, RotateCcw, Loader2 } from "lucide-react";
+import { Users, Search, MoreHorizontal, Gift, User, Send, Calendar, Clock, MailIcon, Ban, CheckCircle, RotateCcw, Loader2, AlertCircle } from "lucide-react";
 import { APP_NAME, PRICING_TIERS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { format, add, differenceInSeconds } from 'date-fns';
-import { supabase } from "@/lib/supabase/client";
+import { format, differenceInSeconds } from 'date-fns';
 import type { Profile } from "@/types/database.types";
+import { getLeads, getProposedLeads, sendLeadOffer, deleteProposedLead } from "@/services/admin.service";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Lead extends Profile {
   status: 'active' | 'do_not_contact';
@@ -41,19 +42,59 @@ export default function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [detailsLead, setDetailsLead] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTableMissing, setIsTableMissing] = useState(false);
+
+  // States para o formulário de oferta
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [offerTitle, setOfferTitle] = useState("");
+  const [offerPrice, setOfferPrice] = useState("");
+  const [offerDuration, setOfferDuration] = useState("");
+  const [offerMessage, setOfferMessage] = useState("");
 
   const fetchRealLeads = async () => {
-    if (!supabase) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('plan_id', 'tier-cultivador')
-        .order('created_at', { ascending: false });
+      // 1. Busca leads disponíveis reais
+      const { data: leadsData, error: leadsError } = await getLeads();
+      if (leadsError) throw new Error(leadsError);
 
-      if (error) throw error;
-      setLeads((data || []).map(l => ({ ...l, status: 'active' })));
+      // 2. Busca propostas enviadas
+      const { data: proposedData, error: proposedError, isMock } = await getProposedLeads();
+      if (proposedError) throw new Error(proposedError);
+      
+      setIsTableMissing(!!isMock);
+
+      // Mapeia perfis para o formato Lead
+      const formattedLeads = (leadsData || []).map(l => ({
+        ...l,
+        status: 'active' as const
+      }));
+
+      // Filtra leads que já têm propostas ativas no banco de dados
+      const activeProposalLeadIds = new Set((proposedData || []).map(p => p.lead_id));
+      const availableLeads = formattedLeads.filter(l => !activeProposalLeadIds.has(l.id));
+
+      // Mapeia propostas para o formato ProposedLead
+      const formattedProposedLeads = (proposedData || []).map(p => {
+        const profile = p.profiles || {
+          id: p.lead_id,
+          email: 'Desconhecido',
+          display_name: 'Usuário',
+          created_at: p.created_at,
+          updated_at: p.created_at
+        };
+        return {
+          ...profile,
+          id: p.lead_id,
+          proposalId: p.id, // ID da proposta no banco
+          status: 'active' as const,
+          proposalDate: p.created_at,
+          proposalExpiresAt: p.expires_at
+        };
+      });
+
+      setLeads(availableLeads);
+      setProposedLeads(formattedProposedLeads);
     } catch (err: any) {
       toast({ title: "Erro ao buscar leads", description: err.message, variant: "destructive" });
     } finally {
@@ -76,6 +117,11 @@ export default function LeadsPage() {
 
   const handleOpenOfferDialog = (lead: Lead) => {
     setSelectedLead(lead);
+    setSelectedPlanId(availablePaidPlans[0]?.id || "");
+    setOfferTitle("");
+    setOfferPrice("");
+    setOfferDuration("");
+    setOfferMessage("");
     setIsOfferDialogOpen(true);
   };
   
@@ -83,25 +129,48 @@ export default function LeadsPage() {
     setDetailsLead(lead);
   };
 
-  const handleSendOfferSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSendOfferSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedLead) return;
 
-    toast({ title: "Proposta Enviada!", description: `A oferta foi enviada para ${selectedLead.email}.` });
-    
-    setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
-    const now = new Date();
-    setProposedLeads(prev => [
-      ...prev,
-      {
-        ...selectedLead,
-        proposalDate: now.toISOString(),
-        proposalExpiresAt: add(now, { minutes: 5 }).toISOString(),
-      }
-    ]);
+    try {
+      const price = parseFloat(offerPrice);
+      const duration = parseInt(offerDuration);
 
-    setIsOfferDialogOpen(false);
-    setSelectedLead(null);
+      const { data: newProposal, error } = await sendLeadOffer(
+        selectedLead.id,
+        selectedPlanId,
+        offerTitle,
+        price,
+        duration,
+        offerMessage
+      );
+
+      if (error) throw new Error(error);
+
+      toast({ title: "Proposta Enviada!", description: `A oferta foi salva no banco de dados e enviada para ${selectedLead.email}.` });
+      
+      // Remove do estado local de leads
+      setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
+
+      if (newProposal) {
+        setProposedLeads(prev => [
+          {
+            ...selectedLead,
+            id: selectedLead.id,
+            proposalId: newProposal.id,
+            proposalDate: newProposal.created_at,
+            proposalExpiresAt: newProposal.expires_at
+          },
+          ...prev
+        ]);
+      }
+
+      setIsOfferDialogOpen(false);
+      setSelectedLead(null);
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar proposta", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleToggleStatus = (leadId: string) => {
@@ -114,11 +183,22 @@ export default function LeadsPage() {
     }));
   };
   
-  const handleReturnToList = (leadToReturn: ProposedLead) => {
-    setProposedLeads(prev => prev.filter(pl => pl.id !== leadToReturn.id));
-    const { proposalDate, proposalExpiresAt, ...originalLead } = leadToReturn;
-    setLeads(prev => [originalLead, ...prev]);
-  }
+  const handleReturnToList = async (leadToReturn: ProposedLead) => {
+    try {
+      if ('proposalId' in leadToReturn) {
+        const { error } = await deleteProposedLead((leadToReturn as any).proposalId);
+        if (error) throw new Error(error);
+      }
+
+      toast({ title: "Proposta cancelada", description: "O lead retornou para a lista de disponíveis." });
+
+      setProposedLeads(prev => prev.filter(pl => pl.id !== leadToReturn.id));
+      const { proposalDate, proposalExpiresAt, ...originalLead } = leadToReturn;
+      setLeads(prev => [originalLead, ...prev]);
+    } catch (err: any) {
+      toast({ title: "Erro ao cancelar proposta", description: err.message, variant: "destructive" });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -136,6 +216,21 @@ export default function LeadsPage() {
           icon={<Users />}
           description="Visualize e gerencie usuários reais do plano gratuito para conversão."
         />
+        
+        {isTableMissing && (
+          <Alert variant="destructive" className="border-destructive/30 bg-destructive/5 text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="font-semibold font-headline">Configuração Pendente do Banco de Dados</AlertTitle>
+            <AlertDescription className="space-y-2 mt-2 text-xs leading-relaxed">
+              <p>
+                A tabela <strong>lead_proposals</strong> para salvar propostas personalizadas não foi encontrada no seu banco de dados Supabase remoto.
+              </p>
+              <p>
+                Para ativar a persistência real de propostas, por favor execute o script SQL de migração localizado em <span className="font-mono bg-destructive/10 px-1 py-0.5 rounded">docs/leads_schema.sql</span> no seu SQL Editor do painel do Supabase. As propostas que você criar agora expirarão e não serão mantidas após atualizar a página até a criação da tabela.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Tabs defaultValue="available">
           <TabsList>
@@ -260,17 +355,29 @@ export default function LeadsPage() {
           <form onSubmit={handleSendOfferSubmit} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Plano de Destino</Label>
-                <Select defaultValue={availablePaidPlans[0]?.id}>
+                <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
                   <SelectTrigger><SelectValue placeholder="Selecione um plano..." /></SelectTrigger>
                   <SelectContent>{availablePaidPlans.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.priceMonthly})</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Título da Oferta</Label><Input placeholder="Ex: Cupom de 50% de Desconto!" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Preço (R$)</Label><Input type="number" step="0.01" placeholder="9.90" /></div>
-                <div className="space-y-2"><Label>Duração (meses)</Label><Input type="number" placeholder="3" /></div>
+              <div className="space-y-2">
+                <Label>Título da Oferta</Label>
+                <Input value={offerTitle} onChange={e => setOfferTitle(e.target.value)} placeholder="Ex: Cupom de 50% de Desconto!" required />
               </div>
-              <div className="space-y-2"><Label>Mensagem</Label><Textarea placeholder="Escreva algo especial para este usuário..." /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Preço (R$)</Label>
+                  <Input type="number" step="0.01" value={offerPrice} onChange={e => setOfferPrice(e.target.value)} placeholder="9.90" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Duração (meses)</Label>
+                  <Input type="number" value={offerDuration} onChange={e => setOfferDuration(e.target.value)} placeholder="3" required />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem</Label>
+                <Textarea value={offerMessage} onChange={e => setOfferMessage(e.target.value)} placeholder="Escreva algo especial para este usuário..." />
+              </div>
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
               <Button type="submit"><Send className="mr-2 h-4 w-4"/>Enviar Proposta</Button>

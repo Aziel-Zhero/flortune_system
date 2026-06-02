@@ -128,6 +128,19 @@ export interface AuthUser {
   // ...other auth fields
 }
 
+export interface LeadProposal {
+  id: string; // UUID, Primary Key
+  lead_id: string; // UUID, Foreign Key to profiles.id
+  plan_id: string;
+  offer_title: string;
+  price: number;
+  duration_months: number;
+  message?: string | null;
+  created_at: string; // Timestamptz
+  expires_at: string; // Timestamptz
+  profiles?: Profile | null; // Joined profile
+}
+
 // Generic Service Response Types
 export interface ServiceResponse<T> {
   data: T | null;

@@ -10,9 +10,9 @@ import { Pie, PieChart as PieChartRecharts, ResponsiveContainer, Cell } from "re
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getAdminStats } from "@/services/admin.service";
 
 interface StatCard {
   title: string;
@@ -28,18 +28,14 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchRealStats = async () => {
-    if (!supabase) return;
     setIsLoading(true);
     try {
-      const { data: profiles, error } = await supabase.from('profiles').select('plan_id');
+      const { data, error } = await getAdminStats();
       
-      if (error) throw error;
+      if (error) throw new Error(error);
+      if (!data) throw new Error("Nenhum dado retornado.");
 
-      const total = profiles?.length || 0;
-      const cultivador = profiles?.filter(p => p.plan_id === 'tier-cultivador' || !p.plan_id).length || 0;
-      const mestre = profiles?.filter(p => p.plan_id === 'tier-mestre').length || 0;
-      const dev = profiles?.filter(p => p.plan_id === 'tier-dev').length || 0;
-      const corp = profiles?.filter(p => p.plan_id === 'tier-corporativo').length || 0;
+      const { total, cultivador, mestre, dev, corp } = data;
 
       setStats([
         { title: "Usuários Totais", value: total, icon: Users, color: "text-primary" },
