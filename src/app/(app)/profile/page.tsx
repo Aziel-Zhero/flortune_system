@@ -154,7 +154,6 @@ export default function ProfilePage() {
     }
 
     await updateSession({ ...session, user: { ...session.user, profile: profileData as Profile } as any });
-    await refresh();
     toast({ title: "Permissão Alterada", description: "Redirecionando..." });
     router.replace(role === 'admin' ? '/dashboard-admin' : '/dashboard');
   };
