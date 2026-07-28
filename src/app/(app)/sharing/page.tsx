@@ -35,6 +35,7 @@ import {
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useAppSettings } from '@/contexts/app-settings-context';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -45,6 +46,7 @@ interface SharedAccess {
   id: string;
   email: string;
   permission: "view" | "edit";
+  status: "pending" | "accepted";
 }
 
 type ModuleSection = 'goals' | 'budgets' | 'todos' | 'transactions' | 'notepad' | 'calendar' | 'clients' | 'kanban';
@@ -98,16 +100,16 @@ const initialModules: Module[] = [
   {
     id: "mod_3",
     name: "Metas de Viagem (com Amigos)",
-    sharedWith: [],
-    sections: ['goals'],
-    createdAt: "2024-05-10T18:00:00Z",
-    updatedAt: "2024-05-10T18:00:00Z",
+    sharedWith: [
+      { id: "access_4", email: "Você", permission: "view", status: "pending" }
+    ],
     owner: 'other',
     ownerName: "Ana S."
   }
 ];
 
 export default function SharingPage() {
+  const { addNotification } = useAppSettings();
   const [modules, setModules] = useState<Module[]>(initialModules);
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [newModuleName, setNewModuleName] = useState("");
@@ -171,9 +173,20 @@ export default function SharingPage() {
       toast({ title: "Dados incompletos", variant: "destructive" });
       return;
     }
-    const newAccess: SharedAccess = { id: `access_${Date.now()}`, email: inviteEmail, permission: invitePermission };
+    const newAccess: SharedAccess = {
+      id: `access_${Date.now()}`,
+      email: inviteEmail,
+      permission: invitePermission,
+      status: "pending",
+    };
     setModules(prev => prev.map(m => m.id === currentModule.id ? { ...m, sharedWith: [...m.sharedWith, newAccess] } : m));
-    toast({ title: "Convite Enviado", description: `${inviteEmail} foi convidado para o módulo "${currentModule.name}".`});
+    toast({ title: "Convite Enviado", description: `${inviteEmail} foi convidado para o módulo "${currentModule.name}".`, });
+    addNotification({
+      title: 'Compartilhamento',
+      description: `${inviteEmail} recebeu um convite para "${currentModule.name}".`,
+      icon: Users,
+      color: 'primary',
+    });
     setInviteEmail("");
     setIsInviteModalOpen(false);
   }
@@ -192,6 +205,41 @@ export default function SharingPage() {
     toast({ title: "Você saiu do módulo", description: `Você não tem mais acesso a "${moduleToLeave.name}".`});
     setModuleToLeave(null);
   }
+
+  const handleAcceptInvite = (moduleId: string) => {
+    setModules(prev => prev.map(module =>
+      module.id === moduleId
+        ? {
+            ...module,
+            sharedWith: module.sharedWith.map(access => ({ ...access, status: access.status === 'pending' ? 'accepted' : access.status })),
+          }
+        : module
+    ));
+    const acceptedModule = modules.find(m => m.id === moduleId);
+    if (acceptedModule) {
+      toast({ title: 'Convite Aceito', description: `Você aceitou o convite para "${acceptedModule.name}".`});
+      addNotification({
+        title: 'Compartilhamento',
+        description: `Você aceitou o convite para o módulo "${acceptedModule.name}".`,
+        icon: Users,
+        color: 'blue',
+      });
+    }
+  };
+
+  const handleDeclineInvite = (moduleId: string) => {
+    const declinedModule = modules.find(m => m.id === moduleId);
+    setModules(prev => prev.filter(module => module.id !== moduleId));
+    if (declinedModule) {
+      toast({ title: 'Convite Recusado', description: `Você recusou o convite para "${declinedModule.name}".`});
+      addNotification({
+        title: 'Compartilhamento',
+        description: `Você recusou o convite para o módulo "${declinedModule.name}".`,
+        icon: Trash2,
+        color: 'destructive',
+      });
+    }
+  };
   
   const modulesByMe = modules.filter(m => m.owner === 'me');
   const modulesWithMe = modules.filter(m => m.owner === 'other');
@@ -214,7 +262,7 @@ export default function SharingPage() {
             <ModuleTable modules={modulesByMe} onInvite={openInviteModal} title="Módulos Criados por Você"/>
           </TabsContent>
           <TabsContent value="shared-with-me" className="flex-grow mt-4">
-            <ModuleTable modules={modulesWithMe} onLeave={setModuleToLeave} title="Módulos que Outros Compartilharam com Você"/>
+            <ModuleTable modules={modulesWithMe} onAccept={handleAcceptInvite} onLeave={setModuleToLeave} title="Módulos que Outros Compartilharam com Você"/>
           </TabsContent>
         </Tabs>
       </div>
@@ -299,11 +347,12 @@ export default function SharingPage() {
 interface ModuleTableProps {
   modules: Module[];
   onInvite?: (module: Module) => void;
+  onAccept?: (module: Module) => void;
   onLeave?: (module: Module) => void;
   title: string;
 }
 
-function ModuleTable({ modules, onInvite, onLeave, title }: ModuleTableProps) {
+function ModuleTable({ modules, onInvite, onAccept, onLeave, title }: ModuleTableProps) {
   if (modules.length === 0) {
     return (
       <Card className="flex flex-col items-center justify-center text-center p-8 border-dashed h-full">
@@ -323,8 +372,19 @@ function ModuleTable({ modules, onInvite, onLeave, title }: ModuleTableProps) {
         <div className="md:hidden grid gap-4">
           {modules.map(module => (
             <div key={module.id} className="p-4 border rounded-lg space-y-3">
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start gap-3">
                 <p className="font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary"/>{module.name}</p>
+                <div className="flex items-center gap-2">
+                  {module.owner === 'other' && module.sharedWith.some(a => a.status === 'pending') ? (
+                    <Badge variant="destructive">Convite Pendente</Badge>
+                  ) : module.owner === 'other' ? (
+                    <Badge variant="default">Compartilhado</Badge>
+                  ) : module.sharedWith.some(a => a.status === 'pending') ? (
+                    <Badge variant="amber">Pendências</Badge>
+                  ) : module.sharedWith.length > 0 ? (
+                    <Badge variant="default">Compartilhado</Badge>
+                  ) : null}
+                </div>
                 <ModuleActions module={module} onInvite={onInvite} onLeave={onLeave} />
               </div>
               <div className="space-y-1 text-sm text-muted-foreground">
@@ -367,7 +427,20 @@ function ModuleTable({ modules, onInvite, onLeave, title }: ModuleTableProps) {
                       })}
                     </div>
                   </TableCell>
-                  <TableCell>{module.ownerName}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>{module.ownerName}</span>
+                      {module.owner === 'other' && module.sharedWith.some(a => a.status === 'pending') ? (
+                        <Badge variant="destructive">Pendente</Badge>
+                      ) : module.owner === 'other' ? (
+                        <Badge variant="default">Compartilhado</Badge>
+                      ) : module.sharedWith.some(a => a.status === 'pending') ? (
+                        <Badge variant="amber">Pendências</Badge>
+                      ) : module.sharedWith.length > 0 ? (
+                        <Badge variant="default">Compartilhado</Badge>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell>{format(new Date(module.updatedAt), "dd/MM/yyyy")}</TableCell>
                   <TableCell className="text-right">
                     <ModuleActions module={module} onInvite={onInvite} onLeave={onLeave} />
@@ -382,7 +455,7 @@ function ModuleTable({ modules, onInvite, onLeave, title }: ModuleTableProps) {
   );
 }
 
-function ModuleActions({module, onInvite, onLeave}: {module: Module, onInvite?: (m: Module) => void, onLeave?: (m: Module) => void}) {
+function ModuleActions({module, onInvite, onAccept, onLeave}: {module: Module, onInvite?: (m: Module) => void, onAccept?: (m: Module) => void, onLeave?: (m: Module) => void}) {
   if(module.owner === 'me') {
     return (
       <Button variant="outline" size="sm" onClick={() => onInvite?.(module)}>
@@ -390,14 +463,26 @@ function ModuleActions({module, onInvite, onLeave}: {module: Module, onInvite?: 
       </Button>
     )
   }
+
+  const pendingInvite = module.sharedWith.some(access => access.status === 'pending');
+
   return (
-    <DropdownMenu>
-        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem onSelect={() => onLeave?.(module)} className="text-destructive focus:text-destructive">
-            <Trash2 className="mr-2 h-4 w-4"/>Sair do Módulo
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center justify-end gap-2">
+      {pendingInvite ? (
+        <>
+          <Badge variant="destructive">Convite Pendente</Badge>
+          <Button variant="default" size="sm" onClick={() => onAccept?.(module)}>
+            <Users className="mr-2 h-4 w-4"/>Aceitar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onLeave?.(module)}>
+            <Trash2 className="mr-2 h-4 w-4"/>Recusar
+          </Button>
+        </>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => onLeave?.(module)}>
+          <Trash2 className="mr-2 h-4 w-4"/>Sair
+        </Button>
+      )}
+    </div>
   )
 }
