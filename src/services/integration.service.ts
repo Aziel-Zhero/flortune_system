@@ -77,6 +77,72 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
 
   } catch (err: any) {
      console.error(`Error updating integration for telegram:`, err);
-    return { data: null, error: err.message || "Falha ao salvar credenciais." };
+    const message = err.message || "Falha ao salvar credenciais.";
+    if (message.includes('greeting_message') || message.includes('history_message') || message.includes('test_message')) {
+      return { data: null, error: "A tabela 'telegram' precisa conter as colunas greeting_message, history_message e test_message. Atualize o schema usando docs/database_schema.sql." };
+    }
+    return { data: null, error: message };
+  }
+}
+
+export type TelegramMessageAction = 'greeting' | 'history' | 'test' | 'custom';
+
+export async function sendTelegramMessage(action: TelegramMessageAction, customText?: string): Promise<ServiceResponse<null>> {
+  if (!supabaseAdmin) {
+    const errorMsg = "Conexão administrativa com o banco de dados não está disponível para enviar Telegram.";
+    console.error(errorMsg);
+    return { data: null, error: errorMsg };
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('telegram')
+      .select('bot_token, chat_id, greeting_message, history_message, test_message')
+      .eq('id', 1)
+      .single();
+
+    if (error) {
+      if (error.message.includes("relation") && error.message.includes("does not exist")) {
+        return { data: null, error: "Tabela 'telegram' não encontrada. Execute o script SQL no seu painel Supabase." };
+      }
+      throw error;
+    }
+
+    const botToken = data?.bot_token;
+    const chatId = data?.chat_id;
+    if (!botToken || !chatId) {
+      return { data: null, error: "O token do bot e o Chat ID precisam estar configurados para enviar mensagens." };
+    }
+
+    let text = '';
+    if (action === 'greeting') {
+      text = data?.greeting_message || 'Olá! Esta é uma saudação automática do Flortune via Telegram.';
+    } else if (action === 'history') {
+      text = data?.history_message || 'Aqui está o histórico desejado. Use esta mensagem como exemplo.';
+    } else if (action === 'test') {
+      text = data?.test_message || 'Esta é uma mensagem de teste enviada pelo Flortune.';
+    } else if (action === 'custom') {
+      text = customText?.trim() || '';
+    }
+
+    if (!text) {
+      return { data: null, error: "A mensagem está vazia. Configure a mensagem no Telegram ou informe uma mensagem customizada." };
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text })
+    });
+
+    const result = await response.json();
+    if (!response.ok || result.ok === false) {
+      throw new Error(result.description || 'Falha ao enviar a mensagem pelo Telegram.');
+    }
+
+    return { data: null, error: null };
+  } catch (err: any) {
+    console.error(`Error sending Telegram message:`, err);
+    return { data: null, error: err.message || 'Falha ao enviar a mensagem pelo Telegram.' };
   }
 }

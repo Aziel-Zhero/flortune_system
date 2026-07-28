@@ -13,13 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Users, Search, MoreHorizontal, Gift, User, Send, Calendar, Clock, MailIcon, Ban, CheckCircle, RotateCcw, Loader2, AlertCircle } from "lucide-react";
+import { Users, Search, MoreHorizontal, Gift, User, Send, Calendar, Clock, MailIcon, Ban, CheckCircle, RotateCcw, Loader2, AlertCircle, BellRing } from "lucide-react";
 import { APP_NAME, PRICING_TIERS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format, differenceInSeconds } from 'date-fns';
 import type { Profile } from "@/types/database.types";
+import { useAppSettings } from "@/contexts/app-settings-context";
 import { getLeads, getProposedLeads, sendLeadOffer, deleteProposedLead } from "@/services/admin.service";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -43,6 +44,7 @@ export default function LeadsPage() {
   const [detailsLead, setDetailsLead] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTableMissing, setIsTableMissing] = useState(false);
+  const { addNotification } = useAppSettings();
 
   // States para o formulário de oferta
   const [selectedPlanId, setSelectedPlanId] = useState("");
@@ -149,6 +151,13 @@ export default function LeadsPage() {
       if (error) throw new Error(error);
 
       toast({ title: "Proposta Enviada!", description: `A oferta foi salva no banco de dados e enviada para ${selectedLead.email}.` });
+
+      addNotification({
+        title: "Proposta de Lead Enviada",
+        description: `A oferta para ${selectedLead.email} foi gerada e persistida com sucesso.`,
+        icon: BellRing,
+        color: "primary",
+      });
       
       // Remove do estado local de leads
       setLeads(prev => prev.filter(l => l.id !== selectedLead.id));
