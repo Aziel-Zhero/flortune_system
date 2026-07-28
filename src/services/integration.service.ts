@@ -8,6 +8,10 @@ import type { ServiceResponse } from "@/types/database.types";
 interface TelegramCredentials {
     bot_token: string;
     chat_id: string;
+    greeting_message?: string | null;
+    history_message?: string | null;
+    test_message?: string | null;
+    updated_at?: string | null;
 }
 
 export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<TelegramCredentials | null>> {
@@ -19,15 +23,15 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
 
   try {
     const { data, error } = await supabaseAdmin
-        .from('telegram_integration')
-        .select('bot_token, chat_id')
+        .from('telegram')
+        .select('bot_token, chat_id, greeting_message, history_message, test_message, updated_at')
         .eq('id', 1)
         .single();
         
     if (error) {
         if (error.code === 'PGRST116') return { data: null, error: null };
         if (error.message.includes("relation") && error.message.includes("does not exist")) {
-            return { data: null, error: "Tabela 'telegram_integration' não encontrada. Verifique o schema SQL." };
+            return { data: null, error: "Tabela 'telegram' não encontrada. Verifique o schema SQL." };
         }
         throw error;
     }
@@ -49,11 +53,14 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
 
   try {
     const { data: updatedData, error } = await supabaseAdmin
-        .from('telegram_integration')
+        .from('telegram')
         .upsert({
             id: 1,
             bot_token: credentials.bot_token,
             chat_id: credentials.chat_id,
+            greeting_message: credentials.greeting_message,
+            history_message: credentials.history_message,
+            test_message: credentials.test_message,
             updated_at: new Date().toISOString()
         })
         .select()
@@ -61,7 +68,7 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
 
     if (error) {
         if (error.message.includes("relation") && error.message.includes("does not exist")) {
-            throw new Error("A tabela 'telegram_integration' não existe. Execute o script SQL no seu painel Supabase.");
+            throw new Error("A tabela 'telegram' não existe. Execute o script SQL no seu painel Supabase.");
         }
         throw error;
     }

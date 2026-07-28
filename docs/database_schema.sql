@@ -316,5 +316,56 @@ CREATE POLICY "Admins podem atualizar todos os perfis"
   USING (public.is_admin(auth.uid()))
   WITH CHECK (public.is_admin(auth.uid()));
 
+-- ---------------------------------------------------------------------------------
+-- SEÇÃO DE NOTIFICAÇÕES DE USUÁRIOS
+-- ---------------------------------------------------------------------------------
+
+-- Tabela de Notificações Persistentes
+-- user_id = NULL significa notificação global (broadcast para todos os usuários)
+CREATE TABLE IF NOT EXISTS public.user_notifications (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    icon TEXT,
+    color TEXT DEFAULT 'primary' CHECK (color IN ('primary', 'destructive', 'amber', 'blue')),
+    read BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+COMMENT ON TABLE public.user_notifications IS 'Notificações persistentes para usuários. user_id NULL = broadcast global.';
+
+-- Habilitar RLS
+ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Usuários podem ver suas próprias notificações E notificações globais (user_id IS NULL)
+DROP POLICY IF EXISTS "Usuários podem ver suas próprias notificações e globais" ON public.user_notifications;
+CREATE POLICY "Usuários podem ver suas próprias notificações e globais"
+  ON public.user_notifications FOR SELECT
+  USING (user_id = auth.uid() OR user_id IS NULL);
+
+-- Usuários podem marcar suas próprias notificações como lidas (update apenas do campo read)
+DROP POLICY IF EXISTS "Usuários podem atualizar suas próprias notificações" ON public.user_notifications;
+CREATE POLICY "Usuários podem atualizar suas próprias notificações"
+  ON public.user_notifications FOR UPDATE
+  USING (user_id = auth.uid());
+
+-- Usuários podem deletar suas próprias notificações
+DROP POLICY IF EXISTS "Usuários podem deletar suas próprias notificações" ON public.user_notifications;
+CREATE POLICY "Usuários podem deletar suas próprias notificações"
+  ON public.user_notifications FOR DELETE
+  USING (user_id = auth.uid());
+
+-- Apenas admins (via service_role / supabaseAdmin) podem inserir notificações
+-- Notificações são criadas pelo backend (service role), não pelo cliente anon
+DROP POLICY IF EXISTS "Service role pode inserir notificações" ON public.user_notifications;
+CREATE POLICY "Service role pode inserir notificações"
+  ON public.user_notifications FOR INSERT
+  WITH CHECK (true);
+
+-- Habilitar Realtime para a tabela de notificações
+-- ATENÇÃO: Após executar este script, vá em Database > Replication no painel Supabase
+-- e habilite a tabela user_notifications para receber eventos em tempo real.
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_notifications;
+
 -- FIM DO SCRIPT
 

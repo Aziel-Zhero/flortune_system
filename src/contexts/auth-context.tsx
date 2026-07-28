@@ -17,6 +17,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   update: (newSessionData: Partial<Session>) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,8 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const refreshSession = useCallback(async () => {
+    if (!supabase) return;
+
+    try {
+      const { data: { session: newSupabaseSession } } = await supabase.auth.getSession();
+      await fetchProfileAndSetSession(newSupabaseSession);
+    } catch (error) {
+      console.error('AuthContext Refresh Error:', error);
+    }
+  }, [fetchProfileAndSetSession]);
+
   return (
-    <AuthContext.Provider value={{ session, isLoading, update: updateSessionManually }}>
+    <AuthContext.Provider value={{ session, isLoading, update: updateSessionManually, refresh: refreshSession }}>
       {children}
     </AuthContext.Provider>
   );

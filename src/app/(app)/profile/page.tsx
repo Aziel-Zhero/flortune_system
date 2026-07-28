@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { session, isLoading, update: updateSession } = useSession();
+  const { session, isLoading, update: updateSession, refresh } = useSession();
 
   const userFromSession = session?.user;
   const profileFromSession = session?.user?.profile;
@@ -134,14 +134,19 @@ export default function ProfilePage() {
   const handleSwitchRole = async (role: 'user' | 'admin') => {
     if (!userFromSession?.id || !supabase) return;
     const { data, error } = await supabase.from('profiles').update({ role }).eq('id', userFromSession.id).select().single();
-    if (!error && data && session) {
-        await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
-        toast({ title: "Permissão Alterada", description: "Redirecionando..." });
-        
-        setTimeout(() => {
-            window.location.href = role === 'admin' ? '/dashboard-admin' : '/dashboard';
-        }, 500);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      return;
     }
+    if (!session) return;
+
+    const { data: refreshedProfile, error: refreshError } = await supabase.from('profiles').select('*').eq('id', userFromSession.id).single();
+    const profileData = refreshedProfile || data;
+
+    await updateSession({ ...session, user: { ...session.user, profile: profileData as Profile } as any });
+    await refresh();
+    toast({ title: "Permissão Alterada", description: "Redirecionando..." });
+    router.replace(role === 'admin' ? '/dashboard-admin' : '/dashboard');
   };
   
   if (isLoading) {

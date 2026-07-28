@@ -17,6 +17,10 @@ import { getIntegration, updateIntegration } from '@/services/integration.servic
 export default function TelegramPage() {
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
+  const [greetingMessage, setGreetingMessage] = useState("");
+  const [historyMessage, setHistoryMessage] = useState("");
+  const [testMessage, setTestMessage] = useState("");
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,6 +35,10 @@ export default function TelegramPage() {
     if (data) {
         setBotToken(data.bot_token || "");
         setChatId(data.chat_id || "");
+        setGreetingMessage(data.greeting_message || "");
+        setHistoryMessage(data.history_message || "");
+        setTestMessage(data.test_message || "");
+        setUpdatedAt(data.updated_at || null);
     }
     setIsLoading(false);
   }
@@ -43,13 +51,17 @@ export default function TelegramPage() {
     setIsSaving(true);
     const { error } = await updateIntegration({
         bot_token: botToken, 
-        chat_id: chatId 
+        chat_id: chatId,
+        greeting_message: greetingMessage,
+        history_message: historyMessage,
+        test_message: testMessage,
     });
 
     if (error) {
         toast({ title: "Erro ao Salvar", description: error, variant: "destructive" });
     } else {
-        toast({ title: "Configuração Salva!", description: "As credenciais do bot do Telegram foram salvas com sucesso." });
+        toast({ title: "Configuração Salva!", description: "As frases e credenciais do Telegram foram salvas com sucesso." });
+        loadCredentials();
     }
     setIsSaving(false);
   };
@@ -97,10 +109,29 @@ export default function TelegramPage() {
                             </div>
                         </div>
                     </div>
-                    <Button onClick={handleSaveCredentials} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Salvar Credenciais Reais
-                    </Button>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="greetingMessage">Frase de Saudação</Label>
+                            <Textarea id="greetingMessage" value={greetingMessage} onChange={(e) => setGreetingMessage(e.target.value)} placeholder="Olá! Aqui está o seu resumo diário..." />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="historyMessage">Histórico e Mensagem de Relatório</Label>
+                            <Textarea id="historyMessage" value={historyMessage} onChange={(e) => setHistoryMessage(e.target.value)} placeholder="Últimos resultados: ..." />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="testMessage">Mensagem de Teste</Label>
+                            <Textarea id="testMessage" value={testMessage} onChange={(e) => setTestMessage(e.target.value)} placeholder="Teste: este é um alerta do bot." />
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div className="text-sm text-muted-foreground">
+                            {updatedAt ? `Última atualização: ${new Date(updatedAt).toLocaleString('pt-BR')}` : 'Nenhuma configuração salva ainda.'}
+                        </div>
+                        <Button onClick={handleSaveCredentials} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            Salvar Credenciais e Frases
+                        </Button>
+                    </div>
                 </div>
              )}
           </div>
