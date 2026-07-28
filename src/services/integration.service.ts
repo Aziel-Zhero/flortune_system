@@ -8,11 +8,11 @@ import type { ServiceResponse } from "@/types/database.types";
 interface TelegramCredentials {
     bot_token: string;
     chat_id: string;
-    greeting_message?: string | null;
-    history_message?: string | null;
-    test_message?: string | null;
     updated_at?: string | null;
 }
+
+const DEFAULT_TELEGRAM_GREETING = 'Olá! Sou o bot do Flortune e estarei aqui para te ajudar com notificações importantes.';
+const DEFAULT_TELEGRAM_TEST = 'Esta é uma mensagem de teste enviada pelo Flortune via Telegram.';
 
 export async function getIntegration(service: 'telegram'): Promise<ServiceResponse<TelegramCredentials | null>> {
   if (!supabaseAdmin) {
@@ -24,7 +24,7 @@ export async function getIntegration(service: 'telegram'): Promise<ServiceRespon
   try {
     const { data, error } = await supabaseAdmin
         .from('telegram')
-        .select('bot_token, chat_id, greeting_message, history_message, test_message, updated_at')
+        .select('bot_token, chat_id, updated_at')
         .eq('id', 1)
         .single();
         
@@ -58,9 +58,6 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
             id: 1,
             bot_token: credentials.bot_token,
             chat_id: credentials.chat_id,
-            greeting_message: credentials.greeting_message,
-            history_message: credentials.history_message,
-            test_message: credentials.test_message,
             updated_at: new Date().toISOString()
         })
         .select()
@@ -79,7 +76,7 @@ export async function updateIntegration(credentials: TelegramCredentials): Promi
      console.error(`Error updating integration for telegram:`, err);
     const message = err.message || "Falha ao salvar credenciais.";
     if (message.includes('greeting_message') || message.includes('history_message') || message.includes('test_message')) {
-      return { data: null, error: "A tabela 'telegram' precisa conter as colunas greeting_message, history_message e test_message. Atualize o schema usando docs/database_schema.sql." };
+      return { data: null, error: "A tabela 'telegram' precisa conter bot_token e chat_id. Atualize o schema usando docs/database_schema.sql." };
     }
     return { data: null, error: message };
   }
@@ -97,7 +94,7 @@ export async function sendTelegramMessage(action: TelegramMessageAction, customT
   try {
     const { data, error } = await supabaseAdmin
       .from('telegram')
-      .select('bot_token, chat_id, greeting_message, history_message, test_message')
+      .select('bot_token, chat_id')
       .eq('id', 1)
       .single();
 
@@ -116,11 +113,9 @@ export async function sendTelegramMessage(action: TelegramMessageAction, customT
 
     let text = '';
     if (action === 'greeting') {
-      text = data?.greeting_message || 'Olá! Esta é uma saudação automática do Flortune via Telegram.';
-    } else if (action === 'history') {
-      text = data?.history_message || 'Aqui está o histórico desejado. Use esta mensagem como exemplo.';
+      text = DEFAULT_TELEGRAM_GREETING;
     } else if (action === 'test') {
-      text = data?.test_message || 'Esta é uma mensagem de teste enviada pelo Flortune.';
+      text = customText?.trim() || DEFAULT_TELEGRAM_TEST;
     } else if (action === 'custom') {
       text = customText?.trim() || '';
     }

@@ -150,11 +150,11 @@ export default function LeadsPage() {
 
       if (error) throw new Error(error);
 
-      toast({ title: "Proposta Enviada!", description: `A oferta foi salva no banco de dados e enviada para ${selectedLead.email}.` });
+      toast({ title: "Proposta Enviada!", description: `A oferta foi salva no banco de dados e enviada para ${selectedLead.display_name || selectedLead.email}.` });
 
       addNotification({
-        title: "Proposta de Lead Enviada",
-        description: `A oferta para ${selectedLead.email} foi gerada e persistida com sucesso.`,
+        title: offerTitle || `Proposta para ${selectedLead.display_name || selectedLead.email}`,
+        description: `${offerMessage || 'Oferta criada com sucesso.'}`,
         icon: BellRing,
         color: "primary",
       });
