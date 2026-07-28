@@ -47,7 +47,7 @@ export default function AppLayout({
             <div className="hidden md:flex flex-col w-16 border-r bg-background p-2 space-y-2">
                 {Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-8 w-8 rounded-md" />)}
             </div>
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 min-w-0">
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 min-w-0 md:pl-[var(--sidebar-width)]">
                 <div className="max-w-[1850px] mx-auto w-full">
                   <Skeleton className="h-12 w-1/3 mb-6" />
                   <Skeleton className="h-64 w-full rounded-lg" />
@@ -69,7 +69,7 @@ export default function AppLayout({
         <AppHeader />
         <div className="flex flex-1 pt-16"> 
           <AppSidebar />
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 min-w-0">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 min-w-0 md:pl-[var(--sidebar-width)]">
             <div className="max-w-[1850px] mx-auto w-full h-full">
               {children}
             </div>

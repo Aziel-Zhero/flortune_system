@@ -238,7 +238,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">Em breve, você poderá compartilhar módulos financeiros específicos com outros usuários, definindo permissões de visualização ou edição.</p>
-            <Button variant="outline" onClick={() => setIsShareModalOpen(true)} disabled>Gerenciar Módulos Compartilhados</Button>
+            <Button variant="outline" onClick={() => setIsShareModalOpen(true)}>Gerenciar Módulos Compartilhados</Button>
           </CardContent>
         </Card>
 

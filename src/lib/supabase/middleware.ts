@@ -23,7 +23,7 @@ export async function updateSession(request: NextRequest) {
             name,
             value,
             ...options,
-            httpOnly: true,
+            httpOnly: false,
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
           })
@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
             value: '',
             ...options,
             maxAge: 0,
-            httpOnly: true,
+            httpOnly: false,
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
           })

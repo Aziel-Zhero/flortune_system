@@ -75,8 +75,12 @@ export default function ProfilePage() {
 
   const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault();
-    if (!userFromSession?.id || !supabase) {
+    if (!userFromSession?.id) {
       toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
+      return;
+    }
+    if (!supabase) {
+      toast({ title: "Erro de Configuração", description: "Serviço de armazenamento (Supabase) não está configurado. Verifique variáveis de ambiente.", variant: "destructive" });
       return;
     }
     setIsSavingProfile(true);
@@ -88,8 +92,9 @@ export default function ProfilePage() {
         const fileExt = avatarFile.name.split('.').pop();
         const filePath = `${userFromSession.id}/avatar-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
-        if (uploadError) throw new Error("Erro ao enviar imagem.");
+        if (uploadError) throw new Error(uploadError.message || "Erro ao enviar imagem.");
         const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        if (!data || !data.publicUrl) throw new Error('Não foi possível obter a URL pública da imagem.');
         publicAvatarUrl = data.publicUrl;
       }
       

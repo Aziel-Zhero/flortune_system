@@ -24,6 +24,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, UserPlus, Send } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAppSettings } from '@/contexts/app-settings-context';
 
 interface SharedUser {
   id: string;
@@ -49,6 +50,7 @@ interface ShareModuleDialogProps {
 }
 
 export function ShareModuleDialog({ isOpen, onOpenChange }: ShareModuleDialogProps) {
+  const { addNotification } = useAppSettings();
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>(initialSharedUsers);
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedModule, setSelectedModule] = useState("");
@@ -75,6 +77,9 @@ export function ShareModuleDialog({ isOpen, onOpenChange }: ShareModuleDialogPro
       title: "Convite Enviado",
       description: `${inviteEmail} foi convidado para o módulo "${selectedModule}".`,
     });
+    try {
+      addNotification({ title: 'Compartilhamento', description: `${inviteEmail} foi convidado para ${selectedModule}.`, icon: UserPlus, color: 'primary' });
+    } catch (e) {}
     setInviteEmail("");
     setSelectedModule("");
     setSelectedPermission("view");
@@ -88,6 +93,7 @@ export function ShareModuleDialog({ isOpen, onOpenChange }: ShareModuleDialogPro
             title: "Acesso Revogado",
             description: `O acesso de ${userToRevoke.email} foi revogado.`,
         });
+      try { addNotification({ title: 'Compartilhamento', description: `Acesso de ${userToRevoke.email} revogado para ${userToRevoke.module}.`, icon: Trash2, color: 'destructive' }); } catch (e) {}
     }
   };
 

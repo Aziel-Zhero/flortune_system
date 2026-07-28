@@ -248,7 +248,7 @@ export default function TransactionsPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <Table className="min-w-[640px]">
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[100px] sm:w-[120px]">
