@@ -134,9 +134,16 @@ export default function AdminProfilePage() {
     }
     if (!session) return;
 
-    const profileData = data;
+    const { data: refreshedProfile, error: refreshError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userFromSession.id)
+      .maybeSingle();
+
+    const profileData = refreshedProfile || data;
     if (!profileData) {
       toast({ title: "Erro", description: "Não foi possível atualizar o perfil.", variant: "destructive" });
+      if (refreshError) console.error('Perfil refresh falhou:', refreshError);
       return;
     }
 
