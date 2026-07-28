@@ -127,6 +127,7 @@ export default function ProfilePage() {
     const { data, error } = await supabase.from('profiles').update({ plan_id: planId }).eq('id', userFromSession.id).select().maybeSingle();
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
+        try { await refresh(); } catch (e) {}
         toast({ title: "Plano Alterado", description: `Plano atualizado para ${planId}.` });
     }
   };
@@ -154,6 +155,7 @@ export default function ProfilePage() {
     }
 
     await updateSession({ ...session, user: { ...session.user, profile: profileData as Profile } as any });
+    try { await refresh(); } catch (e) {}
     toast({ title: "Permissão Alterada", description: "Redirecionando..." });
     router.replace(role === 'admin' ? '/dashboard-admin' : '/dashboard');
   };

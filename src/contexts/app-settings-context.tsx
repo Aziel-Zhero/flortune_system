@@ -108,6 +108,7 @@ const defaultPopupConfigs: Record<PopupType, PopupConfig> = {
 
 export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   const lastFetchTime = useRef<number>(0);
+  const lastFetchedCodes = useRef<string>('');
   const cacheDuration = 180000; 
   const rateLimitPauseUntil = useRef<number>(0);
 
@@ -139,9 +140,18 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const now = Date.now();
-    if (!force && (now < rateLimitPauseUntil.current || (now - lastFetchTime.current < cacheDuration))) {
+    const codesKey = validQuotes.join(',');
+    // If not forced, respect rate limit OR cache duration only when the requested codes
+    // are the same as the last fetched set. If codes changed, allow fetching.
+    if (!force) {
+      if (now < rateLimitPauseUntil.current) {
         setState((p: any) => ({ ...p, isLoadingQuotes: false }));
         return;
+      }
+      if ((now - lastFetchTime.current < cacheDuration) && codesKey === lastFetchedCodes.current) {
+        setState((p: any) => ({ ...p, isLoadingQuotes: false }));
+        return;
+      }
     }
 
     setState((p: any) => ({ ...p, isLoadingQuotes: true, quotesError: null }));
@@ -154,6 +164,7 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
         }
         if (!response.ok) throw new Error(result.error || 'Erro na API');
         lastFetchTime.current = now;
+        lastFetchedCodes.current = codesKey;
         const quotesArray = Array.isArray(result.data) ? result.data : Object.values(result.data || {});
         setState((p: any) => ({ ...p, quotes: quotesArray, quotesError: null }));
     } catch (err: any) {
