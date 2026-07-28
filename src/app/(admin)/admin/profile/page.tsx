@@ -118,7 +118,7 @@ export default function AdminProfilePage() {
 
   const handleSwitchPlan = async (planId: string) => {
     if (!userFromSession?.id || !supabase) return;
-    const { data, error } = await supabase.from('profiles').update({ plan_id: planId }).eq('id', userFromSession.id).select().single();
+    const { data, error } = await supabase.from('profiles').update({ plan_id: planId }).eq('id', userFromSession.id).select().maybeSingle();
     if (!error && data && session) {
         await updateSession({ ...session, user: { ...session.user, profile: data as Profile } as any });
         toast({ title: "Plano Alterado", description: `Plano atualizado para ${planId}.` });
@@ -127,15 +127,18 @@ export default function AdminProfilePage() {
 
   const handleSwitchRole = async (role: 'user' | 'admin') => {
     if (!userFromSession?.id || !supabase) return;
-    const { data, error } = await supabase.from('profiles').update({ role }).eq('id', userFromSession.id).select().single();
+    const { data, error } = await supabase.from('profiles').update({ role }).eq('id', userFromSession.id).select().maybeSingle();
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
     }
     if (!session) return;
 
-    const { data: refreshedProfile, error: refreshError } = await supabase.from('profiles').select('*').eq('id', userFromSession.id).single();
-    const profileData = refreshedProfile || data;
+    const profileData = data;
+    if (!profileData) {
+      toast({ title: "Erro", description: "Não foi possível atualizar o perfil.", variant: "destructive" });
+      return;
+    }
 
     await updateSession({ ...session, user: { ...session.user, profile: profileData as Profile } as any });
     await refresh();
