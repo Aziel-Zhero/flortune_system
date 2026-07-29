@@ -197,7 +197,11 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
     },
     loadQuotes,
     setWeatherCity: (city: string | null) => setState((p: any) => ({...p, weatherCity: city})),
-    setSelectedQuotes: (quotes: string[]) => setState((p: any) => ({...p, selectedQuotes: quotes})),
+    setSelectedQuotes: (quotes: string[]) => {
+      const uniqueQuotes = [...new Set(quotes)].slice(0, 5);
+      localStorage.setItem('flortune-selected-quotes', JSON.stringify(uniqueQuotes));
+      setState((p: any) => ({...p, selectedQuotes: uniqueQuotes}));
+    },
     setActiveCampaignTheme: (theme: CampaignTheme) => setState((p: any) => ({...p, activeCampaignTheme: theme})),
     setLandingPageContent: (content: any) => setState((p: any) => ({...p, landingPageContent: content})),
     setPopupConfigs: (configs: any) => setState((p: any) => ({...p, popupConfigs: configs})),
@@ -215,6 +219,15 @@ export const AppSettingsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (state.selectedQuotes.length > 0) loadQuotes(state.selectedQuotes);
   }, [state.selectedQuotes, loadQuotes]);
+
+  useEffect(() => {
+    try {
+      const savedQuotes = JSON.parse(localStorage.getItem('flortune-selected-quotes') || '[]');
+      if (Array.isArray(savedQuotes) && savedQuotes.length > 0) {
+        setState((previous: any) => ({ ...previous, selectedQuotes: [...new Set(savedQuotes.filter(Boolean))].slice(0, 5) }));
+      }
+    } catch {}
+  }, []);
 
   return (<AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>);
 };

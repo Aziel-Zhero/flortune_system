@@ -202,7 +202,8 @@ export default function NotepadPage() {
       />
 
       {/* Formulário */}
-      <Card className="mb-6 shadow-lg">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(20rem,0.42fr)_minmax(0,1fr)] lg:items-start">
+      <Card className="shadow-lg lg:sticky lg:top-4">
         <CardHeader>
           <CardTitle className="font-headline">{editingNote ? "Editar Anotação" : "Nova Anotação"}</CardTitle>
         </CardHeader>
@@ -258,6 +259,7 @@ export default function NotepadPage() {
       </Card>
 
       {/* Lista de notas */}
+      <div className="min-w-0">
       {notes.length === 0 && !isInitialLoad && (
         <div className="text-center py-10 text-muted-foreground">
           <NotebookPen className="h-16 w-16 mx-auto mb-4 opacity-30" />
@@ -305,6 +307,8 @@ export default function NotepadPage() {
           </div>
         </SortableContext>
       </DndContext>
+      </div>
+      </div>
     </div>
   );
 }

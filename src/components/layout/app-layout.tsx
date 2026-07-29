@@ -56,9 +56,9 @@ export default function AppLayout({
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen flex-col bg-background overflow-hidden">
+      <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col bg-background overflow-hidden">
         <AppHeader />
-        <div className="flex flex-1 pt-16"> 
+        <div className="flex w-full min-w-0 flex-1 pt-16">
           <AppSidebar />
           <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
             {children}
