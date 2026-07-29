@@ -199,7 +199,7 @@ export default function CalendarPage() {
         icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
       />
       <div className="flex flex-1 flex-col lg:flex-row gap-6 w-full h-full">
-        <div className="flex-1 bg-card border rounded-lg shadow-sm min-h-[600px] w-full min-w-0">
+        <div className="flex-1 bg-card border rounded-lg shadow-sm min-h-[360px] lg:min-h-[520px] max-h-[calc(100vh-220px)] w-full min-w-0 overflow-hidden">
             {isLoading ? (
                 <div className="p-4 space-y-4">
                     <Skeleton className="h-10 w-1/2" />
@@ -227,7 +227,7 @@ export default function CalendarPage() {
                 />
             )}
         </div>
-        <Card className="lg:flex lg:flex-col shadow-sm w-full lg:w-[350px] 2xl:w-[450px] shrink-0">
+        <Card className="lg:flex lg:flex-col shadow-sm w-full max-w-full lg:w-[350px] 2xl:w-[450px] shrink-0">
           <CardHeader>
               <CardTitle className="font-headline text-lg">
                   {selectedDay ? `Eventos de ${format(selectedDay, "d 'de' MMMM", {locale: ptBR})}` : `Eventos de ${format(currentDate, "MMMM", {locale: ptBR})}`}

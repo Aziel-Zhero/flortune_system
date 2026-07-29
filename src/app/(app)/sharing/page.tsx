@@ -77,7 +77,7 @@ const initialModules: Module[] = [
   { 
     id: "mod_1", 
     name: "Finanças da Casa", 
-    sharedWith: [{ id: "access_1", email: "parceiro@example.com", permission: "edit" }],
+    sharedWith: [{ id: "access_1", email: "parceiro@example.com", permission: "edit", status: "accepted" }],
     sections: ['budgets', 'transactions', 'todos'],
     createdAt: "2024-07-20T10:00:00Z",
     updatedAt: "2024-07-25T14:30:00Z",
@@ -88,8 +88,8 @@ const initialModules: Module[] = [
     id: "mod_2", 
     name: "Projeto Freelance Cliente X", 
     sharedWith: [
-      { id: "access_2", email: "cliente@example.com", permission: "view" },
-      { id: "access_3", email: "dev-colega@example.com", permission: "edit" },
+      { id: "access_2", email: "cliente@example.com", permission: "view", status: "accepted" },
+      { id: "access_3", email: "dev-colega@example.com", permission: "edit", status: "accepted" },
     ],
     sections: ['transactions', 'clients', 'kanban'],
     createdAt: "2024-06-15T09:00:00Z",
@@ -103,6 +103,9 @@ const initialModules: Module[] = [
     sharedWith: [
       { id: "access_4", email: "Você", permission: "view", status: "pending" }
     ],
+    sections: ['goals'],
+    createdAt: "2024-05-10T18:00:00Z",
+    updatedAt: "2024-05-10T18:00:00Z",
     owner: 'other',
     ownerName: "Ana S."
   }
@@ -206,30 +209,30 @@ export default function SharingPage() {
     setModuleToLeave(null);
   }
 
-  const handleAcceptInvite = (moduleId: string) => {
+  const handleAcceptInvite = (acceptedModule: Module) => {
     setModules(prev => prev.map(module =>
-      module.id === moduleId
+      module.id === acceptedModule.id
         ? {
             ...module,
             sharedWith: module.sharedWith.map(access => ({ ...access, status: access.status === 'pending' ? 'accepted' : access.status })),
           }
         : module
     ));
-    const acceptedModule = modules.find(m => m.id === moduleId);
-    if (acceptedModule) {
-      toast({ title: 'Convite Aceito', description: `Você aceitou o convite para "${acceptedModule.name}".`});
+    const moduleItem = modules.find(m => m.id === acceptedModule.id);
+    if (moduleItem) {
+      toast({ title: 'Convite Aceito', description: `Você aceitou o convite para "${moduleItem.name}".`});
       addNotification({
         title: 'Compartilhamento',
-        description: `Você aceitou o convite para o módulo "${acceptedModule.name}".`,
+        description: `Você aceitou o convite para o módulo "${moduleItem.name}".`,
         icon: Users,
         color: 'blue',
       });
     }
   };
 
-  const handleDeclineInvite = (moduleId: string) => {
-    const declinedModule = modules.find(m => m.id === moduleId);
-    setModules(prev => prev.filter(module => module.id !== moduleId));
+  const handleDeclineInvite = (moduleToDecline: Module) => {
+    const declinedModule = modules.find(m => m.id === moduleToDecline.id);
+    setModules(prev => prev.filter(item => item.id !== moduleToDecline.id));
     if (declinedModule) {
       toast({ title: 'Convite Recusado', description: `Você recusou o convite para "${declinedModule.name}".`});
       addNotification({
