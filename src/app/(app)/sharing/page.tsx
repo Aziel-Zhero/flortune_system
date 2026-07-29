@@ -73,43 +73,7 @@ const sectionConfig: Record<ModuleSection, { label: string; icon: React.ElementT
   kanban: { label: "Kanban", icon: KanbanSquare },
 };
 
-const initialModules: Module[] = [
-  { 
-    id: "mod_1", 
-    name: "Finanças da Casa", 
-    sharedWith: [{ id: "access_1", email: "parceiro@example.com", permission: "edit", status: "accepted" }],
-    sections: ['budgets', 'transactions', 'todos'],
-    createdAt: "2024-07-20T10:00:00Z",
-    updatedAt: "2024-07-25T14:30:00Z",
-    owner: 'me',
-    ownerName: "Você"
-  },
-  { 
-    id: "mod_2", 
-    name: "Projeto Freelance Cliente X", 
-    sharedWith: [
-      { id: "access_2", email: "cliente@example.com", permission: "view", status: "accepted" },
-      { id: "access_3", email: "dev-colega@example.com", permission: "edit", status: "accepted" },
-    ],
-    sections: ['transactions', 'clients', 'kanban'],
-    createdAt: "2024-06-15T09:00:00Z",
-    updatedAt: "2024-07-22T11:00:00Z",
-    owner: 'me',
-    ownerName: "Você"
-  },
-  {
-    id: "mod_3",
-    name: "Metas de Viagem (com Amigos)",
-    sharedWith: [
-      { id: "access_4", email: "Você", permission: "view", status: "pending" }
-    ],
-    sections: ['goals'],
-    createdAt: "2024-05-10T18:00:00Z",
-    updatedAt: "2024-05-10T18:00:00Z",
-    owner: 'other',
-    ownerName: "Ana S."
-  }
-];
+const initialModules: Module[] = [];
 
 export default function SharingPage() {
   const { addNotification } = useAppSettings();
@@ -183,13 +147,7 @@ export default function SharingPage() {
       status: "pending",
     };
     setModules(prev => prev.map(m => m.id === currentModule.id ? { ...m, sharedWith: [...m.sharedWith, newAccess] } : m));
-    toast({ title: "Convite Enviado", description: `${inviteEmail} foi convidado para o módulo "${currentModule.name}".`, });
-    addNotification({
-      title: 'Compartilhamento',
-      description: `${inviteEmail} recebeu um convite para "${currentModule.name}".`,
-      icon: Users,
-      color: 'primary',
-    });
+    toast({ title: "Convite Enviado", description: `${inviteEmail} foi convidado para o módulo "${currentModule.name}".` });
     setInviteEmail("");
     setIsInviteModalOpen(false);
   }

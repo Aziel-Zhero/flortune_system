@@ -33,10 +33,7 @@ interface SharedUser {
   permission: "view" | "edit";
 }
 
-const initialSharedUsers: SharedUser[] = [
-  { id: "shared_1", email: "amigo@example.com", module: "Orçamento Mensal", permission: "view" },
-  { id: "shared_2", email: "contador@example.com", module: "Todas as Transações", permission: "edit" },
-];
+const initialSharedUsers: SharedUser[] = [];
 
 const availableModules = ["Orçamento Mensal", "Metas de Poupança", "Todas as Transações", "Análise de Gastos"];
 const permissionLevels = [
@@ -77,9 +74,6 @@ export function ShareModuleDialog({ isOpen, onOpenChange }: ShareModuleDialogPro
       title: "Convite Enviado",
       description: `${inviteEmail} foi convidado para o módulo "${selectedModule}".`,
     });
-    try {
-      addNotification({ title: 'Compartilhamento', description: `${inviteEmail} foi convidado para ${selectedModule}.`, icon: UserPlus, color: 'primary' });
-    } catch (e) {}
     setInviteEmail("");
     setSelectedModule("");
     setSelectedPermission("view");
