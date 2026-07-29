@@ -11,16 +11,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Parâmetro "codes" é obrigatório.' }, { status: 400 });
   }
 
-  const query = codes.split(',').map(c => c.trim()).filter(Boolean).join(',');
-  const apiUrl = `https://economia.awesomeapi.com.br/json/last/${query}${token ? `?token=${token}` : ''}`;
+  const requestedCodes = [...new Set(codes.split(',').map(c => c.trim()).filter(Boolean))].slice(0, 5);
 
   try {
-    const response = await axios.get(apiUrl, {
-      headers: { 'User-Agent': 'FlortuneApp/1.0' },
-      timeout: 10000
-    });
-
-    const dataArray = Object.values(response.data || {});
+    // Consultas individuais evitam que uma cotação indisponível faça a API
+    // descartar as demais no mesmo lote.
+    const results = await Promise.allSettled(requestedCodes.map(async (code) => {
+      const apiUrl = `https://economia.awesomeapi.com.br/json/last/${code}${token ? `?token=${token}` : ''}`;
+      const response = await axios.get(apiUrl, { headers: { 'User-Agent': 'FlortuneApp/1.0' }, timeout: 10000 });
+      return Object.values(response.data || {})[0];
+    }));
+    const dataArray = results.flatMap(result => result.status === 'fulfilled' && result.value ? [result.value] : []);
+    if (dataArray.length === 0) throw new Error('Nenhuma cotação pôde ser carregada.');
     
     const res = NextResponse.json({ data: dataArray, error: null });
     res.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');

@@ -472,6 +472,26 @@
     min-width: 0;
   }
 
+  .calendar-shell .fc {
+    height: 100%;
+    font-size: clamp(0.75rem, 0.85vw, 1rem);
+  }
+
+  .calendar-shell .fc-view-harness {
+    min-height: 0;
+  }
+
+  .calendar-shell .fc-daygrid-day-frame {
+    min-height: clamp(4.5rem, 10vh, 9rem);
+  }
+
+  @media (min-width: 1024px) {
+    .calendar-shell .fc-daygrid-body,
+    .calendar-shell .fc-scrollgrid-sync-table {
+      height: 100% !important;
+    }
+  }
+
   @media (max-width: 639px) {
     .recharts-text {
       font-size: 10px;
@@ -484,7 +504,15 @@
     table {
       font-size: 0.8125rem;
     }
+
+    .calendar-shell .fc-header-toolbar {
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .calendar-shell .fc-toolbar-title {
+      font-size: 1.05rem;
+    }
   }
 }
-
 

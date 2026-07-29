@@ -72,7 +72,7 @@ export default function DashboardPage() {
   const user = session?.user;
   const profile = user?.profile;
 
-  const { quotes, isLoadingQuotes, quotesError } = useAppSettings();
+  const { quotes, selectedQuotes, isLoadingQuotes, quotesError } = useAppSettings();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
@@ -388,15 +388,15 @@ export default function DashboardPage() {
           ))}
         </div>
         
-        {(isLoadingQuotes || quotes.length > 0) && (
+        {(isLoadingQuotes || selectedQuotes.length > 0) && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-            {(isLoadingQuotes ? Array(5).fill(0) : quotes).map((quote, index) => {
+            {(isLoadingQuotes ? Array(selectedQuotes.length).fill(0) : selectedQuotes.map((code) => quotes.find((quote) => `${quote.code}-${quote.codein}` === code))).map((quote, index) => {
                 const isLoading = quote === 0;
                 const isAvailable = typeof quote === 'object' && quote !== null && 'name' in quote;
 
                 let pctChange = 0;
                 let isPositive = false;
-                let quoteName = 'Carregando...';
+                let quoteName = isLoading ? 'Carregando...' : selectedQuotes[index];
                 let bid = '0';
 
                 if (isAvailable) {

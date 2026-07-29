@@ -192,14 +192,14 @@ export default function CalendarPage() {
   }, [events, currentDate, selectedDay]);
 
   return (
-    <div className="flex h-full flex-col min-h-[calc(100vh-120px)]">
+    <div className="flex min-h-[calc(100svh-6rem)] w-full max-w-none flex-col">
       <PageHeader
         title="Calendário Financeiro"
         description="Visualize e gerencie seus eventos de forma interativa."
         icon={<CalendarIconLucide className="h-6 w-6 text-primary" />}
       />
-      <div className="flex flex-1 flex-col lg:flex-row gap-6 w-full h-full">
-        <div className="flex-1 bg-card border rounded-lg shadow-sm min-h-[360px] lg:min-h-[520px] max-h-[calc(100vh-220px)] w-full min-w-0 overflow-hidden">
+      <div className="grid w-full flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.42fr)] lg:gap-6">
+        <div className="calendar-shell min-h-[460px] w-full min-w-0 overflow-hidden rounded-lg border bg-card shadow-sm lg:min-h-[calc(100svh-11rem)]">
             {isLoading ? (
                 <div className="p-4 space-y-4">
                     <Skeleton className="h-10 w-1/2" />
@@ -227,7 +227,7 @@ export default function CalendarPage() {
                 />
             )}
         </div>
-        <Card className="lg:flex lg:flex-col shadow-sm w-full max-w-full lg:w-[350px] 2xl:w-[450px] shrink-0">
+        <Card className="flex min-h-[22rem] w-full flex-col shadow-sm lg:min-h-0">
           <CardHeader>
               <CardTitle className="font-headline text-lg">
                   {selectedDay ? `Eventos de ${format(selectedDay, "d 'de' MMMM", {locale: ptBR})}` : `Eventos de ${format(currentDate, "MMMM", {locale: ptBR})}`}

@@ -200,6 +200,11 @@ export default function SharingPage() {
     ));
     const moduleItem = modules.find(m => m.id === acceptedModule.id);
     if (moduleItem) {
+      const currentShared = JSON.parse(localStorage.getItem('flortune-shared-sections') || '[]') as ModuleSection[];
+      localStorage.setItem('flortune-shared-sections', JSON.stringify([...new Set([...currentShared, ...moduleItem.sections])]));
+      window.dispatchEvent(new Event('flortune-shared-modules-updated'));
+    }
+    if (moduleItem) {
       toast({ title: 'Convite Aceito', description: `Você aceitou o convite para "${moduleItem.name}".`});
       addNotification({
         title: 'Compartilhamento',

@@ -26,6 +26,7 @@ import { useAppSettings } from "@/contexts/app-settings-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "../ui/button";
 import { useSession } from "@/contexts/auth-context";
+import { useEffect, useState } from "react";
 
 const getIcon = (iconName?: NavLinkIconName | string): React.ElementType => {
   if (!iconName) return LucideIcons.HelpCircle;
@@ -79,6 +80,17 @@ export function AppSidebar() {
   const user = session?.user;
   const profile = user?.profile;
   const { isMobile, setOpenMobile } = useSidebar();
+  const [sharedSections, setSharedSections] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadSharedSections = () => {
+      try { setSharedSections(JSON.parse(localStorage.getItem('flortune-shared-sections') || '[]')); }
+      catch { setSharedSections([]); }
+    };
+    loadSharedSections();
+    window.addEventListener('flortune-shared-modules-updated', loadSharedSections);
+    return () => window.removeEventListener('flortune-shared-modules-updated', loadSharedSections);
+  }, []);
 
   const displayName = profile?.display_name || user?.email?.split('@')[0] || "Usuário";
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
@@ -184,6 +196,8 @@ export function AppSidebar() {
                   }
                   const IconComponent = getIcon(item.icon);
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                  const sectionByHref: Record<string, string> = { '/goals': 'goals', '/budgets': 'budgets', '/todos': 'todos', '/transactions': 'transactions', '/notepad': 'notepad', '/calendar': 'calendar', '/dev/clients': 'clients', '/dev/kanban': 'kanban' };
+                  const isShared = Boolean(sectionByHref[item.href] && sharedSections.includes(sectionByHref[item.href]));
 
                   return (
                     <SidebarMenuItem key={item.href}>
@@ -194,9 +208,10 @@ export function AppSidebar() {
                         className="justify-start"
                         onClick={closeMobileSidebar}
                       >
-                        <Link href={item.href}>
+                        <Link href={item.href} className={cn(isShared && "text-primary")}>
                           <IconComponent />
                           <span>{item.label}</span>
+                          {isShared && <LucideIcons.Share2 className="ml-auto size-3.5 text-primary group-data-[collapsible=icon]:hidden" aria-label="Módulo compartilhado" />}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
