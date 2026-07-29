@@ -36,6 +36,7 @@ import { APP_NAME } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useAppSettings } from '@/contexts/app-settings-context';
+import { useSession } from '@/contexts/auth-context';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -77,6 +78,8 @@ const initialModules: Module[] = [];
 
 export default function SharingPage() {
   const { addNotification } = useAppSettings();
+  const { session } = useSession();
+  const currentUserEmail = session?.user?.email?.toLowerCase() ?? "";
   const [modules, setModules] = useState<Module[]>(initialModules);
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [newModuleName, setNewModuleName] = useState("");
@@ -147,6 +150,25 @@ export default function SharingPage() {
       status: "pending",
     };
     setModules(prev => prev.map(m => m.id === currentModule.id ? { ...m, sharedWith: [...m.sharedWith, newAccess] } : m));
+    if (inviteEmail.toLowerCase() === currentUserEmail) {
+      const mirrorModule: Module = {
+        id: `shared_${Date.now()}_${currentModule.id}`,
+        name: currentModule.name,
+        sharedWith: [newAccess],
+        sections: currentModule.sections,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        owner: 'other',
+        ownerName: currentModule.ownerName ?? 'Outro usuário',
+      };
+      setModules(prev => [...prev, mirrorModule]);
+      addNotification({
+        title: 'Convite Recebido',
+        description: `Você recebeu um convite para o módulo "${currentModule.name}".`,
+        icon: Users,
+        color: 'primary',
+      });
+    }
     toast({ title: "Convite Enviado", description: `${inviteEmail} foi convidado para o módulo "${currentModule.name}".` });
     setInviteEmail("");
     setIsInviteModalOpen(false);
@@ -309,6 +331,7 @@ interface ModuleTableProps {
   modules: Module[];
   onInvite?: (module: Module) => void;
   onAccept?: (module: Module) => void;
+  onDecline?: (module: Module) => void;
   onLeave?: (module: Module) => void;
   title: string;
 }
@@ -416,7 +439,7 @@ function ModuleTable({ modules, onInvite, onAccept, onLeave, title }: ModuleTabl
   );
 }
 
-function ModuleActions({module, onInvite, onAccept, onLeave}: {module: Module, onInvite?: (m: Module) => void, onAccept?: (m: Module) => void, onLeave?: (m: Module) => void}) {
+function ModuleActions({module, onInvite, onAccept, onDecline, onLeave}: {module: Module, onInvite?: (m: Module) => void, onAccept?: (m: Module) => void, onDecline?: (m: Module) => void, onLeave?: (m: Module) => void}) {
   if(module.owner === 'me') {
     return (
       <Button variant="outline" size="sm" onClick={() => onInvite?.(module)}>
@@ -435,7 +458,7 @@ function ModuleActions({module, onInvite, onAccept, onLeave}: {module: Module, o
           <Button variant="default" size="sm" onClick={() => onAccept?.(module)}>
             <Users className="mr-2 h-4 w-4"/>Aceitar
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onLeave?.(module)}>
+          <Button variant="outline" size="sm" onClick={() => onDecline?.(module)}>
             <Trash2 className="mr-2 h-4 w-4"/>Recusar
           </Button>
         </>
