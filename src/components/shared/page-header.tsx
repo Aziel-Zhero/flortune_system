@@ -19,7 +19,7 @@ export function PageHeader({ title, description, actions, className, icon }: Pag
             <span className="min-w-0">{title}</span>
           </h1>
           {description && (
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground break-words">{description}</p>
           )}
         </div>
         {actions && <div className="flex shrink-0 gap-2 flex-wrap items-center justify-end w-full md:w-auto">{actions}</div>}

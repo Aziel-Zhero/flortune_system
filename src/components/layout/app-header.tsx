@@ -43,8 +43,8 @@ export function AppHeader() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 w-full border-b bg-background/80 backdrop-blur-md h-16">
-      <div className="container mx-auto flex h-full items-center justify-between px-4 md:px-6 max-w-[1850px]">
-        <div className="flex items-center gap-2 md:gap-4">
+      <div className="container mx-auto flex h-full items-center justify-between gap-2 px-3 sm:px-4 md:px-6 max-w-[1850px]">
+        <div className="flex min-w-0 items-center gap-2 md:gap-4">
            <Button variant="ghost" size="icon" onClick={() => setOpenMobile(true)} className="md:hidden -ml-2">
             <Menu className="h-6 w-6" />
             <span className="sr-only">Abrir menu</span>
@@ -61,7 +61,7 @@ export function AppHeader() {
           </Link>
         </div>
 
-        <div className="flex flex-1 items-center justify-end space-x-2 md:space-x-4">
+        <div className="flex min-w-0 flex-1 items-center justify-end space-x-1 sm:space-x-2 md:space-x-4">
           {!isAdminArea && (
             <>
               <form className="hidden md:flex flex-1 max-w-sm">
@@ -97,7 +97,7 @@ export function AppHeader() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80" align="end">
+            <DropdownMenuContent className="w-[calc(100vw-1.5rem)] max-w-80" align="end">
               <DropdownMenuLabel className="flex justify-between items-center">
                 <span>Notificações</span>
                 {notifications.length > 0 && (

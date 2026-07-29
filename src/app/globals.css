@@ -415,11 +415,23 @@
 }
 
 @layer base {
+  html {
+    min-width: 320px;
+    overflow-x: hidden;
+  }
+
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
+    min-width: 320px;
+    overflow-x: hidden;
+    text-size-adjust: 100%;
+  }
+
+  img, svg, canvas {
+    max-width: 100%;
   }
   .font-headline {
     font-family: var(--font-poppins), sans-serif;
@@ -448,5 +460,31 @@
 
 }
 
+@layer components {
+  /* Shared guards for narrow viewports: content keeps its natural width only
+     inside its own scroll container, never expanding the application shell. */
+  main > * {
+    min-width: 0;
+  }
+
+  .recharts-responsive-container,
+  [data-chart] {
+    min-width: 0;
+  }
+
+  @media (max-width: 639px) {
+    .recharts-text {
+      font-size: 10px;
+    }
+
+    [role="dialog"] {
+      max-width: calc(100vw - 2rem);
+    }
+
+    table {
+      font-size: 0.8125rem;
+    }
+  }
+}
 
 
