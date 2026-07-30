@@ -367,5 +367,53 @@ CREATE POLICY "Service role pode inserir notificações"
 -- e habilite a tabela user_notifications para receber eventos em tempo real.
 ALTER PUBLICATION supabase_realtime ADD TABLE public.user_notifications;
 
--- FIM DO SCRIPT
+-- ---------------------------------------------------------------------------------
+-- COMPARTILHAMENTO DE MÓDULOS
+-- ---------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.sharing_modules (
+  id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  owner_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  sections JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
+CREATE TABLE IF NOT EXISTS public.module_shares (
+  id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  module_id UUID NOT NULL REFERENCES public.sharing_modules(id) ON DELETE CASCADE,
+  recipient_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  permission TEXT NOT NULL CHECK (permission IN ('view', 'edit')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(module_id, recipient_id)
+);
+
+ALTER TABLE public.sharing_modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.module_shares ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Proprietários e destinatários veem módulos compartilhados" ON public.sharing_modules;
+CREATE POLICY "Proprietários e destinatários veem módulos compartilhados" ON public.sharing_modules FOR SELECT
+  USING (owner_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.module_shares s WHERE s.module_id = sharing_modules.id AND s.recipient_id = auth.uid()
+  ));
+
+DROP POLICY IF EXISTS "Proprietários e destinatários veem compartilhamentos" ON public.module_shares;
+CREATE POLICY "Proprietários e destinatários veem compartilhamentos" ON public.module_shares FOR SELECT
+  USING (recipient_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.sharing_modules m WHERE m.id = module_shares.module_id AND m.owner_id = auth.uid()
+  ));
+
+DROP POLICY IF EXISTS "Destinatários atualizam seus convites" ON public.module_shares;
+CREATE POLICY "Destinatários atualizam seus convites" ON public.module_shares FOR UPDATE
+  USING (recipient_id = auth.uid()) WITH CHECK (recipient_id = auth.uid());
+
+DROP TRIGGER IF EXISTS update_sharing_modules_updated_at ON public.sharing_modules;
+CREATE TRIGGER update_sharing_modules_updated_at BEFORE UPDATE ON public.sharing_modules
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+DROP TRIGGER IF EXISTS update_module_shares_updated_at ON public.module_shares;
+CREATE TRIGGER update_module_shares_updated_at BEFORE UPDATE ON public.module_shares
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- FIM DO SCRIPT
